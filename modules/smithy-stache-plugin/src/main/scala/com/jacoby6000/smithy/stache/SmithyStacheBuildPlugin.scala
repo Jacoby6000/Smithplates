@@ -33,8 +33,7 @@ final class SmithyStacheBuildPlugin extends SmithyBuildPlugin {
           settings.sql.schemaDialectOutputs.foreach { case (dialect, fileName) =>
             try {
               logger.info(s"Generating ${dialect.key} schema into '$fileName'")
-              val renderer = DialectRenderers.forDialect(dialect)
-              val sql      = renderer.render(schema, serviceIr)
+              val sql = DialectRenderers.render(schema, serviceIr, dialect)
               context.getFileManifest.writeFile(fileName, sql)
             } catch {
               case NonFatal(ex) =>

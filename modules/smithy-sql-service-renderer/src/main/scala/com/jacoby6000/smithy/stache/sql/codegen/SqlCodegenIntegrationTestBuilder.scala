@@ -4,6 +4,7 @@ import com.jacoby6000.smithy.stache.sql.PostgresDialect
 import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 
 object SqlCodegenIntegrationTestBuilder {
@@ -72,10 +73,12 @@ object SqlCodegenIntegrationTestBuilder {
       schema.copy(
         tables = schema.tables.filter(table => tableNames.contains(table.name))
       )
-    dialect match {
-      case PostgresDialect => PostgresRenderer.renderSchemaDdl(filteredSchema)
-      case _               => SqliteRenderer.renderSchemaDdl(filteredSchema)
-    }
+    val ddlStatements  =
+      dialect match {
+        case PostgresDialect => PostgresRenderer.renderSchemaDdlStatements(filteredSchema)
+        case _               => SqliteRenderer.renderSchemaDdlStatements(filteredSchema)
+      }
+    SqlShared.formatDdlStatements(ddlStatements)
   }
 
   private def buildInsertOperation(

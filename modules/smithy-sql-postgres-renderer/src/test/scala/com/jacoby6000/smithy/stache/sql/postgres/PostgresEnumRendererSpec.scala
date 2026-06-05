@@ -1,9 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
-import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
-import com.jacoby6000.smithy.stache.sql.shared.SqlRenderOutput
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
@@ -26,24 +23,19 @@ final class PostgresEnumRendererSpec extends FunSuite {
         |}""".stripMargin
     )
 
-    val extraction = SqlModelExtractor.extractOrThrow(model)
+    val schema     = SqlIrExtractor.extractOrThrow(model)
+    val statements = PostgresRenderer.renderSchemaDdlStatements(schema)
     val enumDdl    =
-      SqlRenderOutput
-        .ddlUnit(
-          PostgresRenderer.renderUnits(extraction.schema, SqlServiceIr()),
-          ShapeId.from("example#Direction")
-        )
+      statements
+        .find(_.shapeId == ShapeId.from("example#Direction"))
         .map(_.statement)
         .getOrElse(fail("CREATE TYPE for example#Direction was not rendered"))
 
     assertEquals(enumDdl, "CREATE TYPE example_direction AS ENUM ('NORTH', 'SOUTH');")
 
     val routeDdl =
-      SqlRenderOutput
-        .ddlUnit(
-          PostgresRenderer.renderUnits(extraction.schema, SqlServiceIr()),
-          ShapeId.from("example#Route")
-        )
+      statements
+        .find(_.shapeId == ShapeId.from("example#Route"))
         .map(_.statement)
         .getOrElse(fail("CREATE TABLE for example#Route was not rendered"))
 

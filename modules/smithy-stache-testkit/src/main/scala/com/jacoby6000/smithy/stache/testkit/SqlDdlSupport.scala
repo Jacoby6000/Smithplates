@@ -1,14 +1,14 @@
 package com.jacoby6000.smithy.stache.testkit
 
 import com.jacoby6000.smithy.stache.sql.SqlSchema
-import com.jacoby6000.smithy.stache.sql.service.DialectRenderer
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
+import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 
 import java.sql.Connection
 import scala.util.Try
 
 object SqlDdlSupport {
-  def renderSchemaDdlStatements(renderer: DialectRenderer, schema: SqlSchema): List[DDLStatement] =
+  def renderSchemaDdlStatements(renderer: SqlSchemaDdlRenderer, schema: SqlSchema): List[DDLStatement] =
     renderer.renderSchemaDdlStatements(schema)
 
   def applyDdl(connection: Connection, statements: Iterable[DDLStatement]): Unit = {
@@ -20,7 +20,7 @@ object SqlDdlSupport {
     finally statement.close()
   }
 
-  def applyDdl(connection: Connection, renderer: DialectRenderer, schema: SqlSchema): Unit =
+  def applyDdl(connection: Connection, renderer: SqlSchemaDdlRenderer, schema: SqlSchema): Unit =
     applyDdl(connection, renderSchemaDdlStatements(renderer, schema))
 
   def assertInsertFails(connection: Connection, sql: String): Unit = {

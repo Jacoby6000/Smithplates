@@ -1,33 +1,17 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.service.DialectRenderer
-import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
-import com.jacoby6000.smithy.stache.sql.service.shared.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
-import com.jacoby6000.smithy.stache.sql.shared.SqlRenderUnit
+import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
-object PostgresRenderer extends DialectRenderer {
+object PostgresRenderer extends SqlSchemaDdlRenderer {
   override val dialect: SqlDialect = PostgresDialect
-
-  override def renderUnits(schema: SqlSchema, serviceIr: SqlServiceIr): List[SqlRenderUnit] = {
-    SqlShared.requireTables(schema)
-    renderSchemaDdlStatements(schema).map(SqlRenderUnit.Ddl(_)) ++
-      SqlQueryRenderer.renderQueryUnits(serviceIr.queries)
-  }
 
   override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
     SqlShared.requireTables(schema)
     preTableEnumStatements(schema) ++ SqlShared.renderDdlStatements(schema, renderColumn)
   }
-
-  def renderSchemaDdl(schema: SqlSchema): String =
-    renderSchemaDdlStatements(schema)
-      .map(SqlRenderUnit.Ddl(_))
-      .map(_.formatted)
-      .filter(_.nonEmpty)
-      .mkString("\n\n")
 
   private def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
     schema.tables
@@ -54,7 +38,7 @@ object PostgresRenderer extends DialectRenderer {
       sqlTypeFor(column.columnType),
       column.nullable,
       checks,
-      column.autoGeneration.map(SqlQueryRenderer.defaultClause(PostgresDialect, _))
+      column.autoGeneration.map(SqlShared.autoGenerationDefaultClause(PostgresDialect, _))
     )
   }
 

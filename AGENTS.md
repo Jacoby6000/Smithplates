@@ -9,7 +9,8 @@
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:
   * `smithy-sql-ir` — schema ADTs, table extraction (`SqlIrExtractor`), shared DDL primitives, `SqlParameterizedStatement`
-  * `smithy-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors, `SqlQueryRenderer`, `DialectRenderer` trait
+  * `smithy-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors, `SqlQueryRenderer`
+  * `smithy-sql-sqlite-renderer` / `smithy-sql-postgres-renderer` — dialect schema DDL only (`SqlSchemaDdlRenderer`); depend on `smithy-sql-ir` only
   * `smithy-sql-postgres-renderer` / `smithy-sql-sqlite-renderer` — dialect DDL + query sections
   * `smithy-sql-service-renderer` — Mustache/Scalate, bundled Python templates, Python-specific codegen in `codegen.python`
   * `smithy-stache-plugin` — thin Smithy build plugin; **only published** artifact (`com.jacoby6000:smithy-stache-plugin`)

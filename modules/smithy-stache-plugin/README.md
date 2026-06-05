@@ -155,9 +155,10 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 |---------|----------------|
 | `com.jacoby6000.smithy.stache.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), schema IR extraction, table traits |
 | `com.jacoby6000.smithy.stache.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
-| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors, `DialectRenderer`, query rendering (`smithy-sql-service-ir`) |
+| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors, query rendering (`smithy-sql-service-ir`) |
+| `com.jacoby6000.smithy.stache.sql.shared` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithy-sql-ir`) |
 | `com.jacoby6000.smithy.stache.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
-| `com.jacoby6000.smithy.stache.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `SqlRenderUnit` / `SqlRenderOutput` (structured render artifacts: DDL and query units keyed by Smithy shape id) |
+| `com.jacoby6000.smithy.stache.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `DDLStatement` (schema DDL artifacts keyed by Smithy shape id) |
 | `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |
 | `com.jacoby6000.smithy.stache.sql.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |
@@ -169,7 +170,7 @@ Docker-backed schema-path integration tests (SQL IR → dialect DDL → real dat
 
 ## Schema DDL export
 
-The **schema and migrations** path renders SQL IR to dialect-specific DDL. [`SmithyStacheBuildPlugin`](src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) calls [`DialectRenderers.forDialect`](src/main/scala/com/jacoby6000/smithy/stache/DialectRenderers.scala) for each enabled dialect and writes the result to `migrationLocation`. Output includes table DDL, indexes, enums, and a `-- Queries` section with derived DML. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)).
+The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithyStacheBuildPlugin`](src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithy/stache/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithy-sql-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)).
 
 ## SQL database service codegen
 

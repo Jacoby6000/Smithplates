@@ -78,7 +78,7 @@ lazy val smithySqlServiceIr = (project in file("modules/smithy-sql-service-ir"))
   )
 
 lazy val smithySqlPostgresRenderer = (project in file("modules/smithy-sql-postgres-renderer"))
-  .dependsOn(smithySqlIr, smithySqlServiceIr, smithySqlIr % "test->test", smithySqlServiceIr % "test->test")
+  .dependsOn(smithySqlIr, smithySqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -90,7 +90,7 @@ lazy val smithySqlPostgresRenderer = (project in file("modules/smithy-sql-postgr
   )
 
 lazy val smithySqlSqliteRenderer = (project in file("modules/smithy-sql-sqlite-renderer"))
-  .dependsOn(smithySqlIr, smithySqlServiceIr, smithySqlIr % "test->test", smithySqlServiceIr % "test->test")
+  .dependsOn(smithySqlIr, smithySqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,

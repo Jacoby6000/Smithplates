@@ -1,9 +1,16 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
 import com.jacoby6000.smithy.stache.sql.NoSqlTables
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlAutoGeneration
+import com.jacoby6000.smithy.stache.sql.SqlAutoUuid
 import com.jacoby6000.smithy.stache.sql.SqlColumn
 import com.jacoby6000.smithy.stache.sql.SqlColumnType
+import com.jacoby6000.smithy.stache.sql.SqlCreatedTimestamp
+import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.SqlUpdatedTimestamp
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */
@@ -21,16 +28,15 @@ object SqlShared {
   def trimmedNonEmpty(opt: Option[String]): Option[String] =
     opt.filter(_.trim.nonEmpty)
 
+  def formatDdlStatements(statements: List[DDLStatement]): String =
+    statements.map(_.formatted).filter(_.nonEmpty).mkString(StatementSeparator)
+
   def renderSchema(
       schema: SqlSchema,
       renderColumn: SqlColumn => String,
       preTableStatements: SqlSchema => List[DDLStatement] = _ => Nil
   ): String =
-    renderDdlStatements(schema, renderColumn, preTableStatements)
-      .map(SqlRenderUnit.Ddl(_))
-      .map(_.formatted)
-      .filter(_.nonEmpty)
-      .mkString(StatementSeparator)
+    formatDdlStatements(renderDdlStatements(schema, renderColumn, preTableStatements))
 
   def renderDdlStatements(
       schema: SqlSchema,
@@ -123,4 +129,20 @@ object SqlShared {
     val namespace = shapeId.getNamespace.replace('.', '_').replace('-', '_')
     s"${namespace}_${shapeId.getName}".toLowerCase
   }
+
+  def autoGenerationDefaultClause(dialect: SqlDialect, autoGeneration: SqlAutoGeneration): String =
+    autoGeneration match {
+      case SqlAutoUuid                               =>
+        dialect match {
+          case SqliteDialect   => sqliteAutoUuidDefault
+          case PostgresDialect => "gen_random_uuid()"
+        }
+      case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
+        "CURRENT_TIMESTAMP"
+    }
+
+  private val sqliteAutoUuidDefault: String =
+    "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+      "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
+      "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
 }

@@ -1,13 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.sqlite
 
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import munit.FunSuite
 
 final class SqliteRendererSpec extends FunSuite {
   test("Sqlite - renders example schema DDL") {
     val schema = SqlSchemaExampleFixtures.exampleSchema
-    val sqlite = SqliteRenderer.render(schema, SqlServiceIr())
+    val sqlite = SqlShared.formatDdlStatements(SqliteRenderer.renderSchemaDdlStatements(schema))
 
     val expectedSqliteDdl =
       """-- stache.codegen.sql.example#Bar

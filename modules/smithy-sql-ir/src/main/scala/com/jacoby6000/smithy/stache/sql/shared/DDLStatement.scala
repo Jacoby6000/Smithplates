@@ -9,6 +9,9 @@ import software.amazon.smithy.model.shapes.ShapeId
 sealed trait DDLStatement {
   def statement: String
   def shapeId: ShapeId
+
+  def formatted: String =
+    s"-- ${shapeId.toString}\n$statement"
 }
 
 object DDLStatement {

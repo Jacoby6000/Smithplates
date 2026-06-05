@@ -1,14 +1,14 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class PostgresRendererSpec extends FunSuite {
   test("Postgres - renders example schema DDL") {
     val schema   = SqlSchemaExampleFixtures.exampleSchema
-    val postgres = PostgresRenderer.render(schema, SqlServiceIr())
+    val postgres = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
 
     val expectedPostgresDdl =
       """-- stache.codegen.sql.example#Bar
@@ -65,13 +65,13 @@ final class PostgresRendererSpec extends FunSuite {
       )
     )
 
-    val ddl = PostgresRenderer.render(schema, SqlServiceIr())
+    val ddl = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
     assert(ddl.indexOf("CREATE TABLE aaa_parent") < ddl.indexOf("CREATE TABLE zzz_child"))
   }
 
   test("Postgres - fails to render when schema has no tables") {
     val thrown = intercept[IllegalStateException] {
-      PostgresRenderer.render(SqlSchema(tables = Nil), SqlServiceIr())
+      SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(SqlSchema(tables = Nil)))
     }
     assertEquals(thrown.getMessage, NoSqlTables.message)
   }
