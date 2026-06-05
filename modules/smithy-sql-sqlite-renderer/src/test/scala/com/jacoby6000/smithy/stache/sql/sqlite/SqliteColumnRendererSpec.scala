@@ -10,29 +10,62 @@ final class SqliteColumnRendererSpec extends FunSuite {
       "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
       "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
 
-  test("Text - renders nullable text columns") {
-    val column = SqlColumn(name = "label", columnType = SqlColumnType.Text, nullable = true)
-
-    assertEquals(SqliteRenderer.renderColumn(column), "label TEXT")
+  private def validateColumnRender(
+      typeLabel: String,
+      name: String,
+      columnType: SqlColumnType,
+      requiredSuffix: String,
+      nullableSuffix: String
+  ): Unit = {
+    test(s"$typeLabel - renders required columns") {
+      assertEquals(
+        SqliteRenderer.renderColumn(SqlColumn(name = name, columnType = columnType, nullable = false)),
+        s"$name $requiredSuffix"
+      )
+    }
+    test(s"$typeLabel - renders nullable columns") {
+      assertEquals(
+        SqliteRenderer.renderColumn(SqlColumn(name = name, columnType = columnType, nullable = true)),
+        s"$name $nullableSuffix"
+      )
+    }
   }
 
-  test("Integer - renders integer columns") {
-    val column = SqlColumn(name = "count", columnType = SqlColumnType.Integer, nullable = true)
+  validateColumnRender("Text", "label", SqlColumnType.Text, "TEXT NOT NULL", "TEXT")
+  validateColumnRender("Integer", "count", SqlColumnType.Integer, "INTEGER NOT NULL", "INTEGER")
+  validateColumnRender("BigInt", "size_bytes", SqlColumnType.BigInt, "BIGINT NOT NULL", "BIGINT")
+  validateColumnRender("Boolean", "active", SqlColumnType.Boolean, "TEXT NOT NULL", "TEXT")
+  validateColumnRender("Json", "payload", SqlColumnType.Json, "TEXT NOT NULL", "TEXT")
+  validateColumnRender("Blob", "data", SqlColumnType.Blob, "BLOB NOT NULL", "BLOB")
+  validateColumnRender("Uuid", "owner_id", SqlColumnType.Uuid, "TEXT NOT NULL", "TEXT")
 
-    assertEquals(SqliteRenderer.renderColumn(column), "count INTEGER")
-  }
+  validateColumnRender(
+    "Varchar",
+    "code",
+    SqlColumnType.Varchar(maxLength = 64),
+    "TEXT NOT NULL CHECK(length(code) <= 64)",
+    "TEXT CHECK(length(code) <= 64)"
+  )
 
-  test("BigInt - renders bigint columns") {
-    val column = SqlColumn(name = "size_bytes", columnType = SqlColumnType.BigInt, nullable = true)
+  validateColumnRender(
+    "StringEnum",
+    "direction",
+    SqlColumnType.StringEnum(
+      shapeId = ShapeId.from("example#Direction"),
+      typeName = "example_direction",
+      values = List("NORTH", "SOUTH")
+    ),
+    "TEXT NOT NULL CHECK(direction IN ('NORTH', 'SOUTH'))",
+    "TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"
+  )
 
-    assertEquals(SqliteRenderer.renderColumn(column), "size_bytes BIGINT")
-  }
-
-  test("Boolean - renders boolean columns as TEXT") {
-    val column = SqlColumn(name = "active", columnType = SqlColumnType.Boolean, nullable = false)
-
-    assertEquals(SqliteRenderer.renderColumn(column), "active TEXT NOT NULL")
-  }
+  validateColumnRender(
+    "IntEnum",
+    "status",
+    SqlColumnType.IntEnum(typeName = "example_httpstatus", values = List(404, 200)),
+    "INTEGER NOT NULL CHECK(status IN (404, 200))",
+    "INTEGER CHECK(status IN (404, 200))"
+  )
 
   test("Uuid - renders auto-generated uuid columns") {
     val column = SqlColumn(
@@ -45,71 +78,6 @@ final class SqliteColumnRendererSpec extends FunSuite {
     assertEquals(
       SqliteRenderer.renderColumn(column),
       s"id TEXT NOT NULL DEFAULT $sqliteAutoUuidDefault"
-    )
-  }
-
-  test("Uuid - renders non-auto-generated uuid columns") {
-    val column = SqlColumn(
-      name = "owner_id",
-      columnType = SqlColumnType.Uuid,
-      nullable = true
-    )
-
-    assertEquals(SqliteRenderer.renderColumn(column), "owner_id TEXT")
-  }
-
-  test("Json - renders json columns as TEXT") {
-    val column = SqlColumn(name = "payload", columnType = SqlColumnType.Json, nullable = true)
-
-    assertEquals(SqliteRenderer.renderColumn(column), "payload TEXT")
-  }
-
-  test("Blob - renders blob columns as BLOB") {
-    val column = SqlColumn(name = "data", columnType = SqlColumnType.Blob, nullable = true)
-
-    assertEquals(SqliteRenderer.renderColumn(column), "data BLOB")
-  }
-
-  test("Varchar - renders varchar columns with length check") {
-    val column = SqlColumn(
-      name = "code",
-      columnType = SqlColumnType.Varchar(maxLength = 64),
-      nullable = false
-    )
-
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      "code TEXT NOT NULL CHECK(length(code) <= 64)"
-    )
-  }
-
-  test("StringEnum - renders string enum columns with value check") {
-    val column = SqlColumn(
-      name = "direction",
-      columnType = SqlColumnType.StringEnum(
-        shapeId = ShapeId.from("example#Direction"),
-        typeName = "example_direction",
-        values = List("NORTH", "SOUTH")
-      ),
-      nullable = true
-    )
-
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      "direction TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"
-    )
-  }
-
-  test("IntEnum - renders int enum columns with INTEGER storage and value check") {
-    val column = SqlColumn(
-      name = "status",
-      columnType = SqlColumnType.IntEnum(typeName = "example_httpstatus", values = List(404, 200)),
-      nullable = false
-    )
-
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      "status INTEGER NOT NULL CHECK(status IN (404, 200))"
     )
   }
 
