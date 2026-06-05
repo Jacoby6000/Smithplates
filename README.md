@@ -4,6 +4,40 @@ Pulling the AI Slop Machine lever to non-deterministicly generate deterministic 
 
 This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Mustache templates.
 
+## Architecture
+
+The `smithy-stache` plugin reads a Smithy model and produces two intermediate representations: **SQL IR** (schema, DDL, and schema tests) and **database services and operations IR** (repository interfaces, derived queries, and test suites). Each IR fans out to dialect- and language-specific artifacts via renderers and Mustache templates.
+
+```mermaid
+flowchart TD
+    SM["Smithy model"]
+    SSP["smithy-stache-plugin"]
+
+    SM --> SSP
+
+    SSP --> SQLIR["SQL IR"]
+    SSP --> SVCIR["Database services and operations IR"]
+
+    subgraph schema["Schema and migrations"]
+        SQLIR --> DDL["Dialect-specific DDL"]
+        SQLIR --> TLModels["Target language models"]
+        SQLIR --> SchemaIT["Target language database schema integration tests"]
+        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/SmithyStache/issues/2))"]
+        DDL -.-> Migration
+        SQLIR -.-> Migration
+    end
+
+    subgraph services["Service codegen"]
+        SVCIR --> Interfaces["Target language interfaces"]
+        SVCIR --> AbstractTests["Target language abstract test suites"]
+        SVCIR --> DerivedQueries["Derived dialect-specific queries"]
+        DerivedQueries --> Impl["Target language interface implementations"]
+        DerivedQueries --> TestImpl["Target language test suite implementations"]
+    end
+```
+
+See [contributing architecture](docs/contributing/architecture.md) for module layout and implementation detail.
+
 ## AI Generated
 
 AI Code in production is a recipe for disaster. Deterministically generated code is a huge boon, and this has been
