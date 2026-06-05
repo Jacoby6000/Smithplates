@@ -1,7 +1,7 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.sql.{PostgresDialect, SqliteDialect}
-import com.jacoby6000.smithy.sql.codegen.SqlServiceCodegenDbArtifacts
+import com.jacoby6000.smithy.stache.sql.{PostgresDialect, SqliteDialect}
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
 class SmithyStacheSqlSettingsSpec extends munit.FunSuite {

@@ -13,7 +13,7 @@ common-it   postgres-it  sqlite-it
 (library)     (test)       (test)
 ```
 
-- **sql-plugin** — implements the `smithy-stache` Smithy build plugin; packages trait definitions at `META-INF/smithy/jacoby6000.codegen.sql.smithy`; registers typed Java trait classes under `com.jacoby6000.smithy.sql.traits` via Smithy `TraitService` SPI.
+- **sql-plugin** — implements the `smithy-stache` Smithy build plugin; packages trait definitions at `META-INF/smithy/stache.codegen.sql.smithy`; registers typed Java trait classes under `com.jacoby6000.smithy.stache.sql.traits` via Smithy `TraitService` SPI.
 - **sql-plugin-common-it** — dialect-neutral fixtures and JDBC helpers in `src/main` (consumed by dialect IT modules).
 - **sql-plugin-postgres-it** / **sql-plugin-sqlite-it** — end-to-end tests that apply generated DDL to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
 
@@ -25,24 +25,25 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 
 ### Model extraction
 
-[`SqlModelExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/sql/SqlModelExtractor.scala) builds `SqlSchema.relationships` from `@sqlForeignKey` members: many-to-one by default, one-to-one when the FK column also has `@sqlUniqueIndex`.
+[`SqlModelExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlModelExtractor.scala) builds `SqlSchema.relationships` from `@sqlForeignKey` members: many-to-one by default, one-to-one when the FK column also has `@sqlUniqueIndex`.
 
-[`SqlServiceExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts (input, output, errors) into `SqlSchema.services` for repository codegen. SQL query binding is opt-in via matching operation shape ids on derive traits.
+[`SqlServiceExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts (input, output, errors) into `SqlSchema.services` for repository codegen. SQL query binding is opt-in via matching operation shape ids on derive traits.
 
 ### Rendering
 
-Dialect renderers expose structured **`SqlRenderUnit`** values (DDL statements or DML queries keyed by Smithy shape id). Postgres `CREATE TYPE` units use the enum shape id; table DDL uses the `@sqlTable` structure id. [`SqlRenderOutput.format`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/sql/shared/SqlRenderOutput.scala) joins units into exported `.sql` file text so unit tests can assert one query or one DDL artifact without parsing the full output.
+Dialect renderers expose structured **`SqlRenderUnit`** values (DDL statements or DML queries keyed by Smithy shape id). Postgres `CREATE TYPE` units use the enum shape id; table DDL uses the `@sqlTable` structure id. [`SqlRenderOutput.format`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/SqlRenderOutput.scala) joins units into exported `.sql` file text so unit tests can assert one query or one DDL artifact without parsing the full output.
 
 ### Package layout
 
 | Package | Responsibility |
 |---------|----------------|
-| `com.jacoby6000.smithy.sql` | `SqlValidated`, model extraction, `DialectRenderer` dispatch |
-| `com.jacoby6000.smithy.sql.traits` | Java `TraitService` implementations (SPI-registered) |
-| `com.jacoby6000.smithy.sql.shared` | DDL rendering, FK ordering, query rendering, `SqlRenderOutput` |
-| `com.jacoby6000.smithy.sql.sqlite` | SQLite column types and `CHECK` constraints |
-| `com.jacoby6000.smithy.sql.postgres` | Postgres column types |
-| `com.jacoby6000.smithy.sql.codegen` | Scalate Mustache rendering for `@sqlService` codegen |
+| `com.jacoby6000.smithy.stache` | `smithy-stache` build plugin (`SmithyStacheBuildPlugin`), settings validation |
+| `com.jacoby6000.smithy.stache.sql` | `SqlValidated`, model extraction, `DialectRenderer` dispatch |
+| `com.jacoby6000.smithy.stache.sql.traits` | Java `TraitService` implementations (SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.shared` | DDL rendering, FK ordering, query rendering, `SqlRenderOutput` |
+| `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
+| `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |
+| `com.jacoby6000.smithy.stache.sql.codegen` | Scalate Mustache rendering for `@sqlService` codegen |
 
 ## Dependencies
 

@@ -1,7 +1,7 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.sql.codegen.SqlServiceCodegenRenderer
-import com.jacoby6000.smithy.sql.{
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenRenderer
+import com.jacoby6000.smithy.stache.sql.{
   DialectRenderer,
   SqlModelExtractor,
   SqlValidated

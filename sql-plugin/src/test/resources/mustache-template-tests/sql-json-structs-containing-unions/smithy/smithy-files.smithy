@@ -1,17 +1,17 @@
 $version: "2.0"
 namespace example
 
-use jacoby6000.codegen.sql#sqlAutoUuid
-use jacoby6000.codegen.sql#sqlCreatedTimestamp
-use jacoby6000.codegen.sql#sqlPrimaryKey
-use jacoby6000.codegen.sql#sqlTable
-use jacoby6000.codegen.sql#sqlJson
-use jacoby6000.codegen.sql#DerivedStruct
-use jacoby6000.codegen.sql#sqlDeriveDelete
-use jacoby6000.codegen.sql#sqlDeriveInsert
-use jacoby6000.codegen.sql#sqlDeriveSelectOne
-use jacoby6000.codegen.sql#sqlDeriveUpdate
-use jacoby6000.codegen.sql#sqlService
+use stache.codegen.sql#sqlAutoUuid
+use stache.codegen.sql#sqlCreatedTimestamp
+use stache.codegen.sql#sqlPrimaryKey
+use stache.codegen.sql#sqlTable
+use stache.codegen.sql#sqlJson
+use stache.codegen.sql#DerivedStruct
+use stache.codegen.sql#sqlDeriveDelete
+use stache.codegen.sql#sqlDeriveInsert
+use stache.codegen.sql#sqlDeriveSelectOne
+use stache.codegen.sql#sqlDeriveUpdate
+use stache.codegen.sql#sqlService
 use smithy.api#error
 use smithy.api#required
 

@@ -58,6 +58,8 @@ async def widget_repository_service(
         await connection.close()
 
 
+@pytest.mark.integration
+@pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRepositoryPsycopgService) -> None:
     entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42)

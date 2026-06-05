@@ -1,0 +1,49 @@
+package com.jacoby6000.smithy.stache.mustachetest
+
+import munit.FunSuite
+
+abstract class MustacheTemplateTestSuite(backends: List[MustacheTemplateLanguageBackend]) extends FunSuite {
+  private lazy val testCases: List[MustacheTemplateTestCase] =
+    MustacheTemplateTestDiscovery.discover(
+      getClass.getClassLoader,
+      backends.map(_.variant).toSet
+    )
+
+  backends.foreach { backend =>
+    testCases.foreach { testCase =>
+      MustacheTemplateTestDiscovery.warnMissingVariantExpectations(
+        testCase,
+        backend.variant,
+        getClass.getClassLoader
+      )
+
+      val expectedFiles =
+        testCase.expectedOutputsByVariant.getOrElse(backend.variant, Nil)
+      val unsupported =
+        MustacheTemplateTestDiscovery.isVariantUnsupported(
+          testCase.resourceBasePath,
+          backend.variant,
+          getClass.getClassLoader
+        )
+
+      if (!unsupported && expectedFiles.nonEmpty) {
+        test(s"${testCase.name} - ${backend.variant.resourcePath}") {
+          val model =
+            backend.loadModel(testCase).fold(
+              message =>
+                fail(s"Model assembly failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
+              identity
+            )
+          val rendered =
+            backend.render(testCase, model).fold(
+              message =>
+                fail(s"Rendering failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
+              identity
+            )
+          MustacheTemplateTestAssertions.assertRenderedOutputs(testCase, backend.variant, rendered)
+          backend.validateRenderedOutputs(testCase, rendered)
+        }
+      }
+    }
+  }
+}

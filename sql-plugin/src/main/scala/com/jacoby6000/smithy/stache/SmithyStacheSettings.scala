@@ -1,7 +1,7 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.sql.{InvalidPluginConfig, SqlValidated}
+import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, SqlValidated}
 import software.amazon.smithy.model.node.ObjectNode
 
 final case class SmithyStacheSettings(

@@ -27,6 +27,8 @@ async def {{serviceFixtureName}}() -> AsyncIterator[{{implementationClassName}}]
         await connection.close()
 
 
+@pytest.mark.integration
+@pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle({{serviceFixtureName}}: {{implementationClassName}}) -> None:
     entity_id = await {{serviceFixtureName}}.{{{insertOperation.methodName}}}({{{insertOperation.callArguments}}})

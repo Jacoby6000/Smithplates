@@ -1,12 +1,12 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.sql.{InvalidPluginConfig, SqlDialect, SqlValidated, SqliteDialect}
-import com.jacoby6000.smithy.sql.codegen.{
+import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, SqlDialect, SqlValidated, SqliteDialect}
+import com.jacoby6000.smithy.stache.sql.codegen.{
   SqlServiceCodegenDbArtifacts,
   SqlServiceCodegenSettings
 }
-import com.jacoby6000.smithy.sql.shared.{SqlBindPlaceholder, SqlShared}
+import com.jacoby6000.smithy.stache.sql.shared.{SqlBindPlaceholder, SqlShared}
 
 final case class LanguageTarget(
     templateDirectory: Option[String],

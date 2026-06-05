@@ -1,6 +1,6 @@
 # Mustache template golden tests
 
-Each subdirectory is one test case discovered by [`MustacheTemplateTestSuite`](../../scala/com/jacoby6000/smithy/mustachetest/MustacheTemplateTestSuite.scala). Name cases after the behavior under test (kebab-case), not fixture entities — for example `sql-json-structs-containing-unions`, not `shipment-json-crud`.
+Each subdirectory is one test case discovered by [`MustacheTemplateTestSuite`](../../scala/com/jacoby6000/smithy/stache/mustachetest/MustacheTemplateTestSuite.scala). Name cases after the behavior under test (kebab-case), not fixture entities — for example `sql-json-structs-containing-unions`, not `shipment-json-crud`.
 
 ## Current cases
 
@@ -11,7 +11,7 @@ Each subdirectory is one test case discovered by [`MustacheTemplateTestSuite`](.
 
 Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `python/test/db/sqlite/` (aiosqlite) and `python/test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `python/src/db/model/` and `python/src/db/`.
 
-[`SqlServiceCodegenMustacheTemplateTestSuite`](../../scala/com/jacoby6000/smithy/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares output, then runs strict mypy/pyright on generated src under `python/src/db/` and pytest on generated tests under `python/test/db/<implementation>/` via [`PythonCodegenWorkspace`](../../scala/com/jacoby6000/smithy/sql/codegen/PythonCodegenWorkspace.scala) under `target/sql-service-codegen-python-workspace/`.
+[`SqlServiceCodegenMustacheTemplateTestSuite`](../../scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares output, then runs strict mypy/pyright on generated src under `python/src/db/` and pytest on generated tests under `python/test/db/<implementation>/` via [`PythonCodegenWorkspace`](../../scala/com/jacoby6000/smithy/stache/sql/codegen/PythonCodegenWorkspace.scala) under `target/sql-service-codegen-python-workspace/`.
 
 ## Layout
 
@@ -49,6 +49,6 @@ When a registered backend variant has no `unsupported.md` and no expected files 
 
 ## Implementing a backend
 
-1. Implement [`MustacheTemplateLanguageBackend`](../../scala/com/jacoby6000/smithy/mustachetest/MustacheTemplateLanguageBackend.scala) with a [`MustacheTemplateVariant`](../../scala/com/jacoby6000/smithy/mustachetest/MustacheTemplateVariant.scala) (`languageId`, `serviceTypeId`, `implementationId`), plus `loadModel`, `render`, and optional `validateRenderedOutputs`.
+1. Implement [`MustacheTemplateLanguageBackend`](../../scala/com/jacoby6000/smithy/stache/mustachetest/MustacheTemplateLanguageBackend.scala) with a [`MustacheTemplateVariant`](../../scala/com/jacoby6000/smithy/stache/mustachetest/MustacheTemplateVariant.scala) (`languageId`, `serviceTypeId`, `implementationId`), plus `loadModel`, `render`, and optional `validateRenderedOutputs`.
 2. Subclass `MustacheTemplateTestSuite` and pass your backend(s).
-3. Mismatch failures include a contextual diff via [`TextContentDiff`](../../scala/com/jacoby6000/smithy/mustachetest/TextContentDiff.scala).
+3. Mismatch failures include a contextual diff via [`TextContentDiff`](../../scala/com/jacoby6000/smithy/stache/mustachetest/TextContentDiff.scala).

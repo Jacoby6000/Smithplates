@@ -1,15 +1,15 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.sql.{
+import com.jacoby6000.smithy.stache.sql.{
   InvalidPluginConfig,
   PostgresDialect,
   SqlDialect,
   SqlValidated,
   SqliteDialect
 }
-import com.jacoby6000.smithy.sql.codegen.SqlServiceCodegenSettings
-import com.jacoby6000.smithy.sql.shared.SqlShared
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenSettings
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import scala.jdk.CollectionConverters.*
 import software.amazon.smithy.model.node.ObjectNode
 

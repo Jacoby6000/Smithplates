@@ -39,6 +39,8 @@ async def shipment_repository_service() -> AsyncIterator[ShipmentRepositoryAiosq
         await connection.close()
 
 
+@pytest.mark.integration
+@pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryAiosqliteService) -> None:
     entity_id = await shipment_repository_service.create_shipment(label="integration-label", destination=PostalAddress(street="integration-street", city="integration-city"), state={"pending": "integration-pending"})

@@ -37,6 +37,8 @@ async def widget_repository_service() -> AsyncIterator[WidgetRepositoryAiosqlite
         await connection.close()
 
 
+@pytest.mark.integration
+@pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRepositoryAiosqliteService) -> None:
     entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42)

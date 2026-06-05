@@ -4,7 +4,7 @@ Scala/SBT Smithy build plugin that generates SQLite and Postgres DDL from custom
 
 ## Traits
 
-Defined in [`src/main/resources/META-INF/smithy/jacoby6000.codegen.sql.smithy`](src/main/resources/META-INF/smithy/jacoby6000.codegen.sql.smithy) (built from this module via [`build.sbt`](../build.sbt); packaged in the plugin JAR for Smithy builds and tests). Overview: [`docs/sql-plugin.md`](../docs/sql-plugin.md).
+Defined in [`src/main/resources/META-INF/smithy/stache.codegen.sql.smithy`](src/main/resources/META-INF/smithy/stache.codegen.sql.smithy) (built from this module via [`build.sbt`](../build.sbt); packaged in the plugin JAR for Smithy builds and tests). Overview: [`docs/sql-plugin.md`](../docs/sql-plugin.md).
 
 | Trait | Target | Maps to |
 |-------|--------|---------|
@@ -51,7 +51,7 @@ structure Foo {
     updated_at: Timestamp
 }
 
-use jacoby6000.codegen.sql#DerivedStruct
+use stache.codegen.sql#DerivedStruct
 
 @sqlDeriveInsert(targetTable: "example#Foo")
 operation CreateFoo {
@@ -147,18 +147,18 @@ operation FindFoo {
 sbtn test publishM2
 ```
 
-Tests load the same packaged traits via `SqlTestModelLoader` from the compile classpath. Build inline models with [`SqlTestModelBuilder.assemble`](src/test/scala/com/jacoby6000/smithy/sql/SqlTestModelBuilder.scala); do not duplicate trait definitions.
+Tests load the same packaged traits via `SqlTestModelLoader` from the compile classpath. Build inline models with [`SqlTestModelBuilder.assemble`](src/test/scala/com/jacoby6000/smithy/stache/sql/SqlTestModelBuilder.scala); do not duplicate trait definitions.
 
 ## Plugin layout
 
 | Package | Responsibility |
 |---------|----------------|
-| `com.jacoby6000.smithy.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), model extraction, `DialectRenderer` dispatch |
-| `com.jacoby6000.smithy.sql.traits` | Java `TraitService` implementations for SQL traits (SPI-registered) |
-| `com.jacoby6000.smithy.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `SqlRenderUnit` / `SqlRenderOutput` (structured render artifacts: DDL and query units keyed by Smithy shape id), `SqlQueryRenderer` (INSERT/UPDATE/SELECT) |
-| `com.jacoby6000.smithy.sql.sqlite` | SQLite column types and `CHECK` constraints |
-| `com.jacoby6000.smithy.sql.postgres` | Postgres column types |
-| `com.jacoby6000.smithy.sql.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |
+| `com.jacoby6000.smithy.stache.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), model extraction, `DialectRenderer` dispatch |
+| `com.jacoby6000.smithy.stache.sql.traits` | Java `TraitService` implementations for SQL traits (SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `SqlRenderUnit` / `SqlRenderOutput` (structured render artifacts: DDL and query units keyed by Smithy shape id), `SqlQueryRenderer` (INSERT/UPDATE/SELECT) |
+| `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
+| `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |
+| `com.jacoby6000.smithy.stache.sql.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |
 | `com.jacoby6000.smithy.stache` | `smithy-stache` Smithy build plugin (SQL schema export and service codegen) |
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
@@ -183,7 +183,7 @@ db/
                                                → <testOutputDirectory>/db/postgres/test_{{serviceFileName}}_derived_sql.py
 ```
 
-Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDirectory` (required when any artifact has `kind: test`). See [`SqlServiceCodegenDbArtifacts`](src/main/scala/com/jacoby6000/smithy/sql/codegen/SqlServiceCodegenDbArtifacts.scala) for the bundled artifact lists.
+Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDirectory` (required when any artifact has `kind: test`). See [`SqlServiceCodegenDbArtifacts`](src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenDbArtifacts.scala) for the bundled artifact lists.
 
 Each `@sqlService` produces one artifact set. Template context includes:
 
@@ -208,11 +208,11 @@ Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and pla
 
 `outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
 
-See [`SqlServiceCodegenRendererSpec`](src/test/scala/com/jacoby6000/smithy/sql/codegen/SqlServiceCodegenRendererSpec.scala) for schema-level checks, and [`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithy/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) for golden Mustache output plus strict mypy/pyright/pytest validation (`python/db/sqlite` and `python/db/postgres` backends). Fixture layout and conventions: [`src/test/resources/mustache-template-tests/README.md`](src/test/resources/mustache-template-tests/README.md).
+See [`SqlServiceCodegenRendererSpec`](src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenRendererSpec.scala) for schema-level checks, and [`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) for golden Mustache output plus strict mypy/pyright/pytest validation (`python/db/sqlite` and `python/db/postgres` backends). Fixture layout and conventions: [`src/test/resources/mustache-template-tests/README.md`](src/test/resources/mustache-template-tests/README.md).
 
 ### Strict Python validation in Mustache tests
 
-[`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithy/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares rendered output, then [`PythonCodegenWorkspace`](src/test/scala/com/jacoby6000/smithy/sql/codegen/PythonCodegenWorkspace.scala) writes each case under `target/sql-service-codegen-python-workspace/cases/<test-name>/` (`python/src/db/` + `python/test/db/<implementation>/`), runs strict **mypy** and **pyright** on src artifacts, and runs **pytest** on generated tests with `PYTHONPATH`/`MYPYPATH` covering `python/src/db/model`, `python/src/db/`, and the implementation directory. The uv project (`pyproject.toml`, `uv.lock`, `.venv`) lives in `target/sql-service-codegen-python-workspace/` and persists across test runs until `sbtn smithySqlPlugin/clean`. Requires `uv` on `PATH`.
+[`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares rendered output, then [`PythonCodegenWorkspace`](src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/PythonCodegenWorkspace.scala) writes each case under `target/sql-service-codegen-python-workspace/cases/<test-name>/` (`python/src/db/` + `python/test/db/<implementation>/`), runs strict **mypy** and **pyright** on src artifacts, and runs **pytest -m integration** on each generated `test_*_derived_sql.py` with `PYTHONPATH`/`MYPYPATH` covering `python/src/db/model`, `python/src/db/`, and the implementation directory. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. The uv project (`pyproject.toml`, `uv.lock`, `.venv`) lives in `target/sql-service-codegen-python-workspace/` and persists across test runs until `sbtn smithySqlPlugin/clean`. Requires `uv` on `PATH`; postgres variants also require Docker.
 
 After changing [`src/test/resources/sql-service-codegen-python-workspace/pyproject.toml`](src/test/resources/sql-service-codegen-python-workspace/pyproject.toml), refresh the lockfile:
 

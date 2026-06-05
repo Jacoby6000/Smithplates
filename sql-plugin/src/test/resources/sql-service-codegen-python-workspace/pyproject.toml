@@ -20,6 +20,11 @@ dev = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: generated SQL repository lifecycle integration tests",
+    "postgres: requires Docker and testcontainers Postgres",
+    "sqlite: in-memory SQLite integration tests",
+]
 
 [tool.mypy]
 python_version = "3.12"

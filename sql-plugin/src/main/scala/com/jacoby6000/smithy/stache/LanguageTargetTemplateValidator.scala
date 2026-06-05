@@ -1,8 +1,8 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.sql.{InvalidPluginConfig, SqlDialect, SqlValidated}
-import com.jacoby6000.smithy.sql.codegen.{
+import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, SqlDialect, SqlValidated}
+import com.jacoby6000.smithy.stache.sql.codegen.{
   MustacheTemplateEngine,
   SqlServiceCodegenDbArtifacts
 }

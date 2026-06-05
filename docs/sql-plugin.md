@@ -11,7 +11,7 @@ Smithy build plugin (`smithy-stache`) and trait namespace for relational schema 
 | Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files: `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
 | `languageTargets` | Mustache-rendered interface and model artifacts per `@sqlService` |
 
-Trait definitions ship inside the plugin JAR at `META-INF/smithy/jacoby6000.codegen.sql.smithy`. Typed Java trait classes register via `TraitService` SPI under `com.jacoby6000.smithy.sql.traits`.
+Trait definitions ship inside the plugin JAR at `META-INF/smithy/stache.codegen.sql.smithy`. Typed Java trait classes register via `TraitService` SPI under `com.jacoby6000.smithy.stache.sql.traits`.
 
 ## Modeling conventions
 
@@ -23,10 +23,10 @@ Trait definitions ship inside the plugin JAR at `META-INF/smithy/jacoby6000.code
 ### Quick example
 
 ```smithy
-use jacoby6000.codegen.sql#DerivedStruct
-use jacoby6000.codegen.sql#sqlForeignKey
-use jacoby6000.codegen.sql#sqlPrimaryKey
-use jacoby6000.codegen.sql#sqlTable
+use stache.codegen.sql#DerivedStruct
+use stache.codegen.sql#sqlForeignKey
+use stache.codegen.sql#sqlPrimaryKey
+use stache.codegen.sql#sqlTable
 
 @sqlTable(name: "foos")
 structure Foo {
