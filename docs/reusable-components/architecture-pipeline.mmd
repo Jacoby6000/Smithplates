@@ -5,21 +5,43 @@ flowchart TD
     SM --> SSP
 
     SSP --> SQLIR["SQL IR"]
-    SSP --> SVCIR["Database services and operations IR"]
+
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
-        SQLIR --> TLModels["Target language models"]
         SQLIR --> SchemaIT["Target language database schema integration tests"]
+        
         Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/SmithyStache/issues/2))"]
-        DDL -.-> Migration
+        DDL   -.-> Migration
         SQLIR -.-> Migration
     end
 
-    subgraph services["Service codegen"]
+    subgraph services["SQL Database Service codegen"]
+        SSP   --> SVCIR["Database services and operations IR"]
+        SQLIR --> SVCIR
+        
+        MT["Moustache Templates"]
+        SVCIR --> TLQM["Target Language Query Models"]
+        MT    --> TLQM
+
         SVCIR --> Interfaces["Target language interfaces"]
+        MT    --> Interfaces   
+        TLQM  --> Interfaces
+
         SVCIR --> AbstractTests["Target language abstract test suites"]
+        MT    --> AbstractTests
+        TLQM  --> AbstractTests
+
         SVCIR --> DerivedQueries["Derived dialect-specific queries"]
-        DerivedQueries --> Impl["Target language interface implementations"]
-        DerivedQueries --> TestImpl["Target language test suite implementations"]
+        SQLIR --> DerivedQueries
+
+        Interfaces     --> Impl["Dialect Specific Implementation"]
+        MT             --> Impl        
+        DerivedQueries --> Impl
+
+        Migration      --> TestImpl["Target language test suite implementations"]
+        MT             --> TestImpl
+        DerivedQueries --> TestImpl
+        AbstractTests  --> TestImpl
+
     end

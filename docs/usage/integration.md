@@ -76,7 +76,7 @@ Each dialect object supports:
 
 ### `smithy-stache.sql.languageTargets`
 
-Map of language id → language target configuration (for example `python`). Controls the **service codegen** path (database services and operations IR → interfaces, models, derived-query implementations, and test suites). Each entry supports:
+Map of language id → language target configuration (for example `python`). Controls **SQL database service codegen** (database services and operations IR + SQL IR + Mustache templates → query models, interfaces, dialect-specific implementations, and test suites). Each entry supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
@@ -98,7 +98,7 @@ Example output layout for bundled templates under `sql-service-codegen/python/db
 | Plugin | Build output directory | Pipeline path | Contents |
 |--------|------------------------|---------------|----------|
 | `smithy-stache` | `build/smithy/source/smithy-stache/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
-| `smithy-stache` | configured `sourceOutputDir` / `testOutputDir` | Service codegen | Models, interfaces, driver implementations, and derived-query integration tests |
+| `smithy-stache` | configured `sourceOutputDir` / `testOutputDir` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
 

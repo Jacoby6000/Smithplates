@@ -34,7 +34,7 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
-          cache-dependency-glob: sql-plugin/src/test/resources/sql-service-codegen-python-workspace/uv.lock
+          cache-dependency-glob: modules/smithy-sql-service-renderer/src/test/resources/sql-service-codegen-python-workspace/uv.lock
 
       - name: scalafmt
         run: sbtn scalafmtCheckAll
@@ -45,11 +45,19 @@ jobs:
       - name: Compile
         run: sbtn compile
 
-      - name: Unit tests
-        run: sbtn smithySqlPlugin/test
+      - name: Unit tests (IR and renderers)
+        run: |
+          sbtn smithySqlIr/test
+          sbtn smithySqlServiceIr/test
+          sbtn smithySqlPostgresRenderer/test
+          sbtn smithySqlSqliteRenderer/test
+          sbtn smithySqlServiceRenderer/test
+
+      - name: Unit tests (plugin)
+        run: sbtn smithyStachePlugin/test
 
       - name: Integration tests (Postgres)
-        run: sbtn smithySqlPluginPostgresIt/test
+        run: sbtn smithySqlPostgresRendererIt/test
 
       - name: Integration tests (SQLite)
-        run: sbtn smithySqlPluginSqliteIt/test
+        run: sbtn smithySqlSqliteRendererIt/test

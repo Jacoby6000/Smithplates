@@ -14,12 +14,17 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 
 ## Modules
 
-| Directory | Maven coordinate | Role |
-|-----------|------------------|------|
-| [`sql-plugin/`](../../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL IR and service IR extraction, DDL renderers, Mustache codegen |
-| [`sql-plugin-common-it/`](../../sql-plugin-common-it/) | — | Shared schema-path integration-test fixtures (`src/main`) |
-| [`sql-plugin-postgres-it/`](../../sql-plugin-postgres-it/) | — | Schema-path Postgres integration tests (SQL IR → DDL → testcontainers) |
-| [`sql-plugin-sqlite-it/`](../../sql-plugin-sqlite-it/) | — | Schema-path SQLite integration tests (SQL IR → DDL → testcontainers) |
+| SBT project | Directory | Maven coordinate | Role |
+|-------------|-----------|------------------|------|
+| `smithyStachePlugin` | [`modules/smithy-stache-plugin/`](../../modules/smithy-stache-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | Published `smithy-stache` build plugin (orchestration only) |
+| `smithySqlIr` | [`modules/smithy-sql-ir/`](../../modules/smithy-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
+| `smithySqlServiceIr` | [`modules/smithy-sql-service-ir/`](../../modules/smithy-sql-service-ir/) | — | Query/service IR, `SqlQueryRenderer` |
+| `smithySqlPostgresRenderer` | [`modules/smithy-sql-postgres-renderer/`](../../modules/smithy-sql-postgres-renderer/) | — | Postgres DDL renderer |
+| `smithySqlSqliteRenderer` | [`modules/smithy-sql-sqlite-renderer/`](../../modules/smithy-sql-sqlite-renderer/) | — | SQLite DDL renderer |
+| `smithySqlServiceRenderer` | [`modules/smithy-sql-service-renderer/`](../../modules/smithy-sql-service-renderer/) | — | Mustache service codegen (Python templates) |
+| `smithyStacheTestkit` | [`modules/smithy-stache-testkit/`](../../modules/smithy-stache-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
+| `smithySqlPostgresRendererIt` | [`modules/smithy-sql-postgres-renderer-it/`](../../modules/smithy-sql-postgres-renderer-it/) | — | Postgres renderer integration tests |
+| `smithySqlSqliteRendererIt` | [`modules/smithy-sql-sqlite-renderer-it/`](../../modules/smithy-sql-sqlite-renderer-it/) | — | SQLite renderer integration tests |
 
 ## Build and publish
 
@@ -29,7 +34,7 @@ Publish plugin JARs to the local Maven repository (`~/.m2`) before running `smit
 sbtn publishM2
 ```
 
-Consumer `smithy-build.json` files reference the coordinates above. Version numbers must match [`build.sbt`](../../build.sbt).
+Consumer `smithy-build.json` files reference `com.jacoby6000:smithy-stache-plugin`. Version numbers must match [`build.sbt`](../../build.sbt).
 
 ## Lint and format
 
@@ -64,7 +69,12 @@ If scalafmt or scalafix change files, stage the updates and commit again. After 
 Requires [uv](https://docs.astral.sh/uv/) on `PATH` for Python codegen tests.
 
 ```bash
-sbtn smithySqlPlugin/test
+sbtn smithySqlIr/test
+sbtn smithySqlServiceIr/test
+sbtn smithySqlPostgresRenderer/test
+sbtn smithySqlSqliteRenderer/test
+sbtn smithySqlServiceRenderer/test
+sbtn smithyStachePlugin/test
 ```
 
 ## Integration tests
@@ -72,7 +82,8 @@ sbtn smithySqlPlugin/test
 Requires Docker:
 
 ```bash
-sbtn smithySqlPluginPostgresIt/test smithySqlPluginSqliteIt/test
+sbtn smithySqlPostgresRendererIt/test
+sbtn smithySqlSqliteRendererIt/test
 ```
 
 See [Integration tests](integration-tests.md) for coverage and module layout.
@@ -82,4 +93,4 @@ See [Integration tests](integration-tests.md) for coverage and module layout.
 1. Change plugin sources in SmithyStache.
 2. Run `sbtn publishM2`.
 3. Run `smithy build` in the consumer Smithy project (models and `smithy-build.json` live in that repo).
-4. Run unit tests (`sbtn smithySqlPlugin/test`) and, when SQL rendering changes, dialect IT modules.
+4. Run unit tests on affected modules and, when SQL rendering changes, dialect IT modules.

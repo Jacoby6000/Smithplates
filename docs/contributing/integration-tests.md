@@ -1,20 +1,20 @@
 # Integration tests
 
-Schema-path integration tests for [`smithy-stache-plugin`](../../sql-plugin/): Smithy models are extracted into SQL IR, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/). These modules validate the **SQL IR → dialect-specific DDL → database schema integration tests** stage of the [codegen pipeline](architecture.md).
+Schema-path integration tests for [`smithy-stache-plugin`](../../modules/smithy-stache-plugin/): Smithy models are extracted into SQL IR, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/). These modules validate the **SQL IR → dialect-specific DDL → database schema integration tests** stage of the [codegen pipeline](architecture.md).
 
-Service-path integration tests (derived-query pytest suites) are generated into consumer projects via `languageTargets.testOutputDir` and validated in the plugin by [`SqlServiceCodegenMustacheTemplateTestSuite`](../../sql-plugin/src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala).
+SQL database service codegen integration tests (derived-query pytest suites) are generated into consumer projects via `languageTargets.testOutputDir` from derived queries, abstract test-suite contracts, and Mustache templates. They are validated in [`smithy-sql-service-renderer`](../../modules/smithy-sql-service-renderer/) by [`SqlServiceCodegenMustacheTemplateTestSuite`](../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala). A per-language migration engine ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) is planned as an additional input to generated test suites.
 
 ## Modules
 
 | Module | Database | Container image |
 |--------|----------|-----------------|
-| [`sql-plugin-common-it`](../../sql-plugin-common-it/) | — | Shared Smithy fixtures and dialect-neutral JDBC DDL helpers (`src/main`, consumed by other IT modules) |
-| [`sql-plugin-postgres-it`](../../sql-plugin-postgres-it/) | PostgreSQL 16 | `postgres:16-alpine` |
-| [`sql-plugin-sqlite-it`](../../sql-plugin-sqlite-it/) | SQLite 3 | `keinos/sqlite3` (CLI in Docker) |
+| [`smithy-stache-testkit`](../../modules/smithy-stache-testkit/) | — | Shared Smithy fixtures and dialect-neutral JDBC DDL helpers (`src/main`, consumed by renderer IT modules) |
+| [`smithy-sql-postgres-renderer-it`](../../modules/smithy-sql-postgres-renderer-it/) | PostgreSQL 16 | `postgres:16-alpine` |
+| [`smithy-sql-sqlite-renderer-it`](../../modules/smithy-sql-sqlite-renderer-it/) | SQLite 3 | `keinos/sqlite3` (CLI in Docker) |
 
-Dialect-specific test helpers (`PostgresDdlSupport`, `SqliteContainerSupport`) live in the postgres and sqlite IT modules, not in common-it.
+Dialect-specific test helpers (`PostgresDdlSupport`, `SqliteContainerSupport`) live in the postgres and sqlite renderer IT modules, not in the testkit.
 
-Postgres and SQLite IT modules run integration tests via `test` (not SBT's legacy `it` / `IntegrationTest` scope). `sql-plugin-common-it` has no integration tests of its own unless added under `src/test`.
+Postgres and SQLite renderer IT modules run integration tests via `test` (not SBT's legacy `it` / `IntegrationTest` scope). `smithy-stache-testkit` has no integration tests of its own unless added under `src/test`.
 
 **Requires Docker** for the Postgres and SQLite modules.
 
@@ -23,13 +23,15 @@ Postgres and SQLite IT modules run integration tests via `test` (not SBT's legac
 From the SmithyStache repository root:
 
 ```bash
-sbtn smithySqlPluginPostgresIt/test smithySqlPluginSqliteIt/test
+sbtn smithySqlPostgresRendererIt/test
+sbtn smithySqlSqliteRendererIt/test
 ```
 
-Unit tests for the plugin (no Docker):
+Unit tests (no Docker):
 
 ```bash
-sbtn smithySqlPlugin/test
+sbtn smithyStachePlugin/test
+sbtn smithySqlServiceRenderer/test
 ```
 
 ## Coverage

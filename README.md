@@ -6,7 +6,7 @@ This project was inspired by OpenAPI Generator and some of my work at Disney. Ou
 
 ## Architecture
 
-The `smithy-stache` plugin reads a Smithy model and produces two intermediate representations: **SQL IR** (schema, DDL, and schema tests) and **database services and operations IR** (repository interfaces, derived queries, and test suites). Each IR fans out to dialect- and language-specific artifacts via renderers and Mustache templates.
+The `smithy-stache` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Mustache templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -17,23 +17,45 @@ flowchart TD
     SM --> SSP
 
     SSP --> SQLIR["SQL IR"]
-    SSP --> SVCIR["Database services and operations IR"]
+
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
-        SQLIR --> TLModels["Target language models"]
         SQLIR --> SchemaIT["Target language database schema integration tests"]
+        
         Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/SmithyStache/issues/2))"]
-        DDL -.-> Migration
+        DDL   -.-> Migration
         SQLIR -.-> Migration
     end
 
-    subgraph services["Service codegen"]
+    subgraph services["SQL Database Service codegen"]
+        SSP   --> SVCIR["Database services and operations IR"]
+        SQLIR --> SVCIR
+        
+        MT["Moustache Templates"]
+        SVCIR --> TLQM["Target Language Query Models"]
+        MT    --> TLQM
+
         SVCIR --> Interfaces["Target language interfaces"]
+        MT    --> Interfaces   
+        TLQM  --> Interfaces
+
         SVCIR --> AbstractTests["Target language abstract test suites"]
+        MT    --> AbstractTests
+        TLQM  --> AbstractTests
+
         SVCIR --> DerivedQueries["Derived dialect-specific queries"]
-        DerivedQueries --> Impl["Target language interface implementations"]
-        DerivedQueries --> TestImpl["Target language test suite implementations"]
+        SQLIR --> DerivedQueries
+
+        Interfaces     --> Impl["Dialect Specific Implementation"]
+        MT             --> Impl        
+        DerivedQueries --> Impl
+
+        Migration      --> TestImpl["Target language test suite implementations"]
+        MT             --> TestImpl
+        DerivedQueries --> TestImpl
+        AbstractTests  --> TestImpl
+
     end
 ```
 <!-- architecture-pipeline.mmd:end -->
@@ -57,8 +79,8 @@ The `smithy-stache` plugin (`com.jacoby6000:smithy-stache-plugin`) is a Smithy b
 | **Schema and migrations** | Derived DML in DDL `-- Queries` section | Postgres, SQLite | SQL IR → dialect renderers; basic SELECT/INSERT/UPDATE/DELETE from derive traits |
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
 | **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
-| **Service codegen** | Models, repository interfaces, driver implementations | Python | Service IR → Mustache templates under `sql-service-codegen/` |
-| **Service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived dialect-specific queries → pytest lifecycle tests |
+| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + Mustache templates under `sql-service-codegen/` |
+| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + Mustache templates (migration engine planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2))) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
@@ -92,7 +114,7 @@ Requires [sbtn](https://www.scala-sbt.org/) on `PATH` (`coursier install sbtn`).
 
 ```bash
 sbtn publishM2
-sbtn smithySqlPlugin/test
+sbtn smithyStachePlugin/test
 ```
 
 Pre-commit hooks (optional; `pre-commit install`):
@@ -113,6 +135,6 @@ sbtn 'scalafixAll --check'
 Docker-backed dialect tests:
 
 ```bash
-sbtn smithySqlPluginPostgresIt/test
-sbtn smithySqlPluginSqliteIt/test
+sbtn smithySqlPostgresRendererIt/test
+sbtn smithySqlSqliteRendererIt/test
 ```
