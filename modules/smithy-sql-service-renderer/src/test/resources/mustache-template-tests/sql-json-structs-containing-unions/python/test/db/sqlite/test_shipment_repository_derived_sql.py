@@ -24,8 +24,7 @@ CREATE TABLE shipments (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id)
-);
-"""
+);"""
 
 
 @pytest_asyncio.fixture

@@ -22,8 +22,7 @@ CREATE TABLE widgets (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id)
-);
-"""
+);"""
 
 
 @pytest_asyncio.fixture

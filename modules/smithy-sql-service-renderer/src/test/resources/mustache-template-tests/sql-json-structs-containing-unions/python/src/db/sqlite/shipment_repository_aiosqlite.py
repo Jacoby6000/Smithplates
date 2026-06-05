@@ -6,7 +6,7 @@ from typing import override
 import sqlite3
 from typing import cast
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 import aiosqlite
 
 from shipment_repository_models import (
@@ -86,7 +86,17 @@ WHERE id = ?;""",
         row = await cursor.fetchone()
         return row is not None
 def _read_datetime(row: sqlite3.Row, index: int) -> datetime:
-    return cast(datetime, row[index])
+    value = cast(str, row[index])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 def _read_str(row: sqlite3.Row, index: int) -> str:
     return cast(str, row[index])

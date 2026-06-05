@@ -25,7 +25,7 @@ object SqlValidated {
 
   def hasInvalidMemberKind(errors: NonEmptyList[SqlSchemaError], kind: InvalidMemberColumnType.Kind): Boolean =
     errors.exists {
-      case InvalidMemberColumnType(_, _, _, errorKind) => errorKind == kind
-      case _                                           => false
+      case InvalidMemberColumnType(_, _, _, errorKind, _) => errorKind == kind
+      case _                                              => false
     }
 }

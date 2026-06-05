@@ -5,8 +5,45 @@ import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
-final class PostgresRendererSpec extends FunSuite {
-  test("Postgres - renders example schema DDL") {
+final class PostgresDDLRendererSpec extends FunSuite {
+  test("Enum Type - renders CREATE TYPE for string enums before tables") {
+    val model = SqlTestModelBuilder.assemble(
+      """use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |
+        |enum Direction {
+        |    NORTH
+        |    SOUTH
+        |}
+        |
+        |@sqlTable(name: "routes")
+        |structure Route {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    direction: Direction
+        |}""".stripMargin
+    )
+
+    val schema     = SqlIrExtractor.extractOrThrow(model)
+    val statements = PostgresRenderer.renderSchemaDdlStatements(schema)
+    val enumDdl    =
+      statements
+        .find(_.shapeId == ShapeId.from("example#Direction"))
+        .map(_.statement)
+        .getOrElse(fail("CREATE TYPE for example#Direction was not rendered"))
+
+    assertEquals(enumDdl, "CREATE TYPE example_direction AS ENUM ('NORTH', 'SOUTH');")
+
+    val routeDdl =
+      statements
+        .find(_.shapeId == ShapeId.from("example#Route"))
+        .map(_.statement)
+        .getOrElse(fail("CREATE TABLE for example#Route was not rendered"))
+
+    assert(routeDdl.contains("direction example_direction"))
+  }
+
+  test("Create Table - renders example schema DDL") {
     val schema   = SqlSchemaExampleFixtures.exampleSchema
     val postgres = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
 
@@ -38,7 +75,7 @@ final class PostgresRendererSpec extends FunSuite {
     assertEquals(postgres, expectedPostgresDdl)
   }
 
-  test("Postgres - emits CREATE TABLE statements in dependency order") {
+  test("Create Table - emits CREATE TABLE statements in dependency order") {
     val childShape  = ShapeId.from("example#Child")
     val parentShape = ShapeId.from("example#Parent")
 
@@ -69,7 +106,7 @@ final class PostgresRendererSpec extends FunSuite {
     assert(ddl.indexOf("CREATE TABLE aaa_parent") < ddl.indexOf("CREATE TABLE zzz_child"))
   }
 
-  test("Postgres - fails to render when schema has no tables") {
+  test("Create Table - fails to render when schema has no tables") {
     val thrown = intercept[IllegalStateException] {
       SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(SqlSchema(tables = Nil)))
     }

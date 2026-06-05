@@ -9,6 +9,7 @@ import com.jacoby6000.smithy.stache.sql.SqlColumnType
 import com.jacoby6000.smithy.stache.sql.SqlCreatedTimestamp
 import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
 import com.jacoby6000.smithy.stache.sql.SqlUpdatedTimestamp
 import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import software.amazon.smithy.model.shapes.ShapeId
@@ -130,7 +131,45 @@ object SqlShared {
     s"${namespace}_${shapeId.getName}".toLowerCase
   }
 
-  def autoGenerationDefaultClause(dialect: SqlDialect, autoGeneration: SqlAutoGeneration): String =
+  // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows millisecond fractional seconds;
+  //                                                  DECIMAL(13, 3) stores whole seconds plus millis.
+  val postgresEpochSecondsSqlType: String = "DECIMAL(13, 3)"
+
+  def postgresEpochSecondsExpression: String =
+    "ROUND(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::numeric, 3)"
+
+  def timestampExpression(dialect: SqlDialect, format: SqlTimestampFormat): String =
+    (dialect, format) match {
+      case (_, SqlTimestampFormat.DateTime)                   =>
+        dialect match {
+          case SqliteDialect   => "CURRENT_TIMESTAMP"
+          case PostgresDialect => "CURRENT_TIMESTAMP"
+        }
+      // DESNOTE(jbarber, 2026-06-05): unixepoch('subsec') yields fractional epoch seconds as REAL,
+      //                                                  aligned with Smithy epoch-seconds millis.
+      case (SqliteDialect, SqlTimestampFormat.EpochSeconds)   =>
+        "unixepoch('subsec')"
+      case (PostgresDialect, SqlTimestampFormat.EpochSeconds) =>
+        postgresEpochSecondsExpression
+    }
+
+  def autoUpdatedTimestampAssignment(
+      dialect: SqlDialect,
+      columnName: String,
+      columnType: SqlColumnType
+  ): String = {
+    val expression = columnType match {
+      case SqlColumnType.Timestamp(format) => timestampExpression(dialect, format)
+      case _                               => timestampExpression(dialect, SqlTimestampFormat.Default)
+    }
+    s"$columnName = $expression"
+  }
+
+  def autoGenerationDefaultClause(
+      dialect: SqlDialect,
+      autoGeneration: SqlAutoGeneration,
+      columnType: SqlColumnType
+  ): String =
     autoGeneration match {
       case SqlAutoUuid                               =>
         dialect match {
@@ -138,7 +177,10 @@ object SqlShared {
           case PostgresDialect => "gen_random_uuid()"
         }
       case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
-        "CURRENT_TIMESTAMP"
+        columnType match {
+          case SqlColumnType.Timestamp(format) => timestampExpression(dialect, format)
+          case _                               => timestampExpression(dialect, SqlTimestampFormat.Default)
+        }
     }
 
   private val sqliteAutoUuidDefault: String =

@@ -9,7 +9,7 @@ import software.amazon.smithy.model.shapes.ShapeId
 class SqlSelectRendererSpec extends munit.FunSuite {
   private def queryStatement(queries: SqlQueries, dialect: SqlDialect): String =
     SqlQueryRenderer
-      .renderQueryUnits(queries)
+      .renderQueryUnits(queries, dialect)
       .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
       .map { query =>
         SqlBindPlaceholder.format(
@@ -66,7 +66,7 @@ class SqlSelectRendererSpec extends munit.FunSuite {
   test("Postgres - renders default star projections as explicit table columns") {
     val statement =
       SqlQueryRenderer
-        .renderQueryUnits(starSchema.queries)
+        .renderQueryUnits(starSchema.queries, PostgresDialect)
         .find(_.shapeId == ShapeId.from("example#ListItems"))
         .map { query =>
           SqlBindPlaceholder.format(

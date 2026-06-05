@@ -20,7 +20,8 @@ object SqlOperationSqlBindingBuilder {
   def build(
       model: Model,
       operation: SqlOperation,
-      query: ResolvedSqlOperationQuery
+      query: ResolvedSqlOperationQuery,
+      dialect: SqlDialect
   ): SqlValidated[SqlCodegenSqlBinding] =
     query match {
       case ResolvedSqlOperationQuery.Select(_) =>
@@ -31,7 +32,8 @@ object SqlOperationSqlBindingBuilder {
         val statement: SqlParameterizedStatement =
           SqlQueryRenderer
             .renderQueryUnits(
-              SqlQueriesAdapter.fromResolved(other)
+              SqlQueriesAdapter.fromResolved(other),
+              dialect
             )
             .headOption
             .map(_.statement)
@@ -39,13 +41,13 @@ object SqlOperationSqlBindingBuilder {
 
         other match {
           case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
-            buildInsertBinding(model, operation, insertQuery, statement).validNel
+            buildInsertBinding(model, operation, insertQuery, statement, dialect).validNel
           case ResolvedSqlOperationQuery.Update(updateQuery)       =>
-            buildUpdateBinding(model, updateQuery, statement).validNel
+            buildUpdateBinding(model, updateQuery, statement, dialect).validNel
           case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
-            buildDeleteBinding(model, deleteQuery, statement).validNel
+            buildDeleteBinding(model, deleteQuery, statement, dialect).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
-            buildSelectOneBinding(model, operation, selectOneQuery, statement).validNel
+            buildSelectOneBinding(model, operation, selectOneQuery, statement, dialect).validNel
           case ResolvedSqlOperationQuery.Select(_)                 =>
             InvalidPluginConfig("unreachable select branch").invalidNel
         }
@@ -75,9 +77,11 @@ object SqlOperationSqlBindingBuilder {
       model: Model,
       operation: SqlOperation,
       query: com.jacoby6000.smithy.stache.sql.service.SqlInsertQuery,
-      statement: SqlParameterizedStatement
+      statement: SqlParameterizedStatement,
+      dialect: SqlDialect
   ): SqlCodegenSqlBinding = {
-    val bindParameters = query.columns.map(column => columnToBindParameter(model, query.table.shapeId, column))
+    val bindParameters =
+      query.columns.map(column => columnToBindParameter(model, query.table.shapeId, column, dialect))
     val outputShapeId  = operation.outputShape.getOrElse(SqlCodegenTypeResolver.UnitShapeId)
 
     if (isPreludeShape(outputShapeId)) {
@@ -114,14 +118,15 @@ object SqlOperationSqlBindingBuilder {
   private def buildUpdateBinding(
       model: Model,
       query: com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery,
-      statement: SqlParameterizedStatement
+      statement: SqlParameterizedStatement,
+      dialect: SqlDialect
   ): SqlCodegenSqlBinding =
     SqlCodegenSqlBinding(
       queryKind = "update",
       sqlStatement = statement,
       tableName = query.table.name,
       bindParameters = (query.setColumns ++ query.whereColumns).map(column =>
-        columnToBindParameter(model, query.table.shapeId, column)),
+        columnToBindParameter(model, query.table.shapeId, column, dialect)),
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
       outputKind = "boolean",
       returningColumnIndex = None,
@@ -132,13 +137,15 @@ object SqlOperationSqlBindingBuilder {
   private def buildDeleteBinding(
       model: Model,
       query: com.jacoby6000.smithy.stache.sql.service.SqlDeleteQuery,
-      statement: SqlParameterizedStatement
+      statement: SqlParameterizedStatement,
+      dialect: SqlDialect
   ): SqlCodegenSqlBinding =
     SqlCodegenSqlBinding(
       queryKind = "delete",
       sqlStatement = statement,
       tableName = query.table.name,
-      bindParameters = query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column)),
+      bindParameters =
+        query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column, dialect)),
       executionMode = "fetchone",
       outputKind = "boolean",
       returningColumnIndex = None,
@@ -150,7 +157,8 @@ object SqlOperationSqlBindingBuilder {
       model: Model,
       operation: SqlOperation,
       query: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery,
-      statement: SqlParameterizedStatement
+      statement: SqlParameterizedStatement,
+      dialect: SqlDialect
   ): SqlCodegenSqlBinding = {
     val resultFields =
       query.selectColumns.zipWithIndex.flatMap { case (column, index) =>
@@ -160,7 +168,8 @@ object SqlOperationSqlBindingBuilder {
       queryKind = "selectOne",
       sqlStatement = statement,
       tableName = query.table.name,
-      bindParameters = query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column)),
+      bindParameters =
+        query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column, dialect)),
       executionMode = "fetchone",
       outputKind = "structure",
       returningColumnIndex = None,
@@ -207,7 +216,8 @@ object SqlOperationSqlBindingBuilder {
   private def columnToBindParameter(
       model: Model,
       tableShapeId: ShapeId,
-      column: SqlQueryColumn
+      column: SqlQueryColumn,
+      dialect: SqlDialect
   ): SqlCodegenBindParameter = {
     val isJson             = isJsonMember(model, tableShapeId, column.memberName)
     val jsonPythonTypeName =
@@ -216,12 +226,29 @@ object SqlOperationSqlBindingBuilder {
       } else {
         None
       }
+    val memberAndType      =
+      tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
+        tableStructure.getMember(column.memberName).toScala.map { member =>
+          val resolved = SqlCodegenTypeResolver.resolveMember(model, column.memberName, member)
+          (member, resolved.pythonTypeName)
+        }
+      }
+    val pythonTypeName     = memberAndType.map(_._2).getOrElse("str")
+    val timestampFormat    =
+      memberAndType.map { case (member, _) =>
+        SqlCodegenTimestampHelpers.resolveTimestampFormat(model, member)
+      }
     SqlCodegenBindParameter(
       memberName = column.memberName,
       pythonExpression = if (isJson) {
         s"_json_bind_${jsonPythonTypeName.get}(${column.memberName})"
       } else {
-        column.memberName
+        SqlCodegenTimestampHelpers.bindExpression(
+          dialect,
+          pythonTypeName,
+          timestampFormat.getOrElse(SqlTimestampFormat.Default),
+          column.memberName
+        )
       },
       isJson = isJson,
       jsonPythonTypeName = jsonPythonTypeName
@@ -245,6 +272,7 @@ object SqlOperationSqlBindingBuilder {
       tableStructure.getMember(memberName).toScala.map { member =>
         val resolved = SqlCodegenTypeResolver.resolveMember(model, memberName, member)
         jsonResultField(
+          model,
           member,
           memberName,
           columnIndex,
@@ -265,6 +293,7 @@ object SqlOperationSqlBindingBuilder {
           case (memberName, member) if member.sqlColumnName(memberName) == columnName =>
             val resolved = SqlCodegenTypeResolver.resolveMember(model, memberName, member)
             jsonResultField(
+              model,
               member,
               memberName,
               columnIndex,
@@ -274,16 +303,19 @@ object SqlOperationSqlBindingBuilder {
     }
 
   private def jsonResultField(
+      model: Model,
       member: software.amazon.smithy.model.shapes.MemberShape,
       memberName: String,
       columnIndex: Int,
       pythonTypeName: String
   ): SqlCodegenResultField = {
-    val isJson = member.sqlJson
+    val isJson          = member.sqlJson
+    val timestampFormat = SqlCodegenTimestampHelpers.resolveTimestampFormat(model, member)
     SqlCodegenResultField(
       fieldName = memberName,
       columnIndex = columnIndex,
       pythonTypeName = pythonTypeName,
+      rowReader = SqlCodegenTimestampHelpers.rowReaderName(pythonTypeName, timestampFormat),
       isJson = isJson,
       jsonReadExpression = if (isJson) {
         Some(s"_read_$pythonTypeName(row, $columnIndex)")

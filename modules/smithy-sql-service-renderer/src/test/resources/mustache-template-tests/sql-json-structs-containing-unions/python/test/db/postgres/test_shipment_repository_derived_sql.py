@@ -25,8 +25,7 @@ CREATE TABLE shipments (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id)
-);
-"""
+);"""
 
 
 async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str) -> None:

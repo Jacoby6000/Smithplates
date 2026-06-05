@@ -59,6 +59,7 @@ final case class SqlCodegenResultField(
     fieldName: String,
     columnIndex: Int,
     pythonTypeName: String,
+    rowReader: String,
     isJson: Boolean = false,
     jsonReadExpression: Option[String] = None
 )

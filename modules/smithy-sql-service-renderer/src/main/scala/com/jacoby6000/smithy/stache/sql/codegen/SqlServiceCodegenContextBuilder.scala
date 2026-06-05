@@ -23,7 +23,7 @@ object SqlServiceCodegenContextBuilder {
       bindPlaceholderStyle: com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
   ): SqlValidated[SqlCodegenServiceContext] =
     service.operations
-      .traverse(buildOperation(model, queries, _))
+      .traverse(buildOperation(model, queries, _, dialect))
       .andThen { operations =>
         val rootShapeIds =
           service.operations
@@ -70,7 +70,8 @@ object SqlServiceCodegenContextBuilder {
   private def buildOperation(
       model: Model,
       queries: SqlQueries,
-      operation: SqlOperation
+      operation: SqlOperation,
+      dialect: SqlDialect
   ): SqlValidated[SqlCodegenOperation] = {
     val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
     val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
@@ -86,7 +87,7 @@ object SqlServiceCodegenContextBuilder {
     val sqlBinding =
       resolvedQuery match {
         case Some(query) =>
-          SqlOperationSqlBindingBuilder.build(model, operation, query).map(Some(_))
+          SqlOperationSqlBindingBuilder.build(model, operation, query, dialect).map(Some(_))
         case None        =>
           None.validNel
       }

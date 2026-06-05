@@ -12,17 +12,22 @@ final case class InvalidMemberColumnType(
     memberName: String,
     targetShape: ShapeId,
     table: String,
-    kind: InvalidMemberColumnType.Kind
+    kind: InvalidMemberColumnType.Kind,
+    detail: Option[String] = None
 ) extends SqlSchemaError {
   override def message: String = kind match {
-    case InvalidMemberColumnType.Kind.Unsupported =>
+    case InvalidMemberColumnType.Kind.Unsupported     =>
       s"Unsupported SQL column target ${targetShape.toString} for table '$table' member '$memberName'"
-    case InvalidMemberColumnType.Kind.SqlVarchar  =>
+    case InvalidMemberColumnType.Kind.SqlVarchar      =>
       s"@sqlVarchar on table '$table' member '$memberName' requires a string target, got ${targetShape.toString}"
-    case InvalidMemberColumnType.Kind.SqlUuid     =>
+    case InvalidMemberColumnType.Kind.SqlUuid         =>
       s"@sqlUuid on table '$table' member '$memberName' requires a string target, got ${targetShape.toString}"
-    case InvalidMemberColumnType.Kind.SqlJson     =>
+    case InvalidMemberColumnType.Kind.SqlJson         =>
       s"@sqlJson on table '$table' member '$memberName' requires a list, map, structure, union, or document target, got ${targetShape.toString}"
+    case InvalidMemberColumnType.Kind.TimestampFormat =>
+      detail.getOrElse(
+        s"Unsupported @timestampFormat on table '$table' member '$memberName'"
+      )
   }
 }
 
@@ -32,6 +37,7 @@ object InvalidMemberColumnType {
     case SqlVarchar
     case SqlUuid
     case SqlJson
+    case TimestampFormat
   }
 }
 

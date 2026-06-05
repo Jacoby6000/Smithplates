@@ -13,18 +13,19 @@ import com.jacoby6000.smithy.stache.sql.service.SqlSortDirection
 import com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.shared.SqlQuerySegmentBuilder
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 /** Renders INSERT, UPDATE, and SELECT statements from validated query models. */
 object SqlQueryRenderer {
-  def renderQueryUnits(queries: SqlQueries): List[SqlRenderedQuery] =
+  def renderQueryUnits(queries: SqlQueries, dialect: SqlDialect): List[SqlRenderedQuery] =
     queries.inserts.map(renderInsertQuery) ++
-      queries.updates.map(renderUpdateQuery) ++
+      queries.updates.map(renderUpdateQuery(dialect)) ++
       queries.deletes.map(renderDeleteQuery) ++
       queries.selectOnes.map(renderSelectOneQuery) ++
       queries.selects.map(renderSelectQuery)
 
   def renderQueries(queries: SqlQueries, dialect: SqlDialect): String =
-    SqlQueryRenderOutput.format(renderQueryUnits(queries), SqlBindPlaceholder.forDialect(dialect))
+    SqlQueryRenderOutput.format(renderQueryUnits(queries, dialect), SqlBindPlaceholder.forDialect(dialect))
 
   private def renderInsertQuery(query: SqlInsertQuery): SqlRenderedQuery = {
     val builder = SqlQuerySegmentBuilder.empty
@@ -43,11 +44,11 @@ object SqlQueryRenderer {
     SqlRenderedQuery(query.shapeId, builder.build)
   }
 
-  private def renderUpdateQuery(query: SqlUpdateQuery): SqlRenderedQuery = {
+  private def renderUpdateQuery(dialect: SqlDialect)(query: SqlUpdateQuery): SqlRenderedQuery = {
     val autoUpdatedColumns =
       query.table.columns
         .filter(_.autoGeneration.contains(SqlUpdatedTimestamp))
-        .map(column => s"${column.name} = CURRENT_TIMESTAMP")
+        .map(column => SqlShared.autoUpdatedTimestampAssignment(dialect, column.name, column.columnType))
     val builder            = SqlQuerySegmentBuilder.empty
     builder.appendText(s"UPDATE ${query.table.name}\nSET ")
     query.setColumns.zipWithIndex.foreach { case (column, index) =>

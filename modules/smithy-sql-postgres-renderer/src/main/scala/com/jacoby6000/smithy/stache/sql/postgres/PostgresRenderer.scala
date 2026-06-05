@@ -27,7 +27,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
         )
       }
 
-  private def renderColumn(column: SqlColumn): String = {
+  private[postgres] def renderColumn(column: SqlColumn): String = {
     val checks = column.columnType match {
       case enumType: SqlColumnType.IntEnum =>
         List(SqlShared.intEnumCheck(column.name, enumType.values))
@@ -38,7 +38,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       sqlTypeFor(column.columnType),
       column.nullable,
       checks,
-      column.autoGeneration.map(SqlShared.autoGenerationDefaultClause(PostgresDialect, _))
+      column.autoGeneration.map(SqlShared.autoGenerationDefaultClause(PostgresDialect, _, column.columnType))
     )
   }
 
@@ -47,7 +47,11 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       columnType match {
         case SqlColumnType.Varchar(maxLength)   => s"VARCHAR($maxLength)"
         case SqlColumnType.Uuid                 => "UUID"
-        case SqlColumnType.Timestamp            => "TIMESTAMP"
+        case SqlColumnType.Timestamp(format)    =>
+          format match {
+            case SqlTimestampFormat.DateTime     => "TIMESTAMP"
+            case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsSqlType
+          }
         case SqlColumnType.Boolean              => "BOOLEAN"
         case SqlColumnType.Json                 => "JSONB"
         case SqlColumnType.Blob                 => "BYTEA"

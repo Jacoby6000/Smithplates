@@ -191,31 +191,23 @@ object SqlCodegenTemplateAttributes {
       "pythonTypeName"     -> resultField.pythonTypeName,
       "isJson"             -> resultField.isJson,
       "jsonReadExpression" -> resultField.jsonReadExpression.orNull,
-      "rowReader"          -> rowReaderExpression(resultField.pythonTypeName)
+      "rowReader"          -> resultField.rowReader
     )
-
-  private def rowReaderExpression(pythonTypeName: String): String =
-    pythonTypeName match {
-      case "str"      => "_read_str"
-      case "int"      => "_read_int"
-      case "float"    => "_read_float"
-      case "bool"     => "_read_bool"
-      case "bytes"    => "_read_bytes"
-      case "datetime" => "_read_datetime"
-      case "Decimal"  => "_read_decimal"
-      case other      => other
-    }
 
   private def renderRowReaderHelpers(
       context: SqlCodegenServiceContext,
       operations: List[SqlCodegenOperation]
   ): String = {
-    val rowTypeName     = SqlCodegenDialectConfig.rowTypeName(context.dialect)
-    val readers         = collectRowReaders(operations).toList.sorted
-    val scalarHelpers   = readers.map(readerName => renderRowReaderHelper(readerName, rowTypeName, context.dialect))
-    val jsonTypeHelpers = renderJsonTypeHelpers(context, operations, rowTypeName, context.dialect)
+    val rowTypeName          = SqlCodegenDialectConfig.rowTypeName(context.dialect)
+    val readers              = collectRowReaders(operations).toList.sorted
+    val scalarHelpers        = readers.map(readerName => renderRowReaderHelper(readerName, rowTypeName, context.dialect))
+    val timestampBindHelpers =
+      collectTimestampBindHelpers(operations).toList.sorted.map { helperName =>
+        renderTimestampBindHelper(helperName, context.dialect)
+      }
+    val jsonTypeHelpers      = renderJsonTypeHelpers(context, operations, rowTypeName, context.dialect)
 
-    (scalarHelpers ++ jsonTypeHelpers).mkString("\n\n")
+    (scalarHelpers ++ timestampBindHelpers ++ jsonTypeHelpers).mkString("\n\n")
   }
 
   private def renderJsonTypeHelpers(
@@ -326,13 +318,69 @@ ${memberIndent})"""
           if (readers.nonEmpty || usesJson) Some("from typing import cast") else None,
           if (SqlCodegenDialectConfig.usesUuidRowConversion(dialect)) Some("import uuid") else None,
           if (usesJson) Some("import json") else None,
-          if (readers.contains("_read_datetime")) Some("from datetime import datetime") else None,
-          if (readers.contains("_read_decimal")) Some("from decimal import Decimal") else None
+          datetimeImport(dialect, readers, operations),
+          if (needsDecimalImport(dialect, readers, operations)) Some("from decimal import Decimal") else None
         ).flatten
 
       imports.mkString("", "\n", "\n")
     }
   }
+
+  private def needsDecimalImport(
+      dialect: com.jacoby6000.smithy.stache.sql.SqlDialect,
+      readers: Set[String],
+      operations: List[SqlCodegenOperation]
+  ): Boolean =
+    readers.contains("_read_decimal") ||
+      (dialect == PostgresDialect && (
+        readers.contains("_read_epoch_seconds") ||
+          collectTimestampBindHelpers(operations).contains("_timestamp_bind_epoch_seconds")
+      ))
+
+  private def needsDatetimeImports(
+      readers: Set[String],
+      operations: List[SqlCodegenOperation]
+  ): Boolean =
+    readers.exists(_.startsWith("_read_datetime")) ||
+      readers.contains("_read_epoch_seconds") ||
+      usesTimestampBind(operations)
+
+  private def datetimeImport(
+      dialect: com.jacoby6000.smithy.stache.sql.SqlDialect,
+      readers: Set[String],
+      operations: List[SqlCodegenOperation]
+  ): Option[String] =
+    if (!needsDatetimeImports(readers, operations)) {
+      None
+    } else {
+      dialect match {
+        case com.jacoby6000.smithy.stache.sql.SqliteDialect   => Some("from datetime import datetime, timezone")
+        case com.jacoby6000.smithy.stache.sql.PostgresDialect
+            if readers.contains("_read_epoch_seconds") ||
+              usesTimestampBind(operations) =>
+          Some("from datetime import datetime, timezone")
+        case com.jacoby6000.smithy.stache.sql.PostgresDialect =>
+          Some("from datetime import datetime")
+      }
+    }
+
+  private def usesTimestampBind(operations: List[SqlCodegenOperation]): Boolean =
+    collectTimestampBindHelpers(operations).nonEmpty
+
+  private def collectTimestampBindHelpers(operations: List[SqlCodegenOperation]): Set[String] =
+    operations
+      .flatMap(_.sql.toList)
+      .flatMap(_.bindParameters)
+      .flatMap { parameter =>
+        if (parameter.pythonExpression.startsWith("_timestamp_bind_datetime(")) {
+          Some("_timestamp_bind_datetime")
+        } else if (parameter.pythonExpression.startsWith("_timestamp_bind_epoch_seconds(")) {
+          Some("_timestamp_bind_epoch_seconds")
+        } else {
+          None
+        }
+      }
+      .toSet
 
   private def usesJsonSerialization(operations: List[SqlCodegenOperation]): Boolean =
     operations.exists(_.sql.exists { sql =>
@@ -350,10 +398,41 @@ ${memberIndent})"""
       }
     val fieldReaders  =
       operations.flatMap(_.sql.toList).flatMap { sql =>
-        sql.resultFields.filterNot(_.isJson).map(field => rowReaderExpression(field.pythonTypeName))
+        sql.resultFields.filterNot(_.isJson).map(_.rowReader)
       }
     (scalarReaders ++ fieldReaders).toSet
   }
+
+  private def renderTimestampBindHelper(
+      helperName: String,
+      dialect: com.jacoby6000.smithy.stache.sql.SqlDialect
+  ): String =
+    helperName match {
+      case "_timestamp_bind_datetime"                                                                   =>
+        """def _timestamp_bind_datetime(value: datetime) -> str:
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+    text = normalized.isoformat(timespec="milliseconds")
+    return text.replace("+00:00", "Z")"""
+      case "_timestamp_bind_epoch_seconds" if dialect == com.jacoby6000.smithy.stache.sql.SqliteDialect =>
+        """def _timestamp_bind_epoch_seconds(value: datetime) -> float:
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+    return normalized.timestamp()"""
+      case "_timestamp_bind_epoch_seconds" if dialect == PostgresDialect                                =>
+        """def _timestamp_bind_epoch_seconds(value: datetime) -> Decimal:
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+    return Decimal(str(round(normalized.timestamp(), 3)))"""
+      case other                                                                                        =>
+        throw new IllegalArgumentException(s"Unsupported timestamp bind helper: $other")
+    }
 
   private def renderRowReaderHelper(
       readerName: String,
@@ -361,34 +440,53 @@ ${memberIndent})"""
       dialect: com.jacoby6000.smithy.stache.sql.SqlDialect
   ): String =
     readerName match {
-      case "_read_str" if dialect == PostgresDialect =>
+      case "_read_str" if dialect == PostgresDialect                                          =>
         s"""def _read_str(row: $rowTypeName, index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)"""
-      case "_read_str"                               =>
+      case "_read_str"                                                                        =>
         s"""def _read_str(row: $rowTypeName, index: int) -> str:
     return cast(str, row[index])"""
-      case "_read_int"                               =>
+      case "_read_int"                                                                        =>
         s"""def _read_int(row: $rowTypeName, index: int) -> int:
     return cast(int, row[index])"""
-      case "_read_float"                             =>
+      case "_read_float"                                                                      =>
         s"""def _read_float(row: $rowTypeName, index: int) -> float:
     return cast(float, row[index])"""
-      case "_read_bool"                              =>
+      case "_read_bool"                                                                       =>
         s"""def _read_bool(row: $rowTypeName, index: int) -> bool:
     return cast(bool, row[index])"""
-      case "_read_bytes"                             =>
+      case "_read_bytes"                                                                      =>
         s"""def _read_bytes(row: $rowTypeName, index: int) -> bytes:
     return cast(bytes, row[index])"""
-      case "_read_datetime"                          =>
+      case "_read_datetime" if dialect == com.jacoby6000.smithy.stache.sql.SqliteDialect      =>
+        s"""def _read_datetime(row: $rowTypeName, index: int) -> datetime:
+    value = cast(str, row[index])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)"""
+      case "_read_datetime"                                                                   =>
         s"""def _read_datetime(row: $rowTypeName, index: int) -> datetime:
     return cast(datetime, row[index])"""
-      case "_read_decimal"                           =>
+      case "_read_epoch_seconds" if dialect == com.jacoby6000.smithy.stache.sql.SqliteDialect =>
+        s"""def _read_epoch_seconds(row: $rowTypeName, index: int) -> datetime:
+    return datetime.fromtimestamp(cast(float, row[index]), tz=timezone.utc)"""
+      case "_read_epoch_seconds" if dialect == PostgresDialect                                =>
+        s"""def _read_epoch_seconds(row: $rowTypeName, index: int) -> datetime:
+    return datetime.fromtimestamp(float(cast(Decimal, row[index])), tz=timezone.utc)"""
+      case "_read_decimal"                                                                    =>
         s"""def _read_decimal(row: $rowTypeName, index: int) -> Decimal:
     return cast(Decimal, row[index])"""
-      case other                                     =>
+      case other                                                                              =>
         throw new IllegalArgumentException(s"Unsupported row reader helper: $other")
     }
 

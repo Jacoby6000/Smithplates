@@ -16,20 +16,20 @@ trait ColumnTypeConverter {
 
 final case class UnsupportedColumnType(
     target: ShapeId,
-    kind: InvalidMemberColumnType.Kind
+    kind: InvalidMemberColumnType.Kind,
+    detail: Option[String] = None
 ) {
   def toSchemaError(columnName: String, table: String): SqlSchemaError =
-    InvalidMemberColumnType(columnName, target, table, kind)
+    InvalidMemberColumnType(columnName, target, table, kind, detail)
 }
 
 object SmithyColumnTypeConverter extends ColumnTypeConverter {
   private val shapeTypeToColumnType: Map[ShapeType, SqlColumnType] = Map(
-    ShapeType.INTEGER   -> SqlColumnType.Integer,
-    ShapeType.LONG      -> SqlColumnType.BigInt,
-    ShapeType.TIMESTAMP -> SqlColumnType.Timestamp,
-    ShapeType.BOOLEAN   -> SqlColumnType.Boolean,
-    ShapeType.DOCUMENT  -> SqlColumnType.Json,
-    ShapeType.BLOB      -> SqlColumnType.Blob
+    ShapeType.INTEGER  -> SqlColumnType.Integer,
+    ShapeType.LONG     -> SqlColumnType.BigInt,
+    ShapeType.BOOLEAN  -> SqlColumnType.Boolean,
+    ShapeType.DOCUMENT -> SqlColumnType.Json,
+    ShapeType.BLOB     -> SqlColumnType.Blob
   )
 
   override def fromSmithyMember(
@@ -44,21 +44,25 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
       )
     } else {
       member.sqlVarchar(model) match {
-        case Some(varcharTrait)            =>
+        case Some(varcharTrait)                       =>
           stringLikeColumnType(
             model,
             target,
             SqlColumnType.Varchar(varcharTrait.getMaxLength),
             InvalidMemberColumnType.Kind.SqlVarchar
           )
-        case None if member.sqlUuid(model) =>
+        case None if member.sqlUuid(model)            =>
           stringLikeColumnType(
             model,
             target,
             SqlColumnType.Uuid,
             InvalidMemberColumnType.Kind.SqlUuid
           )
-        case None                          =>
+        case None if isTimestampTarget(model, target) =>
+          SmithyTimestampFormatResolver
+            .resolve(model, member)
+            .map(SqlColumnType.Timestamp(_))
+        case None                                     =>
           columnTypeForTarget(model, target).toRight(
             UnsupportedColumnType(target, InvalidMemberColumnType.Kind.Unsupported)
           )
@@ -110,6 +114,9 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
 
   private def isStringLike(model: Model, target: ShapeId): Boolean =
     columnTypeForTarget(model, target).contains(SqlColumnType.Text)
+
+  private def isTimestampTarget(model: Model, target: ShapeId): Boolean =
+    shape(model, target).exists(_.getType == ShapeType.TIMESTAMP)
 
   private def shape(model: Model, target: ShapeId): Option[Shape] =
     model.getShape(target).toScala

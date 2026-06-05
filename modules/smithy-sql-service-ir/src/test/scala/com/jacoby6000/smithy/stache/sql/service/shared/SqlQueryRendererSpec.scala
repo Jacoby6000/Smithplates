@@ -10,7 +10,7 @@ import software.amazon.smithy.model.shapes.ShapeId
 class SqlQueryRendererSpec extends munit.FunSuite {
   private def queryStatement(queries: SqlQueries, dialect: SqlDialect, shapeId: String): String =
     SqlQueryRenderer
-      .renderQueryUnits(queries)
+      .renderQueryUnits(queries, dialect)
       .find(_.shapeId == ShapeId.from(shapeId))
       .map { query =>
         SqlBindPlaceholder.format(

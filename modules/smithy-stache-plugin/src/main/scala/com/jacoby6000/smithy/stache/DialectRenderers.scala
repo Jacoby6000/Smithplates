@@ -19,7 +19,7 @@ object DialectRenderers {
   def render(schema: SqlSchema, serviceIr: SqlServiceIr, dialect: SqlDialect): String =
     SqlQueryRenderOutput.formatWithDdl(
       schemaDdlRenderer(dialect).renderSchemaDdlStatements(schema),
-      SqlQueryRenderer.renderQueryUnits(serviceIr.queries),
+      SqlQueryRenderer.renderQueryUnits(serviceIr.queries, dialect),
       SqlBindPlaceholder.forDialect(dialect)
     )
 }

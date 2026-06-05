@@ -167,12 +167,76 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    value: Timestamp
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeTimestampMember", List("value" -> SqlColumnType.Timestamp))
+    assertModelColumns(
+      model,
+      "PreludeTimestampMember",
+      List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.DateTime))
+    )
   }
 
   test("Timestamp - timestamp alias maps to Timestamp") {
     val model = modelWithTypeAlias("timestamp")
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Timestamp))
+    assertModelColumns(
+      model,
+      AliasStructureName,
+      List(AliasMemberName -> SqlColumnType.Timestamp(SqlTimestampFormat.DateTime))
+    )
+  }
+
+  test("Timestamp - @timestampFormat epoch-seconds on member") {
+    val model = builder.assemble(
+      """use smithy.api#timestampFormat
+
+        |structure EpochSecondsMember {
+        |    @timestampFormat("epoch-seconds")
+        |    value: Timestamp
+        |}""".stripMargin
+    )
+    assertModelColumns(
+      model,
+      "EpochSecondsMember",
+      List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds))
+    )
+  }
+
+  test("Timestamp - @timestampFormat on target shape") {
+    val model = builder.assemble(
+      """use smithy.api#timestampFormat
+
+        |@timestampFormat("epoch-seconds")
+        |timestamp EpochSecondsTimestamp
+
+        |structure EpochSecondsAliasMember {
+        |    value: EpochSecondsTimestamp
+        |}""".stripMargin
+    )
+    assertModelColumns(
+      model,
+      "EpochSecondsAliasMember",
+      List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds))
+    )
+  }
+
+  test("Timestamp - rejects @timestampFormat http-date") {
+    val model  = builder.assemble(
+      """use smithy.api#timestampFormat
+
+        |structure HttpDateMember {
+        |    @timestampFormat("http-date")
+        |    value: Timestamp
+        |}""".stripMargin
+    )
+    val member = memberFromModel(model, "HttpDateMember", "value")
+    assertEquals(
+      converter.fromSmithyMember(model, member),
+      Left(
+        UnsupportedColumnType(
+          member.getTarget,
+          InvalidMemberColumnType.Kind.TimestampFormat,
+          Some("@timestampFormat \"http-date\" is not supported for SQL columns")
+        )
+      )
+    )
   }
 
   test("Boolean - prelude Boolean maps to Boolean") {
