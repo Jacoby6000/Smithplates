@@ -1,0 +1,43 @@
+# Generated from {{serviceShapeId}} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+
+import pytest
+import pytest_asyncio
+import aiosqlite
+{{#integrationTest}}{{#extraImports}}{{extraImports}}{{/extraImports}}{{/integrationTest}}
+from {{implementationModuleName}} import {{implementationClassName}}
+from {{serviceFileName}}_models import (
+{{#models}}{{i4}}{{className}},
+{{/models}}{{#unions}}{{i4}}{{className}},
+{{/unions}})
+
+{{#integrationTest}}SCHEMA_DDL = """{{schemaDdl}}"""
+
+
+@pytest_asyncio.fixture
+async def {{serviceFixtureName}}() -> AsyncIterator[{{implementationClassName}}]:
+    connection = await aiosqlite.connect(":memory:")
+    await connection.executescript(SCHEMA_DDL)
+    await connection.commit()
+    try:
+        yield {{implementationClassName}}(connection)
+    finally:
+        await connection.close()
+
+
+@pytest.mark.asyncio
+async def test_derived_sql_methods_lifecycle({{serviceFixtureName}}: {{implementationClassName}}) -> None:
+    entity_id = await {{serviceFixtureName}}.{{{insertOperation.methodName}}}({{{insertOperation.callArguments}}})
+    assert isinstance(entity_id, str)
+    assert entity_id
+
+    fetched = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
+    assert isinstance(fetched, {{{selectOneOperation.outputClassName}}})
+{{{selectOneResultAssertions}}}
+
+{{#hasUpdateLifecycleBlock}}{{{updateLifecycleBlock}}}
+
+{{/hasUpdateLifecycleBlock}}{{#hasDeleteLifecycleBlock}}{{{deleteLifecycleBlock}}}
+{{/hasDeleteLifecycleBlock}}{{/integrationTest}}

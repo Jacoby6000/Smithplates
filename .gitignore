@@ -1,0 +1,6 @@
+target/
+.metals
+.sbt
+.bsp
+.bloop
+.coursier-cache

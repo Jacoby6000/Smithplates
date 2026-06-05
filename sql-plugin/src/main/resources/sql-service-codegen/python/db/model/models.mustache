@@ -1,0 +1,18 @@
+# Generated from {{serviceShapeId}} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+{{#hasUnions}}from typing import TypedDict
+{{/hasUnions}}
+{{#unions}}{{#members}}class {{variantClassName}}(TypedDict):
+{{i4}}{{name}}: {{pythonTypeName}}
+{{/members}}{{className}} = {{unionTypeAlias}}
+
+{{/unions}}{{#models}}@dataclass
+class {{className}}:
+{{#hasMembers}}{{memberLines}}
+{{/hasMembers}}{{^hasMembers}}{{i4}}pass
+{{/hasMembers}}
+
+{{/models}}

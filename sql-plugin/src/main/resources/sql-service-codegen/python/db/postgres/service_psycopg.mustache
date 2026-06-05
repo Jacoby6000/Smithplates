@@ -1,0 +1,74 @@
+# Generated from {{serviceShapeId}} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from typing import override
+
+{{rowReaderImports}}import psycopg
+
+from {{serviceFileName}}_models import (
+{{#models}}{{i4}}{{className}},
+{{/models}}{{#unions}}{{i4}}{{className}},
+{{/unions}})
+from {{serviceFileName}}_protocol import {{serviceClassName}}ServiceProtocol
+
+
+class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
+{{i4}}def __init__(self, connection: psycopg.AsyncConnection) -> None:
+{{i8}}super().__init__()
+{{i8}}self._connection = connection
+
+{{#operations}}{{#hasSql}}{{i4}}@override
+{{i4}}async def {{methodName}}(
+{{i8}}self,
+{{#parameters}}{{i8}}{{name}}: {{#optional}}{{pythonTypeName}} | None{{/optional}}{{^optional}}{{pythonTypeName}}{{/optional}},
+{{/parameters}}{{i4}}) -> {{pythonResponseType}}:
+{{#isInsertScalar}}{{i8}}cur = await self._connection.execute(
+{{i12}}"""{{sqlStatement}}""",
+{{i12}}{{bindTupleExpression}},
+{{i8}})
+{{i8}}row = await cur.fetchone()
+{{i8}}if row is None:
+{{i12}}raise RuntimeError("INSERT RETURNING produced no row")
+{{i8}}return _read_str(row, {{returningColumnIndex}})
+{{/isInsertScalar}}{{#isInsertStructure}}{{i8}}cur = await self._connection.execute(
+{{i12}}"""{{sqlStatement}}""",
+{{i12}}{{bindTupleExpression}},
+{{i8}})
+{{i8}}row = await cur.fetchone()
+{{i8}}if row is None:
+{{i12}}raise RuntimeError("INSERT RETURNING produced no row")
+{{i8}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
+{{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
+{{/isJson}}{{/resultFields}}{{i8}})
+{{/isInsertStructure}}{{#isBooleanMutation}}{{^isRowcountExecution}}{{i8}}cur = await self._connection.execute(
+{{i12}}"""{{sqlStatement}}""",
+{{i12}}{{bindTupleExpression}},
+{{i8}})
+{{i8}}row = await cur.fetchone()
+{{i8}}return row is not None
+{{/isRowcountExecution}}{{#isRowcountExecution}}{{i8}}cur = await self._connection.execute(
+{{i12}}"""{{sqlStatement}}""",
+{{i12}}{{bindTupleExpression}},
+{{i8}})
+{{i8}}return cur.rowcount > 0
+{{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{i8}}cur = await self._connection.execute(
+{{i12}}"""{{sqlStatement}}""",
+{{i12}}{{bindTupleExpression}},
+{{i8}})
+{{i8}}row = await cur.fetchone()
+{{i8}}if row is None:
+{{#hasNotFoundError}}{{i12}}return {{notFoundErrorClassName}}(
+{{i12}}    message="Resource not found",
+{{i12}})
+{{/hasNotFoundError}}{{^hasNotFoundError}}{{i12}}raise RuntimeError("SELECT returned no row")
+{{/hasNotFoundError}}{{i8}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
+{{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
+{{/isJson}}{{/resultFields}}{{i8}})
+{{/isSelectOne}}
+{{^last}}
+
+{{/last}}{{/hasSql}}{{/operations}}
+
+{{{rowReaderHelpers}}}

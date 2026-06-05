@@ -1,0 +1,108 @@
+[project]
+name = "sql-service-codegen-python-workspace"
+version = "0.1.0"
+description = "Ephemeral uv workspace for sql-service-codegen Mustache template tests"
+requires-python = ">=3.12"
+dependencies = [
+    "aiosqlite>=0.21.0",
+    "psycopg[binary]>=3.2.0",
+    "testcontainers[postgres]>=4.9.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.14.0",
+    "pyright>=1.1.400",
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.25.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+warn_unused_ignores = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_incomplete_stub = true
+no_implicit_reexport = true
+disallow_any_generics = true
+disallow_any_unimported = true
+disallow_any_explicit = true
+disallow_any_expr = true
+disallow_any_decorated = true
+disallow_subclassing_any = true
+disallow_untyped_decorators = true
+disallow_untyped_calls = true
+disallow_untyped_globals = true
+disallow_redefinition = true
+follow_untyped_imports = true
+local_partial_types = true
+strict_equality = true
+strict_equality_for_none = true
+strict_bytes = true
+extra_checks = true
+explicit_package_bases = true
+show_error_codes = true
+pretty = true
+
+[tool.pyright]
+exclude = ["**/__pycache__", ".venv"]
+pythonVersion = "3.12"
+pythonPlatform = "Linux"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+deprecateTypingAliases = true
+enableReachabilityAnalysis = true
+reportMissingModuleSource = "error"
+reportMissingTypeStubs = "error"
+reportUnusedImport = "error"
+reportDuplicateImport = "error"
+reportPrivateUsage = "error"
+reportUntypedFunctionDecorator = "error"
+reportUntypedClassDecorator = "error"
+reportUntypedBaseClass = "error"
+reportUntypedNamedTuple = "error"
+reportMissingParameterType = "error"
+reportMissingTypeArgument = "error"
+reportUnknownParameterType = "error"
+reportUnknownArgumentType = "error"
+reportUnknownLambdaType = "error"
+reportUnknownVariableType = "error"
+reportUnknownMemberType = "error"
+reportUnnecessaryTypeIgnoreComment = "error"
+reportUnnecessaryComparison = "error"
+reportUnnecessaryContains = "error"
+reportUnnecessaryCast = "error"
+reportUnnecessaryIsInstance = "error"
+reportAssertAlwaysTrue = "error"
+reportInvalidStubStatement = "error"
+reportIncompleteStub = "error"
+reportUnsupportedDunderAll = "error"
+reportUnusedCallResult = "error"
+reportUnusedExpression = "error"
+reportMatchNotExhaustive = "error"
+reportImplicitOverride = "error"
+reportCallInDefaultInitializer = "error"
+reportImplicitStringConcatenation = "error"
+reportImportCycles = "error"
+reportMissingSuperCall = "error"
+reportPropertyTypeMismatch = "error"
+reportUninitializedInstanceVariable = "error"
+reportUnreachable = "error"
+reportUnusedClass = "error"
+reportUnusedFunction = "error"
+reportUnusedVariable = "error"
+reportDeprecated = "error"
+reportConstantRedefinition = "error"
+reportInconsistentConstructor = "error"
+reportTypeCommentUsage = "error"
