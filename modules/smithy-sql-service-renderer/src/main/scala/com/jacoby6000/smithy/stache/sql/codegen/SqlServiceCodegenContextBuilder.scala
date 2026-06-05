@@ -1,11 +1,12 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlOperationSqlBindingBuilder
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
 import com.jacoby6000.smithy.stache.sql.service.SqlQueries
 import com.jacoby6000.smithy.stache.sql.service.SqlQueryExtractor
@@ -19,11 +20,12 @@ object SqlServiceCodegenContextBuilder {
       schema: SqlSchema,
       queries: SqlQueries,
       service: SqlService,
-      dialect: SqlDialect,
-      bindPlaceholderStyle: com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
+      queryRenderer: SqlQueryRenderer,
+      bindPlaceholderStyle: SqlBindPlaceholder,
+      settings: SqlServiceCodegenSettings
   ): SqlValidated[SqlCodegenServiceContext] =
     service.operations
-      .traverse(buildOperation(model, queries, _, dialect))
+      .traverse(buildOperation(model, queries, _, queryRenderer))
       .andThen { operations =>
         val rootShapeIds =
           service.operations
@@ -47,13 +49,14 @@ object SqlServiceCodegenContextBuilder {
               namespace = service.shapeId.getNamespace,
               fileName = SqlCodegenNaming.serviceFileName(service.shapeId.getName),
               version = service.version,
-              dialect = dialect,
+              dialectKey = queryRenderer.key,
+              queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
               implementationClassName =
-                SqlCodegenDialectConfig.implementationClassName(service.shapeId.getName, dialect),
+                SqlCodegenDialectConfig.implementationClassName(service.shapeId.getName, queryRenderer.key),
               implementationModuleName = SqlCodegenDialectConfig.implementationModuleName(
                 SqlCodegenNaming.serviceFileName(service.shapeId.getName),
-                dialect
+                queryRenderer.key
               ),
               hasSqlOperations = operations.exists(_.sql.isDefined),
               models = models.sortBy(_.shapeId.toString),
@@ -62,7 +65,7 @@ object SqlServiceCodegenContextBuilder {
             )
 
           baseContext.copy(
-            integrationTest = SqlCodegenIntegrationTestBuilder.build(baseContext, schema, dialect)
+            integrationTest = SqlCodegenIntegrationTestBuilder.build(baseContext, schema, settings.schemaDdlRenderers)
           )
         }
       }
@@ -71,7 +74,7 @@ object SqlServiceCodegenContextBuilder {
       model: Model,
       queries: SqlQueries,
       operation: SqlOperation,
-      dialect: SqlDialect
+      queryRenderer: SqlQueryRenderer
   ): SqlValidated[SqlCodegenOperation] = {
     val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
     val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
@@ -87,7 +90,7 @@ object SqlServiceCodegenContextBuilder {
     val sqlBinding =
       resolvedQuery match {
         case Some(query) =>
-          SqlOperationSqlBindingBuilder.build(model, operation, query, dialect).map(Some(_))
+          SqlOperationSqlBindingBuilder.build(model, operation, query, queryRenderer).map(Some(_))
         case None        =>
           None.validNel
       }

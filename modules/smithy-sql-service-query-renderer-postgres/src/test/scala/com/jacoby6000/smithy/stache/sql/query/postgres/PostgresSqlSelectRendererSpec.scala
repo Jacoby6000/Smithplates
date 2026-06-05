@@ -1,20 +1,27 @@
-package com.jacoby6000.smithy.stache.sql.service.shared
+package com.jacoby6000.smithy.stache.sql.query.postgres
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.service.SqlQueries
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.shapes.ShapeId
 
-class SqlSelectRendererSpec extends munit.FunSuite {
-  private def queryStatement(queries: SqlQueries, dialect: SqlDialect): String =
-    SqlQueryRenderer
-      .renderQueryUnits(queries, dialect)
+final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
+  private lazy val renderer =
+    new PostgresSqlQueryRenderer(
+      migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+      codegenBindPlaceholder = SqlBindPlaceholder("%s")
+    )
+
+  private def queryStatement(queries: SqlQueries, renderer: SqlQueryRenderer): String =
+    renderer
+      .renderQueryUnits(queries)
       .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
       .map { query =>
         SqlBindPlaceholder.format(
           query.statement.segments,
-          SqlBindPlaceholder.forDialect(dialect)
+          renderer.migrationBindPlaceholder
         )
       }
       .getOrElse(fail("query 'example#ListItemCategories' was not rendered"))
@@ -62,16 +69,15 @@ class SqlSelectRendererSpec extends munit.FunSuite {
   )
 
   private lazy val starSchema = SqlModelExtractor.extractOrThrow(starQueryModel)
-
   test("Postgres - renders default star projections as explicit table columns") {
     val statement =
-      SqlQueryRenderer
-        .renderQueryUnits(starSchema.queries, PostgresDialect)
+      renderer
+        .renderQueryUnits(starSchema.queries)
         .find(_.shapeId == ShapeId.from("example#ListItems"))
         .map { query =>
           SqlBindPlaceholder.format(
             query.statement.segments,
-            SqlBindPlaceholder.forDialect(PostgresDialect)
+            renderer.migrationBindPlaceholder
           )
         }
         .getOrElse(fail("query 'example#ListItems' was not rendered"))
@@ -136,28 +142,15 @@ class SqlSelectRendererSpec extends munit.FunSuite {
   )
 
   private lazy val schema = SqlModelExtractor.extractOrThrow(queryModel)
-
   test("Postgres - renders derive select join, filters, and HAVING placeholders") {
     assertEquals(
-      queryStatement(schema.queries, PostgresDialect),
+      queryStatement(schema.queries, renderer),
       """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
         |FROM items AS i
         |INNER JOIN categories AS c ON i.category_id = c.id
         |WHERE i.category_id = $1
         |GROUP BY i.id, c.name
         |HAVING COUNT(i.id) = $2;""".stripMargin
-    )
-  }
-
-  test("SQLite - renders derive select join, filters, and HAVING placeholders") {
-    assertEquals(
-      queryStatement(schema.queries, SqliteDialect),
-      """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
-        |FROM items AS i
-        |INNER JOIN categories AS c ON i.category_id = c.id
-        |WHERE i.category_id = ?
-        |GROUP BY i.id, c.name
-        |HAVING COUNT(i.id) = ?;""".stripMargin
     )
   }
 }

@@ -18,7 +18,10 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 |-------------|-----------|------------------|------|
 | `smithyStachePlugin` | [`modules/smithy-stache-plugin/`](../../modules/smithy-stache-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | Published `smithy-stache` build plugin (orchestration only) |
 | `smithySqlIr` | [`modules/smithy-sql-ir/`](../../modules/smithy-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
-| `smithySqlServiceIr` | [`modules/smithy-sql-service-ir/`](../../modules/smithy-sql-service-ir/) | — | Query/service IR, `SqlQueryRenderer` |
+| `smithySqlServiceIr` | [`modules/smithy-sql-service-ir/`](../../modules/smithy-sql-service-ir/) | — | Query/service IR, extractors |
+| `smithySqlServiceQueryRenderer` | [`modules/smithy-sql-service-query-renderer/`](../../modules/smithy-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, dialect-neutral query rendering |
+| `smithySqlServiceQueryRendererPostgres` | [`modules/smithy-sql-service-query-renderer-postgres/`](../../modules/smithy-sql-service-query-renderer-postgres/) | — | Postgres `SqlQueryRenderer` |
+| `smithySqlServiceQueryRendererSqlite` | [`modules/smithy-sql-service-query-renderer-sqlite/`](../../modules/smithy-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
 | `smithySqlPostgresRenderer` | [`modules/smithy-sql-postgres-renderer/`](../../modules/smithy-sql-postgres-renderer/) | — | Postgres DDL renderer |
 | `smithySqlSqliteRenderer` | [`modules/smithy-sql-sqlite-renderer/`](../../modules/smithy-sql-sqlite-renderer/) | — | SQLite DDL renderer |
 | `smithySqlServiceRenderer` | [`modules/smithy-sql-service-renderer/`](../../modules/smithy-sql-service-renderer/) | — | Mustache service codegen (Python templates) |

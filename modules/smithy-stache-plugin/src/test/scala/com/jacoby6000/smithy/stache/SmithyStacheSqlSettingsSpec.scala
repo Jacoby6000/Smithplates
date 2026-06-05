@@ -1,7 +1,5 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
@@ -26,20 +24,20 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
-    assertEquals(settings.enabledDialects, List(PostgresDialect))
+    assertEquals(settings.enabledDialectKeys, List("postgres"))
     assertEquals(
-      settings.dialects.get(PostgresDialect).map(_.migrationLocation),
+      settings.dialects.get("postgres").map(_.migrationLocation),
       Some(Some("db/postgres.sql"))
     )
     assertEquals(settings.languageTargets.keySet, Set("python"))
 
-    assertEquals(settings.schemaDialectOutputs, Map(PostgresDialect -> "db/postgres.sql"))
+    assertEquals(settings.schemaDialectOutputs, Map("postgres" -> "db/postgres.sql"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:sql-service-codegen/python")
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
-    assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List(PostgresDialect)))
+    assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))
   }
 
   test("dialect enable defaults to false") {
@@ -55,7 +53,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
-    assertEquals(settings.enabledDialects, Nil)
+    assertEquals(settings.enabledDialectKeys, Nil)
     assertEquals(settings.schemaDialectOutputs, Map.empty)
   }
 
@@ -121,11 +119,11 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val settings        = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
-    assertEquals(settings.enabledDialects, List(SqliteDialect, PostgresDialect))
+    assertEquals(settings.enabledDialectKeys, List("sqlite", "postgres"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(
       codegenSettings.artifacts,
-      SqlServiceCodegenDbArtifacts.forEnabledDialects(List(SqliteDialect, PostgresDialect))
+      SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
     )
   }
 

@@ -30,14 +30,14 @@ final class SmithyStacheBuildPlugin extends SmithyBuildPlugin {
         if (schema.tables.isEmpty) {
           logger.info("Skipping SQL schema generation: Smithy model contains no @sqlTable structures")
         } else {
-          settings.sql.schemaDialectOutputs.foreach { case (dialect, fileName) =>
+          settings.sql.schemaDialectOutputs.foreach { case (dialectKey, fileName) =>
             try {
-              logger.info(s"Generating ${dialect.key} schema into '$fileName'")
-              val sql = DialectRenderers.render(schema, serviceIr, dialect)
+              logger.info(s"Generating $dialectKey schema into '$fileName'")
+              val sql = DialectRenderers.render(schema, serviceIr, dialectKey)
               context.getFileManifest.writeFile(fileName, sql)
             } catch {
               case NonFatal(ex) =>
-                logger.severe(s"Failed writing ${dialect.key} schema: ${ex.getMessage}")
+                logger.severe(s"Failed writing $dialectKey schema: ${ex.getMessage}")
                 throw ex
             }
           }

@@ -2,10 +2,7 @@ package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenSettings
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import software.amazon.smithy.model.node.ObjectNode
@@ -18,23 +15,34 @@ final case class SqlDialectSettings(
 )
 
 final case class SmithyStacheSqlSettings(
-    dialects: Map[SqlDialect, SqlDialectSettings],
+    dialects: Map[String, SqlDialectSettings],
     languageTargets: Map[String, LanguageTarget]
 ) {
-  def enabledDialects: List[SqlDialect] =
-    List(SqliteDialect, PostgresDialect).filter(dialect => dialects.get(dialect).exists(_.enabled))
+  def enabledDialectKeys: List[String] =
+    SmithyStacheSqlSettings.OrderedDialectKeys.filter(key => dialects.get(key).exists(_.enabled))
 
-  def schemaDialectOutputs: Map[SqlDialect, String] =
-    enabledDialects.flatMap { dialect =>
-      dialects.get(dialect).flatMap(_.migrationLocation).map(dialect -> _)
+  def schemaDialectOutputs: Map[String, String] =
+    enabledDialectKeys.flatMap { key =>
+      dialects.get(key).flatMap(_.migrationLocation).map(key -> _)
     }.toMap
 
-  def toCodegenSettings(languageId: String): Option[SqlServiceCodegenSettings] =
-    languageTargets.get(languageId).map(_.toCodegenSettings(languageId, enabledDialects))
+  def toCodegenSettings(languageId: String): Option[SqlServiceCodegenSettings] = {
+    val enabledKeys = enabledDialectKeys
+    languageTargets.get(languageId).map { target =>
+      target.toCodegenSettings(
+        languageId = languageId,
+        enabledDialectKeys = enabledKeys,
+        queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
+        schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys)
+      )
+    }
+  }
 }
 
 object SmithyStacheSqlSettings {
   private val DialectKeys: Set[String] = Set("sqlite", "postgres")
+
+  val OrderedDialectKeys: List[String] = List("sqlite", "postgres")
 
   def fromNode(node: ObjectNode): SqlValidated[SmithyStacheSqlSettings] =
     node.getMembers.asScala.toList
@@ -67,7 +75,7 @@ object SmithyStacheSqlSettings {
       }
       .map { entries =>
         val dialects        =
-          entries.collect { case Left((key, settings)) => dialectForKey(key) -> settings }.toMap
+          entries.collect { case Left((key, settings)) => key -> settings }.toMap
         val languageTargets =
           entries.collect { case Right(targets) => targets }.foldLeft(Map.empty[String, LanguageTarget])(_ ++ _)
         SmithyStacheSqlSettings(dialects = dialects, languageTargets = languageTargets)
@@ -79,7 +87,7 @@ object SmithyStacheSqlSettings {
   ): SqlValidated[SmithyStacheSqlSettings] =
     settings.languageTargets.toList
       .traverse { case (languageId, target) =>
-        LanguageTargetTemplateValidator.validate(languageId, target, settings.enabledDialects)
+        LanguageTargetTemplateValidator.validate(languageId, target, settings.enabledDialectKeys)
       }
       .map(_ => settings)
 
@@ -96,13 +104,6 @@ object SmithyStacheSqlSettings {
         }
       }
       .map(_.toMap)
-
-  private def dialectForKey(key: String): SqlDialect =
-    key match {
-      case "sqlite"   => SqliteDialect
-      case "postgres" => PostgresDialect
-      case other      => throw new IllegalStateException(s"unexpected dialect key: $other")
-    }
 
   private def parseDialect(
       key: String,

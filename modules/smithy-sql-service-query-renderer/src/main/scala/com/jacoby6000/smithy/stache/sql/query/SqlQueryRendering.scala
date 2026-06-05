@@ -1,7 +1,7 @@
-package com.jacoby6000.smithy.stache.sql.service.shared
+package com.jacoby6000.smithy.stache.sql.query
 
 import cats.data.NonEmptyList
-import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlColumnType
 import com.jacoby6000.smithy.stache.sql.SqlUpdatedTimestamp
 import com.jacoby6000.smithy.stache.sql.service.SqlDeleteQuery
 import com.jacoby6000.smithy.stache.sql.service.SqlInsertQuery
@@ -11,21 +11,18 @@ import com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery
 import com.jacoby6000.smithy.stache.sql.service.SqlSelectQuery
 import com.jacoby6000.smithy.stache.sql.service.SqlSortDirection
 import com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
-import com.jacoby6000.smithy.stache.sql.shared.SqlQuerySegmentBuilder
-import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
-/** Renders INSERT, UPDATE, and SELECT statements from validated query models. */
-object SqlQueryRenderer {
-  def renderQueryUnits(queries: SqlQueries, dialect: SqlDialect): List[SqlRenderedQuery] =
+/** Dialect-neutral query rendering with dialect-specific timestamp assignments injected by implementations. */
+private[query] object SqlQueryRendering {
+  def renderQueryUnits(
+      queries: SqlQueries,
+      autoUpdatedTimestampAssignment: (String, SqlColumnType) => String
+  ): List[SqlRenderedQuery] =
     queries.inserts.map(renderInsertQuery) ++
-      queries.updates.map(renderUpdateQuery(dialect)) ++
+      queries.updates.map(renderUpdateQuery(autoUpdatedTimestampAssignment)) ++
       queries.deletes.map(renderDeleteQuery) ++
       queries.selectOnes.map(renderSelectOneQuery) ++
       queries.selects.map(renderSelectQuery)
-
-  def renderQueries(queries: SqlQueries, dialect: SqlDialect): String =
-    SqlQueryRenderOutput.format(renderQueryUnits(queries, dialect), SqlBindPlaceholder.forDialect(dialect))
 
   private def renderInsertQuery(query: SqlInsertQuery): SqlRenderedQuery = {
     val builder = SqlQuerySegmentBuilder.empty
@@ -44,11 +41,13 @@ object SqlQueryRenderer {
     SqlRenderedQuery(query.shapeId, builder.build)
   }
 
-  private def renderUpdateQuery(dialect: SqlDialect)(query: SqlUpdateQuery): SqlRenderedQuery = {
+  private def renderUpdateQuery(
+      autoUpdatedTimestampAssignment: (String, SqlColumnType) => String
+  )(query: SqlUpdateQuery): SqlRenderedQuery = {
     val autoUpdatedColumns =
       query.table.columns
         .filter(_.autoGeneration.contains(SqlUpdatedTimestamp))
-        .map(column => SqlShared.autoUpdatedTimestampAssignment(dialect, column.name, column.columnType))
+        .map(column => autoUpdatedTimestampAssignment(column.name, column.columnType))
     val builder            = SqlQuerySegmentBuilder.empty
     builder.appendText(s"UPDATE ${query.table.name}\nSET ")
     query.setColumns.zipWithIndex.foreach { case (column, index) =>

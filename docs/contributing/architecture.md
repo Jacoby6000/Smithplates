@@ -89,6 +89,9 @@ modules/smithy-stache-plugin (published)
     ├── smithy-sql-service-ir
     ├── smithy-sql-postgres-renderer
     ├── smithy-sql-sqlite-renderer
+    ├── smithy-sql-service-query-renderer
+    ├── smithy-sql-service-query-renderer-postgres
+    ├── smithy-sql-service-query-renderer-sqlite
     └── smithy-sql-service-renderer
 
 modules/smithy-stache-testkit (library)
@@ -96,11 +99,12 @@ modules/smithy-stache-testkit (library)
     └── smithy-sql-sqlite-renderer-it (test)
 ```
 
-- **smithy-sql-ir** — schema ADTs, table extraction, shared DDL primitives, `SqlParameterizedStatement`; Smithy trait IDL and Java `TraitService` SPI.
-- **smithy-sql-service-ir** — query and service IR, `SqlQueryRenderer`.
+- **smithy-sql-ir** — schema ADTs, table extraction, shared DDL primitives; Smithy trait IDL and Java `TraitService` SPI.
+- **smithy-sql-service-ir** — query and service IR, extractors.
+- **smithy-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering.
+- **smithy-sql-service-query-renderer-postgres** / **smithy-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
 - **smithy-sql-sqlite-renderer** / **smithy-sql-postgres-renderer** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
-- **smithy-sql-postgres-renderer** / **smithy-sql-sqlite-renderer** — dialect DDL and query sections.
-- **smithy-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`.
+- **smithy-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`; compile depends on query-renderer base only.
 - **smithy-stache-plugin** — thin orchestration; only published Maven artifact (`com.jacoby6000:smithy-stache-plugin`).
 - **smithy-stache-testkit** — shared Smithy fixtures and JDBC DDL helpers in `src/main`.
 - **smithy-sql-postgres-renderer-it** / **smithy-sql-sqlite-renderer-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
@@ -117,9 +121,9 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 
 ### Rendering
 
-**Schema and migrations:** dialect renderers expose [`DDLStatement`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/DDLStatement.scala) values keyed by Smithy shape id; service query rendering exposes [`SqlRenderedQuery`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/service/shared/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithy-stache-plugin/src/main/scala/com/jacoby6000/smithy/stache/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
+**Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/DDLStatement.scala) values keyed by Smithy shape id; dialect query renderers expose [`SqlRenderedQuery`](../../modules/smithy-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/query/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithy-stache-plugin/src/main/scala/com/jacoby6000/smithy/stache/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
 
-**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialects select placeholder style and driver templates.
+**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithy-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/query/SqlQueryRenderer.scala) instances, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
 
 ### Package layout
 
@@ -128,10 +132,11 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | `com.jacoby6000.smithy.stache` | `smithy-stache` build plugin (`SmithyStacheBuildPlugin`), settings validation |
 | `com.jacoby6000.smithy.stache.sql` | `SqlValidated`, schema IR extraction, table traits |
 | `com.jacoby6000.smithy.stache.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
-| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors, query rendering |
+| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors |
 | `com.jacoby6000.smithy.stache.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.query` | `SqlQueryRenderer`, `SqlParameterizedStatement`, `SqlRenderedQuery`, `SqlQueryRenderOutput` |
+| `com.jacoby6000.smithy.stache.sql.query.postgres` / `.sqlite` | Dialect `SqlQueryRenderer` implementations |
 | `com.jacoby6000.smithy.stache.sql.shared` | `SqlSchemaDdlRenderer`, `DDLStatement`, DDL rendering, FK ordering |
-| `com.jacoby6000.smithy.stache.sql.service.shared` | `SqlRenderedQuery`, `SqlQueryRenderOutput`, `SqlQueryRenderer` |
 | `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |
 | `com.jacoby6000.smithy.stache.sql.codegen` | Mustache orchestration for `@sqlService` codegen |

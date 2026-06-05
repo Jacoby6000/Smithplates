@@ -101,11 +101,54 @@ lazy val smithySqlSqliteRenderer = (project in file("modules/smithy-sql-sqlite-r
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithySqlServiceQueryRenderer = (project in file("modules/smithy-sql-service-query-renderer"))
+  .dependsOn(smithySqlIr, smithySqlServiceIr)
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithy-sql-service-query-renderer",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
+lazy val smithySqlServiceQueryRendererPostgres = (project in file(
+  "modules/smithy-sql-service-query-renderer-postgres"
+))
+  .dependsOn(smithySqlServiceQueryRenderer, smithySqlServiceQueryRenderer % "test->test", smithySqlIr % "test->test", smithySqlServiceIr % "test->test")
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithy-sql-service-query-renderer-postgres",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
+lazy val smithySqlServiceQueryRendererSqlite = (project in file(
+  "modules/smithy-sql-service-query-renderer-sqlite"
+))
+  .dependsOn(smithySqlServiceQueryRenderer, smithySqlServiceQueryRenderer % "test->test", smithySqlIr % "test->test", smithySqlServiceIr % "test->test")
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithy-sql-service-query-renderer-sqlite",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
 lazy val smithySqlServiceRenderer = (project in file("modules/smithy-sql-service-renderer"))
   .dependsOn(
     smithySqlServiceIr,
-    smithySqlPostgresRenderer,
-    smithySqlSqliteRenderer,
+    smithySqlServiceQueryRenderer,
+    smithySqlPostgresRenderer % "test->compile",
+    smithySqlSqliteRenderer % "test->compile",
+    smithySqlServiceQueryRendererPostgres % "test->compile",
+    smithySqlServiceQueryRendererSqlite % "test->compile",
     smithySqlIr % "test->test",
     smithySqlServiceIr % "test->test"
   )
@@ -128,6 +171,9 @@ lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
     smithySqlServiceIr,
     smithySqlPostgresRenderer,
     smithySqlSqliteRenderer,
+    smithySqlServiceQueryRenderer,
+    smithySqlServiceQueryRendererPostgres,
+    smithySqlServiceQueryRendererSqlite,
     smithySqlServiceRenderer
   )
   .settings(
@@ -208,6 +254,9 @@ lazy val root = (project in file("."))
     smithySqlServiceIr,
     smithySqlPostgresRenderer,
     smithySqlSqliteRenderer,
+    smithySqlServiceQueryRenderer,
+    smithySqlServiceQueryRendererPostgres,
+    smithySqlServiceQueryRendererSqlite,
     smithySqlServiceRenderer,
     smithyStachePlugin,
     smithyStacheTestkit,

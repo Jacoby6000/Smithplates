@@ -1,4 +1,4 @@
-package com.jacoby6000.smithy.stache.sql.shared
+package com.jacoby6000.smithy.stache.sql.query
 
 import munit.FunSuite
 
@@ -29,17 +29,6 @@ final class SqlParameterizedStatementSpec extends FunSuite {
     assertEquals(
       SqlBindPlaceholder.fromConfig("%s").toOption,
       Some(SqlBindPlaceholder("%s"))
-    )
-  }
-
-  test("inferForCodegen - maps dialects to bundled driver placeholders") {
-    assertEquals(
-      SqlBindPlaceholder.inferForCodegen(com.jacoby6000.smithy.stache.sql.SqliteDialect),
-      SqlBindPlaceholder("?")
-    )
-    assertEquals(
-      SqlBindPlaceholder.inferForCodegen(com.jacoby6000.smithy.stache.sql.PostgresDialect),
-      SqlBindPlaceholder("%s")
     )
   }
 }

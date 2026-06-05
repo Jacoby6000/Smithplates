@@ -2,12 +2,11 @@ package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenSettings
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 final case class LanguageTarget(
@@ -17,16 +16,20 @@ final case class LanguageTarget(
 ) {
   def toCodegenSettings(
       languageId: String,
-      enabledDialects: List[SqlDialect]
+      enabledDialectKeys: List[String],
+      queryRenderers: Map[String, SqlQueryRenderer],
+      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
   ): SqlServiceCodegenSettings = {
-    val defaultDialect = enabledDialects.headOption.getOrElse(SqliteDialect)
+    val defaultDialectKey = enabledDialectKeys.headOption.getOrElse("sqlite")
     SqlServiceCodegenSettings(
       templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId),
-      dialect = defaultDialect,
-      bindPlaceholderStyle = SqlBindPlaceholder.inferForCodegen(defaultDialect),
+      defaultDialectKey = defaultDialectKey,
+      enabledDialectKeys = enabledDialectKeys,
+      queryRenderers = queryRenderers,
+      schemaDdlRenderers = schemaDdlRenderers,
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
-      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(enabledDialects)
+      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(enabledDialectKeys)
     )
   }
 }

@@ -1,11 +1,9 @@
-package com.jacoby6000.smithy.stache.sql.shared
+package com.jacoby6000.smithy.stache.sql.query
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 /** SQL with bind parameters implied between consecutive segments. */
 final case class SqlParameterizedStatement(segments: List[String]) {
@@ -28,18 +26,6 @@ object SqlBindPlaceholder {
 
   /** Substituted with the 1-based bind index (for example `$?{n}` → `$1`). */
   val NumberToken: String = "?{n}"
-
-  def forDialect(dialect: SqlDialect): SqlBindPlaceholder =
-    dialect match {
-      case SqliteDialect   => SqlBindPlaceholder("?")
-      case PostgresDialect => SqlBindPlaceholder("$" + NumberToken)
-    }
-
-  def inferForCodegen(dialect: SqlDialect): SqlBindPlaceholder =
-    dialect match {
-      case SqliteDialect   => SqlBindPlaceholder("?")
-      case PostgresDialect => SqlBindPlaceholder("%s")
-    }
 
   def fromConfig(value: String): SqlValidated[SqlBindPlaceholder] =
     SqlShared

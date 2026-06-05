@@ -22,7 +22,7 @@ object SqlCodegenTimestampHelpers {
     }
 
   def bindExpression(
-      dialect: SqlDialect,
+      dialectKey: String,
       pythonTypeName: String,
       format: SqlTimestampFormat,
       memberName: String
@@ -30,11 +30,13 @@ object SqlCodegenTimestampHelpers {
     if (pythonTypeName != "datetime") {
       memberName
     } else {
-      (dialect, format) match {
-        case (SqliteDialect, SqlTimestampFormat.DateTime)       => s"_timestamp_bind_datetime($memberName)"
-        case (SqliteDialect, SqlTimestampFormat.EpochSeconds)   => s"_timestamp_bind_epoch_seconds($memberName)"
-        case (PostgresDialect, SqlTimestampFormat.EpochSeconds) => s"_timestamp_bind_epoch_seconds($memberName)"
-        case (PostgresDialect, SqlTimestampFormat.DateTime)     => memberName
+      (dialectKey, format) match {
+        case ("sqlite", SqlTimestampFormat.DateTime)       => s"_timestamp_bind_datetime($memberName)"
+        case ("sqlite", SqlTimestampFormat.EpochSeconds)   => s"_timestamp_bind_epoch_seconds($memberName)"
+        case ("postgres", SqlTimestampFormat.EpochSeconds) => s"_timestamp_bind_epoch_seconds($memberName)"
+        case ("postgres", SqlTimestampFormat.DateTime)     => memberName
+        case (other, _)                                    =>
+          throw new IllegalArgumentException(s"unsupported dialect key for timestamp bind: $other")
       }
     }
 }

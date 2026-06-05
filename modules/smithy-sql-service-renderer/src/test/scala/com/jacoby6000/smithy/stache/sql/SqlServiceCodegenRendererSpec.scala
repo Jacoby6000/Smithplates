@@ -2,9 +2,9 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestDiscovery
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   private def loadTestCaseModel(testName: String) =
@@ -24,6 +24,11 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   }
 
   test("ServiceCodegen - expands output path placeholders per service") {
+    val queryRenderer           =
+      new SqliteSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("?"),
+        codegenBindPlaceholder = SqlBindPlaceholder("?")
+      )
     val context                 =
       SqlCodegenServiceContext(
         shapeId = software.amazon.smithy.model.shapes.ShapeId.from("example#WidgetRepository"),
@@ -31,8 +36,9 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         namespace = "example",
         fileName = "widget_repository",
         version = "1",
-        dialect = SqliteDialect,
-        bindPlaceholderStyle = SqlBindPlaceholder.inferForCodegen(SqliteDialect),
+        dialectKey = "sqlite",
+        queryRenderer = queryRenderer,
+        bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
         implementationClassName = "WidgetRepositoryAiosqliteService",
         implementationModuleName = "widget_repository_aiosqlite",
         hasSqlOperations = true,

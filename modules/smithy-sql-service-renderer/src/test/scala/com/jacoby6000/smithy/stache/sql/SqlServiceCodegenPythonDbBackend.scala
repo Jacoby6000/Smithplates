@@ -3,12 +3,13 @@ package com.jacoby6000.smithy.stache.sql.codegen
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateLanguageBackend
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestCase
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateVariant
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.postgres.PostgresSqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 import software.amazon.smithy.model.Model
 
 trait SqlServiceCodegenTestBackend extends MustacheTemplateLanguageBackend {
@@ -23,20 +24,32 @@ object SqlServiceCodegenPythonDbBackend {
   val sqlite: SqlServiceCodegenTestBackend =
     forImplementation(
       templateVariant = MustacheTemplateVariant("python", "db", "sqlite"),
-      dialect = SqliteDialect,
+      dialectKey = "sqlite",
+      queryRenderer = new SqliteSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("?"),
+        codegenBindPlaceholder = SqlBindPlaceholder("?")
+      ),
+      schemaDdlRenderer = SqliteRenderer,
       artifacts = SqlServiceCodegenDbArtifacts.sqlite()
     )
 
   val postgres: SqlServiceCodegenTestBackend =
     forImplementation(
       templateVariant = MustacheTemplateVariant("python", "db", "postgres"),
-      dialect = PostgresDialect,
+      dialectKey = "postgres",
+      queryRenderer = new PostgresSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+        codegenBindPlaceholder = SqlBindPlaceholder("%s")
+      ),
+      schemaDdlRenderer = PostgresRenderer,
       artifacts = SqlServiceCodegenDbArtifacts.postgres()
     )
 
   private def forImplementation(
       templateVariant: MustacheTemplateVariant,
-      dialect: SqlDialect,
+      dialectKey: String,
+      queryRenderer: com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer,
+      schemaDdlRenderer: com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer,
       artifacts: List[SqlServiceCodegenArtifactConfig]
   ): SqlServiceCodegenTestBackend =
     new SqlServiceCodegenTestBackend {
@@ -45,8 +58,10 @@ object SqlServiceCodegenPythonDbBackend {
       val settingsForTests: SqlServiceCodegenSettings =
         SqlServiceCodegenSettings(
           templateDirectory = "classpath:sql-service-codegen/python",
-          dialect = dialect,
-          bindPlaceholderStyle = SqlBindPlaceholder.inferForCodegen(dialect),
+          defaultDialectKey = dialectKey,
+          enabledDialectKeys = List(dialectKey),
+          queryRenderers = Map(dialectKey -> queryRenderer),
+          schemaDdlRenderers = Map(dialectKey -> schemaDdlRenderer),
           testOutputDirectory = Some(GoldenTestOutputDirectory),
           artifacts = artifacts
         )
@@ -98,7 +113,7 @@ object SqlServiceCodegenPythonDbBackend {
         PythonCodegenWorkspace.validateCase(
           testCase.name,
           artifacts,
-          dialect
+          dialectKey
         )
       }
     }

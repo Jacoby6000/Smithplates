@@ -1,11 +1,8 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
-import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
-import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 
 object SqlCodegenIntegrationTestBuilder {
   private enum SampleVariant {
@@ -16,7 +13,7 @@ object SqlCodegenIntegrationTestBuilder {
   def build(
       context: SqlCodegenServiceContext,
       schema: SqlSchema,
-      dialect: SqlDialect
+      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
   ): Option[SqlCodegenIntegrationTestContext] = {
     val sqlOperations = context.operations.filter(_.sql.isDefined)
     if (sqlOperations.isEmpty) {
@@ -45,7 +42,7 @@ object SqlCodegenIntegrationTestBuilder {
           deleteOperation.map(renderDeleteLifecycleBlock(serviceFixtureName, selectOne, _))
         Some(
           SqlCodegenIntegrationTestContext(
-            schemaDdl = schemaDdl(schema, sqlOperations, dialect),
+            schemaDdl = schemaDdl(schema, sqlOperations, context.dialectKey, schemaDdlRenderers),
             serviceFixtureName = serviceFixtureName,
             implementationModuleName = context.implementationModuleName,
             insertOperation = insert,
@@ -66,19 +63,20 @@ object SqlCodegenIntegrationTestBuilder {
   private def schemaDdl(
       schema: SqlSchema,
       sqlOperations: List[SqlCodegenOperation],
-      dialect: SqlDialect
+      dialectKey: String,
+      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
   ): String = {
     val tableNames     = sqlOperations.flatMap(_.sql.map(_.tableName)).toSet
     val filteredSchema =
       schema.copy(
         tables = schema.tables.filter(table => tableNames.contains(table.name))
       )
-    val ddlStatements  =
-      dialect match {
-        case PostgresDialect => PostgresRenderer.renderSchemaDdlStatements(filteredSchema)
-        case _               => SqliteRenderer.renderSchemaDdlStatements(filteredSchema)
-      }
-    SqlShared.formatDdlStatements(ddlStatements)
+    val ddlRenderer    =
+      schemaDdlRenderers.getOrElse(
+        dialectKey,
+        throw new IllegalStateException(s"schema DDL renderer for dialect '$dialectKey' is required")
+      )
+    SqlShared.formatDdlStatements(ddlRenderer.renderSchemaDdlStatements(filteredSchema))
   }
 
   private def buildInsertOperation(

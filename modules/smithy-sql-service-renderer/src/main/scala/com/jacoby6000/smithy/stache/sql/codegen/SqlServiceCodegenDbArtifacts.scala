@@ -1,9 +1,5 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
-
 /** Bundled `@sqlService` artifact paths under the `db/` service-type layout. */
 object SqlServiceCodegenDbArtifacts {
   val shared: List[SqlServiceCodegenArtifactConfig] =
@@ -61,16 +57,17 @@ object SqlServiceCodegenDbArtifacts {
   def isIntegrationTestTemplate(template: String): Boolean =
     template.contains("service_derived_sql_integration_tests")
 
-  def dialectSpecific(dialect: SqlDialect): List[SqlServiceCodegenArtifactConfig] =
-    dialect match {
-      case SqliteDialect   => sqlite().drop(shared.length)
-      case PostgresDialect => postgres().drop(shared.length)
+  def dialectSpecific(dialectKey: String): List[SqlServiceCodegenArtifactConfig] =
+    dialectKey match {
+      case "sqlite"   => sqlite().drop(shared.length)
+      case "postgres" => postgres().drop(shared.length)
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def forEnabledDialects(dialects: List[SqlDialect]): List[SqlServiceCodegenArtifactConfig] =
-    if (dialects.isEmpty) {
+  def forEnabledDialects(dialectKeys: List[String]): List[SqlServiceCodegenArtifactConfig] =
+    if (dialectKeys.isEmpty) {
       shared
     } else {
-      shared ++ dialects.flatMap(dialectSpecific)
+      shared ++ dialectKeys.flatMap(dialectSpecific)
     }
 }

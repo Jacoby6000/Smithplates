@@ -6,8 +6,6 @@ import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 object PostgresRenderer extends SqlSchemaDdlRenderer {
-  override val dialect: SqlDialect = PostgresDialect
-
   override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
     SqlShared.requireTables(schema)
     preTableEnumStatements(schema) ++ SqlShared.renderDdlStatements(schema, renderColumn)
@@ -38,9 +36,28 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       sqlTypeFor(column.columnType),
       column.nullable,
       checks,
-      column.autoGeneration.map(SqlShared.autoGenerationDefaultClause(PostgresDialect, _, column.columnType))
+      column.autoGeneration.map(autoGenerationDefaultClause(_, column.columnType))
     )
   }
+
+  private def autoGenerationDefaultClause(
+      autoGeneration: SqlAutoGeneration,
+      columnType: SqlColumnType
+  ): String =
+    autoGeneration match {
+      case SqlAutoUuid                               => "gen_random_uuid()"
+      case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
+        columnType match {
+          case SqlColumnType.Timestamp(format) => postgresTimestampExpression(format)
+          case _                               => "CURRENT_TIMESTAMP"
+        }
+    }
+
+  private def postgresTimestampExpression(format: SqlTimestampFormat): String =
+    format match {
+      case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
+      case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsExpression
+    }
 
   private def sqlTypeFor(columnType: SqlColumnType): String =
     SqlShared.baseSqlType(columnType).getOrElse {

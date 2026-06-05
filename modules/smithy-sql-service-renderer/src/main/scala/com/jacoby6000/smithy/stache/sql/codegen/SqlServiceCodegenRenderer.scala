@@ -1,14 +1,11 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTemplateAttributes
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.Model
 
 final case class SqlServiceCodegenArtifactConfig(
@@ -19,8 +16,10 @@ final case class SqlServiceCodegenArtifactConfig(
 
 final case class SqlServiceCodegenSettings(
     templateDirectory: String,
-    dialect: SqlDialect,
-    bindPlaceholderStyle: SqlBindPlaceholder,
+    defaultDialectKey: String,
+    enabledDialectKeys: List[String],
+    queryRenderers: Map[String, SqlQueryRenderer],
+    schemaDdlRenderers: Map[String, com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer],
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
     artifacts: List[SqlServiceCodegenArtifactConfig]
@@ -37,10 +36,10 @@ object SqlServiceCodegenRenderer {
       .traverse { service =>
         settings.artifacts
           .traverse { artifactConfig =>
-            val artifactDialect      = dialectForArtifact(artifactConfig, settings.dialect)
-            val bindPlaceholderStyle = SqlBindPlaceholder.inferForCodegen(artifactDialect)
+            val queryRenderer        = queryRendererForArtifact(artifactConfig, settings)
+            val bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder
             SqlServiceCodegenContextBuilder
-              .build(model, schema, serviceIr.queries, service, artifactDialect, bindPlaceholderStyle)
+              .build(model, schema, serviceIr.queries, service, queryRenderer, bindPlaceholderStyle, settings)
               .map { context =>
                 if (SqlServiceCodegenDbArtifacts.isIntegrationTestTemplate(artifactConfig.template) &&
                   context.integrationTest.isEmpty) {
@@ -91,16 +90,27 @@ object SqlServiceCodegenRenderer {
     prefixedOutputFile
   }
 
-  private def dialectForArtifact(
+  private def queryRendererForArtifact(
       artifactConfig: SqlServiceCodegenArtifactConfig,
-      defaultDialect: SqlDialect
-  ): SqlDialect =
+      settings: SqlServiceCodegenSettings
+  ): SqlQueryRenderer =
     if (artifactConfig.template.contains("/sqlite/")) {
-      SqliteDialect
+      settings.queryRenderers.getOrElse(
+        "sqlite",
+        throw new IllegalStateException("sqlite query renderer is required for sqlite codegen artifacts")
+      )
     } else if (artifactConfig.template.contains("/postgres/")) {
-      PostgresDialect
+      settings.queryRenderers.getOrElse(
+        "postgres",
+        throw new IllegalStateException("postgres query renderer is required for postgres codegen artifacts")
+      )
     } else {
-      defaultDialect
+      settings.queryRenderers.getOrElse(
+        settings.defaultDialectKey,
+        throw new IllegalStateException(
+          s"query renderer for default dialect '${settings.defaultDialectKey}' is required"
+        )
+      )
     }
 
   private def normalizeDirectory(directory: String): String =

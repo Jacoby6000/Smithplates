@@ -1,9 +1,7 @@
-package com.jacoby6000.smithy.stache.sql.service.shared
+package com.jacoby6000.smithy.stache.sql.query
 
 import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
-import com.jacoby6000.smithy.stache.sql.shared.SqlParameterizedStatement
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
@@ -35,7 +33,7 @@ final class SqlQueryRenderOutputSpec extends FunSuite {
       SqlQueryRenderOutput.formatWithDdl(
         ddlStatements,
         queries,
-        SqlBindPlaceholder.forDialect(PostgresDialect)
+        SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken)
       ),
       """-- example#Widget
         |CREATE TABLE widgets (id TEXT);

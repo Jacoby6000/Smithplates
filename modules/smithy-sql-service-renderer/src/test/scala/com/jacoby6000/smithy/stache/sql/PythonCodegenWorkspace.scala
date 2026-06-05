@@ -1,8 +1,5 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
-
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
@@ -65,7 +62,7 @@ object PythonCodegenWorkspace {
   def assertGeneratedIntegrationTests(
       caseRoot: Path,
       artifacts: List[SqlCodegenArtifact],
-      dialect: SqlDialect
+      dialectKey: String
   ): Unit = {
     val testArtifacts =
       artifacts.filter(_.kind == SqlServiceCodegenArtifactKind.Test)
@@ -73,13 +70,13 @@ object PythonCodegenWorkspace {
       throw new AssertionError(s"No generated integration test artifacts under $caseRoot")
     }
 
-    dialect match {
-      case PostgresDialect if !DockerSupport.isAvailable =>
+    dialectKey match {
+      case "postgres" if !DockerSupport.isAvailable =>
         throw new AssertionError(
           "Postgres generated integration tests require Docker (testcontainers). " +
             "Install Docker and ensure `docker info` succeeds, then re-run the test suite."
         )
-      case _                                             =>
+      case _                                        =>
         ()
     }
 
@@ -104,13 +101,13 @@ object PythonCodegenWorkspace {
   def validateCase(
       caseName: String,
       artifacts: List[SqlCodegenArtifact],
-      dialect: SqlDialect
+      dialectKey: String
   ): Unit = {
     ensureEnvironment()
     val caseRoot = writeCase(caseName, artifacts)
     assertStrictTypecheck(caseRoot, artifacts)
     if (artifacts.exists(_.kind == SqlServiceCodegenArtifactKind.Test)) {
-      assertGeneratedIntegrationTests(caseRoot, artifacts, dialect)
+      assertGeneratedIntegrationTests(caseRoot, artifacts, dialectKey)
     }
   }
 

@@ -1,6 +1,8 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.SqlParameterizedStatement
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class SqlCodegenStructure(
@@ -66,7 +68,7 @@ final case class SqlCodegenResultField(
 
 final case class SqlCodegenSqlBinding(
     queryKind: String,
-    sqlStatement: com.jacoby6000.smithy.stache.sql.shared.SqlParameterizedStatement,
+    sqlStatement: SqlParameterizedStatement,
     tableName: String,
     bindParameters: List[SqlCodegenBindParameter],
     executionMode: String,
@@ -95,8 +97,9 @@ final case class SqlCodegenServiceContext(
     namespace: String,
     fileName: String,
     version: String,
-    dialect: SqlDialect,
-    bindPlaceholderStyle: com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder,
+    dialectKey: String,
+    queryRenderer: SqlQueryRenderer,
+    bindPlaceholderStyle: SqlBindPlaceholder,
     implementationClassName: String,
     implementationModuleName: String,
     hasSqlOperations: Boolean,

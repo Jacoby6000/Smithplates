@@ -1,25 +1,55 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderOutput
+import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.query.postgres.PostgresSqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
-import com.jacoby6000.smithy.stache.sql.service.shared.SqlQueryRenderOutput
-import com.jacoby6000.smithy.stache.sql.service.shared.SqlQueryRenderer
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 
 object DialectRenderers {
-  def schemaDdlRenderer(dialect: SqlDialect): SqlSchemaDdlRenderer =
-    dialect match {
-      case SqliteDialect   => SqliteRenderer
-      case PostgresDialect => PostgresRenderer
+  def queryRendererForKey(key: String): SqlQueryRenderer =
+    key match {
+      case "sqlite"   => sqliteQueryRenderer()
+      case "postgres" => postgresQueryRenderer()
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def render(schema: SqlSchema, serviceIr: SqlServiceIr, dialect: SqlDialect): String =
+  def schemaDdlRendererForKey(key: String): SqlSchemaDdlRenderer =
+    key match {
+      case "sqlite"   => SqliteRenderer
+      case "postgres" => PostgresRenderer
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+    }
+
+  def queryRenderersForKeys(keys: List[String]): Map[String, SqlQueryRenderer] =
+    keys.map(key => key -> queryRendererForKey(key)).toMap
+
+  def schemaDdlRenderersForKeys(keys: List[String]): Map[String, SqlSchemaDdlRenderer] =
+    keys.map(key => key -> schemaDdlRendererForKey(key)).toMap
+
+  def render(schema: SqlSchema, serviceIr: SqlServiceIr, dialectKey: String): String = {
+    val queryRenderer = queryRendererForKey(dialectKey)
     SqlQueryRenderOutput.formatWithDdl(
-      schemaDdlRenderer(dialect).renderSchemaDdlStatements(schema),
-      SqlQueryRenderer.renderQueryUnits(serviceIr.queries, dialect),
-      SqlBindPlaceholder.forDialect(dialect)
+      schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema),
+      queryRenderer.renderQueryUnits(serviceIr.queries),
+      queryRenderer.migrationBindPlaceholder
+    )
+  }
+
+  private def sqliteQueryRenderer(): SqliteSqlQueryRenderer =
+    new SqliteSqlQueryRenderer(
+      migrationBindPlaceholder = SqlBindPlaceholder("?"),
+      codegenBindPlaceholder = SqlBindPlaceholder("?")
+    )
+
+  private def postgresQueryRenderer(): PostgresSqlQueryRenderer =
+    new PostgresSqlQueryRenderer(
+      migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+      codegenBindPlaceholder = SqlBindPlaceholder("%s")
     )
 }

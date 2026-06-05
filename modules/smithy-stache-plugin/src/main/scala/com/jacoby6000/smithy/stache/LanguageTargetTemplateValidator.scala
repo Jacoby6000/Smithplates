@@ -2,7 +2,6 @@ package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
-import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.codegen.MustacheTemplateEngine
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
@@ -19,7 +18,7 @@ object LanguageTargetTemplateValidator {
   def validate(
       languageId: String,
       target: LanguageTarget,
-      enabledDialects: List[SqlDialect]
+      enabledDialectKeys: List[String]
   ): SqlValidated[Unit] = {
     val normalizedLanguageId = languageId.toLowerCase
     if (!bundledLanguageIds.contains(normalizedLanguageId) && target.templateDirectory.isEmpty) {
@@ -34,7 +33,7 @@ object LanguageTargetTemplateValidator {
       validateRequiredTemplatesExist(
         languageId = languageId,
         templateDirectory = resolveTemplateDirectory(target, languageId),
-        enabledDialects = enabledDialects
+        enabledDialectKeys = enabledDialectKeys
       )
     }
   }
@@ -42,11 +41,11 @@ object LanguageTargetTemplateValidator {
   private def validateRequiredTemplatesExist(
       languageId: String,
       templateDirectory: String,
-      enabledDialects: List[SqlDialect]
+      enabledDialectKeys: List[String]
   ): SqlValidated[Unit] = {
     val requiredTemplates =
       SqlServiceCodegenDbArtifacts
-        .forEnabledDialects(enabledDialects)
+        .forEnabledDialects(enabledDialectKeys)
         .map(_.template)
         .distinct
 

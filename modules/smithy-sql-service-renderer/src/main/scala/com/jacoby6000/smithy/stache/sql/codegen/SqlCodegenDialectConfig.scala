@@ -1,37 +1,37 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.PostgresDialect
-import com.jacoby6000.smithy.stache.sql.SqlDialect
-import com.jacoby6000.smithy.stache.sql.SqliteDialect
-
 object SqlCodegenDialectConfig {
-  def implementationClassName(serviceName: String, dialect: SqlDialect): String =
-    dialect match {
-      case SqliteDialect   => s"${serviceName}AiosqliteService"
-      case PostgresDialect => s"${serviceName}PsycopgService"
+  def implementationClassName(serviceName: String, dialectKey: String): String =
+    dialectKey match {
+      case "sqlite"   => s"${serviceName}AiosqliteService"
+      case "postgres" => s"${serviceName}PsycopgService"
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def implementationModuleName(serviceFileName: String, dialect: SqlDialect): String =
-    s"$serviceFileName${implementationModuleSuffix(dialect)}"
+  def implementationModuleName(serviceFileName: String, dialectKey: String): String =
+    s"$serviceFileName${implementationModuleSuffix(dialectKey)}"
 
-  def implementationModuleSuffix(dialect: SqlDialect): String =
-    dialect match {
-      case SqliteDialect   => "_aiosqlite"
-      case PostgresDialect => "_psycopg"
+  def implementationModuleSuffix(dialectKey: String): String =
+    dialectKey match {
+      case "sqlite"   => "_aiosqlite"
+      case "postgres" => "_psycopg"
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def rowTypeName(dialect: SqlDialect): String =
-    dialect match {
-      case SqliteDialect   => "sqlite3.Row"
-      case PostgresDialect => "tuple[object, ...]"
+  def rowTypeName(dialectKey: String): String =
+    dialectKey match {
+      case "sqlite"   => "sqlite3.Row"
+      case "postgres" => "tuple[object, ...]"
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def rowReaderModuleImport(dialect: SqlDialect): Option[String] =
-    dialect match {
-      case SqliteDialect   => Some("import sqlite3")
-      case PostgresDialect => None
+  def rowReaderModuleImport(dialectKey: String): Option[String] =
+    dialectKey match {
+      case "sqlite"   => Some("import sqlite3")
+      case "postgres" => None
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
-  def usesUuidRowConversion(dialect: SqlDialect): Boolean =
-    dialect == PostgresDialect
+  def usesUuidRowConversion(dialectKey: String): Boolean =
+    dialectKey == "postgres"
 }

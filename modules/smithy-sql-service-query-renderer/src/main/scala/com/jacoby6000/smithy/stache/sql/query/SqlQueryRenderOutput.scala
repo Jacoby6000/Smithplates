@@ -1,7 +1,6 @@
-package com.jacoby6000.smithy.stache.sql.service.shared
+package com.jacoby6000.smithy.stache.sql.query
 
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
-import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import software.amazon.smithy.model.shapes.ShapeId
 

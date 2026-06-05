@@ -2,18 +2,6 @@ package com.jacoby6000.smithy.stache.sql
 
 import software.amazon.smithy.model.shapes.ShapeId
 
-sealed trait SqlDialect {
-  def key: String
-}
-
-case object SqliteDialect extends SqlDialect {
-  override val key: String = "sqlite"
-}
-
-case object PostgresDialect extends SqlDialect {
-  override val key: String = "postgres"
-}
-
 final case class SqlSchema(
     tables: List[SqlTable],
     relationships: List[SqlRelationship] = Nil
