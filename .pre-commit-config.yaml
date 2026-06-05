@@ -25,3 +25,10 @@ repos:
         language: script
         files: \.(scala|sbt)$
         pass_filenames: false
+
+      - id: reusable-components-sync
+        name: Reusable documentation component sync
+        entry: python3 scripts/sync_reusable_components.py --check
+        language: system
+        files: ^(docs/reusable-components/|scripts/sync_reusable_components\.py|.*\.md)$
+        pass_filenames: false

@@ -1,6 +1,8 @@
 # Integration tests
 
-End-to-end tests for [`smithy-stache-plugin`](../../sql-plugin/): Smithy models are extracted, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
+Schema-path integration tests for [`smithy-stache-plugin`](../../sql-plugin/): Smithy models are extracted into SQL IR, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/). These modules validate the **SQL IR → dialect-specific DDL → database schema integration tests** stage of the [codegen pipeline](architecture.md).
+
+Service-path integration tests (derived-query pytest suites) are generated into consumer projects via `languageTargets.testOutputDir` and validated in the plugin by [`SqlServiceCodegenMustacheTemplateTestSuite`](../../sql-plugin/src/test/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala).
 
 ## Modules
 

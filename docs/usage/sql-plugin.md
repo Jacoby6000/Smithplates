@@ -4,12 +4,23 @@ Maven coordinate: `com.jacoby6000:smithy-stache-plugin:0.1.0`
 
 Smithy build plugin (`smithy-stache`) and trait namespace for relational schema and repository codegen from Smithy models.
 
+## Codegen pipeline
+
+The plugin extracts a Smithy model into **SQL IR** (tables, relationships, derived DML) and **database services and operations IR** (`@sqlService` contracts bound to those queries). Each path produces different consumer artifacts:
+
+| Path | `smithy-build.json` config | Generated artifacts |
+|------|---------------------------|---------------------|
+| **Schema and migrations** | `smithy-stache.sql.<dialect>` with `enable: true` | Dialect-specific DDL (`.sql` migration files today; per-language migration engines planned in [#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
+| **Service codegen** | `smithy-stache.sql.languageTargets` | Target-language models, repository interfaces, driver implementations, and derived-query integration tests |
+
+See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping.
+
 ## `smithy-stache` SQL outputs
 
 | Config | Output |
 |--------|--------|
-| Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files: `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
-| `languageTargets` | Mustache-rendered interface and model artifacts per `@sqlService` |
+| Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files (SQL IR → dialect DDL): `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
+| `languageTargets` | Mustache-rendered models, `Protocol` interfaces, driver implementations, and derived-query test suites per `@sqlService` (service IR → derived queries → implementations) |
 
 Trait definitions ship inside the plugin JAR at `META-INF/smithy/stache.codegen.sql.smithy`. Typed Java trait classes register via `TraitService` SPI under `com.jacoby6000.smithy.stache.sql.traits`.
 
@@ -52,7 +63,14 @@ service FooRepository {
 
 ## Service codegen
 
-Bundled Python templates live under `sql-plugin/src/main/resources/sql-service-codegen/python/db/`. Configure `smithy-stache.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+The service path renders **database services and operations IR** into target-language artifacts. Bundled Python templates live under `sql-plugin/src/main/resources/sql-service-codegen/python/db/`. Configure `smithy-stache.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+
+| Artifact | Pipeline stage |
+|----------|----------------|
+| `db/model/{{serviceFileName}}_models.py` | Target language models |
+| `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
+| `db/<dialect>/{{serviceFileName}}_<driver>.py` | Interface implementations (from derived dialect-specific queries) |
+| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Test suite implementations (from derived dialect-specific queries) |
 
 Layout for the bundled `db` service type:
 

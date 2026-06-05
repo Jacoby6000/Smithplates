@@ -8,6 +8,7 @@ This project was inspired by OpenAPI Generator and some of my work at Disney. Ou
 
 The `smithy-stache` plugin reads a Smithy model and produces two intermediate representations: **SQL IR** (schema, DDL, and schema tests) and **database services and operations IR** (repository interfaces, derived queries, and test suites). Each IR fans out to dialect- and language-specific artifacts via renderers and Mustache templates.
 
+<!-- architecture-pipeline.mmd:start -->
 ```mermaid
 flowchart TD
     SM["Smithy model"]
@@ -35,6 +36,7 @@ flowchart TD
         DerivedQueries --> TestImpl["Target language test suite implementations"]
     end
 ```
+<!-- architecture-pipeline.mmd:end -->
 
 See [contributing architecture](docs/contributing/architecture.md) for module layout and implementation detail.
 
@@ -47,14 +49,16 @@ higher quality output than the AI would output on its own.
 
 ## What works today
 
-The `smithy-stache` plugin (`com.jacoby6000:smithy-stache-plugin`) is a Smithy build plugin. From a given smithy specification it can emit:
+The `smithy-stache` plugin (`com.jacoby6000:smithy-stache-plugin`) is a Smithy build plugin. From a given Smithy specification it emits artifacts along two paths (see [Architecture](#architecture)):
 
-| Output | Supported Languages | Mechanism |
-|--------|---------------------|-----------|
-| **SQL DDLs** | Postgres, Sqlite | Dialect renderers for SQLite and Postgres section |
-| **SQL Queries** | Postgres, Sqlite | Basic SELECT/INSERT/UPDATE/DELETE operations can be derived automatically. More complex queries may be modeled in smithy to output abstract methods that help users support multiple database backends |
-| **Database Access Layer Generation** | Python | Scalate Mustache templates under `sql-service-codegen/` |
-| **Generated integration tests** | Derived CRUD lifecycle tests (in-memory SQLite; Postgres via testcontainers) |
+| Path | Output | Supported today | Mechanism |
+|------|--------|-----------------|-----------|
+| **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite | SQL IR → dialect renderers |
+| **Schema and migrations** | Derived DML in DDL `-- Queries` section | Postgres, SQLite | SQL IR → dialect renderers; basic SELECT/INSERT/UPDATE/DELETE from derive traits |
+| **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
+| **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
+| **Service codegen** | Models, repository interfaces, driver implementations | Python | Service IR → Mustache templates under `sql-service-codegen/` |
+| **Service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived dialect-specific queries → pytest lifecycle tests |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer

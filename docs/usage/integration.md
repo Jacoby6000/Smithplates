@@ -60,21 +60,23 @@ An `api` section will be added under `smithy-stache` in a future release.
 
 ### `smithy-stache.sql` dialect keys
 
+Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Migration files are written today; per-language migration engines are planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)).
+
 | Key | Purpose |
 |-----|---------|
-| `sqlite` | SQLite migration export |
-| `postgres` | Postgres migration export |
+| `sqlite` | SQLite DDL export |
+| `postgres` | Postgres DDL export |
 
 Each dialect object supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
-| `enable` | No | `false` | When `true`, export DDL and queries for this dialect |
-| `migrationLocation` | When `enable` is `true` | — | Output path for the generated `.sql` file |
+| `enable` | No | `false` | When `true`, render SQL IR to DDL and derived DML for this dialect |
+| `migrationLocation` | When `enable` is `true` | — | Output path for the generated `.sql` migration file |
 
 ### `smithy-stache.sql.languageTargets`
 
-Map of language id → language target configuration (for example `python`). Each entry supports:
+Map of language id → language target configuration (for example `python`). Controls the **service codegen** path (database services and operations IR → interfaces, models, derived-query implementations, and test suites). Each entry supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
@@ -93,9 +95,12 @@ Example output layout for bundled templates under `sql-service-codegen/python/db
 
 ### Plugin outputs
 
-| Plugin | Build output directory | Contents |
-|--------|------------------------|----------|
-| `smithy-stache` | `build/smithy/source/smithy-stache/` | SQL migrations and codegen artifacts at configured paths |
+| Plugin | Build output directory | Pipeline path | Contents |
+|--------|------------------------|---------------|----------|
+| `smithy-stache` | `build/smithy/source/smithy-stache/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
+| `smithy-stache` | configured `sourceOutputDir` / `testOutputDir` | Service codegen | Models, interfaces, driver implementations, and derived-query integration tests |
+
+See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
 
 See [SQL plugin](sql-plugin.md) for plugin behavior.
 

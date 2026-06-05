@@ -16,10 +16,10 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 
 | Directory | Maven coordinate | Role |
 |-----------|------------------|------|
-| [`sql-plugin/`](../../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL trait definitions |
-| [`sql-plugin-common-it/`](../../sql-plugin-common-it/) | — | Shared integration-test fixtures (`src/main`) |
-| [`sql-plugin-postgres-it/`](../../sql-plugin-postgres-it/) | — | Postgres integration tests (testcontainers-scala) |
-| [`sql-plugin-sqlite-it/`](../../sql-plugin-sqlite-it/) | — | SQLite integration tests (testcontainers-scala) |
+| [`sql-plugin/`](../../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL IR and service IR extraction, DDL renderers, Mustache codegen |
+| [`sql-plugin-common-it/`](../../sql-plugin-common-it/) | — | Shared schema-path integration-test fixtures (`src/main`) |
+| [`sql-plugin-postgres-it/`](../../sql-plugin-postgres-it/) | — | Schema-path Postgres integration tests (SQL IR → DDL → testcontainers) |
+| [`sql-plugin-sqlite-it/`](../../sql-plugin-sqlite-it/) | — | Schema-path SQLite integration tests (SQL IR → DDL → testcontainers) |
 
 ## Build and publish
 
@@ -55,8 +55,9 @@ On each commit that touches `*.scala` or `*.sbt`, hooks run (via [`scripts/pre-c
 1. `sbtn scalafmtAll`
 2. `sbtn scalafixAll`
 3. `sbtn compile`
+4. `scripts/sync_reusable_components.py --check` when `docs/reusable-components/` or embedded component markers change
 
-If scalafmt or scalafix change files, stage the updates and commit again. Run all hooks manually with `pre-commit run --all-files`.
+If scalafmt or scalafix change files, stage the updates and commit again. After editing files under [`docs/reusable-components/`](../reusable-components/), run `scripts/sync_reusable_components.py` and re-stage the updated Markdown files. Run all hooks manually with `pre-commit run --all-files`.
 
 ## Unit tests
 

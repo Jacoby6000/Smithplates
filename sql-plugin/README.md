@@ -1,6 +1,6 @@
 # smithy-stache-plugin
 
-Scala/SBT Smithy build plugin that generates SQLite and Postgres DDL from custom SQL traits.
+Scala/SBT Smithy build plugin that extracts a Smithy model into **SQL IR** and **database services and operations IR**, then renders dialect-specific DDL, target-language repository artifacts, and integration tests. See the [codegen pipeline](../docs/contributing/architecture.md) for the full architecture.
 
 ## Traits
 
@@ -163,11 +163,15 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
 
-Docker-backed end-to-end tests (apply generated DDL to real databases) live in [`../sql-plugin-postgres-it/`](../sql-plugin-postgres-it/) and [`../sql-plugin-sqlite-it/`](../sql-plugin-sqlite-it/).
+Docker-backed schema-path integration tests (SQL IR → dialect DDL → real databases) live in [`../sql-plugin-postgres-it/`](../sql-plugin-postgres-it/) and [`../sql-plugin-sqlite-it/`](../sql-plugin-sqlite-it/).
+
+## Schema DDL export
+
+The **schema and migrations** path renders SQL IR to dialect-specific DDL. [`SmithyStacheBuildPlugin`](src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) calls [`DialectRenderer.forDialect`](src/main/scala/com/jacoby6000/smithy/stache/sql/DialectRenderer.scala) for each enabled dialect and writes the result to `migrationLocation`. Output includes table DDL, indexes, enums, and a `-- Queries` section with derived DML. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)).
 
 ## Service interface codegen
 
-Configured under `smithy-stache.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). Renders Mustache templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`src/main/resources/sql-service-codegen/python/db/`](src/main/resources/sql-service-codegen/python/db/); bundled artifacts are selected from enabled dialects.
+The **service codegen** path (database services and operations IR → derived dialect-specific queries → implementations and tests) is configured under `smithy-stache.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenRenderer.scala) renders Mustache templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`src/main/resources/sql-service-codegen/python/db/`](src/main/resources/sql-service-codegen/python/db/); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
