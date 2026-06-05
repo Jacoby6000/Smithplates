@@ -1,4 +1,4 @@
-package com.jacoby6000.smithy.stache.testkit.postgres
+package com.jacoby6000.smithy.stache.sql.postgres
 
 import java.sql.Connection
 

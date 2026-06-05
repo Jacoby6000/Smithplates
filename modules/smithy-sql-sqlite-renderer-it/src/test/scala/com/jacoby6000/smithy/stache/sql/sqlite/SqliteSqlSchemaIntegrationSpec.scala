@@ -1,8 +1,7 @@
-package com.jacoby6000.smithy.stache.testkit.sqlite
+package com.jacoby6000.smithy.stache.sql.sqlite
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
-import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 import com.jacoby6000.smithy.stache.testkit.SqlDdlSupport
 import com.jacoby6000.smithy.stache.testkit.SqlIntegrationSchemas
 import munit.FunSuite

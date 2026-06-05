@@ -1,8 +1,7 @@
-package com.jacoby6000.smithy.stache.testkit.postgres
+package com.jacoby6000.smithy.stache.sql.postgres
 
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
-import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
 import com.jacoby6000.smithy.stache.testkit.SqlDdlSupport
 import com.jacoby6000.smithy.stache.testkit.SqlIntegrationSchemas
 import munit.FunSuite

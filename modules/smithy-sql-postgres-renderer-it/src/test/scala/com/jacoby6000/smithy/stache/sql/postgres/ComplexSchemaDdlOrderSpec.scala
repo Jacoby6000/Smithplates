@@ -1,6 +1,5 @@
-package com.jacoby6000.smithy.stache.testkit.postgres
+package com.jacoby6000.smithy.stache.sql.postgres
 
-import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
 import com.jacoby6000.smithy.stache.sql.shared.SqlTableTree
 import com.jacoby6000.smithy.stache.testkit.SqlDdlSupport

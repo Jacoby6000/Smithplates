@@ -1,4 +1,4 @@
-package com.jacoby6000.smithy.stache.testkit.sqlite
+package com.jacoby6000.smithy.stache.sql.sqlite
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.GenericContainer.DockerImage
