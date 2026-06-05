@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.it
 
-import com.jacoby6000.smithy.stache.sql.{SqlModelExtractor, SqlSchema}
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlSchema
 import software.amazon.smithy.model.Model
 
 object SqlIntegrationSchemas {
@@ -156,14 +157,14 @@ object SqlIntegrationSchemas {
   def extractSchema(model: Model): SqlSchema =
     SqlModelExtractor.extractOrThrow(model)
 
-  lazy val simpleSchema: SqlSchema = extractSchema(simpleModel)
+  lazy val simpleSchema: SqlSchema       = extractSchema(simpleModel)
   lazy val varcharCheckSchema: SqlSchema = extractSchema(varcharCheckModel)
-  lazy val complexSchema: SqlSchema = extractSchema(complexModel)
+  lazy val complexSchema: SqlSchema      = extractSchema(complexModel)
 
-  val simpleTableNames: Set[String] = Set("categories", "items")
+  val simpleTableNames: Set[String]  = Set("categories", "items")
   val complexTableNames: Set[String] =
     Set("regions", "offices", "teams", "people", "projects", "memberships", "tags", "project_tags")
 
-  val simpleForeignKeyCount: Int = 1
+  val simpleForeignKeyCount: Int  = 1
   val complexForeignKeyCount: Int = 10
 }

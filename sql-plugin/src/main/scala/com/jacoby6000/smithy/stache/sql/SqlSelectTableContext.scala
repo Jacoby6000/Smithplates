@@ -2,10 +2,12 @@ package com.jacoby6000.smithy.stache.sql
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.traits.SqlSelectJoinValue
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{ShapeId, StructureShape}
 
 private[sql] object SqlSelectTableContext {
   final case class TableContext(
@@ -28,8 +30,7 @@ private[sql] object SqlSelectTableContext {
       shapeId = structure.getId,
       table = table,
       structure = structure,
-      membersByName =
-        SqlTableMemberCatalog.membersFor(structure).map(info => info.memberName -> info).toMap,
+      membersByName = SqlTableMemberCatalog.membersFor(structure).map(info => info.memberName -> info).toMap,
       referenceAlias = queryAlias.getOrElse(table.name)
     )
 
@@ -61,17 +62,15 @@ private[sql] object SqlSelectTableContext {
       if (join.getTable == primaryContext.tableRef) {
         SqlValidated.invalid(duplicateJoinError(queryShape, join.getTable, primaryContext.tableRef, queryKind))
       } else {
-        resolveTable(model, schema, queryShape, join.getTable, queryKind).map {
-          case (table, structure) =>
-            TableContext(
-              tableRef = join.getTable,
-              shapeId = structure.getId,
-              table = table,
-              structure = structure,
-              membersByName =
-                SqlTableMemberCatalog.membersFor(structure).map(info => info.memberName -> info).toMap,
-              referenceAlias = join.getTableAlias.toScala.getOrElse(table.name)
-            )
+        resolveTable(model, schema, queryShape, join.getTable, queryKind).map { case (table, structure) =>
+          TableContext(
+            tableRef = join.getTable,
+            shapeId = structure.getId,
+            table = table,
+            structure = structure,
+            membersByName = SqlTableMemberCatalog.membersFor(structure).map(info => info.memberName -> info).toMap,
+            referenceAlias = join.getTableAlias.toScala.getOrElse(table.name)
+          )
         }
       }
     }
@@ -85,7 +84,7 @@ private[sql] object SqlSelectTableContext {
   ): SqlValidated[List[SqlSelectJoin]] =
     joinContexts.zip(joinSpecs.asScala.toList).traverse { case (joinContext, joinSpec) =>
       SqlJoinType.fromString(joinSpec.getType) match {
-        case None =>
+        case None           =>
           SqlValidated.invalid(InvalidJoinType(queryShape, joinSpec.getType))
         case Some(joinType) =>
           SqlSelectJoinResolver
@@ -106,8 +105,7 @@ private[sql] object SqlSelectTableContext {
                 joinContext.table,
                 joinSpec.getTableAlias.toScala,
                 on
-              )
-            )
+              ))
       }
     }
 
@@ -121,7 +119,7 @@ private[sql] object SqlSelectTableContext {
       .groupBy(identity)
       .collect { case (alias, occurrences) if occurrences.size > 1 => alias }
       .toList match {
-      case Nil => ().validNel
+      case Nil            => ().validNel
       case duplicate :: _ =>
         InvalidDeriveSelect(queryShape, s"duplicate table alias '$duplicate'").invalidNel
     }
@@ -136,7 +134,7 @@ private[sql] object SqlSelectTableContext {
     queryKind match {
       case InvalidQueryTableReference.Kind.DeriveSelect =>
         InvalidDeriveSelect(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
-      case other =>
+      case other                                        =>
         InvalidQueryTableReference(queryShape, joinTable, other)
     }
 }

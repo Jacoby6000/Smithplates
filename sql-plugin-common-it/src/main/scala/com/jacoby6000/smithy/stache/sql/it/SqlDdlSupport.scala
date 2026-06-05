@@ -1,10 +1,10 @@
 package com.jacoby6000.smithy.stache.sql.it
 
+import com.jacoby6000.smithy.stache.sql.DialectRenderer
+import com.jacoby6000.smithy.stache.sql.SqlSchema
+
 import java.sql.Connection
-
 import scala.util.Try
-
-import com.jacoby6000.smithy.stache.sql.{DialectRenderer, SqlSchema}
 
 object SqlDdlSupport {
   def renderDdl(renderer: DialectRenderer, schema: SqlSchema): String =
@@ -30,11 +30,11 @@ object SqlDdlSupport {
 
   def applyDdl(connection: Connection, ddl: String): Unit = {
     val statement = connection.createStatement()
-    try {
+    try
       splitStatements(ddl).foreach { sql =>
         statement.execute(sql)
       }
-    } finally statement.close()
+    finally statement.close()
   }
 
   def assertInsertFails(connection: Connection, sql: String): Unit = {

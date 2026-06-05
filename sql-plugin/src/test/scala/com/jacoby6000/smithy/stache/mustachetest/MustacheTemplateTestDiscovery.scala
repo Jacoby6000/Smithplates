@@ -2,12 +2,14 @@ package com.jacoby6000.smithy.stache.mustachetest
 
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
 object MustacheTemplateTestDiscovery {
-  val ResourceRoot: String = "mustache-template-tests"
-  val SmithyFileName: String = "smithy-files.smithy"
+  val ResourceRoot: String        = "mustache-template-tests"
+  val SmithyFileName: String      = "smithy-files.smithy"
   val UnsupportedFileName: String = "unsupported.md"
 
   def discover(classLoader: ClassLoader, variants: Set[MustacheTemplateVariant]): List[MustacheTemplateTestCase] = {
@@ -56,9 +58,9 @@ object MustacheTemplateTestDiscovery {
       testName: String,
       variants: Set[MustacheTemplateVariant]
   ): MustacheTemplateTestCase = {
-    val basePath = s"$ResourceRoot/$testName"
+    val basePath           = s"$ResourceRoot/$testName"
     val smithyResourcePath = s"$basePath/smithy/$SmithyFileName"
-    val smithyContent = readClasspathResource(classLoader, smithyResourcePath)
+    val smithyContent      = readClasspathResource(classLoader, smithyResourcePath)
 
     val expectedOutputsByVariant =
       variants.toList.sorted.map { variant =>
@@ -83,24 +85,24 @@ object MustacheTemplateTestDiscovery {
       return Nil
     }
 
-    val caseRootPath = testCaseBasePath
-    val serviceTypeRootPath = s"$testCaseBasePath/${variant.serviceTypeResourcePath}"
-    val implementationRootPath = s"$testCaseBasePath/${variant.resourcePath}"
+    val caseRootPath                 = testCaseBasePath
+    val serviceTypeRootPath          = s"$testCaseBasePath/${variant.serviceTypeResourcePath}"
+    val implementationRootPath       = s"$testCaseBasePath/${variant.resourcePath}"
     val implementationTestOutputPath = s"$testCaseBasePath/${variant.testOutputResourcePath}"
 
-    val sharedModelFiles =
+    val sharedModelFiles        =
       listFilesRelativeToCaseRoot(
         classLoader,
         caseRootPath,
         s"$serviceTypeRootPath/model"
       )
-    val sharedServiceTypeFiles =
+    val sharedServiceTypeFiles  =
       listFilesDirectlyInDirectoryRelativeToCaseRoot(
         classLoader,
         caseRootPath,
         serviceTypeRootPath
       )
-    val implementationFiles =
+    val implementationFiles     =
       listFilesDirectlyInDirectoryRelativeToCaseRoot(
         classLoader,
         caseRootPath,
@@ -113,7 +115,8 @@ object MustacheTemplateTestDiscovery {
         implementationTestOutputPath
       )
 
-    (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles).sortBy(_.relativePath)
+    (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles)
+      .sortBy(_.relativePath)
   }
 
   private def listFilesRelativeToCaseRoot(
@@ -124,7 +127,7 @@ object MustacheTemplateTestDiscovery {
     if (!classpathResourceExists(classLoader, directoryPath)) {
       Nil
     } else {
-      val caseRoot = classpathDirectory(classLoader, caseRootPath)
+      val caseRoot  = classpathDirectory(classLoader, caseRootPath)
       val directory = classpathDirectory(classLoader, directoryPath)
       Files
         .walk(directory)
@@ -151,7 +154,7 @@ object MustacheTemplateTestDiscovery {
     if (!classpathResourceExists(classLoader, directoryPath)) {
       Nil
     } else {
-      val caseRoot = classpathDirectory(classLoader, caseRootPath)
+      val caseRoot  = classpathDirectory(classLoader, caseRootPath)
       val directory = classpathDirectory(classLoader, directoryPath)
       Files
         .list(directory)

@@ -19,7 +19,7 @@ abstract class MustacheTemplateTestSuite(backends: List[MustacheTemplateLanguage
 
       val expectedFiles =
         testCase.expectedOutputsByVariant.getOrElse(backend.variant, Nil)
-      val unsupported =
+      val unsupported   =
         MustacheTemplateTestDiscovery.isVariantUnsupported(
           testCase.resourceBasePath,
           backend.variant,
@@ -28,18 +28,21 @@ abstract class MustacheTemplateTestSuite(backends: List[MustacheTemplateLanguage
 
       if (!unsupported && expectedFiles.nonEmpty) {
         test(s"${testCase.name} - ${backend.variant.resourcePath}") {
-          val model =
-            backend.loadModel(testCase).fold(
-              message =>
-                fail(s"Model assembly failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
-              identity
-            )
+          val model    =
+            backend
+              .loadModel(testCase)
+              .fold(
+                message =>
+                  fail(s"Model assembly failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
+                identity
+              )
           val rendered =
-            backend.render(testCase, model).fold(
-              message =>
-                fail(s"Rendering failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
-              identity
-            )
+            backend
+              .render(testCase, model)
+              .fold(
+                message => fail(s"Rendering failed for '${testCase.name}' (${backend.variant.resourcePath}): $message"),
+                identity
+              )
           MustacheTemplateTestAssertions.assertRenderedOutputs(testCase, backend.variant, rendered)
           backend.validateRenderedOutputs(testCase, rendered)
         }

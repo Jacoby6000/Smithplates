@@ -1,13 +1,15 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.stache.sql.{PostgresDialect, SqliteDialect}
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
 class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
   test("parses enabled dialect and languageTargets settings") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "postgres": {
             "enable": true,
@@ -20,7 +22,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     assertEquals(settings.enabledDialects, List(PostgresDialect))
@@ -41,13 +44,15 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("dialect enable defaults to false") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "sqlite": {
             "migrationLocation": "db/sqlite.sql"
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     assertEquals(settings.enabledDialects, Nil)
@@ -56,13 +61,15 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("requires migrationLocation when dialect is enabled") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "sqlite": {
             "enable": true
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("migrationLocation")))
@@ -70,7 +77,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("accepts explicit templateDirectory when required templates exist") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "languageTargets": {
             "python": {
@@ -80,9 +88,10 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
-    val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings        = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python")
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.shared)
@@ -90,7 +99,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("combines bundled artifacts for multiple enabled dialects") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "sqlite": {
             "enable": true,
@@ -107,9 +117,10 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
-    val settings = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings        = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     assertEquals(settings.enabledDialects, List(SqliteDialect, PostgresDialect))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(
@@ -120,14 +131,16 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("rejects language keys at sql root") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "python": {
             "sourceOutputDir": "src",
             "testOutputDir": "tests"
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("languageTargets")))
@@ -135,7 +148,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("rejects unbundled language without templateDirectory") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "languageTargets": {
             "kotlin": {
@@ -144,7 +158,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("templateDirectory")))
@@ -153,7 +168,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("rejects explicit templateDirectory missing required templates") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "languageTargets": {
             "kotlin": {
@@ -163,7 +179,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("missing required templates")))
@@ -171,7 +188,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
   test("rejects explicit templateDirectory missing dialect-specific templates") {
     val node =
-      Node.parse("""
+      Node
+        .parse("""
         {
           "postgres": {
             "enable": true,
@@ -185,7 +203,8 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
             }
           }
         }
-      """).expectObjectNode()
+      """)
+        .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("db/postgres/service_psycopg.mustache")))
@@ -194,7 +213,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
 class SmithyStacheSettingsSpec extends munit.FunSuite {
   test("requires sql object") {
-    val node = Node.parse("{}").expectObjectNode()
+    val node   = Node.parse("{}").expectObjectNode()
     val errors = SmithyStacheSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("sql")))
   }

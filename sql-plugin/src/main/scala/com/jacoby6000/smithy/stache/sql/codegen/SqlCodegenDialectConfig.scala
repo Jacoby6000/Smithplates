@@ -1,6 +1,8 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.{PostgresDialect, SqlDialect, SqliteDialect}
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 
 object SqlCodegenDialectConfig {
   def implementationClassName(serviceName: String, dialect: SqlDialect): String =

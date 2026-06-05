@@ -1,23 +1,21 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
 import cats.data.NonEmptyList
-import com.jacoby6000.smithy.stache.sql.{
-  PostgresDialect,
-  SqlAutoGeneration,
-  SqlAutoUuid,
-  SqlCreatedTimestamp,
-  SqlDialect,
-  SqlInsertQuery,
-  SqlDeleteQuery,
-  SqlJoinType,
-  SqlQueries,
-  SqlSelectOneQuery,
-  SqlSelectQuery,
-  SqlSortDirection,
-  SqlUpdateQuery,
-  SqlUpdatedTimestamp,
-  SqliteDialect
-}
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlAutoGeneration
+import com.jacoby6000.smithy.stache.sql.SqlAutoUuid
+import com.jacoby6000.smithy.stache.sql.SqlCreatedTimestamp
+import com.jacoby6000.smithy.stache.sql.SqlDeleteQuery
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlInsertQuery
+import com.jacoby6000.smithy.stache.sql.SqlJoinType
+import com.jacoby6000.smithy.stache.sql.SqlQueries
+import com.jacoby6000.smithy.stache.sql.SqlSelectOneQuery
+import com.jacoby6000.smithy.stache.sql.SqlSelectQuery
+import com.jacoby6000.smithy.stache.sql.SqlSortDirection
+import com.jacoby6000.smithy.stache.sql.SqlUpdateQuery
+import com.jacoby6000.smithy.stache.sql.SqlUpdatedTimestamp
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 
 /** Renders INSERT, UPDATE, and SELECT statements from validated query models. */
 object SqlQueryRenderer {
@@ -33,7 +31,7 @@ object SqlQueryRenderer {
 
   def defaultClause(dialect: SqlDialect, autoGeneration: SqlAutoGeneration): String =
     autoGeneration match {
-      case SqlAutoUuid =>
+      case SqlAutoUuid                               =>
         dialect match {
           case SqliteDialect   => sqliteAutoUuidDefault
           case PostgresDialect => "gen_random_uuid()"
@@ -69,7 +67,7 @@ object SqlQueryRenderer {
       query.table.columns
         .filter(_.autoGeneration.contains(SqlUpdatedTimestamp))
         .map(column => s"${column.name} = CURRENT_TIMESTAMP")
-    val builder = SqlQuerySegmentBuilder.empty
+    val builder            = SqlQuerySegmentBuilder.empty
     builder.appendText(s"UPDATE ${query.table.name}\nSET ")
     query.setColumns.zipWithIndex.foreach { case (column, index) =>
       if (index > 0) {
@@ -120,7 +118,7 @@ object SqlQueryRenderer {
           s"$expression AS ${projection.resultAlias}"
         }
       }
-    val builder = SqlQuerySegmentBuilder.empty
+    val builder     = SqlQuerySegmentBuilder.empty
     builder.appendText(
       s"SELECT ${projections.mkString(", ")}\nFROM ${renderTableReference(query.primaryTable.name, query.primaryTableAlias)}"
     )
@@ -179,9 +177,9 @@ object SqlQueryRenderer {
       operand: com.jacoby6000.smithy.stache.sql.SqlPredicateOperand
   ): Unit =
     operand match {
-      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.InputMember(_) =>
+      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.InputMember(_)         =>
         builder.appendParameter()
-      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.TableColumn(column) =>
+      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.TableColumn(column)    =>
         builder.appendText(s"${column.tableAlias}.${column.columnName}")
       case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.Projection(projection) =>
         builder.appendText(projection.renderExpression)
@@ -224,7 +222,7 @@ object SqlQueryRenderer {
     join.on match {
       case Some(condition) =>
         s"\n$joinKeyword $joinedTable ON ${condition.left.tableAlias}.${condition.left.columnName} = ${condition.right.tableAlias}.${condition.right.columnName}"
-      case None =>
+      case None            =>
         s"\n$joinKeyword $joinedTable"
     }
   }

@@ -1,17 +1,16 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{
-  InvalidPluginConfig,
-  PostgresDialect,
-  SqlDialect,
-  SqlValidated,
-  SqliteDialect
-}
+import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenSettings
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
-import scala.jdk.CollectionConverters.*
 import software.amazon.smithy.model.node.ObjectNode
+
+import scala.jdk.CollectionConverters.*
 
 final case class SqlDialectSettings(
     enabled: Boolean,
@@ -42,7 +41,7 @@ object SmithyStacheSqlSettings {
       .traverse { case (keyNode, memberNode) =>
         val key = keyNode.expectStringNode().getValue.toLowerCase
         key match {
-          case "languagetargets" =>
+          case "languagetargets"                              =>
             if (memberNode.isObjectNode) {
               parseLanguageTargets(memberNode.expectObjectNode()).map(targets => Right(targets))
             } else {
@@ -58,7 +57,7 @@ object SmithyStacheSqlSettings {
                 InvalidPluginConfig(s"smithy-stache sql.$dialectKey must be an object")
               )
             }
-          case other =>
+          case other                                          =>
             SqlValidated.invalid(
               InvalidPluginConfig(
                 s"smithy-stache sql contains unknown key '$other'; expected dialect (sqlite, postgres) or languageTargets"
@@ -67,7 +66,7 @@ object SmithyStacheSqlSettings {
         }
       }
       .map { entries =>
-        val dialects =
+        val dialects        =
           entries.collect { case Left((key, settings)) => dialectForKey(key) -> settings }.toMap
         val languageTargets =
           entries.collect { case Right(targets) => targets }.foldLeft(Map.empty[String, LanguageTarget])(_ ++ _)
@@ -113,15 +112,15 @@ object SmithyStacheSqlSettings {
     optionalStringMember(node, "migrationLocation") match {
       case Some(location) if enabled =>
         SqlDialectSettings(enabled = true, migrationLocation = Some(location)).validNel
-      case Some(location) =>
+      case Some(location)            =>
         SqlDialectSettings(enabled = false, migrationLocation = Some(location)).validNel
-      case None if enabled =>
+      case None if enabled           =>
         SqlValidated.invalid(
           InvalidPluginConfig(
             s"smithy-stache sql.$key requires `migrationLocation` when `enable` is true"
           )
         )
-      case None =>
+      case None                      =>
         SqlDialectSettings(enabled = false, migrationLocation = None).validNel
     }
   }

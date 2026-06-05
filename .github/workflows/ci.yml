@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scala:
+    name: Scala build, lint, and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 11
+          cache: sbt
+
+      - name: Setup sbtn
+        uses: coursier/setup-action@v1
+        with:
+          apps: sbtn
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          cache-dependency-glob: sql-plugin/src/test/resources/sql-service-codegen-python-workspace/uv.lock
+
+      - name: scalafmt
+        run: sbtn scalafmtCheckAll
+
+      - name: scalafix
+        run: sbtn 'scalafixAll --check'
+
+      - name: Compile
+        run: sbtn compile
+
+      - name: Unit tests
+        run: sbtn smithySqlPlugin/test
+
+      - name: Integration tests (Postgres)
+        run: sbtn smithySqlPluginPostgresIt/test
+
+      - name: Integration tests (SQLite)
+        run: sbtn smithySqlPluginSqliteIt/test

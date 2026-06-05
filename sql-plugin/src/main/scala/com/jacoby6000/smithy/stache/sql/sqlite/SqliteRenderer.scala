@@ -1,7 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.sqlite
 
-import com.jacoby6000.smithy.stache.sql._
-import com.jacoby6000.smithy.stache.sql.shared.{SqlQueryRenderer, SqlRenderUnit, SqlShared}
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.shared.SqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.shared.SqlRenderUnit
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 object SqliteRenderer extends DialectRenderer {
   override val dialect: SqlDialect = SqliteDialect
@@ -23,14 +25,14 @@ object SqliteRenderer extends DialectRenderer {
 
   private def renderColumn(column: SqlColumn): String = {
     val checks = column.columnType match {
-      case SqlColumnType.Varchar(maxLength) =>
+      case SqlColumnType.Varchar(maxLength)   =>
         List(s" CHECK(length(${column.name}) <= $maxLength)")
       case enumType: SqlColumnType.StringEnum =>
         val literals = enumType.values.map(value => s"'${value.replace("'", "''")}'").mkString(", ")
         List(s" CHECK(${column.name} IN ($literals))")
-      case enumType: SqlColumnType.IntEnum =>
+      case enumType: SqlColumnType.IntEnum    =>
         List(SqlShared.intEnumCheck(column.name, enumType.values))
-      case _ => Nil
+      case _                                  => Nil
     }
     SqlShared.renderColumnLine(
       column.name,
@@ -49,7 +51,7 @@ object SqliteRenderer extends DialectRenderer {
         case SqlColumnType.Text | SqlColumnType.Uuid | SqlColumnType.Boolean | SqlColumnType.Varchar(_) |
             SqlColumnType.Json | _: SqlColumnType.StringEnum =>
           "TEXT"
-        case other =>
+        case other                   =>
           throw new IllegalStateException(s"Unsupported SQLite column type: $other")
       }
     }

@@ -12,7 +12,7 @@ trait MustacheTemplateLanguageBackend {
   def validateRenderedOutputs(
       testCase: MustacheTemplateTestCase,
       rendered: Map[String, String]
-    ): Unit = {
+  ): Unit = {
     val _ = (testCase, rendered)
   }
 }

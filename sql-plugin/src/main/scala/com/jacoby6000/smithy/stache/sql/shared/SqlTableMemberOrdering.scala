@@ -1,8 +1,12 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql.{DuplicateSqlColumnIndex, SmithySqlTraitAccess, SqlValidated}
+import com.jacoby6000.smithy.stache.sql.DuplicateSqlColumnIndex
+import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
-import software.amazon.smithy.model.shapes.{MemberShape, StructureShape}
 
 /** Stable @sqlTable member ordering for DDL, queries, and codegen. */
 object SqlTableMemberOrdering {
@@ -17,7 +21,7 @@ object SqlTableMemberOrdering {
   }
 
   def validate(structure: StructureShape): SqlValidated[Unit] = {
-    val members = structure.getAllMembers.asScala.toList
+    val members         = structure.getAllMembers.asScala.toList
     val weightedMembers =
       members.map { case (memberName, member) =>
         memberName -> sortWeight(memberName, member, members)
@@ -25,12 +29,13 @@ object SqlTableMemberOrdering {
 
     weightedMembers
       .groupBy(_._2)
-      .collectFirst { case (_, grouped) if grouped.size > 1 =>
-        DuplicateSqlColumnIndex(
-          structure.getId,
-          grouped.map(_._1).sorted,
-          grouped.head._2._2
-        )
+      .collectFirst {
+        case (_, grouped) if grouped.size > 1 =>
+          DuplicateSqlColumnIndex(
+            structure.getId,
+            grouped.map(_._1).sorted,
+            grouped.head._2._2
+          )
       }
       .map(SqlValidated.invalid)
       .getOrElse(SqlValidated.valid(()))
@@ -40,7 +45,7 @@ object SqlTableMemberOrdering {
       memberName: String,
       member: MemberShape,
       members: List[(String, MemberShape)]
-    ): (Int, Int) = {
+  ): (Int, Int) = {
     val definitionOrder = members.indexWhere(_._1 == memberName)
     explicitSortIndex(member) match {
       case Some(index) => (1, index)

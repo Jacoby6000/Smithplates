@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.sqlite
 
-import com.jacoby6000.smithy.stache.sql.{SqlModelExtractor, SqlTestModelBuilder}
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlTestModelBuilder
 import munit.FunSuite
 
 final class SqliteEnumRendererSpec extends FunSuite {
@@ -23,7 +24,7 @@ final class SqliteEnumRendererSpec extends FunSuite {
     )
 
     val schema = SqlModelExtractor.extractOrThrow(model)
-    val ddl = SqliteRenderer.render(schema)
+    val ddl    = SqliteRenderer.render(schema)
 
     assert(ddl.contains("direction TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"))
   }

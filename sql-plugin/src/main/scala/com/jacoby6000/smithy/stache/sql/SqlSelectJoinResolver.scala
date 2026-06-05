@@ -2,10 +2,12 @@ package com.jacoby6000.smithy.stache.sql
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{ShapeId, StructureShape}
 
 /** Resolves JOIN ON clauses from @sqlForeignKey relationships between two tables. */
 private[sql] object SqlSelectJoinResolver {
@@ -31,7 +33,7 @@ private[sql] object SqlSelectJoinResolver {
       None.validNel
     } else {
       findForeignKeys(primaryTable, primaryStructure, joinTable, joinStructure) match {
-        case Nil =>
+        case Nil           =>
           SqlValidated.invalid(
             MissingJoinForeignKey(queryShape, primaryTable.name, joinTable.name)
           )
@@ -48,7 +50,7 @@ private[sql] object SqlSelectJoinResolver {
               right = SqlQualifiedColumn(rightTableAlias, rightColumn)
             )
           ).validNel
-        case _ =>
+        case _             =>
           SqlValidated.invalid(
             AmbiguousJoinForeignKey(queryShape, primaryTable.name, joinTable.name)
           )
@@ -80,14 +82,13 @@ private[sql] object SqlSelectJoinResolver {
           .parseShapeId(foreignKeyTrait.getReferences)
           .filter(_ == targetStructure.getId)
           .flatMap { _ =>
-            resolveReferencedColumn(targetStructure, foreignKeyTrait.getColumn.toScala).map {
-              referencedColumn =>
-                ResolvedForeignKey(
-                  sourceTable = sourceTable,
-                  sourceColumn = SmithySqlTraitAccess.columnName(memberName, member),
-                  targetTable = targetTable,
-                  targetColumn = referencedColumn
-                )
+            resolveReferencedColumn(targetStructure, foreignKeyTrait.getColumn.toScala).map { referencedColumn =>
+              ResolvedForeignKey(
+                sourceTable = sourceTable,
+                sourceColumn = SmithySqlTraitAccess.columnName(memberName, member),
+                targetTable = targetTable,
+                targetColumn = referencedColumn
+              )
             }
           }
       }
@@ -99,7 +100,7 @@ private[sql] object SqlSelectJoinResolver {
   ): Option[String] =
     SqlShared.trimmedNonEmpty(explicitColumn) match {
       case Some(column) => Some(column)
-      case None =>
+      case None         =>
         SqlTableMemberCatalog
           .membersFor(targetStructure)
           .filter(_.isPrimaryKey)

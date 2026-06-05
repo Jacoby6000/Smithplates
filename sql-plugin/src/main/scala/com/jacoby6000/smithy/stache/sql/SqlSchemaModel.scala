@@ -81,19 +81,19 @@ sealed trait SqlJoinType
 
 object SqlJoinType {
   case object Inner extends SqlJoinType
-  case object Left extends SqlJoinType
+  case object Left  extends SqlJoinType
   case object Right extends SqlJoinType
-  case object Full extends SqlJoinType
+  case object Full  extends SqlJoinType
   case object Cross extends SqlJoinType
 
   def fromString(value: String): Option[SqlJoinType] =
     value.toLowerCase match {
-      case "inner"  => Some(Inner)
-      case "left"   => Some(Left)
-      case "right"  => Some(Right)
-      case "full"   => Some(Full)
-      case "cross"  => Some(Cross)
-      case _        => None
+      case "inner" => Some(Inner)
+      case "left"  => Some(Left)
+      case "right" => Some(Right)
+      case "full"  => Some(Full)
+      case "cross" => Some(Cross)
+      case _       => None
     }
 }
 
@@ -119,19 +119,19 @@ sealed trait SqlAggregateFunction {
 }
 
 object SqlAggregateFunction {
-  case object Sum extends SqlAggregateFunction {
+  case object Sum   extends SqlAggregateFunction {
     override val sqlName: String = "SUM"
   }
   case object Count extends SqlAggregateFunction {
     override val sqlName: String = "COUNT"
   }
-  case object Max extends SqlAggregateFunction {
+  case object Max   extends SqlAggregateFunction {
     override val sqlName: String = "MAX"
   }
-  case object Min extends SqlAggregateFunction {
+  case object Min   extends SqlAggregateFunction {
     override val sqlName: String = "MIN"
   }
-  case object Avg extends SqlAggregateFunction {
+  case object Avg   extends SqlAggregateFunction {
     override val sqlName: String = "AVG"
   }
 
@@ -172,9 +172,9 @@ final case class SqlSelectAggregateProjection(
   override def renderExpression: String =
     (function, column) match {
       case (SqlAggregateFunction.Count, None) => "COUNT(*)"
-      case (_, Some(qualifiedColumn)) =>
+      case (_, Some(qualifiedColumn))         =>
         s"${function.sqlName}(${qualifiedColumn.tableAlias}.${qualifiedColumn.columnName})"
-      case (_, None) =>
+      case (_, None)                          =>
         throw new IllegalStateException(s"aggregate ${function.sqlName} requires a column")
     }
 }
@@ -198,8 +198,8 @@ object SqlComparisonOperator {
 sealed trait SqlPredicateOperand
 
 object SqlPredicateOperand {
-  final case class InputMember(name: String) extends SqlPredicateOperand
-  final case class TableColumn(column: SqlQualifiedColumn) extends SqlPredicateOperand
+  final case class InputMember(name: String)                   extends SqlPredicateOperand
+  final case class TableColumn(column: SqlQualifiedColumn)     extends SqlPredicateOperand
   final case class Projection(projection: SqlSelectProjection) extends SqlPredicateOperand
 }
 
@@ -216,7 +216,7 @@ final case class SqlSelectGroupBy(
 sealed trait SqlSortDirection
 
 object SqlSortDirection {
-  case object Asc extends SqlSortDirection
+  case object Asc  extends SqlSortDirection
   case object Desc extends SqlSortDirection
 
   def fromString(value: String): Option[SqlSortDirection] =
@@ -287,7 +287,7 @@ sealed trait SqlRelationshipCardinality
 
 object SqlRelationshipCardinality {
   case object ManyToOne extends SqlRelationshipCardinality
-  case object OneToOne extends SqlRelationshipCardinality
+  case object OneToOne  extends SqlRelationshipCardinality
 }
 
 final case class SqlRelationship(

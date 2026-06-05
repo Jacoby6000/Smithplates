@@ -8,20 +8,22 @@ object TextContentDiff {
       expected: String,
       actual: String,
       contextLines: Int = DefaultContextLines
-    ): String = {
+  ): String = {
     val expectedLines = expected.linesIterator.toVector
-    val actualLines = actual.linesIterator.toVector
+    val actualLines   = actual.linesIterator.toVector
 
     if (expectedLines == actualLines) {
       return s"Content mismatch for $fileLabel (identical line sequences but unequal strings; check line endings)"
     }
 
-    val firstDiffIndex = (0 until math.max(expectedLines.size, actualLines.size)).find { index =>
-      expectedLines.lift(index) != actualLines.lift(index)
-    }.getOrElse(0)
+    val firstDiffIndex = (0 until math.max(expectedLines.size, actualLines.size))
+      .find { index =>
+        expectedLines.lift(index) != actualLines.lift(index)
+      }
+      .getOrElse(0)
 
     val contextStart = math.max(0, firstDiffIndex - contextLines)
-    val contextEnd =
+    val contextEnd   =
       math.min(
         math.max(expectedLines.size, actualLines.size),
         firstDiffIndex + contextLines + 1
@@ -35,11 +37,11 @@ object TextContentDiff {
          |""".stripMargin
 
     val hunks = (contextStart until contextEnd).map { index =>
-      val lineNumber = index + 1
+      val lineNumber   = index + 1
       val expectedLine = expectedLines.lift(index).map(line => s"    $lineNumber | - $line").getOrElse {
         s"    $lineNumber | - <missing>"
       }
-      val actualLine = actualLines.lift(index).map(line => s"    $lineNumber | + $line").getOrElse {
+      val actualLine   = actualLines.lift(index).map(line => s"    $lineNumber | + $line").getOrElse {
         s"    $lineNumber | + <missing>"
       }
       s"$expectedLine\n$actualLine"

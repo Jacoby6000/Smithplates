@@ -1,7 +1,11 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, PostgresDialect, SqlDialect, SqlValidated, SqliteDialect}
+import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 
 /** SQL with bind parameters implied between consecutive segments. */
 final case class SqlParameterizedStatement(segments: List[String]) {
@@ -21,6 +25,7 @@ final case class SqlBindPlaceholder(pattern: String) {
 }
 
 object SqlBindPlaceholder {
+
   /** Substituted with the 1-based bind index (for example `$?{n}` → `$1`). */
   val NumberToken: String = "?{n}"
 
@@ -50,27 +55,23 @@ object SqlBindPlaceholder {
       )
 
   def format(segments: List[String], placeholder: SqlBindPlaceholder): String =
-    segments.zipWithIndex
-      .map { case (segment, index) =>
-        if (index == segments.length - 1) {
-          segment
-        } else {
-          s"$segment${placeholder.placeholder(index + 1)}"
-        }
+    segments.zipWithIndex.map { case (segment, index) =>
+      if (index == segments.length - 1) {
+        segment
+      } else {
+        s"$segment${placeholder.placeholder(index + 1)}"
       }
-      .mkString
+    }.mkString
 }
 
 final class SqlQuerySegmentBuilder private (private var segments: List[String]) {
-  def appendText(text: String): Unit = {
+  def appendText(text: String): Unit =
     if (text.nonEmpty) {
       segments = segments.updated(segments.length - 1, segments.last + text)
     }
-  }
 
-  def appendParameter(): Unit = {
+  def appendParameter(): Unit =
     segments = segments :+ ""
-  }
 
   def build: SqlParameterizedStatement = SqlParameterizedStatement(segments)
 }

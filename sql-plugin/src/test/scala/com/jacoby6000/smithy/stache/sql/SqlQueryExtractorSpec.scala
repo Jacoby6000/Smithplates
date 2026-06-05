@@ -145,7 +145,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveInsert(_, reason) if reason.contains("stache.codegen.sql#DerivedStruct") => true
-        case _                                                                                            => false
+        case _                                                                                     => false
       }
     )
   }
@@ -184,7 +184,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveInsert(_, reason) if reason.contains("stache.codegen.sql#DerivedStruct") => true
-        case _                                                                                            => false
+        case _                                                                                     => false
       }
     )
   }
@@ -256,7 +256,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveInsert(_, reason) if reason.contains("does not match a primary key target type") => true
-        case _ => false
+        case _                                                                                             => false
       }
     )
   }
@@ -295,7 +295,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case QueryMemberNotOnTable(_, "extra", "widgets", InvalidQueryTableReference.Kind.Insert) => true
-        case _ => false
+        case _                                                                                    => false
       }
     )
   }
@@ -376,7 +376,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveUpdate(_, reason) if reason.contains("stache.codegen.sql#DerivedStruct") => true
-        case _                                                                                            => false
+        case _                                                                                     => false
       }
     )
   }
@@ -412,7 +412,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveUpdate(_, reason) if reason.contains("output must be Boolean") => true
-        case _                                                                             => false
+        case _                                                                           => false
       }
     )
   }
@@ -453,7 +453,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveUpdate(_, reason) if reason.contains("no updatable columns for updateFields") => true
-        case _                                                                                            => false
+        case _                                                                                          => false
       }
     )
   }
@@ -532,7 +532,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveDelete(_, reason) if reason.contains("stache.codegen.sql#DerivedStruct") => true
-        case _                                                                                            => false
+        case _                                                                                     => false
       }
     )
   }
@@ -568,7 +568,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveDelete(_, reason) if reason.contains("output must be Boolean") => true
-        case _                                                                             => false
+        case _                                                                           => false
       }
     )
   }
@@ -630,7 +630,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |""".stripMargin
     )
 
-    val schema = SqlModelExtractor.extractOrThrow(model)
+    val schema    = SqlModelExtractor.extractOrThrow(model)
     assertEquals(schema.queries.selectOnes.size, 1)
     val selectOne = schema.queries.selectOnes.head
     assertEquals(selectOne.shapeId.toString, "example#GetWidget")
@@ -675,7 +675,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveSelectOne(_, reason) if reason.contains("stache.codegen.sql#DerivedStruct") => true
-        case _                                                                                              => false
+        case _                                                                                        => false
       }
     )
   }
@@ -712,7 +712,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
       result.swap.toOption.get.exists {
         case InvalidDeriveSelectOne(_, reason) if reason.contains("output must be the target @sqlTable structure") =>
           true
-        case _ => false
+        case _                                                                                                     => false
       }
     )
   }
@@ -806,7 +806,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case QueryMissingRequiredMember(_, "id", "widgets", InvalidQueryTableReference.Kind.Update) => true
-        case _ => false
+        case _                                                                                      => false
       }
     )
   }

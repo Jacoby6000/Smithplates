@@ -50,7 +50,7 @@ final class SqlModelExtractorSpec extends FunSuite {
       case Validated.Invalid(errors) =>
         assertEquals(errors.size, 2)
         assert(errors.forall(_.isInstanceOf[MissingPrimaryKey]))
-      case Validated.Valid(_) =>
+      case Validated.Valid(_)        =>
         fail("expected validation to fail for both tables")
     }
   }
@@ -103,7 +103,7 @@ final class SqlModelExtractorSpec extends FunSuite {
     SqlModelExtractor.extract(model) match {
       case Validated.Invalid(errors) =>
         assert(SqlValidated.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlJson))
-      case Validated.Valid(_) =>
+      case Validated.Valid(_)        =>
         fail("expected validation to fail")
     }
   }
@@ -132,7 +132,7 @@ final class SqlModelExtractorSpec extends FunSuite {
     SqlModelExtractor.extract(model) match {
       case Validated.Invalid(errors) =>
         assert(SqlValidated.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlUuid))
-      case Validated.Valid(_) =>
+      case Validated.Valid(_)        =>
         fail("expected validation to fail")
     }
   }
@@ -157,8 +157,8 @@ final class SqlModelExtractorSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val schema = SqlModelExtractor.extractOrThrow(model)
-    val table = schema.tables.find(_.name == "sample").get
+    val schema     = SqlModelExtractor.extractOrThrow(model)
+    val table      = schema.tables.find(_.name == "sample").get
     val codeColumn = table.columns.find(_.name == "code").get
     assertEquals(codeColumn.columnType, SqlColumnType.Varchar(64))
   }
@@ -213,7 +213,7 @@ final class SqlModelExtractorSpec extends FunSuite {
     )
 
     val schema = SqlModelExtractor.extractOrThrow(model)
-    val table = schema.tables.head
+    val table  = schema.tables.head
     assertEquals(table.name, "union_members")
     assertEquals(table.columns.map(_.name), List("id", "value"))
     assertEquals(table.columns.map(_.columnType), List(SqlColumnType.Text, SqlColumnType.Json))
@@ -252,7 +252,7 @@ final class SqlModelExtractorSpec extends FunSuite {
           },
           errors.map(_.message).toList.mkString("; ")
         )
-      case Validated.Valid(_) =>
+      case Validated.Valid(_)        =>
         fail("expected validation to fail")
     }
   }
@@ -294,8 +294,8 @@ final class SqlModelExtractorSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val schema = SqlModelExtractor.extractOrThrow(model)
-    val fooRelationship =
+    val schema              = SqlModelExtractor.extractOrThrow(model)
+    val fooRelationship     =
       schema.relationships.find(_.sourceTable == ShapeId.from("example#Foo")).getOrElse {
         fail("expected Foo relationship")
       }
@@ -308,7 +308,9 @@ final class SqlModelExtractorSpec extends FunSuite {
     assertEquals(profileRelationship.cardinality, SqlRelationshipCardinality.OneToOne)
 
     val profileTable = schema.tables.find(_.shapeId == ShapeId.from("example#Profile")).get
-    assertEquals(profileTable.indexes.map(index => (index.name, index.unique)), List((Some("uidx_profiles_bar_id"), true)))
+    assertEquals(
+      profileTable.indexes.map(index => (index.name, index.unique)),
+      List((Some("uidx_profiles_bar_id"), true)))
     assertEquals(
       profileTable.foreignKeys.map(_.cardinality),
       List(SqlRelationshipCardinality.OneToOne)

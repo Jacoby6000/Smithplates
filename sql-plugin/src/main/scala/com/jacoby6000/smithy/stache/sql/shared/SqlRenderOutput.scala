@@ -11,16 +11,18 @@ object SqlRenderOutput {
       case _: SqlRenderUnit.Ddl   => true
       case _: SqlRenderUnit.Query => false
     }
-    val ddlText =
+    val ddlText                =
       ddlUnits.collect { case ddl: SqlRenderUnit.Ddl => ddl.formatted }.filter(_.nonEmpty).mkString(StatementSeparator)
-    val queryText =
+    val queryText              =
       if (queryUnits.isEmpty) {
         ""
       } else {
         val statements =
-          queryUnits.collect { case query: SqlRenderUnit.Query => query.formatted(placeholderStyle) }.mkString(
-            StatementSeparator
-          )
+          queryUnits
+            .collect { case query: SqlRenderUnit.Query => query.formatted(placeholderStyle) }
+            .mkString(
+              StatementSeparator
+            )
         s"-- Queries$StatementSeparator$statements"
       }
     SqlShared.appendSection(ddlText, queryText)

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.it.postgres
 
-import com.jacoby6000.smithy.stache.sql.it.{SqlDdlSupport, SqlIntegrationSchemas}
+import com.jacoby6000.smithy.stache.sql.it.SqlDdlSupport
+import com.jacoby6000.smithy.stache.sql.it.SqlIntegrationSchemas
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlTableTree
 import munit.FunSuite
@@ -15,7 +16,7 @@ final class ComplexSchemaDdlOrderSpec extends FunSuite {
   }
 
   test("complex schema DDL creates referenced tables before dependents") {
-    val ddl = SqlDdlSupport.renderDdl(PostgresRenderer, SqlIntegrationSchemas.complexSchema)
+    val ddl        = SqlDdlSupport.renderDdl(PostgresRenderer, SqlIntegrationSchemas.complexSchema)
     val statements = SqlDdlSupport.splitStatements(ddl)
 
     def createTableIndex(tableName: String): Int =

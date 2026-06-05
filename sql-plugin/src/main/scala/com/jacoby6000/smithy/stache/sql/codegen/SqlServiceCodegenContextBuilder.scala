@@ -1,15 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{
-  SqlDialect,
-  SqlOperation,
-  SqlQueries,
-  SqlQueryExtractor,
-  SqlSchema,
-  SqlService,
-  SqlValidated
-}
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlOperation
+import com.jacoby6000.smithy.stache.sql.SqlQueries
+import com.jacoby6000.smithy.stache.sql.SqlQueryExtractor
+import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.SqlService
+import com.jacoby6000.smithy.stache.sql.SqlValidated
 import software.amazon.smithy.model.Model
 
 object SqlServiceCodegenContextBuilder {
@@ -49,11 +47,10 @@ object SqlServiceCodegenContextBuilder {
               bindPlaceholderStyle = bindPlaceholderStyle,
               implementationClassName =
                 SqlCodegenDialectConfig.implementationClassName(service.shapeId.getName, dialect),
-              implementationModuleName =
-                SqlCodegenDialectConfig.implementationModuleName(
-                  SqlCodegenNaming.serviceFileName(service.shapeId.getName),
-                  dialect
-                ),
+              implementationModuleName = SqlCodegenDialectConfig.implementationModuleName(
+                SqlCodegenNaming.serviceFileName(service.shapeId.getName),
+                dialect
+              ),
               hasSqlOperations = operations.exists(_.sql.isDefined),
               models = models.sortBy(_.shapeId.toString),
               unions = unions.sortBy(_.shapeId.toString),
@@ -71,14 +68,14 @@ object SqlServiceCodegenContextBuilder {
       queries: SqlQueries,
       operation: SqlOperation
   ): SqlValidated[SqlCodegenOperation] = {
-    val resolvedQuery = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
+    val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
     val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
 
     val parameters =
       resolvedQuery match {
         case Some(query) if usesDerivedInput =>
           SqlOperationSqlBindingBuilder.parametersFromQuery(model, operation, query)
-        case _ =>
+        case _                               =>
           buildInputParameters(model, operation)
       }
 
@@ -86,7 +83,7 @@ object SqlServiceCodegenContextBuilder {
       resolvedQuery match {
         case Some(query) =>
           SqlOperationSqlBindingBuilder.build(model, operation, query).map(Some(_))
-        case None =>
+        case None        =>
           None.validNel
       }
 

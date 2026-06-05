@@ -17,11 +17,11 @@ final case class InvalidMemberColumnType(
   override def message: String = kind match {
     case InvalidMemberColumnType.Kind.Unsupported =>
       s"Unsupported SQL column target ${targetShape.toString} for table '$table' member '$memberName'"
-    case InvalidMemberColumnType.Kind.SqlVarchar =>
+    case InvalidMemberColumnType.Kind.SqlVarchar  =>
       s"@sqlVarchar on table '$table' member '$memberName' requires a string target, got ${targetShape.toString}"
-    case InvalidMemberColumnType.Kind.SqlUuid =>
+    case InvalidMemberColumnType.Kind.SqlUuid     =>
       s"@sqlUuid on table '$table' member '$memberName' requires a string target, got ${targetShape.toString}"
-    case InvalidMemberColumnType.Kind.SqlJson =>
+    case InvalidMemberColumnType.Kind.SqlJson     =>
       s"@sqlJson on table '$table' member '$memberName' requires a list, map, structure, union, or document target, got ${targetShape.toString}"
   }
 }
@@ -95,9 +95,9 @@ object InvalidQueryTableReference {
         case DeriveUpdate    => "sqlDeriveUpdate"
         case DeriveDelete    => "sqlDeriveDelete"
         case DeriveSelectOne => "sqlDeriveSelectOne"
-    case DeriveSelect    => "sqlDeriveSelect"
-    case Update          => "sqlUpdate"
-  }
+        case DeriveSelect    => "sqlDeriveSelect"
+        case Update          => "sqlUpdate"
+      }
   }
 }
 

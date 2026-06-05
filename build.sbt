@@ -1,4 +1,8 @@
 ThisBuild / scalaVersion := "3.3.6"
+ThisBuild / scalafmtOnCompile := false
+ThisBuild / semanticdbEnabled := true
+ThisBuild / semanticdbVersion := scalafixSemanticdb.revision
+ThisBuild / scalafixConfig := Some(file(".scalafix.conf"))
 
 val testcontainersScalaVersion = "0.44.1"
 val catsCoreVersion = "2.12.0"
@@ -108,7 +112,12 @@ lazy val smithySqlPluginSqliteIt = (project in file("sql-plugin-sqlite-it"))
   )
 
 lazy val root = (project in file("."))
-  .settings(strictScala3Settings, withCatsEffect)
+  .settings(
+    strictScala3Settings,
+    withCatsEffect,
+    Compile / sources := Nil,
+    Compile / resources := Nil
+  )
   .aggregate(
     smithySqlPlugin,
     smithySqlPluginCommonIt,

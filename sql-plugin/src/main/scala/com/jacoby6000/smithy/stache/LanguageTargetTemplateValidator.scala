@@ -1,11 +1,11 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, SqlDialect, SqlValidated}
-import com.jacoby6000.smithy.stache.sql.codegen.{
-  MustacheTemplateEngine,
-  SqlServiceCodegenDbArtifacts
-}
+import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.codegen.MustacheTemplateEngine
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 
 object LanguageTargetTemplateValidator {
   val bundledLanguageIds: Set[String] = Set("python")
@@ -70,7 +70,7 @@ object LanguageTargetTemplateValidator {
   }
 
   private def classpathResourcePath(templateDirectory: String, template: String): String = {
-    val baseDirectory = templateDirectory.stripPrefix("classpath:").stripSuffix("/")
+    val baseDirectory      = templateDirectory.stripPrefix("classpath:").stripSuffix("/")
     val normalizedTemplate =
       if (template.startsWith("/")) {
         template.stripPrefix("/")

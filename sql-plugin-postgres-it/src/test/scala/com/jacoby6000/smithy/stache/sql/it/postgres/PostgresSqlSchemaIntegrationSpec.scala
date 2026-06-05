@@ -1,13 +1,15 @@
 package com.jacoby6000.smithy.stache.sql.it.postgres
 
-import java.sql.{Connection, DriverManager}
-
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
-import com.jacoby6000.smithy.stache.sql.it.{SqlDdlSupport, SqlIntegrationSchemas}
+import com.jacoby6000.smithy.stache.sql.it.SqlDdlSupport
+import com.jacoby6000.smithy.stache.sql.it.SqlIntegrationSchemas
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
 import munit.FunSuite
 import org.testcontainers.utility.DockerImageName
+
+import java.sql.Connection
+import java.sql.DriverManager
 
 final class PostgresSqlSchemaIntegrationSpec extends FunSuite with TestContainerForEach {
   override val containerDef: PostgreSQLContainer.Def =

@@ -1,19 +1,21 @@
 package com.jacoby6000.smithy.stache.sql
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.SqlDeriveSelectReferenceResolver.{ResolvedReference, SelectScope}
+import com.jacoby6000.smithy.stache.sql.SqlDeriveSelectReferenceResolver.ResolvedReference
+import com.jacoby6000.smithy.stache.sql.SqlDeriveSelectReferenceResolver.SelectScope
 import com.jacoby6000.smithy.stache.sql.SqlSelectTableContext.TableContext
-import com.jacoby6000.smithy.stache.sql.traits.{
-  SqlDeriveSelectConditionValue,
-  SqlDeriveSelectOrderByValue,
-  SqlDeriveSelectProjectionValue,
-  SqlDeriveSelectProjectionsValue,
-  SqlDeriveSelectTrait
-}
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectConditionValue
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectOrderByValue
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectProjectionValue
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectProjectionsValue
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectTrait
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.OperationShape
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{OperationShape, ShapeId, StructureShape}
 
 private[sql] object SqlDeriveSelectExtractor {
   private enum FilterClause {
@@ -36,9 +38,9 @@ private[sql] object SqlDeriveSelectExtractor {
       operation: OperationShape,
       selectTrait: SqlDeriveSelectTrait
   ): SqlValidated[SqlSelectQuery] = {
-    val queryKind = InvalidQueryTableReference.Kind.DeriveSelect
+    val queryKind      = InvalidQueryTableReference.Kind.DeriveSelect
     val operationShape = operation.getId
-    val fromSpec = selectTrait.getFrom
+    val fromSpec       = selectTrait.getFrom
 
     requireInputStructure(model, operation).andThen { inputStructure =>
       requireDerivedStructOutput(operation).andThen { _ =>
@@ -84,80 +86,80 @@ private[sql] object SqlDeriveSelectExtractor {
                           selectTrait.getHaving.asScala.toList,
                           selectTrait.getOrderBy.asScala.toList
                         ).andThen { _ =>
-                        extractProjections(
-                          operationShape,
-                          selectTrait.getProjections,
-                          primaryContext,
-                          joinContexts
-                        ).andThen { selectColumns =>
-                          val scope =
-                            SelectScope(
-                              primary = primaryContext,
-                              joins = joinContexts,
-                              inputMembers = inputMembers,
-                              projections = selectColumns.map(p => p.resultAlias -> p).toMap
-                            )
+                          extractProjections(
+                            operationShape,
+                            selectTrait.getProjections,
+                            primaryContext,
+                            joinContexts
+                          ).andThen { selectColumns =>
+                            val scope =
+                              SelectScope(
+                                primary = primaryContext,
+                                joins = joinContexts,
+                                inputMembers = inputMembers,
+                                projections = selectColumns.map(p => p.resultAlias -> p).toMap
+                              )
 
-                          (
-                            extractConditions(
-                              operationShape,
-                              selectTrait.getWhere.asScala.toList,
-                              scope,
-                              FilterClause.Where
-                            ),
-                            extractGroupBy(operationShape, selectTrait.getGroupBy.asScala.toList, scope),
-                            extractConditions(
-                              operationShape,
-                              selectTrait.getHaving.asScala.toList,
-                              scope,
-                              FilterClause.Having
-                            ),
-                            extractOrderBy(operationShape, selectTrait.getOrderBy.asScala.toList, selectColumns),
-                            validateOptionalInputMember(
-                              operationShape,
-                              selectTrait.getLimitInputMember.toScala,
-                              inputMembers,
-                              "limitInputMember"
-                            ),
-                            validateOptionalInputMember(
-                              operationShape,
-                              selectTrait.getOffsetInputMember.toScala,
-                              inputMembers,
-                              "offsetInputMember"
-                            )
-                          ).mapN {
                             (
-                                wherePredicates,
-                                groupByColumns,
-                                havingPredicates,
-                                orderBy,
-                                limitInputMember,
-                                offsetInputMember
-                            ) =>
+                              extractConditions(
+                                operationShape,
+                                selectTrait.getWhere.asScala.toList,
+                                scope,
+                                FilterClause.Where
+                              ),
+                              extractGroupBy(operationShape, selectTrait.getGroupBy.asScala.toList, scope),
+                              extractConditions(
+                                operationShape,
+                                selectTrait.getHaving.asScala.toList,
+                                scope,
+                                FilterClause.Having
+                              ),
+                              extractOrderBy(operationShape, selectTrait.getOrderBy.asScala.toList, selectColumns),
+                              validateOptionalInputMember(
+                                operationShape,
+                                selectTrait.getLimitInputMember.toScala,
+                                inputMembers,
+                                "limitInputMember"
+                              ),
+                              validateOptionalInputMember(
+                                operationShape,
+                                selectTrait.getOffsetInputMember.toScala,
+                                inputMembers,
+                                "offsetInputMember"
+                              )
+                            ).mapN {
                               (
-                                validateGroupByCoversSelectColumns(
-                                  operationShape,
-                                  selectColumns,
-                                  groupByColumns
-                                ),
-                                validateAtLeastOneProjection(operationShape, selectColumns)
-                              ).mapN { (_, _) =>
-                                SqlSelectQuery(
-                                  shapeId = operationShape,
-                                  primaryTable = primaryTable,
-                                  primaryTableAlias = fromSpec.getAlias.toScala,
-                                  joins = joins,
-                                  selectColumns = selectColumns,
-                                  wherePredicates = wherePredicates,
-                                  groupByColumns = groupByColumns,
-                                  havingPredicates = havingPredicates,
-                                  orderBy = orderBy,
-                                  limitInputMember = limitInputMember,
-                                  offsetInputMember = offsetInputMember
-                                )
-                              }
-                          }.andThen(identity)
-                        }
+                                  wherePredicates,
+                                  groupByColumns,
+                                  havingPredicates,
+                                  orderBy,
+                                  limitInputMember,
+                                  offsetInputMember
+                              ) =>
+                                (
+                                  validateGroupByCoversSelectColumns(
+                                    operationShape,
+                                    selectColumns,
+                                    groupByColumns
+                                  ),
+                                  validateAtLeastOneProjection(operationShape, selectColumns)
+                                ).mapN { (_, _) =>
+                                  SqlSelectQuery(
+                                    shapeId = operationShape,
+                                    primaryTable = primaryTable,
+                                    primaryTableAlias = fromSpec.getAlias.toScala,
+                                    joins = joins,
+                                    selectColumns = selectColumns,
+                                    wherePredicates = wherePredicates,
+                                    groupByColumns = groupByColumns,
+                                    havingPredicates = havingPredicates,
+                                    orderBy = orderBy,
+                                    limitInputMember = limitInputMember,
+                                    offsetInputMember = offsetInputMember
+                                  )
+                                }
+                            }.andThen(identity)
+                          }
                         }
                       }
                   }
@@ -172,8 +174,8 @@ private[sql] object SqlDeriveSelectExtractor {
       operation: OperationShape
   ): SqlValidated[StructureShape] = {
     val operationShape = operation.getId
-    val unitShapeId = ShapeId.from("smithy.api#Unit")
-    val inputShapeId = Option(operation.getInputShape).getOrElse(unitShapeId)
+    val unitShapeId    = ShapeId.from("smithy.api#Unit")
+    val inputShapeId   = Option(operation.getInputShape).getOrElse(unitShapeId)
 
     if (inputShapeId == unitShapeId) {
       InvalidDeriveSelect(operationShape, "input must be a structure").invalidNel
@@ -185,7 +187,7 @@ private[sql] object SqlDeriveSelectExtractor {
     } else {
       model.getShape(inputShapeId).toScala.flatMap(_.asStructureShape.toScala) match {
         case Some(structure) => structure.validNel
-        case None =>
+        case None            =>
           InvalidDeriveSelect(
             operationShape,
             s"input must be a structure; got '${inputShapeId.toString}'"
@@ -196,8 +198,8 @@ private[sql] object SqlDeriveSelectExtractor {
 
   private def requireDerivedStructOutput(operation: OperationShape): SqlValidated[Unit] = {
     val operationShape = operation.getId
-    val unitShapeId = ShapeId.from("smithy.api#Unit")
-    val outputShapeId = Option(operation.getOutputShape).getOrElse(unitShapeId)
+    val unitShapeId    = ShapeId.from("smithy.api#Unit")
+    val outputShapeId  = Option(operation.getOutputShape).getOrElse(unitShapeId)
 
     if (outputShapeId == SqlQueryExtractor.DerivedStructShapeId) {
       ().validNel
@@ -216,10 +218,10 @@ private[sql] object SqlDeriveSelectExtractor {
       traitField: String
   ): SqlValidated[Option[String]] =
     memberName match {
-      case None => None.validNel
+      case None                                      => None.validNel
       case Some(name) if inputMembers.contains(name) =>
         Some(name).validNel
-      case Some(name) =>
+      case Some(name)                                =>
         InvalidDeriveSelect(
           operationShape,
           s"$traitField '$name' is not a member of the operation input structure"
@@ -244,7 +246,7 @@ private[sql] object SqlDeriveSelectExtractor {
         ).flatten
 
       incompatibleFields match {
-        case Nil => ().validNel
+        case Nil    => ().validNel
         case fields =>
           InvalidDeriveSelect(
             operationShape,
@@ -271,8 +273,7 @@ private[sql] object SqlDeriveSelectExtractor {
         )
 
       projections.getExplicit.asScala.toList.traverse(projection =>
-        extractProjection(operationShape, projection, emptyScope)
-      )
+        extractProjection(operationShape, projection, emptyScope))
     }
 
   private def expandAllProjections(
@@ -280,12 +281,12 @@ private[sql] object SqlDeriveSelectExtractor {
       primary: TableContext,
       joins: List[TableContext]
   ): SqlValidated[List[SqlSelectProjection]] = {
-    val tables = primary :: joins
+    val tables   = primary :: joins
     val expanded =
       tables.flatMap { context =>
         SqlTableMemberCatalog.membersFor(context.structure).map { member =>
           val resultAlias = s"${context.referenceAlias}_${member.memberName}"
-          val column = SqlQualifiedColumn(context.referenceAlias, member.columnName)
+          val column      = SqlQualifiedColumn(context.referenceAlias, member.columnName)
           SqlSelectColumnProjection(resultAlias, column)
         }
       }
@@ -298,9 +299,9 @@ private[sql] object SqlDeriveSelectExtractor {
 
     duplicateAliases match {
       case Nil if expanded.nonEmpty => expanded.validNel
-      case Nil =>
+      case Nil                      =>
         InvalidDeriveSelect(operationShape, "projections \"*\" found no table columns to select").invalidNel
-      case alias :: _ =>
+      case alias :: _               =>
         InvalidDeriveSelect(
           operationShape,
           s"projections \"*\" produced duplicate result alias '$alias'"
@@ -315,13 +316,13 @@ private[sql] object SqlDeriveSelectExtractor {
   ): SqlValidated[SqlSelectProjection] = {
     val alias = projection.getAlias
     projection.getAggregate.toScala match {
-      case None =>
+      case None               =>
         SqlDeriveSelectReferenceResolver
           .resolveTableColumn(operationShape, projection.getSource, scope)
           .map(column => SqlSelectColumnProjection(alias, column))
       case Some(functionName) =>
         SqlAggregateFunction.fromString(functionName) match {
-          case None =>
+          case None           =>
             InvalidDeriveSelect(
               operationShape,
               s"projection '$alias' has unsupported aggregate function '$functionName'"
@@ -332,7 +333,7 @@ private[sql] object SqlDeriveSelectExtractor {
               .match {
                 case cats.data.Validated.Valid(columnValue) =>
                   SqlSelectAggregateProjection(alias, function, Some(columnValue)).validNel
-                case cats.data.Validated.Invalid(errors) =>
+                case cats.data.Validated.Invalid(errors)    =>
                   if (function == SqlAggregateFunction.Count && projection.getSource.trim == "*") {
                     SqlSelectAggregateProjection(alias, function, None).validNel
                   } else {
@@ -355,7 +356,7 @@ private[sql] object SqlDeriveSelectExtractor {
         .leftMap(_.map {
           case error: InvalidDeriveSelect =>
             InvalidGroupByColumn(operationShape, reference, scope.primary.tableRef, reference)
-          case other =>
+          case other                      =>
             other
         })
     }
@@ -368,7 +369,7 @@ private[sql] object SqlDeriveSelectExtractor {
   ): SqlValidated[List[SqlSelectPredicate]] =
     conditions.traverse { condition =>
       SqlComparisonOperator.fromString(condition.getOperator) match {
-        case None =>
+        case None           =>
           InvalidDeriveSelect(
             operationShape,
             s"${clauseName(clause)} condition has unsupported operator '${condition.getOperator}'"
@@ -392,8 +393,7 @@ private[sql] object SqlDeriveSelectExtractor {
             )
           ).mapN { (left, right) =>
             validateConditionOperands(operationShape, left, right, clause).map(_ =>
-              SqlSelectPredicate(left = left, operator = operator, right = right)
-            )
+              SqlSelectPredicate(left = left, operator = operator, right = right))
           }.andThen(identity)
       }
     }
@@ -408,9 +408,9 @@ private[sql] object SqlDeriveSelectExtractor {
     SqlDeriveSelectReferenceResolver
       .resolveConditionSide(operationShape, reference, scope, allowProjection)
       .andThen {
-        case ResolvedReference.InputMember(name) =>
+        case ResolvedReference.InputMember(name)                                      =>
           SqlPredicateOperand.InputMember(name).validNel
-        case ResolvedReference.TableColumn(column) =>
+        case ResolvedReference.TableColumn(column)                                    =>
           SqlPredicateOperand.TableColumn(column).validNel
         case ResolvedReference.Projection(projection) if clause == FilterClause.Where =>
           InvalidWhereColumn(
@@ -418,7 +418,7 @@ private[sql] object SqlDeriveSelectExtractor {
             reference,
             s"must not reference projection '${projection.resultAlias}'"
           ).invalidNel
-        case ResolvedReference.Projection(projection) =>
+        case ResolvedReference.Projection(projection)                                 =>
           SqlPredicateOperand.Projection(projection).validNel
       }
 
@@ -429,7 +429,7 @@ private[sql] object SqlDeriveSelectExtractor {
       clause: FilterClause
   ): SqlValidated[Unit] =
     (left, right, clause) match {
-      case (SqlPredicateOperand.Projection(projection), _, FilterClause.Where) =>
+      case (SqlPredicateOperand.Projection(projection), _, FilterClause.Where)                            =>
         invalidCondition(
           operationShape,
           projection.resultAlias,
@@ -438,14 +438,14 @@ private[sql] object SqlDeriveSelectExtractor {
         ).map(_ => ())
       case (SqlPredicateOperand.Projection(projection), _, FilterClause.Having) if projection.isAggregate =>
         ().validNel
-      case (_, SqlPredicateOperand.Projection(_), FilterClause.Where) =>
+      case (_, SqlPredicateOperand.Projection(_), FilterClause.Where)                                     =>
         invalidCondition(
           operationShape,
           "right",
           clause,
           "must not reference projections"
         ).map(_ => ())
-      case _ =>
+      case _                                                                                              =>
         ().validNel
     }
 
@@ -458,14 +458,14 @@ private[sql] object SqlDeriveSelectExtractor {
 
     orderByEntries.traverse { entry =>
       SqlSortDirection.fromString(entry.getDirection) match {
-        case None =>
+        case None            =>
           InvalidDeriveSelect(
             operationShape,
             s"orderBy projection '${entry.getProjection}' has unsupported direction '${entry.getDirection}'"
           ).invalidNel
         case Some(direction) =>
           projectionByAlias.get(entry.getProjection) match {
-            case None =>
+            case None    =>
               InvalidDeriveSelect(
                 operationShape,
                 s"orderBy references unknown projection '${entry.getProjection}'"
@@ -486,14 +486,17 @@ private[sql] object SqlDeriveSelectExtractor {
       ().validNel
     } else {
       val groupByKeys = groupByColumns.map(groupBy => (groupBy.column.tableAlias, groupBy.column.columnName)).toSet
-      selectColumns.collect { case projection: SqlSelectColumnProjection => projection }.traverse { projection =>
-        val key = (projection.column.tableAlias, projection.column.columnName)
-        if (groupByKeys.contains(key)) {
-          ().validNel
-        } else {
-          SelectGroupByMissingColumn(operationShape, projection.resultAlias).invalidNel
+      selectColumns
+        .collect { case projection: SqlSelectColumnProjection => projection }
+        .traverse { projection =>
+          val key = (projection.column.tableAlias, projection.column.columnName)
+          if (groupByKeys.contains(key)) {
+            ().validNel
+          } else {
+            SelectGroupByMissingColumn(operationShape, projection.resultAlias).invalidNel
+          }
         }
-      }.map(_ => ())
+        .map(_ => ())
     }
 
   private def validateAtLeastOneProjection(

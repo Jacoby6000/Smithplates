@@ -1,11 +1,14 @@
 package com.jacoby6000.smithy.stache.sql
 
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{MemberShape, Shape, ShapeId, ShapeType}
+import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.Shape
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.ShapeType
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-
-import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 trait ColumnTypeConverter {
   def fromSmithyMember(model: Model, member: MemberShape): Either[UnsupportedColumnType, SqlColumnType]
@@ -41,7 +44,7 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
       )
     } else {
       SmithySqlTraitAccess.sqlVarchar(model, member) match {
-        case Some(varcharTrait) =>
+        case Some(varcharTrait)                                  =>
           stringLikeColumnType(
             model,
             target,
@@ -55,7 +58,7 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
             SqlColumnType.Uuid,
             InvalidMemberColumnType.Kind.SqlUuid
           )
-        case None =>
+        case None                                                =>
           columnTypeForTarget(model, target).toRight(
             UnsupportedColumnType(target, InvalidMemberColumnType.Kind.Unsupported)
           )
@@ -77,7 +80,7 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
       resolved.getType match {
         case ShapeType.LIST | ShapeType.MAP | ShapeType.STRUCTURE | ShapeType.UNION | ShapeType.DOCUMENT =>
           Some(SqlColumnType.Json)
-        case _ => None
+        case _                                                                                           => None
       }
     }
 
@@ -86,10 +89,10 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
 
   private def columnTypeForShape(shape: Shape): Option[SqlColumnType] =
     shape.getType match {
-      case ShapeType.ENUM     => Some(stringEnumColumnType(shape.asEnumShape.get()))
-      case ShapeType.INT_ENUM => Some(intEnumColumnType(shape.asIntEnumShape.get()))
+      case ShapeType.ENUM                                        => Some(stringEnumColumnType(shape.asEnumShape.get()))
+      case ShapeType.INT_ENUM                                    => Some(intEnumColumnType(shape.asIntEnumShape.get()))
       case ShapeType.STRING | _ if shape.asStringShape.isPresent => Some(SqlColumnType.Text)
-      case shapeType          => shapeTypeToColumnType.get(shapeType)
+      case shapeType                                             => shapeTypeToColumnType.get(shapeType)
     }
 
   private def stringEnumColumnType(enumShape: software.amazon.smithy.model.shapes.EnumShape): SqlColumnType =

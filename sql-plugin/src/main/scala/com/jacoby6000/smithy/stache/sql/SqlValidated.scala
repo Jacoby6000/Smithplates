@@ -1,6 +1,8 @@
 package com.jacoby6000.smithy.stache.sql
 
-import cats.data.{NonEmptyList, Validated, ValidatedNel}
+import cats.data.NonEmptyList
+import cats.data.Validated
+import cats.data.ValidatedNel
 import cats.syntax.all.*
 
 type SqlValidated[+A] = ValidatedNel[SqlSchemaError, A]

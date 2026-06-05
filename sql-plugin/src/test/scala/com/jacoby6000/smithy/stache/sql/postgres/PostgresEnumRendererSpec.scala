@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
-import com.jacoby6000.smithy.stache.sql.{SqlModelExtractor, SqlTestModelBuilder}
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlTestModelBuilder
 import com.jacoby6000.smithy.stache.sql.shared.SqlRenderOutput
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
@@ -24,7 +25,7 @@ final class PostgresEnumRendererSpec extends FunSuite {
         |}""".stripMargin
     )
 
-    val schema = SqlModelExtractor.extractOrThrow(model)
+    val schema  = SqlModelExtractor.extractOrThrow(model)
     val enumDdl =
       SqlRenderOutput
         .ddlUnit(PostgresRenderer.renderUnits(schema), ShapeId.from("example#Direction"))

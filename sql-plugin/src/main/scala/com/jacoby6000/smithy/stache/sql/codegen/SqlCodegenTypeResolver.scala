@@ -1,10 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
 import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
 import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{MemberShape, Shape, ShapeId}
+import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.Shape
+import software.amazon.smithy.model.shapes.ShapeId
+
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 private[codegen] object SqlCodegenTypeResolver {
   val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
@@ -39,19 +42,19 @@ private[codegen] object SqlCodegenTypeResolver {
     shape match {
       case structure if structure.isStructureShape =>
         structure.asStructureShape.get().getId.getName
-      case enumShape if enumShape.isEnumShape =>
+      case enumShape if enumShape.isEnumShape      =>
         enumShape.asEnumShape.get().getId.getName
-      case intEnum if intEnum.isIntEnumShape =>
+      case intEnum if intEnum.isIntEnumShape       =>
         intEnum.asIntEnumShape.get().getId.getName
-      case union if union.isUnionShape =>
+      case union if union.isUnionShape             =>
         union.asUnionShape.get().getId.getName
-      case listShape if listShape.isListShape =>
+      case listShape if listShape.isListShape      =>
         val memberTarget = listShape.asListShape.get().getMember.getTarget
         s"List[${resolveTypeName(model, model.expectShape(memberTarget))}]"
-      case mapShape if mapShape.isMapShape =>
+      case mapShape if mapShape.isMapShape         =>
         val valueTarget = mapShape.asMapShape.get().getValue.getTarget
         s"Map[String, ${resolveTypeName(model, model.expectShape(valueTarget))}]"
-      case _ =>
+      case _                                       =>
         resolvePrimitiveTypeName(shape.toShapeId)
     }
 
@@ -59,19 +62,19 @@ private[codegen] object SqlCodegenTypeResolver {
     shape match {
       case structure if structure.isStructureShape =>
         structure.asStructureShape.get().getId.getName
-      case enumShape if enumShape.isEnumShape =>
+      case enumShape if enumShape.isEnumShape      =>
         enumShape.asEnumShape.get().getId.getName
-      case intEnum if intEnum.isIntEnumShape =>
+      case intEnum if intEnum.isIntEnumShape       =>
         intEnum.asIntEnumShape.get().getId.getName
-      case union if union.isUnionShape =>
+      case union if union.isUnionShape             =>
         union.asUnionShape.get().getId.getName
-      case listShape if listShape.isListShape =>
+      case listShape if listShape.isListShape      =>
         val memberTarget = listShape.asListShape.get().getMember.getTarget
         s"list[${resolvePythonTypeName(model, model.expectShape(memberTarget))}]"
-      case mapShape if mapShape.isMapShape =>
+      case mapShape if mapShape.isMapShape         =>
         val valueTarget = mapShape.asMapShape.get().getValue.getTarget
         s"dict[str, ${resolvePythonTypeName(model, model.expectShape(valueTarget))}]"
-      case _ =>
+      case _                                       =>
         resolvePrimitivePythonTypeName(shape.toShapeId)
     }
 
@@ -88,7 +91,7 @@ private[codegen] object SqlCodegenTypeResolver {
       member: MemberShape,
       role: SqlCodegenMemberRole = SqlCodegenMemberRole.General
   ): SqlCodegenMember = {
-    val targetShape = model.expectShape(member.getTarget)
+    val targetShape      = model.expectShape(member.getTarget)
     val structureShapeId =
       if (targetShape.isStructureShape && !isPreludeShape(targetShape.toShapeId)) {
         Some(targetShape.toShapeId)
@@ -109,7 +112,7 @@ private[codegen] object SqlCodegenTypeResolver {
 
   def isOptionalPythonMember(member: MemberShape, role: SqlCodegenMemberRole): Boolean =
     role match {
-      case SqlCodegenMemberRole.General =>
+      case SqlCodegenMemberRole.General     =>
         !member.isRequired
       case SqlCodegenMemberRole.SqlTableRow =>
         !member.isRequired &&
@@ -150,9 +153,9 @@ private[codegen] object SqlCodegenTypeResolver {
 
   def referencedUnionIds(model: Model, rootShapeIds: Iterable[ShapeId]): List[ShapeId] = {
     val visitedStructures = scala.collection.mutable.Set.empty[ShapeId]
-    val visitedUnions = scala.collection.mutable.Set.empty[ShapeId]
+    val visitedUnions     = scala.collection.mutable.Set.empty[ShapeId]
     val pendingStructures = scala.collection.mutable.Queue.empty[ShapeId]
-    val collectedUnions = scala.collection.mutable.ListBuffer.empty[ShapeId]
+    val collectedUnions   = scala.collection.mutable.ListBuffer.empty[ShapeId]
 
     rootShapeIds.foreach { shapeId =>
       if (isUserDefinedStructure(model, shapeId)) {
@@ -196,48 +199,48 @@ private[codegen] object SqlCodegenTypeResolver {
     targetShape match {
       case shape if shape.isStructureShape =>
         List(shape.toShapeId)
-      case shape if shape.isListShape =>
+      case shape if shape.isListShape      =>
         List(shape.asListShape.get().getMember.getTarget)
-      case shape if shape.isMapShape =>
+      case shape if shape.isMapShape       =>
         List(shape.asMapShape.get().getValue.getTarget)
-      case shape if shape.isUnionShape =>
+      case shape if shape.isUnionShape     =>
         shape.asUnionShape.get().getAllMembers.asScala.values.map(_.getTarget).toList
-      case _ =>
+      case _                               =>
         Nil
     }
   }
 
   private def resolvePrimitiveTypeName(shapeId: ShapeId): String =
     shapeId.getName match {
-      case "String"      => "String"
-      case "Integer"     => "Integer"
-      case "Long"        => "Long"
-      case "Float"       => "Float"
-      case "Double"      => "Double"
-      case "BigDecimal"  => "BigDecimal"
-      case "BigInteger"  => "BigInteger"
-      case "Boolean"     => "Boolean"
-      case "Blob"        => "Blob"
-      case "Timestamp"   => "Timestamp"
-      case "Document"    => "Document"
-      case "Unit"        => "Unit"
-      case other         => other
+      case "String"     => "String"
+      case "Integer"    => "Integer"
+      case "Long"       => "Long"
+      case "Float"      => "Float"
+      case "Double"     => "Double"
+      case "BigDecimal" => "BigDecimal"
+      case "BigInteger" => "BigInteger"
+      case "Boolean"    => "Boolean"
+      case "Blob"       => "Blob"
+      case "Timestamp"  => "Timestamp"
+      case "Document"   => "Document"
+      case "Unit"       => "Unit"
+      case other        => other
     }
 
   def resolvePrimitivePythonTypeName(shapeId: ShapeId): String =
     shapeId.getName match {
-      case "String"      => "str"
-      case "Integer"     => "int"
-      case "Long"        => "int"
-      case "Float"       => "float"
-      case "Double"      => "float"
-      case "BigDecimal"  => "Decimal"
-      case "BigInteger"  => "int"
-      case "Boolean"     => "bool"
-      case "Blob"        => "bytes"
-      case "Timestamp"   => "datetime"
-      case "Document"    => "Any"
-      case "Unit"        => "None"
-      case other         => other
+      case "String"     => "str"
+      case "Integer"    => "int"
+      case "Long"       => "int"
+      case "Float"      => "float"
+      case "Double"     => "float"
+      case "BigDecimal" => "Decimal"
+      case "BigInteger" => "int"
+      case "Boolean"    => "bool"
+      case "Blob"       => "bytes"
+      case "Timestamp"  => "datetime"
+      case "Document"   => "Any"
+      case "Unit"       => "None"
+      case other        => other
     }
 }

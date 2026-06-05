@@ -1,16 +1,20 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{InvalidCodegenShape, SmithySqlTraitAccess, SqlValidated}
+import com.jacoby6000.smithy.stache.sql.InvalidCodegenShape
+import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{ShapeId, StructureShape}
 
 object SqlShapeCodegenExtractor {
   def extractStructure(model: Model, shapeId: ShapeId): SqlValidated[SqlCodegenStructure] =
     model.getShape(shapeId).toScala.flatMap(_.asStructureShape.toScala) match {
-      case None =>
+      case None            =>
         InvalidCodegenShape(shapeId, "expected a structure shape").invalidNel
       case Some(structure) =>
         extractStructureMembers(model, structure).map { members =>
@@ -37,7 +41,7 @@ object SqlShapeCodegenExtractor {
 
   def extractUnion(model: Model, shapeId: ShapeId): SqlValidated[SqlCodegenUnion] =
     model.getShape(shapeId).toScala.flatMap(_.asUnionShape.toScala) match {
-      case None =>
+      case None             =>
         InvalidCodegenShape(shapeId, "expected a union shape").invalidNel
       case Some(unionShape) =>
         unionShape.getAllMembers.asScala.toList

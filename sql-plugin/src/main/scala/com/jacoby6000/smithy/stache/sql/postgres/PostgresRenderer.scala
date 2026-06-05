@@ -1,7 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
-import com.jacoby6000.smithy.stache.sql._
-import com.jacoby6000.smithy.stache.sql.shared.{SqlQueryRenderer, SqlRenderUnit, SqlShared}
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.shared.SqlQueryRenderer
+import com.jacoby6000.smithy.stache.sql.shared.SqlRenderUnit
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 object PostgresRenderer extends DialectRenderer {
   override val dialect: SqlDialect = PostgresDialect
@@ -41,7 +43,7 @@ object PostgresRenderer extends DialectRenderer {
     val checks = column.columnType match {
       case enumType: SqlColumnType.IntEnum =>
         List(SqlShared.intEnumCheck(column.name, enumType.values))
-      case _ => Nil
+      case _                               => Nil
     }
     SqlShared.renderColumnLine(
       column.name,
@@ -63,7 +65,7 @@ object PostgresRenderer extends DialectRenderer {
         case SqlColumnType.Blob                 => "BYTEA"
         case SqlColumnType.Text                 => "TEXT"
         case enumType: SqlColumnType.StringEnum => enumType.typeName
-        case other =>
+        case other                              =>
           throw new IllegalStateException(s"Unsupported Postgres column type: $other")
       }
     }

@@ -1,13 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql._
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqlTableTreeSpec extends FunSuite {
   test("tablesInRenderOrder - referenced tables precede dependents") {
-    val childShape = ShapeId.from("example#Child")
+    val childShape  = ShapeId.from("example#Child")
     val parentShape = ShapeId.from("example#Parent")
 
     val schema = SqlSchema(
@@ -38,11 +38,11 @@ final class SqlTableTreeSpec extends FunSuite {
   }
 
   test("forest - dependency nodes point at parent tables") {
-    val childShape = ShapeId.from("example#Child")
+    val childShape  = ShapeId.from("example#Child")
     val parentShape = ShapeId.from("example#Parent")
 
     val parent = SqlTable("parent", parentShape, Nil, List("id"), Nil, Nil)
-    val child = SqlTable(
+    val child  = SqlTable(
       "child",
       childShape,
       Nil,
@@ -51,14 +51,14 @@ final class SqlTableTreeSpec extends FunSuite {
       Nil
     )
 
-    val forest = SqlTableTree.forest(SqlSchema(List(child, parent)))
+    val forest    = SqlTableTree.forest(SqlSchema(List(child, parent)))
     val childNode = forest.find(_.table.name == "child").get
     assertEquals(childNode.dependencies.map(_.table.name), List("parent"))
     assertEquals(childNode.dependencies.head.dependencies, Nil)
   }
 
   test("PostgresRenderer - emits CREATE TABLE statements in dependency order") {
-    val childShape = ShapeId.from("example#Child")
+    val childShape  = ShapeId.from("example#Child")
     val parentShape = ShapeId.from("example#Parent")
 
     val schema = SqlSchema(

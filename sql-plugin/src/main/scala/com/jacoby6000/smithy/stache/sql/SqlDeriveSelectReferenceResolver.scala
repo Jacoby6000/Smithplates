@@ -23,8 +23,8 @@ private[sql] object SqlDeriveSelectReferenceResolver {
   sealed trait ResolvedReference
 
   object ResolvedReference {
-    final case class InputMember(name: String) extends ResolvedReference
-    final case class TableColumn(column: SqlQualifiedColumn) extends ResolvedReference
+    final case class InputMember(name: String)                   extends ResolvedReference
+    final case class TableColumn(column: SqlQualifiedColumn)     extends ResolvedReference
     final case class Projection(projection: SqlSelectProjection) extends ResolvedReference
   }
 
@@ -34,10 +34,9 @@ private[sql] object SqlDeriveSelectReferenceResolver {
       scope: SelectScope
   ): SqlValidated[SqlQualifiedColumn] =
     resolveReference(queryShape, reference, scope, allowProjection = false).andThen {
-      case ResolvedReference.TableColumn(column) => column.validNel
-      case ResolvedReference.InputMember(name) =>
-        InvalidDeriveSelect(queryShape, s"reference '$reference' is an input member, not a table column")
-          .invalidNel
+      case ResolvedReference.TableColumn(column)    => column.validNel
+      case ResolvedReference.InputMember(name)      =>
+        InvalidDeriveSelect(queryShape, s"reference '$reference' is an input member, not a table column").invalidNel
       case ResolvedReference.Projection(projection) =>
         InvalidDeriveSelect(
           queryShape,
@@ -99,10 +98,10 @@ private[sql] object SqlDeriveSelectReferenceResolver {
       scope: SelectScope
   ): SqlValidated[SqlQualifiedColumn] =
     reference.indexOf('.') match {
-      case -1 =>
+      case -1       =>
         resolveBareColumnReference(queryShape, reference, scope)
       case dotIndex =>
-        val alias = reference.substring(0, dotIndex)
+        val alias      = reference.substring(0, dotIndex)
         val columnName = reference.substring(dotIndex + 1)
         if (alias == InputPrefix) {
           InvalidDeriveSelect(
@@ -123,9 +122,8 @@ private[sql] object SqlDeriveSelectReferenceResolver {
       scope: SelectScope
   ): SqlValidated[SqlQualifiedColumn] =
     scope.aliasToContext.get(alias) match {
-      case None =>
-        InvalidDeriveSelect(queryShape, s"unknown table alias '$alias' in reference '$alias.$columnName'")
-          .invalidNel
+      case None          =>
+        InvalidDeriveSelect(queryShape, s"unknown table alias '$alias' in reference '$alias.$columnName'").invalidNel
       case Some(context) =>
         lookupColumnInContext(queryShape, s"$alias.$columnName", context, columnName)
     }
@@ -140,12 +138,12 @@ private[sql] object SqlDeriveSelectReferenceResolver {
 
     matches match {
       case single :: Nil => single.validNel
-      case _ :: _ =>
+      case _ :: _        =>
         InvalidDeriveSelect(
           queryShape,
           s"reference '$columnName' is ambiguous across tables; qualify it as alias.$columnName"
         ).invalidNel
-      case Nil =>
+      case Nil           =>
         InvalidDeriveSelect(
           queryShape,
           s"reference '$columnName' does not match any table column on from/joins"
@@ -159,16 +157,16 @@ private[sql] object SqlDeriveSelectReferenceResolver {
       context: TableContext,
       columnName: String
   ): SqlValidated[SqlQualifiedColumn] = {
-    val memberByName = context.membersByName.get(columnName)
+    val memberByName         = context.membersByName.get(columnName)
     val memberByPhysicalName =
       context.membersByName.values.find(_.columnName == columnName)
 
     (memberByName, memberByPhysicalName) match {
-      case (Some(member), _) =>
+      case (Some(member), _)    =>
         SqlQualifiedColumn(context.referenceAlias, member.columnName).validNel
       case (None, Some(member)) =>
         SqlQualifiedColumn(context.referenceAlias, member.columnName).validNel
-      case (None, None) =>
+      case (None, None)         =>
         InvalidDeriveSelect(
           queryShape,
           s"reference '$reference' does not match any column on table alias '${context.referenceAlias}'"

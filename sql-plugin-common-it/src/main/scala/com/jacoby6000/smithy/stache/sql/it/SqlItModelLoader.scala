@@ -1,9 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.it
 
+import software.amazon.smithy.model.Model
+
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-
-import software.amazon.smithy.model.Model
 
 object SqlItModelLoader {
   val SqlTraitsModelId: String = "META-INF/smithy/stache.codegen.sql.smithy"
@@ -26,11 +26,10 @@ object SqlItModelLoader {
           "Ensure smithy-stache-plugin is on the classpath."
       )
     }
-    try {
+    try
       readStream(stream)
-    } finally {
+    finally
       stream.close()
-    }
   }
 
   private def readStream(stream: InputStream): String =

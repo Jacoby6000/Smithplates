@@ -1,13 +1,11 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.{
-  SqlDeleteQuery,
-  SqlInsertQuery,
-  SqlQueries,
-  SqlSelectOneQuery,
-  SqlSelectQuery,
-  SqlUpdateQuery
-}
+import com.jacoby6000.smithy.stache.sql.SqlDeleteQuery
+import com.jacoby6000.smithy.stache.sql.SqlInsertQuery
+import com.jacoby6000.smithy.stache.sql.SqlQueries
+import com.jacoby6000.smithy.stache.sql.SqlSelectOneQuery
+import com.jacoby6000.smithy.stache.sql.SqlSelectQuery
+import com.jacoby6000.smithy.stache.sql.SqlUpdateQuery
 import software.amazon.smithy.model.shapes.ShapeId
 
 sealed trait ResolvedSqlOperationQuery {

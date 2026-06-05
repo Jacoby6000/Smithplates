@@ -1,16 +1,16 @@
 package com.jacoby6000.smithy.stache
 
-import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenRenderer
-import com.jacoby6000.smithy.stache.sql.{
-  DialectRenderer,
-  SqlModelExtractor,
-  SqlValidated
-}
-import java.util.logging.Logger
-import scala.util.control.NonFatal
 import cats.data.Validated
 import cats.syntax.all.*
-import software.amazon.smithy.build.{PluginContext, SmithyBuildPlugin}
+import com.jacoby6000.smithy.stache.sql.DialectRenderer
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenRenderer
+import software.amazon.smithy.build.PluginContext
+import software.amazon.smithy.build.SmithyBuildPlugin
+
+import java.util.logging.Logger
+import scala.util.control.NonFatal
 
 final class SmithyStacheBuildPlugin extends SmithyBuildPlugin {
   private val logger = Logger.getLogger(classOf[SmithyStacheBuildPlugin].getName)
@@ -32,7 +32,7 @@ final class SmithyStacheBuildPlugin extends SmithyBuildPlugin {
             try {
               logger.info(s"Generating ${dialect.key} schema into '$fileName'")
               val renderer = DialectRenderer.forDialect(dialect)
-              val sql = renderer.render(schema)
+              val sql      = renderer.render(schema)
               context.getFileManifest.writeFile(fileName, sql)
             } catch {
               case NonFatal(ex) =>
@@ -65,17 +65,17 @@ final class SmithyStacheBuildPlugin extends SmithyBuildPlugin {
                         throw ex
                     }
                   }
-                case Validated.Invalid(errors) =>
+                case Validated.Invalid(errors)  =>
                   throw new IllegalArgumentException(
                     s"smithy-stache plugin failed $languageId codegen validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
                   )
               }
             }
-          case None => ()
+          case None                  => ()
         }
       }
     } match {
-      case Validated.Valid(_) => ()
+      case Validated.Valid(_)        => ()
       case Validated.Invalid(errors) =>
         throw new IllegalArgumentException(
           s"smithy-stache plugin failed validation: ${SqlValidated.toPluginExceptionMessage(errors)}"

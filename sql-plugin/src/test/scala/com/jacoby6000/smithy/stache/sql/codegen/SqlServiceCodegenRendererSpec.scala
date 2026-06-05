@@ -1,17 +1,17 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestDiscovery
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
-import com.jacoby6000.smithy.stache.sql.{SqlModelExtractor, SqlTestModelLoader, SqliteDialect}
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   private def loadTestCaseModel(testName: String) =
     MustacheTemplateTestDiscovery
       .discover(getClass.getClassLoader, Set(SqlServiceCodegenPythonDbBackend.sqlite.variant))
       .find(_.name == testName)
-      .map(testCase =>
-        SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent)
-      )
+      .map(testCase => SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent))
       .getOrElse(fail(s"expected mustache-template-tests case '$testName'"))
 
   test("ServiceCodegen - derives CRUD for @sqlJson struct and union columns") {
@@ -24,7 +24,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   }
 
   test("ServiceCodegen - expands output path placeholders per service") {
-    val context =
+    val context                 =
       SqlCodegenServiceContext(
         shapeId = software.amazon.smithy.model.shapes.ShapeId.from("example#WidgetRepository"),
         name = "WidgetRepository",
@@ -40,8 +40,8 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         unions = Nil,
         operations = Nil
       )
-    val settings = SqlServiceCodegenPythonBackend.settingsForTests
-    val modelArtifact = settings.artifacts.head
+    val settings                = SqlServiceCodegenPythonBackend.settingsForTests
+    val modelArtifact           = settings.artifacts.head
     val integrationTestArtifact = settings.artifacts.last
 
     assertEquals(

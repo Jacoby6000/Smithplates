@@ -3,17 +3,20 @@ package com.jacoby6000.smithy.stache.sql
 import cats.data.Validated
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{MemberShape, ShapeId, StructureShape}
 
 object SqlModelExtractor {
   private val columnTypeConverter: ColumnTypeConverter = SmithyColumnTypeConverter
 
   def extractOrThrow(model: Model): SqlSchema =
     extract(model) match {
-      case Validated.Valid(schema) => schema
+      case Validated.Valid(schema)   => schema
       case Validated.Invalid(errors) =>
         throw new IllegalStateException(SqlValidated.toPluginExceptionMessage(errors))
     }
@@ -53,47 +56,47 @@ object SqlModelExtractor {
     val members = com.jacoby6000.smithy.stache.sql.shared.SqlTableMemberOrdering.orderedMembers(structure)
 
     com.jacoby6000.smithy.stache.sql.shared.SqlTableMemberOrdering.validate(structure).andThen { _ =>
-    extractIndexes(structure, members).andThen { indexes =>
-      requireTableName(structure).andThen { tableName =>
-        (
-          members.traverse { case (memberName, member) =>
-            SqlValidated.fromEither(toColumn(memberName, member, model, tableName))
-          },
-          members.flatTraverse { case (memberName, member) =>
-            SmithySqlTraitAccess.sqlForeignKey(member)
-              .traverse { foreignKeyTrait =>
-                SqlValidated.fromEither(
-                  parseForeignKeyReference(
-                    model,
-                    structure,
-                    SmithySqlTraitAccess.columnName(memberName, member),
-                    foreignKeyTrait.getReferences,
-                    foreignKeyTrait.getColumn.toScala,
-                    uniqueForeignKeyColumns(indexes)
+      extractIndexes(structure, members).andThen { indexes =>
+        requireTableName(structure).andThen { tableName =>
+          (
+            members.traverse { case (memberName, member) =>
+              SqlValidated.fromEither(toColumn(memberName, member, model, tableName))
+            },
+            members.flatTraverse { case (memberName, member) =>
+              SmithySqlTraitAccess
+                .sqlForeignKey(member)
+                .traverse { foreignKeyTrait =>
+                  SqlValidated.fromEither(
+                    parseForeignKeyReference(
+                      model,
+                      structure,
+                      SmithySqlTraitAccess.columnName(memberName, member),
+                      foreignKeyTrait.getReferences,
+                      foreignKeyTrait.getColumn.toScala,
+                      uniqueForeignKeyColumns(indexes)
+                    )
                   )
-                )
-              }
-              .map(_.toList)
+                }
+                .map(_.toList)
+            }
+          ).mapN { (columns, foreignKeys) =>
+            val primaryKeys = primaryKeyColumnNames(members)
+            (tableName, columns, primaryKeys, foreignKeys)
+          }.andThen { case (tableName, columns, primaryKeys, foreignKeys) =>
+            SqlValidated
+              .requireNonEmpty(primaryKeys, MissingPrimaryKey(structure.getId, tableName))
+              .map(_ =>
+                SqlTable(
+                  name = tableName,
+                  shapeId = structure.getId,
+                  columns = columns,
+                  primaryKeys = primaryKeys,
+                  foreignKeys = foreignKeys,
+                  indexes = indexes
+                ))
           }
-        ).mapN { (columns, foreignKeys) =>
-          val primaryKeys = primaryKeyColumnNames(members)
-          (tableName, columns, primaryKeys, foreignKeys)
-        }.andThen { case (tableName, columns, primaryKeys, foreignKeys) =>
-          SqlValidated
-            .requireNonEmpty(primaryKeys, MissingPrimaryKey(structure.getId, tableName))
-            .map(_ =>
-              SqlTable(
-                name = tableName,
-                shapeId = structure.getId,
-                columns = columns,
-                primaryKeys = primaryKeys,
-                foreignKeys = foreignKeys,
-                indexes = indexes
-              )
-            )
         }
       }
-    }
     }
   }
 
@@ -103,15 +106,15 @@ object SqlModelExtractor {
   ): SqlValidated[List[SqlIndex]] =
     members
       .traverse { case (memberName, member) =>
-        val hasIndex = SmithySqlTraitAccess.sqlIndex(member).isDefined
+        val hasIndex       = SmithySqlTraitAccess.sqlIndex(member).isDefined
         val hasUniqueIndex = SmithySqlTraitAccess.sqlUniqueIndex(member).isDefined
 
         (hasIndex, hasUniqueIndex) match {
-          case (true, true) =>
+          case (true, true)   =>
             ConflictingSqlIndexTraits(structure.getId, memberName).invalidNel
           case (false, false) =>
             None.validNel
-          case (true, false) =>
+          case (true, false)  =>
             Some(
               indexFromMember(
                 memberName,
@@ -120,7 +123,7 @@ object SqlModelExtractor {
                 unique = false
               )
             ).validNel
-          case (false, true) =>
+          case (false, true)  =>
             Some(
               indexFromMember(
                 memberName,
@@ -167,16 +170,19 @@ object SqlModelExtractor {
       model: Model,
       tableName: String
   ): Either[SqlSchemaError, SqlColumn] = {
-    val columnName = SmithySqlTraitAccess.columnName(memberName, member)
+    val columnName     = SmithySqlTraitAccess.columnName(memberName, member)
     val autoGeneration = SmithySqlTraitAccess.autoGeneration(member)
-    columnTypeConverter.fromSmithyMember(model, member).map { columnType =>
-      SqlColumn(
-        name = columnName,
-        columnType = columnType,
-        nullable = !SmithySqlTraitAccess.sqlPrimaryKey(member) && autoGeneration.isEmpty,
-        autoGeneration = autoGeneration
-      )
-    }.leftMap(_.toSchemaError(columnName, tableName))
+    columnTypeConverter
+      .fromSmithyMember(model, member)
+      .map { columnType =>
+        SqlColumn(
+          name = columnName,
+          columnType = columnType,
+          nullable = !SmithySqlTraitAccess.sqlPrimaryKey(member) && autoGeneration.isEmpty,
+          autoGeneration = autoGeneration
+        )
+      }
+      .leftMap(_.toSchemaError(columnName, tableName))
   }
 
   private def parseForeignKeyReference(
@@ -190,12 +196,12 @@ object SqlModelExtractor {
     val invalidReference = InvalidForeignKeyReference(sourceShape.getId, columnName, reference)
 
     for {
-      targetId <- parseShapeId(reference).left.map(_ => invalidReference)
-      targetStructure <- lookupSqlTableStructure(model, targetId).toRight(invalidReference)
+      targetId         <- parseShapeId(reference).left.map(_ => invalidReference)
+      targetStructure  <- lookupSqlTableStructure(model, targetId).toRight(invalidReference)
       referencesColumn <- SqlShared.trimmedNonEmpty(explicitColumn) match {
-        case Some(column) => Right(column)
-        case None         => solePrimaryKeyColumnName(targetStructure)
-      }
+                            case Some(column) => Right(column)
+                            case None         => solePrimaryKeyColumnName(targetStructure)
+                          }
     } yield SqlForeignKey(
       column = columnName,
       referencesShape = targetId,
@@ -211,7 +217,7 @@ object SqlModelExtractor {
 
   private def lookupSqlTableStructure(model: Model, shapeId: ShapeId): Option[StructureShape] =
     for {
-      shape <- model.getShape(shapeId).toScala if shape.isStructureShape
+      shape    <- model.getShape(shapeId).toScala if shape.isStructureShape
       structure = shape.asStructureShape.get()
       if SmithySqlTraitAccess.sqlTableStructure(structure).isDefined
     } yield structure
@@ -219,7 +225,7 @@ object SqlModelExtractor {
   private def solePrimaryKeyColumnName(structure: StructureShape): Either[SqlSchemaError, String] =
     primaryKeyColumnNames(structure.getAllMembers.asScala.toList) match {
       case single :: Nil => Right(single)
-      case _ =>
+      case _             =>
         Left(
           MissingPrimaryKey(
             structure.getId,

@@ -1,7 +1,8 @@
 package com.jacoby6000.smithy.stache.mustachetest
 
-import java.nio.file.Files
 import munit.FunSuite
+
+import java.nio.file.Files
 
 class MustacheTemplateTestDiscoverySpec extends FunSuite {
   private val sqliteVariant = MustacheTemplateVariant("python", "db", "sqlite")
@@ -17,8 +18,8 @@ class MustacheTemplateTestDiscoverySpec extends FunSuite {
   test("MustacheTemplateTestDiscovery - unsupported.md suppresses expected files for a variant") {
     val tempRoot = Files.createTempDirectory("mustache-template-tests")
     try {
-      val caseDirectory = tempRoot.resolve("sample-case")
-      val smithyDirectory = caseDirectory.resolve("smithy")
+      val caseDirectory    = tempRoot.resolve("sample-case")
+      val smithyDirectory  = caseDirectory.resolve("smithy")
       val variantDirectory = caseDirectory.resolve("python/src/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(variantDirectory)
@@ -36,8 +37,8 @@ class MustacheTemplateTestDiscoverySpec extends FunSuite {
 
       val resourceRoot = Files.createDirectory(tempRoot.resolve("mustache-template-tests"))
       Files.move(caseDirectory, resourceRoot.resolve("sample-case"))
-      val classLoader = new DirectoryClassLoader(tempRoot, getClass.getClassLoader)
-      val testCase =
+      val classLoader  = new DirectoryClassLoader(tempRoot, getClass.getClassLoader)
+      val testCase     =
         MustacheTemplateTestDiscovery
           .discover(classLoader, Set(sqliteVariant))
           .headOption
@@ -52,9 +53,7 @@ class MustacheTemplateTestDiscoverySpec extends FunSuite {
           classLoader
         )
       )
-    } finally {
-      deleteRecursively(tempRoot)
-    }
+    } finally deleteRecursively(tempRoot)
   }
 
   private def deleteRecursively(path: java.nio.file.Path): Unit =
@@ -63,8 +62,7 @@ class MustacheTemplateTestDiscoverySpec extends FunSuite {
     }
 }
 
-private final class DirectoryClassLoader(root: java.nio.file.Path, parent: ClassLoader)
-    extends ClassLoader(parent) {
+final private class DirectoryClassLoader(root: java.nio.file.Path, parent: ClassLoader) extends ClassLoader(parent) {
   override def getResource(name: String): java.net.URL = {
     val path = root.resolve(name)
     if (Files.exists(path)) {

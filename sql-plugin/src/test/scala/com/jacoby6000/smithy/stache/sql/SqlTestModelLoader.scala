@@ -1,9 +1,9 @@
 package com.jacoby6000.smithy.stache.sql
 
+import software.amazon.smithy.model.Model
+
 import java.io.InputStream
 import java.nio.charset.StandardCharsets
-
-import software.amazon.smithy.model.Model
 
 object SqlTestModelLoader {
   val SqlTraitsModelId: String = "META-INF/smithy/stache.codegen.sql.smithy"

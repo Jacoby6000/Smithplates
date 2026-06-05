@@ -2,7 +2,8 @@ package com.jacoby6000.smithy.stache.sql.it.sqlite
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
-import com.jacoby6000.smithy.stache.sql.it.{SqlDdlSupport, SqlIntegrationSchemas}
+import com.jacoby6000.smithy.stache.sql.it.SqlDdlSupport
+import com.jacoby6000.smithy.stache.sql.it.SqlIntegrationSchemas
 import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 import munit.FunSuite
 

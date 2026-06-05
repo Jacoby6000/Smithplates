@@ -1,12 +1,14 @@
 package com.jacoby6000.smithy.stache
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.{InvalidPluginConfig, SqlDialect, SqlValidated, SqliteDialect}
-import com.jacoby6000.smithy.stache.sql.codegen.{
-  SqlServiceCodegenDbArtifacts,
-  SqlServiceCodegenSettings
-}
-import com.jacoby6000.smithy.stache.sql.shared.{SqlBindPlaceholder, SqlShared}
+import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
+import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenSettings
+import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
 final case class LanguageTarget(
     templateDirectory: Option[String],
@@ -19,8 +21,7 @@ final case class LanguageTarget(
   ): SqlServiceCodegenSettings = {
     val defaultDialect = enabledDialects.headOption.getOrElse(SqliteDialect)
     SqlServiceCodegenSettings(
-      templateDirectory =
-        LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId),
+      templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId),
       dialect = defaultDialect,
       bindPlaceholderStyle = SqlBindPlaceholder.inferForCodegen(defaultDialect),
       sourceOutputDirectory = Some(sourceOutputDir),
@@ -74,9 +75,9 @@ object LanguageTarget {
           .trimmedNonEmpty(value.expectStringNode().getValue)
           .map(SqlValidated.valid)
           .getOrElse(SqlValidated.invalid(InvalidPluginConfig(s"$memberName must be a non-empty string")))
-      case Some(_) =>
+      case Some(_)                           =>
         SqlValidated.invalid(InvalidPluginConfig(s"$memberName must be a string"))
-      case None =>
+      case None                              =>
         SqlValidated.invalid(InvalidPluginConfig(message))
     }
 }

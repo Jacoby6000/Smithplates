@@ -6,7 +6,7 @@ import com.jacoby6000.smithy.stache.sql.it.SqlDdlSupport
 
 object SqliteContainerSupport {
   private val dbDirectory = "/tmp/sql-plugin-it"
-  private val dbPath = s"$dbDirectory/test.db"
+  private val dbPath      = s"$dbDirectory/test.db"
 
   val containerDef: GenericContainer.Def[GenericContainer] =
     GenericContainer.Def(
@@ -35,8 +35,7 @@ object SqliteContainerSupport {
     if (result.getExitCode != 0) {
       throw new IllegalStateException(s"sqlite3 list tables failed: ${result.getStderr}")
     }
-    result.getStdout
-      .linesIterator
+    result.getStdout.linesIterator
       .map(_.trim)
       .filter(_.nonEmpty)
       .toSet

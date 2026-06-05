@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql.{SqlSchema, SqlTable}
+import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.SqlTable
 
 import scala.collection.mutable
 
@@ -11,20 +12,20 @@ final case class SqlTableTreeNode(
 )
 
 object SqlTableTree {
+
   /** One node per @sqlTable structure; dependencies are in-schema FK targets. */
   def forest(schema: SqlSchema): List[SqlTableTreeNode] = {
     val tableByShapeId = schema.tables.map(table => table.shapeId -> table).toMap
-    val memo = mutable.Map.empty[String, SqlTableTreeNode]
+    val memo           = mutable.Map.empty[String, SqlTableTreeNode]
 
     schema.tables
       .map(table => nodeFor(table, tableByShapeId, memo))
       .sortBy(_.table.name)
   }
 
-  /**
-   * Post-order depth-first traversal: render dependency subtrees (leaves first), then each table.
-   * Shared dependencies are rendered once.
-   */
+  /** Post-order depth-first traversal: render dependency subtrees (leaves first), then each table. Shared dependencies
+    * are rendered once.
+    */
   def tablesInRenderOrder(schema: SqlSchema): List[SqlTable] = {
     val visited = mutable.Set.empty[String]
     val ordered = mutable.ArrayBuffer.empty[SqlTable]

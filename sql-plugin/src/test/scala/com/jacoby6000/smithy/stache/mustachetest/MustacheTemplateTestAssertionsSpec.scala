@@ -40,7 +40,7 @@ class MustacheTemplateTestAssertionsSpec extends FunSuite {
           variant,
           rendered = Map(
             "python/src/example.py" -> "expected\n",
-            "python/src/extra.py" -> "extra\n"
+            "python/src/extra.py"   -> "extra\n"
           )
         )
       }

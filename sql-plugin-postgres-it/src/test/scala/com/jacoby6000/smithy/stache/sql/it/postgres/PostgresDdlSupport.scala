@@ -13,10 +13,9 @@ object PostgresDdlSupport {
             |WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
             |ORDER BY table_name""".stripMargin
         )
-      val tables = scala.collection.mutable.ListBuffer.empty[String]
-      while (resultSet.next()) {
+      val tables    = scala.collection.mutable.ListBuffer.empty[String]
+      while (resultSet.next())
         tables += resultSet.getString(1)
-      }
       tables.toSet
     } finally statement.close()
   }

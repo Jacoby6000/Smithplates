@@ -30,7 +30,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
 
   private def columnProjection(projection: SqlSelectProjection): SqlQualifiedColumn =
     projection match {
-      case SqlSelectColumnProjection(_, column) => column
+      case SqlSelectColumnProjection(_, column)    => column
       case aggregate: SqlSelectAggregateProjection =>
         fail(s"expected column projection, got aggregate ${aggregate.resultAlias}")
     }
@@ -140,7 +140,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     assert(
       result.swap.toOption.get.exists {
         case InvalidDeriveSelect(_, reason) if reason.contains("DerivedStruct") => true
-        case _                                                                    => false
+        case _                                                                  => false
       }
     )
   }
@@ -226,8 +226,8 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
 
     val select = schema.queries.selects.head
     assertEquals(
-      select.havingPredicates.collect {
-        case SqlSelectPredicate(_, _, SqlPredicateOperand.InputMember(name)) => name
+      select.havingPredicates.collect { case SqlSelectPredicate(_, _, SqlPredicateOperand.InputMember(name)) =>
+        name
       },
       List("minCount")
     )

@@ -1,17 +1,22 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.{PostgresDialect, SqlDialect}
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+
 import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths, StandardCopyOption}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 import scala.jdk.CollectionConverters.*
 import scala.sys.process.*
 
 object PythonCodegenWorkspace {
-  private val lock = new Object()
+  private val lock                       = new Object()
   @volatile private var environmentReady = false
 
   private val workspaceDirectoryName = "sql-service-codegen-python-workspace"
-  private val resourcePrefix = "sql-service-codegen-python-workspace"
+  private val resourcePrefix         = "sql-service-codegen-python-workspace"
 
   def ensureEnvironment(): Unit =
     lock.synchronized {
@@ -26,7 +31,7 @@ object PythonCodegenWorkspace {
     }
 
   def writeCase(caseName: String, artifacts: List[SqlCodegenArtifact]): Path = {
-    val caseRoot = workspaceRoot.resolve("cases").resolve(caseName)
+    val caseRoot  = workspaceRoot.resolve("cases").resolve(caseName)
     val keepPaths = artifacts.map(artifact => caseRoot.resolve(artifact.relativePath)).toSet
 
     if (Files.isDirectory(caseRoot)) {
@@ -51,7 +56,7 @@ object PythonCodegenWorkspace {
 
   def assertStrictTypecheck(caseRoot: Path, artifacts: List[SqlCodegenArtifact]): Unit = {
     val importPath = pythonImportPath(caseRoot, artifacts)
-    val srcPaths = srcArtifactPaths(caseRoot, artifacts)
+    val srcPaths   = srcArtifactPaths(caseRoot, artifacts)
     runMypy(srcPaths, importPath)
     writePyrightConfig(caseRoot, artifacts)
     runPyright(caseRoot, srcPaths)
@@ -61,7 +66,7 @@ object PythonCodegenWorkspace {
       caseRoot: Path,
       artifacts: List[SqlCodegenArtifact],
       dialect: SqlDialect
-    ): Unit = {
+  ): Unit = {
     val testArtifacts =
       artifacts.filter(_.kind == SqlServiceCodegenArtifactKind.Test)
     if (testArtifacts.isEmpty) {
@@ -74,7 +79,7 @@ object PythonCodegenWorkspace {
           "Postgres generated integration tests require Docker (testcontainers). " +
             "Install Docker and ensure `docker info` succeeds, then re-run the test suite."
         )
-      case _ =>
+      case _                                             =>
         ()
     }
 
@@ -100,7 +105,7 @@ object PythonCodegenWorkspace {
       caseName: String,
       artifacts: List[SqlCodegenArtifact],
       dialect: SqlDialect
-    ): Unit = {
+  ): Unit = {
     ensureEnvironment()
     val caseRoot = writeCase(caseName, artifacts)
     assertStrictTypecheck(caseRoot, artifacts)
@@ -111,7 +116,7 @@ object PythonCodegenWorkspace {
 
   private def workspaceRoot: Path = {
     val workingDirectory = Paths.get(System.getProperty("user.dir"))
-    val candidates =
+    val candidates       =
       List(
         workingDirectory.resolve(s"sql-plugin/target/$workspaceDirectoryName"),
         workingDirectory.resolve(s"target/$workspaceDirectoryName")
@@ -129,7 +134,7 @@ object PythonCodegenWorkspace {
 
   private def copyResource(resourceName: String, destination: Path): Unit = {
     val resourcePath = s"/$resourcePrefix/$resourceName"
-    val stream =
+    val stream       =
       Option(getClass.getResourceAsStream(resourcePath)).getOrElse {
         throw new IllegalStateException(s"Workspace resource not found on classpath: $resourcePath")
       }
@@ -208,10 +213,10 @@ object PythonCodegenWorkspace {
   private def runUvCommand(
       args: Seq[String],
       environment: Seq[(String, String)] = Nil
-    ): Either[String, Unit] = {
-    val command = Seq("uv") ++ args
-    val stdout = new StringBuilder
-    val stderr = new StringBuilder
+  ): Either[String, Unit] = {
+    val command  = Seq("uv") ++ args
+    val stdout   = new StringBuilder
+    val stderr   = new StringBuilder
     val exitCode =
       Process(
         command,

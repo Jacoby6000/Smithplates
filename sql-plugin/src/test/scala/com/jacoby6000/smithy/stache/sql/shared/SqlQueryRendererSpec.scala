@@ -1,6 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql._
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlQueryRendererSpec extends munit.FunSuite {

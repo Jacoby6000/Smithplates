@@ -6,19 +6,18 @@ import software.amazon.smithy.model.shapes.ShapeId
 
 final class SmithyColumnTypeConverterSpec extends FunSuite {
   private val converter: ColumnTypeConverter = SmithyColumnTypeConverter
-  private val builder = SqlTestModelBuilder
+  private val builder                        = SqlTestModelBuilder
 
   private val AliasStructureName = "AliasMember"
-  private val AliasMemberName = "value"
-  private val AliasTypeName = "TypeAlias"
+  private val AliasMemberName    = "value"
+  private val AliasTypeName      = "TypeAlias"
 
-  // scalafix:off NoDefaultParameters
   private def modelWithTypeAlias(
       aliasType: String,
       aliasTraits: List[String] = Nil,
       structurePropertyTraits: List[String] = Nil
   ): Model = {
-    val uses = sqlTraitUses(aliasTraits ++ structurePropertyTraits).map(u => s"use $u").mkString("\n")
+    val uses       = sqlTraitUses(aliasTraits ++ structurePropertyTraits).map(u => s"use $u").mkString("\n")
     val aliasLines = (aliasTraits :+ s"$aliasType $AliasTypeName").mkString("\n")
 
     builder.assemble(
@@ -32,7 +31,6 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
          |}""".stripMargin.linesIterator.filter(_.nonEmpty).mkString("\n")
     )
   }
-  // scalafix:on NoDefaultParameters
 
   private def sqlTraitUses(traitLines: List[String]): List[String] = {
     val text = traitLines.mkString(" ")

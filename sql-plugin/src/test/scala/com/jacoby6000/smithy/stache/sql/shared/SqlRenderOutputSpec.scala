@@ -28,9 +28,9 @@ final class SqlRenderOutputSpec extends FunSuite {
   }
 
   test("queryUnit - finds a rendered query by shape id") {
-    val shapeId = ShapeId.from("example#UpdateWidget")
+    val shapeId   = ShapeId.from("example#UpdateWidget")
     val statement = SqlParameterizedStatement(List("UPDATE widgets SET foo = ", " WHERE id = ", ";"))
-    val units =
+    val units     =
       List(
         SqlRenderUnit.Query(shapeId, statement)
       )
@@ -43,7 +43,7 @@ final class SqlRenderOutputSpec extends FunSuite {
 
   test("ddlUnit - finds a rendered DDL artifact by shape id") {
     val shapeId = ShapeId.from("example#Widget")
-    val units =
+    val units   =
       List(
         SqlRenderUnit.Ddl(shapeId, "CREATE TABLE widgets (id TEXT);")
       )

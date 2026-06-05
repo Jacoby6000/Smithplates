@@ -1,20 +1,21 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.shared.{SqlParameterizedStatement, SqlQueryRenderer}
-import com.jacoby6000.smithy.stache.sql.{
-  InvalidCodegenShape,
-  InvalidPluginConfig,
-  SmithySqlTraitAccess,
-  SqlOperation,
-  SqlQueries,
-  SqlQueryColumn,
-  SqlValidated
-}
+import com.jacoby6000.smithy.stache.sql.InvalidCodegenShape
+import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
+import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
+import com.jacoby6000.smithy.stache.sql.SqlOperation
+import com.jacoby6000.smithy.stache.sql.SqlQueries
+import com.jacoby6000.smithy.stache.sql.SqlQueryColumn
+import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.shared.SqlParameterizedStatement
+import com.jacoby6000.smithy.stache.sql.shared.SqlQueryRenderer
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.StructureShape
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{ShapeId, StructureShape}
 
 object SqlOperationSqlBindingBuilder {
   def build(
@@ -27,7 +28,7 @@ object SqlOperationSqlBindingBuilder {
         InvalidPluginConfig(
           s"sql-service-codegen does not yet generate aiosqlite implementations for @sqlDeriveSelect on ${operation.shapeId.toString}"
         ).invalidNel
-      case other =>
+      case other                               =>
         val statement: SqlParameterizedStatement =
           SqlQueryRenderer
             .renderQueryUnits(
@@ -38,15 +39,15 @@ object SqlOperationSqlBindingBuilder {
             .getOrElse(SqlParameterizedStatement(List("")))
 
         other match {
-          case ResolvedSqlOperationQuery.Insert(insertQuery) =>
+          case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
             buildInsertBinding(model, operation, insertQuery, statement).validNel
-          case ResolvedSqlOperationQuery.Update(updateQuery) =>
+          case ResolvedSqlOperationQuery.Update(updateQuery)       =>
             buildUpdateBinding(model, updateQuery, statement).validNel
-          case ResolvedSqlOperationQuery.Delete(deleteQuery) =>
+          case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
             buildDeleteBinding(model, deleteQuery, statement).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
             buildSelectOneBinding(model, operation, selectOneQuery, statement).validNel
-          case ResolvedSqlOperationQuery.Select(_) =>
+          case ResolvedSqlOperationQuery.Select(_)                 =>
             InvalidPluginConfig("unreachable select branch").invalidNel
         }
     }
@@ -57,15 +58,15 @@ object SqlOperationSqlBindingBuilder {
       query: ResolvedSqlOperationQuery
   ): SqlValidated[List[SqlCodegenParameter]] =
     query match {
-      case ResolvedSqlOperationQuery.Insert(insertQuery) =>
+      case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
         parametersForColumns(model, insertQuery.table.shapeId, insertQuery.columns)
-      case ResolvedSqlOperationQuery.Update(updateQuery) =>
+      case ResolvedSqlOperationQuery.Update(updateQuery)       =>
         parametersForColumns(model, updateQuery.table.shapeId, updateQuery.setColumns ++ updateQuery.whereColumns)
-      case ResolvedSqlOperationQuery.Delete(deleteQuery) =>
+      case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
         parametersForColumns(model, deleteQuery.table.shapeId, deleteQuery.whereColumns)
       case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
         parametersForColumns(model, selectOneQuery.table.shapeId, selectOneQuery.whereColumns)
-      case ResolvedSqlOperationQuery.Select(_) =>
+      case ResolvedSqlOperationQuery.Select(_)                 =>
         InvalidPluginConfig(
           s"@sqlDeriveSelect on ${operation.shapeId.toString} is not supported for aiosqlite implementation generation"
         ).invalidNel
@@ -78,7 +79,7 @@ object SqlOperationSqlBindingBuilder {
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val bindParameters = query.columns.map(column => columnToBindParameter(model, query.table.shapeId, column))
-    val outputShapeId = operation.outputShape.getOrElse(SqlCodegenTypeResolver.UnitShapeId)
+    val outputShapeId  = operation.outputShape.getOrElse(SqlCodegenTypeResolver.UnitShapeId)
 
     if (isPreludeShape(outputShapeId)) {
       SqlCodegenSqlBinding(
@@ -121,8 +122,7 @@ object SqlOperationSqlBindingBuilder {
       sqlStatement = statement,
       tableName = query.table.name,
       bindParameters = (query.setColumns ++ query.whereColumns).map(column =>
-        columnToBindParameter(model, query.table.shapeId, column)
-      ),
+        columnToBindParameter(model, query.table.shapeId, column)),
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
       outputKind = "boolean",
       returningColumnIndex = None,
@@ -180,7 +180,7 @@ object SqlOperationSqlBindingBuilder {
   private def tableStructure(model: Model, tableShapeId: ShapeId): SqlValidated[StructureShape] =
     model.getShape(tableShapeId).toScala.flatMap(_.asStructureShape.toScala) match {
       case Some(structure) => structure.validNel
-      case None =>
+      case None            =>
         InvalidCodegenShape(tableShapeId, "expected a @sqlTable structure for SQL bind parameters").invalidNel
     }
 
@@ -200,7 +200,7 @@ object SqlOperationSqlBindingBuilder {
       column: SqlQueryColumn
   ): SqlValidated[SqlCodegenParameter] =
     tableStructure(model, tableShapeId).map { tableStructure =>
-      val member = tableStructure.getMember(column.memberName).get()
+      val member   = tableStructure.getMember(column.memberName).get()
       val resolved = SqlCodegenTypeResolver.resolveMember(model, column.memberName, member)
       memberToParameter(resolved).copy(optional = false)
     }
@@ -210,7 +210,7 @@ object SqlOperationSqlBindingBuilder {
       tableShapeId: ShapeId,
       column: SqlQueryColumn
   ): SqlCodegenBindParameter = {
-    val isJson = isJsonMember(model, tableShapeId, column.memberName)
+    val isJson             = isJsonMember(model, tableShapeId, column.memberName)
     val jsonPythonTypeName =
       if (isJson) {
         Some(jsonPythonTypeNameForMember(model, tableShapeId, column.memberName))
@@ -219,21 +219,22 @@ object SqlOperationSqlBindingBuilder {
       }
     SqlCodegenBindParameter(
       memberName = column.memberName,
-      pythonExpression =
-        if (isJson) {
-          s"_json_bind_${jsonPythonTypeName.get}(${column.memberName})"
-        } else {
-          column.memberName
-        },
+      pythonExpression = if (isJson) {
+        s"_json_bind_${jsonPythonTypeName.get}(${column.memberName})"
+      } else {
+        column.memberName
+      },
       isJson = isJson,
       jsonPythonTypeName = jsonPythonTypeName
     )
   }
 
   private def isJsonMember(model: Model, tableShapeId: ShapeId, memberName: String): Boolean =
-    tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
-      tableStructure.getMember(memberName).toScala.map(SmithySqlTraitAccess.sqlJson)
-    }.getOrElse(false)
+    tableStructure(model, tableShapeId).toOption
+      .flatMap { tableStructure =>
+        tableStructure.getMember(memberName).toScala.map(SmithySqlTraitAccess.sqlJson)
+      }
+      .getOrElse(false)
 
   private def memberNameToResultField(
       model: Model,
@@ -286,12 +287,11 @@ object SqlOperationSqlBindingBuilder {
       columnIndex = columnIndex,
       pythonTypeName = pythonTypeName,
       isJson = isJson,
-      jsonReadExpression =
-        if (isJson) {
-          Some(s"_read_$pythonTypeName(row, $columnIndex)")
-        } else {
-          None
-        }
+      jsonReadExpression = if (isJson) {
+        Some(s"_read_$pythonTypeName(row, $columnIndex)")
+      } else {
+        None
+      }
     )
   }
 
@@ -311,15 +311,15 @@ object SqlOperationSqlBindingBuilder {
   private object SqlQueriesAdapter {
     def fromResolved(query: ResolvedSqlOperationQuery): SqlQueries =
       query match {
-        case ResolvedSqlOperationQuery.Insert(insertQuery) =>
+        case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
           SqlQueries(inserts = List(insertQuery))
-        case ResolvedSqlOperationQuery.Update(updateQuery) =>
+        case ResolvedSqlOperationQuery.Update(updateQuery)       =>
           SqlQueries(updates = List(updateQuery))
-        case ResolvedSqlOperationQuery.Delete(deleteQuery) =>
+        case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
           SqlQueries(deletes = List(deleteQuery))
         case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
           SqlQueries(selectOnes = List(selectOneQuery))
-        case ResolvedSqlOperationQuery.Select(selectQuery) =>
+        case ResolvedSqlOperationQuery.Select(selectQuery)       =>
           SqlQueries(selects = List(selectQuery))
       }
   }

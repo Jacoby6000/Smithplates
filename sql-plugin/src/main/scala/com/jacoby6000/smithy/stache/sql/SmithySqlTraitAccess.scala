@@ -1,33 +1,35 @@
 package com.jacoby6000.smithy.stache.sql
 
-import scala.jdk.OptionConverters._
-
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
-import com.jacoby6000.smithy.stache.sql.traits.{
-  SqlAutoUuidTrait,
-  SqlColumnTrait,
-  SqlColumnIndexTrait,
-  SqlCreatedTimestampTrait,
-  SqlDeriveDeleteTrait,
-  SqlDeriveInsertTrait,
-  SqlDeriveSelectOneTrait,
-  SqlDeriveSelectTrait,
-  SqlDeriveUpdateTrait,
-  SqlForeignKeyTrait,
-  SqlIndexTrait,
-  SqlJsonTrait,
-  SqlPrimaryKeyTrait,
-  SqlServiceTrait,
-  SqlTableTrait,
-  SqlUniqueIndexTrait,
-  SqlUpdatedTimestampTrait,
-  SqlUpdateTrait,
-  SqlUuidTrait,
-  SqlVarcharTrait
-}
+import com.jacoby6000.smithy.stache.sql.traits.SqlAutoUuidTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlColumnIndexTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlColumnTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlCreatedTimestampTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveDeleteTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveInsertTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectOneTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveUpdateTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlForeignKeyTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlIndexTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlJsonTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlPrimaryKeyTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlServiceTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlTableTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlUniqueIndexTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlUpdateTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlUpdatedTimestampTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlUuidTrait
+import com.jacoby6000.smithy.stache.sql.traits.SqlVarcharTrait
 import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{MemberShape, OperationShape, ServiceShape, Shape, StructureShape}
+import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.OperationShape
+import software.amazon.smithy.model.shapes.ServiceShape
+import software.amazon.smithy.model.shapes.Shape
+import software.amazon.smithy.model.shapes.StructureShape
 import software.amazon.smithy.model.traits.Trait
+
+import scala.jdk.OptionConverters.*
 
 private[sql] object SmithySqlTraitAccess {
   def sqlTableStructure(structure: StructureShape): Option[SqlTableTrait] =

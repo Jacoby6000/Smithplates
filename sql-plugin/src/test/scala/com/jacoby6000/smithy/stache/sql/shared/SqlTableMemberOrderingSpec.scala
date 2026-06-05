@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql.{SqlTestModelBuilder, SqlTestModelLoader}
+import com.jacoby6000.smithy.stache.sql.SqlTestModelBuilder
+import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
 import munit.FunSuite
 
 class SqlTableMemberOrderingSpec extends FunSuite {
@@ -21,7 +22,8 @@ class SqlTableMemberOrderingSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val structure = model.expectShape(software.amazon.smithy.model.shapes.ShapeId.from("example#Item")).asStructureShape.get()
+    val structure =
+      model.expectShape(software.amazon.smithy.model.shapes.ShapeId.from("example#Item")).asStructureShape.get()
     assertEquals(
       SqlTableMemberOrdering.orderedMembers(structure).map(_._1),
       List("alpha", "beta", "gamma")
@@ -79,7 +81,8 @@ class SqlTableMemberOrderingSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val structure = model.expectShape(software.amazon.smithy.model.shapes.ShapeId.from("example#Item")).asStructureShape.get()
+    val structure =
+      model.expectShape(software.amazon.smithy.model.shapes.ShapeId.from("example#Item")).asStructureShape.get()
     assertEquals(
       SqlTableMemberOrdering.orderedMembers(structure).map(_._1),
       List("middle", "first", "last")

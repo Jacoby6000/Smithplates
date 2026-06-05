@@ -1,6 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql.{NoSqlTables, SqlColumn, SqlColumnType, SqlSchema}
+import com.jacoby6000.smithy.stache.sql.NoSqlTables
+import com.jacoby6000.smithy.stache.sql.SqlColumn
+import com.jacoby6000.smithy.stache.sql.SqlColumnType
+import com.jacoby6000.smithy.stache.sql.SqlSchema
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */
@@ -39,34 +42,34 @@ object SqlShared {
       SqlTableTree
         .tablesInRenderOrder(schema)
         .map { table =>
-            val columnLines = table.columns.map(renderColumn)
-            val primaryKeyLine = s"PRIMARY KEY (${table.primaryKeys.mkString(", ")})"
-            val foreignKeyLines = table.foreignKeys.map { foreignKey =>
-              val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
-                throw new IllegalStateException(
-                  s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
-                )
-              }
-              s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
+          val columnLines     = table.columns.map(renderColumn)
+          val primaryKeyLine  = s"PRIMARY KEY (${table.primaryKeys.mkString(", ")})"
+          val foreignKeyLines = table.foreignKeys.map { foreignKey =>
+            val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
+              throw new IllegalStateException(
+                s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
+              )
             }
-            val keyLines = primaryKeyLine :: foreignKeyLines
-            val indexStatements = table.indexes.map { index =>
-              val indexPrefix = if (index.unique) "uidx" else "idx"
-              val indexName =
-                index.name.getOrElse(s"${indexPrefix}_${table.name}_${index.columns.mkString("_")}")
-              val uniqueKeyword = if (index.unique) "UNIQUE " else ""
-              s"CREATE ${uniqueKeyword}INDEX $indexName ON ${table.name} (${index.columns.mkString(", ")});"
-            }
-            val statement =
-              s"""CREATE TABLE ${table.name} (
+            s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
+          }
+          val keyLines        = primaryKeyLine :: foreignKeyLines
+          val indexStatements = table.indexes.map { index =>
+            val indexPrefix   = if (index.unique) "uidx" else "idx"
+            val indexName     =
+              index.name.getOrElse(s"${indexPrefix}_${table.name}_${index.columns.mkString("_")}")
+            val uniqueKeyword = if (index.unique) "UNIQUE " else ""
+            s"CREATE ${uniqueKeyword}INDEX $indexName ON ${table.name} (${index.columns.mkString(", ")});"
+          }
+          val statement       =
+            s"""CREATE TABLE ${table.name} (
                  |    ${columnLines.mkString(",\n    ")},
                  |
                  |    ${keyLines.mkString(",\n    ")}
                  |);
                  |${indexStatements.mkString("\n")}""".stripMargin
-            SqlRenderUnit.Ddl(table.shapeId, statement)
-          }
-          .filter(_.statement.nonEmpty)
+          SqlRenderUnit.Ddl(table.shapeId, statement)
+        }
+        .filter(_.statement.nonEmpty)
     prefix ++ tables
   }
 
@@ -87,8 +90,8 @@ object SqlShared {
       defaultClause: Option[String] = None
   ): String = {
     val nullableSql = Option.unless(nullable)(" NOT NULL").getOrElse("")
-    val defaultSql = defaultClause.map(value => s" DEFAULT $value").getOrElse("")
-    val checkSql = checks.filter(_.nonEmpty).mkString
+    val defaultSql  = defaultClause.map(value => s" DEFAULT $value").getOrElse("")
+    val checkSql    = checks.filter(_.nonEmpty).mkString
     s"$name $sqlType$nullableSql$defaultSql$checkSql"
   }
 
@@ -104,7 +107,7 @@ object SqlShared {
           if (enumType.values.forall(value => value >= Int.MinValue && value <= Int.MaxValue)) "INTEGER"
           else "BIGINT"
         Some(storage)
-      case _ => None
+      case _                               => None
     }
 
   def enumTypeName(shapeId: ShapeId): String = {

@@ -14,7 +14,7 @@ object MustacheTemplateTestAssertions {
     val missingFiles = expectedFiles.filterNot(expected => rendered.contains(expected.relativePath))
     if (missingFiles.nonEmpty) {
       val renderedListing = rendered.keys.toList.sorted.mkString(", ")
-      val missingListing = missingFiles.map(_.relativePath).sorted.mkString(", ")
+      val missingListing  = missingFiles.map(_.relativePath).sorted.mkString(", ")
       Assertions.fail(
         s"""Test case '${testCase.name}' (${variant.resourcePath}): expected output file(s) were not generated.
            |Missing: $missingListing

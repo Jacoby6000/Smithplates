@@ -1,10 +1,13 @@
 package com.jacoby6000.smithy.stache.sql
 
 import cats.syntax.all.*
+import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.OperationShape
+import software.amazon.smithy.model.shapes.ServiceShape
+import software.amazon.smithy.model.shapes.ShapeId
+
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
-import software.amazon.smithy.model.Model
-import software.amazon.smithy.model.shapes.{OperationShape, ServiceShape, ShapeId}
 
 private[sql] object SqlServiceExtractor {
   def extract(model: Model): SqlValidated[List[SqlService]] =
@@ -57,7 +60,7 @@ private[sql] object SqlServiceExtractor {
       operationId: ShapeId
   ): SqlValidated[SqlOperation] =
     model.getShape(operationId).toScala.flatMap(_.asOperationShape.toScala) match {
-      case None =>
+      case None            =>
         InvalidSqlOperation(
           serviceShape,
           operationId.getName,
@@ -89,7 +92,7 @@ private[sql] object SqlServiceExtractor {
   private def requireInputShape(serviceShape: ShapeId, operation: OperationShape): SqlValidated[ShapeId] =
     Option(operation.getInputShape) match {
       case Some(inputShape) => inputShape.validNel
-      case None =>
+      case None             =>
         InvalidSqlOperation(
           serviceShape,
           operation.getId.getName,
@@ -115,7 +118,7 @@ private[sql] object SqlServiceExtractor {
       errorShapeId: ShapeId
   ): SqlValidated[ShapeId] =
     model.getShape(errorShapeId).toScala match {
-      case None =>
+      case None                                  =>
         InvalidSqlOperation(
           serviceShape,
           operation.getId.getName,
@@ -123,7 +126,7 @@ private[sql] object SqlServiceExtractor {
         ).invalidNel
       case Some(shape) if shape.isStructureShape =>
         errorShapeId.validNel
-      case Some(_) =>
+      case Some(_)                               =>
         InvalidSqlOperation(
           serviceShape,
           operation.getId.getName,

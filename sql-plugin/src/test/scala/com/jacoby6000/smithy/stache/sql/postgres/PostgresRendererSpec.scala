@@ -1,11 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
-import com.jacoby6000.smithy.stache.sql.{NoSqlTables, SqlSchema, SqlSchemaExampleFixtures}
+import com.jacoby6000.smithy.stache.sql.NoSqlTables
+import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.SqlSchemaExampleFixtures
 import munit.FunSuite
 
 final class PostgresRendererSpec extends FunSuite {
   test("Postgres - renders example schema DDL") {
-    val schema = SqlSchemaExampleFixtures.exampleSchema
+    val schema   = SqlSchemaExampleFixtures.exampleSchema
     val postgres = PostgresRenderer.render(schema)
 
     val expectedPostgresDdl =

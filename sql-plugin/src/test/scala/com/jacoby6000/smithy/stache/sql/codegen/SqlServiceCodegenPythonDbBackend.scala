@@ -1,11 +1,13 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.mustachetest.{
-  MustacheTemplateLanguageBackend,
-  MustacheTemplateTestCase,
-  MustacheTemplateVariant
-}
-import com.jacoby6000.smithy.stache.sql.{PostgresDialect, SqlDialect, SqlModelExtractor, SqlTestModelLoader, SqliteDialect}
+import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateLanguageBackend
+import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestCase
+import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateVariant
+import com.jacoby6000.smithy.stache.sql.PostgresDialect
+import com.jacoby6000.smithy.stache.sql.SqlDialect
+import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
+import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.Model
 
@@ -14,6 +16,7 @@ trait SqlServiceCodegenTestBackend extends MustacheTemplateLanguageBackend {
 }
 
 object SqlServiceCodegenPythonDbBackend {
+
   /** Golden-test `testOutputDirectory`; rendered under `<language>/test/`. */
   val GoldenTestOutputDirectory: String = "test"
 
@@ -60,7 +63,7 @@ object SqlServiceCodegenPythonDbBackend {
               renderedArtifacts.map { artifact =>
                 val relativePath =
                   artifact.kind match {
-                    case SqlServiceCodegenArtifactKind.Src =>
+                    case SqlServiceCodegenArtifactKind.Src  =>
                       s"${variant.srcOutputRootId}/${artifact.relativePath}"
                     case SqlServiceCodegenArtifactKind.Test =>
                       s"${variant.languageId}/${artifact.relativePath}"
@@ -83,12 +86,11 @@ object SqlServiceCodegenPythonDbBackend {
             SqlCodegenArtifact(
               relativePath = relativePath,
               content = content,
-              kind =
-                if (relativePath.startsWith(s"${variant.testOutputRootId}/")) {
-                  SqlServiceCodegenArtifactKind.Test
-                } else {
-                  SqlServiceCodegenArtifactKind.Src
-                }
+              kind = if (relativePath.startsWith(s"${variant.testOutputRootId}/")) {
+                SqlServiceCodegenArtifactKind.Test
+              } else {
+                SqlServiceCodegenArtifactKind.Src
+              }
             )
           }
         PythonCodegenWorkspace.validateCase(

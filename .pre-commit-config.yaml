@@ -1,0 +1,27 @@
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+default_install_hook_types: [pre-commit]
+
+repos:
+  - repo: local
+    hooks:
+      - id: scala-fmt
+        name: Scala format (scalafmt)
+        entry: scripts/pre-commit-scala.sh fmt
+        language: script
+        files: \.(scala|sbt)$
+        pass_filenames: false
+
+      - id: scala-fix
+        name: Scala fix (scalafix)
+        entry: scripts/pre-commit-scala.sh fix
+        language: script
+        files: \.(scala|sbt)$
+        pass_filenames: false
+
+      - id: scala-compile
+        name: Scala compile
+        entry: scripts/pre-commit-scala.sh compile
+        language: script
+        files: \.(scala|sbt)$
+        pass_filenames: false
