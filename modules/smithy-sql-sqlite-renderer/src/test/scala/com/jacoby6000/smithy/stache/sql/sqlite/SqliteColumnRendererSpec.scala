@@ -12,48 +12,84 @@ final class SqliteColumnRendererSpec extends FunSuite {
 
   private def validateColumnRender(
       typeLabel: String,
-      name: String,
-      columnType: SqlColumnType,
+      column: SqlColumn,
       requiredSuffix: String,
       nullableSuffix: String
   ): Unit = {
     test(s"$typeLabel - renders required columns") {
       assertEquals(
-        SqliteRenderer.renderColumn(SqlColumn(name = name, columnType = columnType, nullable = false)),
-        s"$name $requiredSuffix"
+        SqliteRenderer.renderColumn(column.copy(nullable = false)),
+        s"${column.name} $requiredSuffix"
       )
     }
     test(s"$typeLabel - renders nullable columns") {
       assertEquals(
-        SqliteRenderer.renderColumn(SqlColumn(name = name, columnType = columnType, nullable = true)),
-        s"$name $nullableSuffix"
+        SqliteRenderer.renderColumn(column.copy(nullable = true)),
+        s"${column.name} $nullableSuffix"
       )
     }
   }
 
-  validateColumnRender("Text", "label", SqlColumnType.Text, "TEXT NOT NULL", "TEXT")
-  validateColumnRender("Integer", "count", SqlColumnType.Integer, "INTEGER NOT NULL", "INTEGER")
-  validateColumnRender("BigInt", "size_bytes", SqlColumnType.BigInt, "BIGINT NOT NULL", "BIGINT")
-  validateColumnRender("Boolean", "active", SqlColumnType.Boolean, "TEXT NOT NULL", "TEXT")
-  validateColumnRender("Json", "payload", SqlColumnType.Json, "TEXT NOT NULL", "TEXT")
-  validateColumnRender("Blob", "data", SqlColumnType.Blob, "BLOB NOT NULL", "BLOB")
-  validateColumnRender("Uuid", "owner_id", SqlColumnType.Uuid, "TEXT NOT NULL", "TEXT")
+  validateColumnRender(
+    "Text",
+    SqlColumn(name = "label", columnType = SqlColumnType.Text, nullable = false),
+    "TEXT NOT NULL",
+    "TEXT"
+  )
+  validateColumnRender(
+    "Integer",
+    SqlColumn(name = "count", columnType = SqlColumnType.Integer, nullable = false),
+    "INTEGER NOT NULL",
+    "INTEGER"
+  )
+  validateColumnRender(
+    "BigInt",
+    SqlColumn(name = "size_bytes", columnType = SqlColumnType.BigInt, nullable = false),
+    "BIGINT NOT NULL",
+    "BIGINT"
+  )
+  validateColumnRender(
+    "Boolean",
+    SqlColumn(name = "active", columnType = SqlColumnType.Boolean, nullable = false),
+    "TEXT NOT NULL",
+    "TEXT"
+  )
+  validateColumnRender(
+    "Json",
+    SqlColumn(name = "payload", columnType = SqlColumnType.Json, nullable = false),
+    "TEXT NOT NULL",
+    "TEXT"
+  )
+  validateColumnRender(
+    "Blob",
+    SqlColumn(name = "data", columnType = SqlColumnType.Blob, nullable = false),
+    "BLOB NOT NULL",
+    "BLOB"
+  )
+  validateColumnRender(
+    "Uuid",
+    SqlColumn(name = "owner_id", columnType = SqlColumnType.Uuid, nullable = false),
+    "TEXT NOT NULL",
+    "TEXT"
+  )
 
   validateColumnRender(
     "Varchar",
-    "code",
-    SqlColumnType.Varchar(maxLength = 64),
+    SqlColumn(name = "code", columnType = SqlColumnType.Varchar(maxLength = 64), nullable = false),
     "TEXT NOT NULL CHECK(length(code) <= 64)",
     "TEXT CHECK(length(code) <= 64)"
   )
 
   validateColumnRender(
     "StringEnum",
-    "direction",
-    SqlColumnType.StringEnum(
-      shapeId = ShapeId.from("example#Direction"),
-      typeName = "example_direction",
-      values = List("NORTH", "SOUTH")
+    SqlColumn(
+      name = "direction",
+      columnType = SqlColumnType.StringEnum(
+        shapeId = ShapeId.from("example#Direction"),
+        typeName = "example_direction",
+        values = List("NORTH", "SOUTH")
+      ),
+      nullable = false
     ),
     "TEXT NOT NULL CHECK(direction IN ('NORTH', 'SOUTH'))",
     "TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"
@@ -61,51 +97,48 @@ final class SqliteColumnRendererSpec extends FunSuite {
 
   validateColumnRender(
     "IntEnum",
-    "status",
-    SqlColumnType.IntEnum(typeName = "example_httpstatus", values = List(404, 200)),
+    SqlColumn(
+      name = "status",
+      columnType = SqlColumnType.IntEnum(typeName = "example_httpstatus", values = List(404, 200)),
+      nullable = false
+    ),
     "INTEGER NOT NULL CHECK(status IN (404, 200))",
     "INTEGER CHECK(status IN (404, 200))"
   )
 
-  test("Uuid - renders auto-generated uuid columns") {
-    val column = SqlColumn(
+  validateColumnRender(
+    "AutoUuid",
+    SqlColumn(
       name = "id",
       columnType = SqlColumnType.Uuid,
       nullable = false,
       autoGeneration = Some(SqlAutoUuid)
-    )
+    ),
+    s"TEXT NOT NULL DEFAULT $sqliteAutoUuidDefault",
+    s"TEXT DEFAULT $sqliteAutoUuidDefault"
+  )
 
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      s"id TEXT NOT NULL DEFAULT $sqliteAutoUuidDefault"
-    )
-  }
-
-  test("Timestamp - renders date-time columns as TEXT") {
-    val column = SqlColumn(
+  validateColumnRender(
+    "Timestamp (date-time)",
+    SqlColumn(
       name = "created_at",
       columnType = SqlColumnType.Timestamp(SqlTimestampFormat.DateTime),
       nullable = false,
       autoGeneration = Some(SqlCreatedTimestamp)
-    )
+    ),
+    "TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "TEXT DEFAULT CURRENT_TIMESTAMP"
+  )
 
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      "created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP"
-    )
-  }
-
-  test("Timestamp - renders epoch-seconds columns as REAL") {
-    val column = SqlColumn(
+  validateColumnRender(
+    "Timestamp (epoch-seconds)",
+    SqlColumn(
       name = "occurred_at",
       columnType = SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds),
       nullable = false,
       autoGeneration = Some(SqlCreatedTimestamp)
-    )
-
-    assertEquals(
-      SqliteRenderer.renderColumn(column),
-      "occurred_at REAL NOT NULL DEFAULT unixepoch('subsec')"
-    )
-  }
+    ),
+    "REAL NOT NULL DEFAULT unixepoch('subsec')",
+    "REAL DEFAULT unixepoch('subsec')"
+  )
 }
