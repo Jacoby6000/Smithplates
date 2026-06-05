@@ -2,7 +2,7 @@
 
 Pulling the AI Slop Machine lever to non-deterministicly generate deterministic code-generators. 
 
-This project was inspired by OpenAPI Generator and some of my work at Disney. Built on smithy specifications, rendered with Mustache templates.
+This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Mustache templates.
 
 ## AI Generated
 

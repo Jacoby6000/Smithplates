@@ -25,10 +25,10 @@ jobs:
           java-version: 11
           cache: sbt
 
-      - name: Setup sbtn
+      - name: Setup sbtn and sbt
         uses: coursier/setup-action@v1
         with:
-          apps: sbtn
+          apps: sbtn sbt
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v6
