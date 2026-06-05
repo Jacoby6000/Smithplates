@@ -1,29 +1,20 @@
 # SmithyStache documentation
 
-SmithyStache publishes Smithy build plugins for SQL schema and repository codegen.
+## [Usage](usage/)
 
-## Guides
+For projects that depend on SmithyStache plugins via `smithy build`:
 
-| Document | Audience |
-|----------|----------|
-| [Getting started](getting-started.md) | Build, test, and publish plugin JARs locally |
-| [Integration](integration.md) | Wire plugins into a consumer `smithy-build.json` |
-| [Architecture](architecture.md) | Module layout, design, and toolchain pins |
+- [Integration](usage/integration.md) — wire `smithy-stache` into `smithy-build.json`
+- [SQL plugin](usage/sql-plugin.md) — traits, migrations, and repository codegen
 
-## Plugins
+## [Contributing](contributing/)
 
-| Document | Plugin |
-|----------|--------|
-| [SQL schema & service codegen](sql-plugin.md) | `com.jacoby6000:smithy-stache-plugin` |
+For SmithyStache plugin development in this repository:
 
-## Testing
+- [Getting started](contributing/getting-started.md) — build, test, lint, and publish locally
+- [Architecture](contributing/architecture.md) — modules, packages, and design
+- [Integration tests](contributing/integration-tests.md) — dialect testcontainers coverage
 
-| Document | Topic |
-|----------|-------|
-| [Integration tests](integration-tests.md) | Docker-backed Postgres and SQLite end-to-end tests |
+Module reference (traits, templates, SPI): [`sql-plugin/README.md`](../sql-plugin/README.md)
 
-## Module reference
-
-Detailed trait tables, Mustache template layout, and plugin SPI entries live in [`sql-plugin/README.md`](../sql-plugin/README.md).
-
-Agent and contributor conventions are in [`AGENTS.md`](../AGENTS.md) at the repository root.
+Conventions: [`AGENTS.md`](../AGENTS.md)

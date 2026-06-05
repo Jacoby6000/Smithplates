@@ -1,3 +1,3 @@
 # SQL plugin integration tests
 
-Moved to [`docs/integration-tests.md`](docs/integration-tests.md).
+Moved to [`docs/contributing/integration-tests.md`](docs/contributing/integration-tests.md).

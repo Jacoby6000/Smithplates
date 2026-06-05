@@ -4,7 +4,7 @@ Scala/SBT Smithy build plugin that generates SQLite and Postgres DDL from custom
 
 ## Traits
 
-Defined in [`src/main/resources/META-INF/smithy/stache.codegen.sql.smithy`](src/main/resources/META-INF/smithy/stache.codegen.sql.smithy) (built from this module via [`build.sbt`](../build.sbt); packaged in the plugin JAR for Smithy builds and tests). Overview: [`docs/sql-plugin.md`](../docs/sql-plugin.md).
+Defined in [`src/main/resources/META-INF/smithy/stache.codegen.sql.smithy`](src/main/resources/META-INF/smithy/stache.codegen.sql.smithy) (built from this module via [`build.sbt`](../build.sbt); packaged in the plugin JAR for Smithy builds and tests). Overview: [`docs/usage/sql-plugin.md`](../docs/usage/sql-plugin.md).
 
 | Trait | Target | Maps to |
 |-------|--------|---------|
@@ -167,7 +167,7 @@ Docker-backed end-to-end tests (apply generated DDL to real databases) live in [
 
 ## Service interface codegen
 
-Configured under `smithy-stache.sql.languageTargets` (see [`docs/integration.md`](../docs/integration.md)). Renders Mustache templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`src/main/resources/sql-service-codegen/python/db/`](src/main/resources/sql-service-codegen/python/db/); bundled artifacts are selected from enabled dialects.
+Configured under `smithy-stache.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). Renders Mustache templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`src/main/resources/sql-service-codegen/python/db/`](src/main/resources/sql-service-codegen/python/db/); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
@@ -222,7 +222,7 @@ cd sql-plugin/src/test/resources/sql-service-codegen-python-workspace && uv lock
 
 ## Smithy integration
 
-Register in `smithy-build.json` (see [`docs/integration.md`](../docs/integration.md)):
+Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage/integration.md)):
 
 ```json
 "maven": {

@@ -16,10 +16,10 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 
 | Directory | Maven coordinate | Role |
 |-----------|------------------|------|
-| [`sql-plugin/`](../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL trait definitions |
-| [`sql-plugin-common-it/`](../sql-plugin-common-it/) | — | Shared integration-test fixtures (`src/main`) |
-| [`sql-plugin-postgres-it/`](../sql-plugin-postgres-it/) | — | Postgres integration tests (testcontainers-scala) |
-| [`sql-plugin-sqlite-it/`](../sql-plugin-sqlite-it/) | — | SQLite integration tests (testcontainers-scala) |
+| [`sql-plugin/`](../../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL trait definitions |
+| [`sql-plugin-common-it/`](../../sql-plugin-common-it/) | — | Shared integration-test fixtures (`src/main`) |
+| [`sql-plugin-postgres-it/`](../../sql-plugin-postgres-it/) | — | Postgres integration tests (testcontainers-scala) |
+| [`sql-plugin-sqlite-it/`](../../sql-plugin-sqlite-it/) | — | SQLite integration tests (testcontainers-scala) |
 
 ## Build and publish
 
@@ -29,11 +29,11 @@ Publish plugin JARs to the local Maven repository (`~/.m2`) before running `smit
 sbtn publishM2
 ```
 
-Consumer `smithy-build.json` files reference the coordinates above. Version numbers must match [`build.sbt`](../build.sbt).
+Consumer `smithy-build.json` files reference the coordinates above. Version numbers must match [`build.sbt`](../../build.sbt).
 
 ## Lint and format
 
-Requires the sbt plugins in [`project/plugins.sbt`](../project/plugins.sbt) (`sbtn` downloads them on first run):
+Requires the sbt plugins in [`project/plugins.sbt`](../../project/plugins.sbt) (`sbtn` downloads them on first run):
 
 ```bash
 sbtn scalafmtCheckAll
@@ -50,7 +50,7 @@ Install [pre-commit](https://pre-commit.com/) once, then enable hooks for this r
 pre-commit install
 ```
 
-On each commit that touches `*.scala` or `*.sbt`, hooks run (via [`scripts/pre-commit-scala.sh`](../scripts/pre-commit-scala.sh)):
+On each commit that touches `*.scala` or `*.sbt`, hooks run (via [`scripts/pre-commit-scala.sh`](../../scripts/pre-commit-scala.sh)):
 
 1. `sbtn scalafmtAll`
 2. `sbtn scalafixAll`

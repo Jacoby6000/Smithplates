@@ -21,17 +21,17 @@ common-it   postgres-it  sqlite-it
 
 ### Validation
 
-Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSchemaError, *]`** (`SqlValidated`) so errors accumulate across tables and members. [`SmithyStacheBuildPlugin`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) converts invalid results to a single exception at the Smithy build boundary. Do not use `for` on `Validated` (fail-fast); use `mapN` / `traverse`.
+Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSchemaError, *]`** (`SqlValidated`) so errors accumulate across tables and members. [`SmithyStacheBuildPlugin`](../../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) converts invalid results to a single exception at the Smithy build boundary. Do not use `for` on `Validated` (fail-fast); use `mapN` / `traverse`.
 
 ### Model extraction
 
-[`SqlModelExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlModelExtractor.scala) builds `SqlSchema.relationships` from `@sqlForeignKey` members: many-to-one by default, one-to-one when the FK column also has `@sqlUniqueIndex`.
+[`SqlModelExtractor`](../../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlModelExtractor.scala) builds `SqlSchema.relationships` from `@sqlForeignKey` members: many-to-one by default, one-to-one when the FK column also has `@sqlUniqueIndex`.
 
-[`SqlServiceExtractor`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts (input, output, errors) into `SqlSchema.services` for repository codegen. SQL query binding is opt-in via matching operation shape ids on derive traits.
+[`SqlServiceExtractor`](../../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts (input, output, errors) into `SqlSchema.services` for repository codegen. SQL query binding is opt-in via matching operation shape ids on derive traits.
 
 ### Rendering
 
-Dialect renderers expose structured **`SqlRenderUnit`** values (DDL statements or DML queries keyed by Smithy shape id). Postgres `CREATE TYPE` units use the enum shape id; table DDL uses the `@sqlTable` structure id. [`SqlRenderOutput.format`](../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/SqlRenderOutput.scala) joins units into exported `.sql` file text so unit tests can assert one query or one DDL artifact without parsing the full output.
+Dialect renderers expose structured **`SqlRenderUnit`** values (DDL statements or DML queries keyed by Smithy shape id). Postgres `CREATE TYPE` units use the enum shape id; table DDL uses the `@sqlTable` structure id. [`SqlRenderOutput.format`](../../sql-plugin/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/SqlRenderOutput.scala) joins units into exported `.sql` file text so unit tests can assert one query or one DDL artifact without parsing the full output.
 
 ### Package layout
 

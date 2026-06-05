@@ -71,8 +71,8 @@ db/
 
 Trait tables, Smithy examples, template context fields, SPI entries, and Python validation test setup:
 
-→ [`sql-plugin/README.md`](../sql-plugin/README.md)
+→ [`sql-plugin/README.md`](../../sql-plugin/README.md)
 
 ## Configuration
 
-See [Integration](integration.md) for the `smithy-stache` plugin example and [`sql-plugin/README.md`](../sql-plugin/README.md) for trait and template details.
+See [Integration](integration.md) for the `smithy-stache` plugin example and [`sql-plugin/README.md`](../../sql-plugin/README.md) for trait and template details.
