@@ -125,8 +125,10 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | Package | Responsibility |
 |---------|----------------|
 | `com.jacoby6000.smithy.stache` | `smithy-stache` build plugin (`SmithyStacheBuildPlugin`), settings validation |
-| `com.jacoby6000.smithy.stache.sql` | `SqlValidated`, schema and service IR extraction, `DialectRenderer` trait |
-| `com.jacoby6000.smithy.stache.sql.traits` | Java `TraitService` implementations (SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql` | `SqlValidated`, schema IR extraction, table traits |
+| `com.jacoby6000.smithy.stache.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors, `DialectRenderer`, query rendering |
+| `com.jacoby6000.smithy.stache.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithy.stache.sql.shared` | `DDLStatement`, DDL rendering, FK ordering, query rendering, `SqlRenderOutput` |
 | `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |

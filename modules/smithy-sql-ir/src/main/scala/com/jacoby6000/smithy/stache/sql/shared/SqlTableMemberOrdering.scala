@@ -1,8 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.shared
 
-import com.jacoby6000.smithy.stache.sql.DuplicateSqlColumnIndex
-import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
-import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.StructureShape
 
@@ -54,12 +52,11 @@ object SqlTableMemberOrdering {
   }
 
   private def explicitSortIndex(member: MemberShape): Option[Int] =
-    SmithySqlTraitAccess
-      .sqlColumnIndex(member)
+    member.sqlColumnIndex
       .orElse {
-        if (SmithySqlTraitAccess.sqlUpdatedTimestamp(member)) {
+        if (member.sqlUpdatedTimestamp) {
           Some(UpdatedTimestampDefaultIndex)
-        } else if (SmithySqlTraitAccess.sqlCreatedTimestamp(member)) {
+        } else if (member.sqlCreatedTimestamp) {
           Some(CreatedTimestampDefaultIndex)
         } else {
           None

@@ -1,5 +1,6 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.shared.SqlRenderOutput

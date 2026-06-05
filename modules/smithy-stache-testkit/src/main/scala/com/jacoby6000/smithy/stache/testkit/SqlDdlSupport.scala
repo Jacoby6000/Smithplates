@@ -1,7 +1,7 @@
 package com.jacoby6000.smithy.stache.testkit
 
-import com.jacoby6000.smithy.stache.sql.DialectRenderer
 import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.service.DialectRenderer
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
 
 import java.sql.Connection

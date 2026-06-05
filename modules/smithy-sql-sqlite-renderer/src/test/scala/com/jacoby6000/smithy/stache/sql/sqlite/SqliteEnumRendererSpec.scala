@@ -1,6 +1,8 @@
 package com.jacoby6000.smithy.stache.sql.sqlite
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
 import munit.FunSuite
 
 final class SqliteEnumRendererSpec extends FunSuite {

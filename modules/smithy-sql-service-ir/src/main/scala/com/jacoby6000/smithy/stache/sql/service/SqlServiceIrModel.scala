@@ -1,5 +1,6 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class SqlServiceIr(

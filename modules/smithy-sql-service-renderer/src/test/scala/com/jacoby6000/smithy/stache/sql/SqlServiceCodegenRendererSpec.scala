@@ -1,9 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestDiscovery
-import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
 import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {

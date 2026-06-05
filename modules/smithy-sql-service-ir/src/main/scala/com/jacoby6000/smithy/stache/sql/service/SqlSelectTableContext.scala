@@ -1,7 +1,8 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.traits.SqlSelectJoinValue
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlSelectJoinValue
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.shapes.StructureShape
@@ -9,7 +10,7 @@ import software.amazon.smithy.model.shapes.StructureShape
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-private[sql] object SqlSelectTableContext {
+private[service] object SqlSelectTableContext {
   final case class TableContext(
       tableRef: String,
       shapeId: ShapeId,

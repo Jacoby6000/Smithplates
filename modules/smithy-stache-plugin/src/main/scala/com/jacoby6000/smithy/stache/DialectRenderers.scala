@@ -2,6 +2,7 @@ package com.jacoby6000.smithy.stache
 
 import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithy.stache.sql.service.DialectRenderer
 import com.jacoby6000.smithy.stache.sql.sqlite.SqliteRenderer
 
 object DialectRenderers {

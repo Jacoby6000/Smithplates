@@ -2,14 +2,15 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.SqlDialect
-import com.jacoby6000.smithy.stache.sql.SqlOperation
-import com.jacoby6000.smithy.stache.sql.SqlQueries
-import com.jacoby6000.smithy.stache.sql.SqlQueryExtractor
 import com.jacoby6000.smithy.stache.sql.SqlSchema
-import com.jacoby6000.smithy.stache.sql.SqlService
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlOperationSqlBindingBuilder
+import com.jacoby6000.smithy.stache.sql.service.SqlOperation
+import com.jacoby6000.smithy.stache.sql.service.SqlQueries
+import com.jacoby6000.smithy.stache.sql.service.SqlQueryExtractor
+import com.jacoby6000.smithy.stache.sql.service.SqlService
+import com.jacoby6000.smithy.stache.sql.service.codegen.SqlOperationQueryResolver
 import software.amazon.smithy.model.Model
 
 object SqlServiceCodegenContextBuilder {

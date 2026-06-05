@@ -1,4 +1,4 @@
-package com.jacoby6000.smithy.stache.sql.traits;
+package com.jacoby6000.smithy.stache.sql.service.traits;
 
 import java.util.Locale;
 import java.util.Objects;

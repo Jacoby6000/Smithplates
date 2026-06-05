@@ -1,6 +1,10 @@
-package com.jacoby6000.smithy.stache.sql.shared
+package com.jacoby6000.smithy.stache.sql.service.shared
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlExtractionResult
+import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
+import com.jacoby6000.smithy.stache.sql.service.SqlQueries
+import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlQueryRendererSpec extends munit.FunSuite {

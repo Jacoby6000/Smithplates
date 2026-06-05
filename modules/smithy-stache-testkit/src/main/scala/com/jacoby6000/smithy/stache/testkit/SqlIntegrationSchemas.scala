@@ -1,7 +1,7 @@
 package com.jacoby6000.smithy.stache.testkit
 
-import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
 import software.amazon.smithy.model.Model
 
 object SqlIntegrationSchemas {

@@ -1,12 +1,13 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveDeleteTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveInsertTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectOneTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveUpdateTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlServiceTrait
-import com.jacoby6000.smithy.stache.sql.traits.SqlUpdateTrait
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveDeleteTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveInsertTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectOneTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveUpdateTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlServiceTrait
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlUpdateTrait
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ServiceShape
 import software.amazon.smithy.model.shapes.Shape
@@ -15,28 +16,36 @@ import software.amazon.smithy.model.traits.Trait
 
 import scala.jdk.OptionConverters.*
 
-private[sql] object SmithySqlServiceTraitAccess {
-  def sqlDeriveInsert(operation: OperationShape): Option[SqlDeriveInsertTrait] =
-    traitOption(operation, classOf[SqlDeriveInsertTrait])
-
-  def sqlDeriveUpdate(operation: OperationShape): Option[SqlDeriveUpdateTrait] =
-    traitOption(operation, classOf[SqlDeriveUpdateTrait])
-
-  def sqlDeriveDelete(operation: OperationShape): Option[SqlDeriveDeleteTrait] =
-    traitOption(operation, classOf[SqlDeriveDeleteTrait])
-
-  def sqlDeriveSelectOne(operation: OperationShape): Option[SqlDeriveSelectOneTrait] =
-    traitOption(operation, classOf[SqlDeriveSelectOneTrait])
-
-  def sqlDeriveSelect(operation: OperationShape): Option[SqlDeriveSelectTrait] =
-    traitOption(operation, classOf[SqlDeriveSelectTrait])
-
-  def sqlUpdate(structure: StructureShape): Option[SqlUpdateTrait] =
-    traitOption(structure, classOf[SqlUpdateTrait])
-
-  def sqlService(service: ServiceShape): Option[SqlServiceTrait] =
-    traitOption(service, classOf[SqlServiceTrait])
-
-  private def traitOption[T <: Trait](shape: Shape, clazz: Class[T]): Option[T] =
+private object SmithySqlServiceTraitLookup {
+  def traitOption[T <: Trait](shape: Shape, clazz: Class[T]): Option[T] =
     shape.getTrait(clazz).toScala
+}
+
+private[service] object SmithySqlServiceTraitAccess {
+  extension (operation: OperationShape) {
+    def sqlDeriveInsert: Option[SqlDeriveInsertTrait] =
+      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveInsertTrait])
+
+    def sqlDeriveUpdate: Option[SqlDeriveUpdateTrait] =
+      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveUpdateTrait])
+
+    def sqlDeriveDelete: Option[SqlDeriveDeleteTrait] =
+      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveDeleteTrait])
+
+    def sqlDeriveSelectOne: Option[SqlDeriveSelectOneTrait] =
+      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveSelectOneTrait])
+
+    def sqlDeriveSelect: Option[SqlDeriveSelectTrait] =
+      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveSelectTrait])
+  }
+
+  extension (structure: StructureShape) {
+    def sqlUpdate: Option[SqlUpdateTrait] =
+      SmithySqlServiceTraitLookup.traitOption(structure, classOf[SqlUpdateTrait])
+  }
+
+  extension (service: ServiceShape) {
+    def sqlService: Option[SqlServiceTrait] =
+      SmithySqlServiceTraitLookup.traitOption(service, classOf[SqlServiceTrait])
+  }
 }

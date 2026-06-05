@@ -1,16 +1,14 @@
 package com.jacoby6000.smithy.stache.sql.codegen.python
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.InvalidCodegenShape
-import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
-import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
-import com.jacoby6000.smithy.stache.sql.SqlOperation
-import com.jacoby6000.smithy.stache.sql.SqlQueries
-import com.jacoby6000.smithy.stache.sql.SqlQueryColumn
-import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.codegen.*
+import com.jacoby6000.smithy.stache.sql.service.SqlOperation
+import com.jacoby6000.smithy.stache.sql.service.SqlQueries
+import com.jacoby6000.smithy.stache.sql.service.SqlQueryColumn
+import com.jacoby6000.smithy.stache.sql.service.codegen.ResolvedSqlOperationQuery
+import com.jacoby6000.smithy.stache.sql.service.shared.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlParameterizedStatement
-import com.jacoby6000.smithy.stache.sql.shared.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.shapes.StructureShape
@@ -76,7 +74,7 @@ object SqlOperationSqlBindingBuilder {
   private def buildInsertBinding(
       model: Model,
       operation: SqlOperation,
-      query: com.jacoby6000.smithy.stache.sql.SqlInsertQuery,
+      query: com.jacoby6000.smithy.stache.sql.service.SqlInsertQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val bindParameters = query.columns.map(column => columnToBindParameter(model, query.table.shapeId, column))
@@ -115,7 +113,7 @@ object SqlOperationSqlBindingBuilder {
 
   private def buildUpdateBinding(
       model: Model,
-      query: com.jacoby6000.smithy.stache.sql.SqlUpdateQuery,
+      query: com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding =
     SqlCodegenSqlBinding(
@@ -133,7 +131,7 @@ object SqlOperationSqlBindingBuilder {
 
   private def buildDeleteBinding(
       model: Model,
-      query: com.jacoby6000.smithy.stache.sql.SqlDeleteQuery,
+      query: com.jacoby6000.smithy.stache.sql.service.SqlDeleteQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding =
     SqlCodegenSqlBinding(
@@ -151,7 +149,7 @@ object SqlOperationSqlBindingBuilder {
   private def buildSelectOneBinding(
       model: Model,
       operation: SqlOperation,
-      query: com.jacoby6000.smithy.stache.sql.SqlSelectOneQuery,
+      query: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val resultFields =
@@ -233,7 +231,7 @@ object SqlOperationSqlBindingBuilder {
   private def isJsonMember(model: Model, tableShapeId: ShapeId, memberName: String): Boolean =
     tableStructure(model, tableShapeId).toOption
       .flatMap { tableStructure =>
-        tableStructure.getMember(memberName).toScala.map(SmithySqlTraitAccess.sqlJson)
+        tableStructure.getMember(memberName).toScala.map(_.sqlJson)
       }
       .getOrElse(false)
 
@@ -264,8 +262,7 @@ object SqlOperationSqlBindingBuilder {
     tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
       tableStructure.getAllMembers.asScala.toList
         .collectFirst {
-          case (memberName, member)
-              if com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess.columnName(memberName, member) == columnName =>
+          case (memberName, member) if member.sqlColumnName(memberName) == columnName =>
             val resolved = SqlCodegenTypeResolver.resolveMember(model, memberName, member)
             jsonResultField(
               member,
@@ -282,7 +279,7 @@ object SqlOperationSqlBindingBuilder {
       columnIndex: Int,
       pythonTypeName: String
   ): SqlCodegenResultField = {
-    val isJson = SmithySqlTraitAccess.sqlJson(member)
+    val isJson = member.sqlJson
     SqlCodegenResultField(
       fieldName = memberName,
       columnIndex = columnIndex,

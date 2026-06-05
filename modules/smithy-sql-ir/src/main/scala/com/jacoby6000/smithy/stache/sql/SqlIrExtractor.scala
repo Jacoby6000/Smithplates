@@ -23,7 +23,7 @@ object SqlIrExtractor {
 
   def extract(model: Model): SqlValidated[SqlSchema] =
     model.getStructureShapes.asScala.toList
-      .filter(SmithySqlTraitAccess.sqlTableStructure(_).isDefined)
+      .filter(_.sqlTable.isDefined)
       .traverse(extractTable(_, model))
       .map(buildSchema)
 
@@ -55,14 +55,13 @@ object SqlIrExtractor {
               SqlValidated.fromEither(toColumn(memberName, member, model, tableName))
             },
             members.flatTraverse { case (memberName, member) =>
-              SmithySqlTraitAccess
-                .sqlForeignKey(member)
+              member.sqlForeignKey
                 .traverse { foreignKeyTrait =>
                   SqlValidated.fromEither(
                     parseForeignKeyReference(
                       model,
                       structure,
-                      SmithySqlTraitAccess.columnName(memberName, member),
+                      member.sqlColumnName(memberName),
                       foreignKeyTrait.getReferences,
                       foreignKeyTrait.getColumn.toScala,
                       uniqueForeignKeyColumns(indexes)
@@ -98,8 +97,8 @@ object SqlIrExtractor {
   ): SqlValidated[List[SqlIndex]] =
     members
       .traverse { case (memberName, member) =>
-        val hasIndex       = SmithySqlTraitAccess.sqlIndex(member).isDefined
-        val hasUniqueIndex = SmithySqlTraitAccess.sqlUniqueIndex(member).isDefined
+        val hasIndex       = member.sqlIndex.isDefined
+        val hasUniqueIndex = member.sqlUniqueIndex.isDefined
 
         (hasIndex, hasUniqueIndex) match {
           case (true, true)   =>
@@ -111,7 +110,7 @@ object SqlIrExtractor {
               indexFromMember(
                 memberName,
                 member,
-                SmithySqlTraitAccess.sqlIndex(member).flatMap(_.getName.toScala),
+                member.sqlIndex.flatMap(_.getName.toScala),
                 unique = false
               )
             ).validNel
@@ -120,7 +119,7 @@ object SqlIrExtractor {
               indexFromMember(
                 memberName,
                 member,
-                SmithySqlTraitAccess.sqlUniqueIndex(member).flatMap(_.getName.toScala),
+                member.sqlUniqueIndex.flatMap(_.getName.toScala),
                 unique = true
               )
             ).validNel
@@ -136,7 +135,7 @@ object SqlIrExtractor {
   ): SqlIndex =
     SqlIndex(
       name = SqlShared.trimmedNonEmpty(name),
-      columns = List(SmithySqlTraitAccess.columnName(memberName, member)),
+      columns = List(member.sqlColumnName(memberName)),
       unique = unique
     )
 
@@ -144,16 +143,15 @@ object SqlIrExtractor {
     indexes.filter(_.unique).flatMap(_.columns).toSet
 
   private def requireTableName(structure: StructureShape): SqlValidated[String] =
-    SmithySqlTraitAccess
-      .sqlTableStructure(structure)
+    structure.sqlTable
       .flatMap(tableTrait => SqlShared.trimmedNonEmpty(tableTrait.getName))
       .map(SqlValidated.valid)
       .getOrElse(SqlValidated.invalid(MissingSqlTableName(structure.getId)))
 
   private def primaryKeyColumnNames(members: List[(String, MemberShape)]): List[String] =
     members.collect {
-      case (memberName, member) if SmithySqlTraitAccess.sqlPrimaryKey(member) =>
-        SmithySqlTraitAccess.columnName(memberName, member)
+      case (memberName, member) if member.sqlPrimaryKey =>
+        member.sqlColumnName(memberName)
     }
 
   private def toColumn(
@@ -162,15 +160,15 @@ object SqlIrExtractor {
       model: Model,
       tableName: String
   ): Either[SqlSchemaError, SqlColumn] = {
-    val columnName     = SmithySqlTraitAccess.columnName(memberName, member)
-    val autoGeneration = SmithySqlTraitAccess.autoGeneration(member)
+    val columnName     = member.sqlColumnName(memberName)
+    val autoGeneration = member.autoGeneration
     columnTypeConverter
       .fromSmithyMember(model, member)
       .map { columnType =>
         SqlColumn(
           name = columnName,
           columnType = columnType,
-          nullable = !SmithySqlTraitAccess.sqlPrimaryKey(member) && autoGeneration.isEmpty,
+          nullable = !member.sqlPrimaryKey && autoGeneration.isEmpty,
           autoGeneration = autoGeneration
         )
       }
@@ -211,7 +209,7 @@ object SqlIrExtractor {
     for {
       shape    <- model.getShape(shapeId).toScala if shape.isStructureShape
       structure = shape.asStructureShape.get()
-      if SmithySqlTraitAccess.sqlTableStructure(structure).isDefined
+      if structure.sqlTable.isDefined
     } yield structure
 
   private def solePrimaryKeyColumnName(structure: StructureShape): Either[SqlSchemaError, String] =
@@ -221,8 +219,7 @@ object SqlIrExtractor {
         Left(
           MissingPrimaryKey(
             structure.getId,
-            SmithySqlTraitAccess
-              .sqlTableStructure(structure)
+            structure.sqlTable
               .flatMap(tableTrait => SqlShared.trimmedNonEmpty(tableTrait.getName))
               .getOrElse(structure.getId.getName)
           )

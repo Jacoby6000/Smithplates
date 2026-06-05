@@ -1,6 +1,7 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ServiceShape
@@ -9,10 +10,10 @@ import software.amazon.smithy.model.shapes.ShapeId
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-private[sql] object SqlServiceExtractor {
+private[service] object SqlServiceExtractor {
   def extract(model: Model): SqlValidated[List[SqlService]] =
     model.getServiceShapes.asScala.toList
-      .filter(service => SmithySqlServiceTraitAccess.sqlService(service).isDefined)
+      .filter(_.sqlService.isDefined)
       .traverse(extractService(model, _))
 
   private def extractService(model: Model, service: ServiceShape): SqlValidated[SqlService] = {

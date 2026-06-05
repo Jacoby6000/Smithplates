@@ -1,21 +1,25 @@
-package com.jacoby6000.smithy.stache.sql.shared
+package com.jacoby6000.smithy.stache.sql.service.shared
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithy.stache.sql.PostgresDialect
 import com.jacoby6000.smithy.stache.sql.SqlAutoGeneration
 import com.jacoby6000.smithy.stache.sql.SqlAutoUuid
 import com.jacoby6000.smithy.stache.sql.SqlCreatedTimestamp
-import com.jacoby6000.smithy.stache.sql.SqlDeleteQuery
 import com.jacoby6000.smithy.stache.sql.SqlDialect
-import com.jacoby6000.smithy.stache.sql.SqlInsertQuery
-import com.jacoby6000.smithy.stache.sql.SqlJoinType
-import com.jacoby6000.smithy.stache.sql.SqlQueries
-import com.jacoby6000.smithy.stache.sql.SqlSelectOneQuery
-import com.jacoby6000.smithy.stache.sql.SqlSelectQuery
-import com.jacoby6000.smithy.stache.sql.SqlSortDirection
-import com.jacoby6000.smithy.stache.sql.SqlUpdateQuery
 import com.jacoby6000.smithy.stache.sql.SqlUpdatedTimestamp
 import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.service.SqlDeleteQuery
+import com.jacoby6000.smithy.stache.sql.service.SqlInsertQuery
+import com.jacoby6000.smithy.stache.sql.service.SqlJoinType
+import com.jacoby6000.smithy.stache.sql.service.SqlQueries
+import com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery
+import com.jacoby6000.smithy.stache.sql.service.SqlSelectQuery
+import com.jacoby6000.smithy.stache.sql.service.SqlSortDirection
+import com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery
+import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
+import com.jacoby6000.smithy.stache.sql.shared.SqlQuerySegmentBuilder
+import com.jacoby6000.smithy.stache.sql.shared.SqlRenderOutput
+import com.jacoby6000.smithy.stache.sql.shared.SqlRenderUnit
 
 /** Renders INSERT, UPDATE, and SELECT statements from validated query models. */
 object SqlQueryRenderer {
@@ -156,7 +160,7 @@ object SqlQueryRenderer {
 
   private def appendComparisonClause(
       builder: SqlQuerySegmentBuilder,
-      predicates: List[com.jacoby6000.smithy.stache.sql.SqlSelectPredicate],
+      predicates: List[com.jacoby6000.smithy.stache.sql.service.SqlSelectPredicate],
       keyword: String,
       prefix: String = "\n"
   ): Unit =
@@ -174,14 +178,14 @@ object SqlQueryRenderer {
 
   private def appendPredicateOperand(
       builder: SqlQuerySegmentBuilder,
-      operand: com.jacoby6000.smithy.stache.sql.SqlPredicateOperand
+      operand: com.jacoby6000.smithy.stache.sql.service.SqlPredicateOperand
   ): Unit =
     operand match {
-      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.InputMember(_)         =>
+      case com.jacoby6000.smithy.stache.sql.service.SqlPredicateOperand.InputMember(_)         =>
         builder.appendParameter()
-      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.TableColumn(column)    =>
+      case com.jacoby6000.smithy.stache.sql.service.SqlPredicateOperand.TableColumn(column)    =>
         builder.appendText(s"${column.tableAlias}.${column.columnName}")
-      case com.jacoby6000.smithy.stache.sql.SqlPredicateOperand.Projection(projection) =>
+      case com.jacoby6000.smithy.stache.sql.service.SqlPredicateOperand.Projection(projection) =>
         builder.appendText(projection.renderExpression)
     }
 
@@ -209,7 +213,7 @@ object SqlQueryRenderer {
       }
     }
 
-  private def renderJoinClause(join: com.jacoby6000.smithy.stache.sql.SqlSelectJoin): String = {
+  private def renderJoinClause(join: com.jacoby6000.smithy.stache.sql.service.SqlSelectJoin): String = {
     val joinKeyword =
       join.joinType match {
         case SqlJoinType.Inner => "INNER JOIN"

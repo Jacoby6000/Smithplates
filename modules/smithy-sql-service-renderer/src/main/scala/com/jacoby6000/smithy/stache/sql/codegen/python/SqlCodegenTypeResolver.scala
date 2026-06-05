@@ -1,6 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.codegen.python
 
-import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.codegen.SqlCodegenMember
 import com.jacoby6000.smithy.stache.sql.codegen.SqlCodegenMemberRole
 import software.amazon.smithy.model.Model
@@ -118,8 +118,8 @@ object SqlCodegenTypeResolver {
         !member.isRequired
       case SqlCodegenMemberRole.SqlTableRow =>
         !member.isRequired &&
-        !SmithySqlTraitAccess.sqlPrimaryKey(member) &&
-        SmithySqlTraitAccess.autoGeneration(member).isEmpty
+        !member.sqlPrimaryKey &&
+        member.autoGeneration.isEmpty
     }
 
   def referencedStructureIds(model: Model, rootShapeId: ShapeId): List[ShapeId] = {

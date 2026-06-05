@@ -1,4 +1,6 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
+
+import com.jacoby6000.smithy.stache.sql.*
 
 class SqlQueryExtractorSpec extends munit.FunSuite {
   test("DeriveInsert - derives input columns from table and returns id when output matches primary key type") {

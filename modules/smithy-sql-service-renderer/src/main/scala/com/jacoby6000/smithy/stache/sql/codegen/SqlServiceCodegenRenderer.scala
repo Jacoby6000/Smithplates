@@ -4,10 +4,10 @@ import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.PostgresDialect
 import com.jacoby6000.smithy.stache.sql.SqlDialect
 import com.jacoby6000.smithy.stache.sql.SqlSchema
-import com.jacoby6000.smithy.stache.sql.SqlServiceIr
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.SqliteDialect
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTemplateAttributes
+import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.Model
 

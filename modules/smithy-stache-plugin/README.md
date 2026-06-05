@@ -153,9 +153,11 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 
 | Package | Responsibility |
 |---------|----------------|
-| `com.jacoby6000.smithy.stache.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), model extraction, `DialectRenderer` dispatch |
-| `com.jacoby6000.smithy.stache.sql.traits` | Java `TraitService` implementations for SQL traits (SPI-registered) |
-| `com.jacoby6000.smithy.stache.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `SqlRenderUnit` / `SqlRenderOutput` (structured render artifacts: DDL and query units keyed by Smithy shape id), `SqlQueryRenderer` (INSERT/UPDATE/SELECT) |
+| `com.jacoby6000.smithy.stache.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), schema IR extraction, table traits |
+| `com.jacoby6000.smithy.stache.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.service` | Service/query IR, extractors, `DialectRenderer`, query rendering (`smithy-sql-service-ir`) |
+| `com.jacoby6000.smithy.stache.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
+| `com.jacoby6000.smithy.stache.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `SqlRenderUnit` / `SqlRenderOutput` (structured render artifacts: DDL and query units keyed by Smithy shape id) |
 | `com.jacoby6000.smithy.stache.sql.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithy.stache.sql.postgres` | Postgres column types |
 | `com.jacoby6000.smithy.stache.sql.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |

@@ -1,4 +1,4 @@
-package com.jacoby6000.smithy.stache.sql.traits;
+package com.jacoby6000.smithy.stache.sql.service.traits;
 
 import software.amazon.smithy.model.node.Node;
 import software.amazon.smithy.model.node.ObjectNode;

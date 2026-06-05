@@ -1,6 +1,7 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.Model
 
 object SqlServiceIrExtractor {

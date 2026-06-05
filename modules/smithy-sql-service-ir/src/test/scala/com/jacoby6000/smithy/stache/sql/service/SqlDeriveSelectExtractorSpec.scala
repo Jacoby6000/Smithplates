@@ -1,4 +1,6 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
+
+import com.jacoby6000.smithy.stache.sql.*
 
 class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   private def baseTableModel: String =

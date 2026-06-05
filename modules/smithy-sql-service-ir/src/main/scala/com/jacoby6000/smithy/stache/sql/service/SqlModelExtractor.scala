@@ -1,6 +1,7 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.data.Validated
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.Model
 
 /** Combined SQL and service IR extraction result for plugin orchestration and tests. */

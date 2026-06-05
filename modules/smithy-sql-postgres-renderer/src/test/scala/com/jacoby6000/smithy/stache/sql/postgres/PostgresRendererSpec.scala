@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.postgres
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 

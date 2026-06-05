@@ -1,6 +1,7 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
+import com.jacoby6000.smithy.stache.sql.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.OperationShape
@@ -11,7 +12,7 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 /** Catalog of @sqlTable structure members used for query validation. */
-private[sql] object SqlTableMemberCatalog {
+private[service] object SqlTableMemberCatalog {
   final case class TableMemberInfo(
       memberName: String,
       columnName: String,
@@ -38,10 +39,10 @@ private[sql] object SqlTableMemberCatalog {
       .map { case (memberName, member) =>
         TableMemberInfo(
           memberName = memberName,
-          columnName = SmithySqlTraitAccess.columnName(memberName, member),
+          columnName = member.sqlColumnName(memberName),
           required = member.isRequired,
-          autoGeneration = SmithySqlTraitAccess.autoGeneration(member),
-          isPrimaryKey = SmithySqlTraitAccess.sqlPrimaryKey(member)
+          autoGeneration = member.autoGeneration,
+          isPrimaryKey = member.sqlPrimaryKey
         )
       }
 
@@ -49,7 +50,7 @@ private[sql] object SqlTableMemberCatalog {
     for {
       shape    <- model.getShape(shapeId).toScala if shape.isStructureShape
       structure = shape.asStructureShape.get()
-      if SmithySqlTraitAccess.sqlTableStructure(structure).isDefined
+      if structure.sqlTable.isDefined
     } yield structure
 
   def parseShapeId(reference: String): Option[ShapeId] =
@@ -79,7 +80,7 @@ object SqlQueryExtractor {
   private def extractInserts(model: Model, schema: SqlSchema): SqlValidated[List[SqlInsertQuery]] =
     model.getOperationShapes.asScala.toList
       .flatMap { operation =>
-        SmithySqlServiceTraitAccess.sqlDeriveInsert(operation).map(insertTrait => (operation, insertTrait))
+        operation.sqlDeriveInsert.map(insertTrait => (operation, insertTrait))
       }
       .traverse { case (operation, insertTrait) =>
         extractInsert(model, schema, operation, insertTrait.getTargetTable)
@@ -94,7 +95,7 @@ object SqlQueryExtractor {
   private def extractStructureUpdates(model: Model, schema: SqlSchema): SqlValidated[List[SqlUpdateQuery]] =
     model.getStructureShapes.asScala.toList
       .flatMap { structure =>
-        SmithySqlServiceTraitAccess.sqlUpdate(structure).map(updateTrait => (structure, updateTrait))
+        structure.sqlUpdate.map(updateTrait => (structure, updateTrait))
       }
       .traverse { case (structure, updateTrait) =>
         extractStructureUpdate(model, schema, structure, updateTrait.getTableRef)
@@ -103,7 +104,7 @@ object SqlQueryExtractor {
   private def extractDeriveUpdates(model: Model, schema: SqlSchema): SqlValidated[List[SqlUpdateQuery]] =
     model.getOperationShapes.asScala.toList
       .flatMap { operation =>
-        SmithySqlServiceTraitAccess.sqlDeriveUpdate(operation).map(updateTrait => (operation, updateTrait))
+        operation.sqlDeriveUpdate.map(updateTrait => (operation, updateTrait))
       }
       .traverse { case (operation, updateTrait) =>
         extractDeriveUpdate(model, schema, operation, updateTrait.getTargetTable)
@@ -112,7 +113,7 @@ object SqlQueryExtractor {
   private def extractDeletes(model: Model, schema: SqlSchema): SqlValidated[List[SqlDeleteQuery]] =
     model.getOperationShapes.asScala.toList
       .flatMap { operation =>
-        SmithySqlServiceTraitAccess.sqlDeriveDelete(operation).map(deleteTrait => (operation, deleteTrait))
+        operation.sqlDeriveDelete.map(deleteTrait => (operation, deleteTrait))
       }
       .traverse { case (operation, deleteTrait) =>
         extractDeriveDelete(model, schema, operation, deleteTrait.getTargetTable)
@@ -121,7 +122,7 @@ object SqlQueryExtractor {
   private def extractSelectOnes(model: Model, schema: SqlSchema): SqlValidated[List[SqlSelectOneQuery]] =
     model.getOperationShapes.asScala.toList
       .flatMap { operation =>
-        SmithySqlServiceTraitAccess.sqlDeriveSelectOne(operation).map(selectTrait => (operation, selectTrait))
+        operation.sqlDeriveSelectOne.map(selectTrait => (operation, selectTrait))
       }
       .traverse { case (operation, selectTrait) =>
         extractDeriveSelectOne(model, schema, operation, selectTrait.getTargetTable)
@@ -456,7 +457,7 @@ object SqlQueryExtractor {
 
   private def primaryKeyMemberTargets(tableStructure: StructureShape): List[(String, ShapeId)] =
     tableStructure.getAllMembers.asScala.toList.collect {
-      case (memberName, member) if SmithySqlTraitAccess.sqlPrimaryKey(member) =>
+      case (memberName, member) if member.sqlPrimaryKey =>
         (memberName, member.getTarget)
     }
 

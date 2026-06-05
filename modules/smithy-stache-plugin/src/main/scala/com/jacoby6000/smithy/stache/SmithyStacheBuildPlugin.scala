@@ -3,9 +3,9 @@ package com.jacoby6000.smithy.stache
 import cats.data.Validated
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.SqlIrExtractor
-import com.jacoby6000.smithy.stache.sql.SqlServiceIrExtractor
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenRenderer
+import com.jacoby6000.smithy.stache.sql.service.SqlServiceIrExtractor
 import software.amazon.smithy.build.PluginContext
 import software.amazon.smithy.build.SmithyBuildPlugin
 

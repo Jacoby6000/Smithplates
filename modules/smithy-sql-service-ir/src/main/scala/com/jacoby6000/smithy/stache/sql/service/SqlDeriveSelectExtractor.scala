@@ -1,14 +1,15 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.SqlDeriveSelectReferenceResolver.ResolvedReference
-import com.jacoby6000.smithy.stache.sql.SqlDeriveSelectReferenceResolver.SelectScope
-import com.jacoby6000.smithy.stache.sql.SqlSelectTableContext.TableContext
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectConditionValue
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectOrderByValue
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectProjectionValue
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectProjectionsValue
-import com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectTrait
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlDeriveSelectReferenceResolver.ResolvedReference
+import com.jacoby6000.smithy.stache.sql.service.SqlDeriveSelectReferenceResolver.SelectScope
+import com.jacoby6000.smithy.stache.sql.service.SqlSelectTableContext.TableContext
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectConditionValue
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectOrderByValue
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectProjectionValue
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectProjectionsValue
+import com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectTrait
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ShapeId
@@ -17,7 +18,7 @@ import software.amazon.smithy.model.shapes.StructureShape
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-private[sql] object SqlDeriveSelectExtractor {
+private[service] object SqlDeriveSelectExtractor {
   private enum FilterClause {
     case Where
     case Having
@@ -26,7 +27,7 @@ private[sql] object SqlDeriveSelectExtractor {
   def extractDeriveSelects(model: Model, schema: SqlSchema): SqlValidated[List[SqlSelectQuery]] =
     model.getOperationShapes.asScala.toList
       .flatMap { operation =>
-        SmithySqlServiceTraitAccess.sqlDeriveSelect(operation).map(selectTrait => (operation, selectTrait))
+        operation.sqlDeriveSelect.map(selectTrait => (operation, selectTrait))
       }
       .traverse { case (operation, selectTrait) =>
         extractDeriveSelect(model, schema, operation, selectTrait)

@@ -1,6 +1,7 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
@@ -10,7 +11,7 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 /** Resolves JOIN ON clauses from @sqlForeignKey relationships between two tables. */
-private[sql] object SqlSelectJoinResolver {
+private[service] object SqlSelectJoinResolver {
   final case class ResolvedForeignKey(
       sourceTable: SqlTable,
       sourceColumn: String,
@@ -77,7 +78,7 @@ private[sql] object SqlSelectJoinResolver {
       targetTable: SqlTable
   ): List[ResolvedForeignKey] =
     sourceStructure.getAllMembers.asScala.toList.flatMap { case (memberName, member) =>
-      SmithySqlTraitAccess.sqlForeignKey(member).flatMap { foreignKeyTrait =>
+      member.sqlForeignKey.flatMap { foreignKeyTrait =>
         SqlTableMemberCatalog
           .parseShapeId(foreignKeyTrait.getReferences)
           .filter(_ == targetStructure.getId)
@@ -85,7 +86,7 @@ private[sql] object SqlSelectJoinResolver {
             resolveReferencedColumn(targetStructure, foreignKeyTrait.getColumn.toScala).map { referencedColumn =>
               ResolvedForeignKey(
                 sourceTable = sourceTable,
-                sourceColumn = SmithySqlTraitAccess.columnName(memberName, member),
+                sourceColumn = member.sqlColumnName(memberName),
                 targetTable = targetTable,
                 targetColumn = referencedColumn
               )

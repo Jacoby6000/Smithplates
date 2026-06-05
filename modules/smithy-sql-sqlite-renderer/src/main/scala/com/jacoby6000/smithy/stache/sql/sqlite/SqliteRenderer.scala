@@ -1,8 +1,10 @@
 package com.jacoby6000.smithy.stache.sql.sqlite
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.DialectRenderer
+import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
+import com.jacoby6000.smithy.stache.sql.service.shared.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.shared.DDLStatement
-import com.jacoby6000.smithy.stache.sql.shared.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlRenderUnit
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 

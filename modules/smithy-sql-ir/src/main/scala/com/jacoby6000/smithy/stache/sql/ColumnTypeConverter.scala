@@ -38,27 +38,27 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
   ): Either[UnsupportedColumnType, SqlColumnType] = {
     val target = member.getTarget
 
-    if (SmithySqlTraitAccess.sqlJson(member)) {
+    if (member.sqlJson) {
       jsonColumnTypeForTarget(model, target).toRight(
         UnsupportedColumnType(target, InvalidMemberColumnType.Kind.SqlJson)
       )
     } else {
-      SmithySqlTraitAccess.sqlVarchar(model, member) match {
-        case Some(varcharTrait)                                  =>
+      member.sqlVarchar(model) match {
+        case Some(varcharTrait)            =>
           stringLikeColumnType(
             model,
             target,
             SqlColumnType.Varchar(varcharTrait.getMaxLength),
             InvalidMemberColumnType.Kind.SqlVarchar
           )
-        case None if SmithySqlTraitAccess.sqlUuid(model, member) =>
+        case None if member.sqlUuid(model) =>
           stringLikeColumnType(
             model,
             target,
             SqlColumnType.Uuid,
             InvalidMemberColumnType.Kind.SqlUuid
           )
-        case None                                                =>
+        case None                          =>
           columnTypeForTarget(model, target).toRight(
             UnsupportedColumnType(target, InvalidMemberColumnType.Kind.Unsupported)
           )

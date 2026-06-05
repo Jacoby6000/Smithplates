@@ -1,7 +1,7 @@
-com.jacoby6000.smithy.stache.sql.traits.SqlDeriveInsertTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlDeriveUpdateTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlDeriveDeleteTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectOneTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlDeriveSelectTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlUpdateTrait$Provider
-com.jacoby6000.smithy.stache.sql.traits.SqlServiceTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveInsertTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveUpdateTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveDeleteTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectOneTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlDeriveSelectTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlUpdateTrait$Provider
+com.jacoby6000.smithy.stache.sql.service.traits.SqlServiceTrait$Provider

@@ -5,9 +5,9 @@ import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestCase
 import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateVariant
 import com.jacoby6000.smithy.stache.sql.PostgresDialect
 import com.jacoby6000.smithy.stache.sql.SqlDialect
-import com.jacoby6000.smithy.stache.sql.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
 import com.jacoby6000.smithy.stache.sql.SqliteDialect
+import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
 import com.jacoby6000.smithy.stache.sql.shared.SqlBindPlaceholder
 import software.amazon.smithy.model.Model
 

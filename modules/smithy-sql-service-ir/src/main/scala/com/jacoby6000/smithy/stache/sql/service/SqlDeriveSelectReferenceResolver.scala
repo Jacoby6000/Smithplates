@@ -1,11 +1,12 @@
-package com.jacoby6000.smithy.stache.sql
+package com.jacoby6000.smithy.stache.sql.service
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.SqlSelectTableContext.TableContext
+import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlSelectTableContext.TableContext
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Resolves `input.member`, `alias.column`, projection aliases, and bare column names. */
-private[sql] object SqlDeriveSelectReferenceResolver {
+private[service] object SqlDeriveSelectReferenceResolver {
   private val InputPrefix = "input"
 
   final case class SelectScope(

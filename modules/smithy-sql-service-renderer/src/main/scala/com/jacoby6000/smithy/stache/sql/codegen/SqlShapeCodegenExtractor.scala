@@ -1,9 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.InvalidCodegenShape
-import com.jacoby6000.smithy.stache.sql.SmithySqlTraitAccess
-import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
@@ -70,7 +68,7 @@ object SqlShapeCodegenExtractor {
       structure: StructureShape
   ): SqlValidated[List[SqlCodegenMember]] = {
     val memberRole =
-      if (SmithySqlTraitAccess.sqlTableStructure(structure).isDefined) {
+      if (structure.sqlTable.isDefined) {
         SqlCodegenMemberRole.SqlTableRow
       } else {
         SqlCodegenMemberRole.General
