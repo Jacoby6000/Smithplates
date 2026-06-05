@@ -23,7 +23,7 @@ object SqlItModelLoader {
     val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
       throw new IllegalStateException(
         s"SQL traits Smithy model not on classpath at '$path'. " +
-          "Ensure smithy-sql-plugin is on the classpath."
+          "Ensure smithy-stache-plugin is on the classpath."
       )
     }
     try {

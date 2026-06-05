@@ -9,7 +9,7 @@ SmithyStache plugins are consumed as Maven JARs during `smithy build`. Models an
 
 Republish after every plugin source change. JARs are written under:
 
-- `~/.m2/repository/com/jacoby6000/smithy-sql-plugin/0.1.0/`
+- `~/.m2/repository/com/jacoby6000/smithy-stache-plugin/0.1.0/`
 
 ## Version alignment
 
@@ -17,7 +17,7 @@ Keep these in sync across SmithyStache and every consumer:
 
 | Artifact | Version in `build.sbt` | `smithy-build.json` coordinate |
 |----------|----------------------|--------------------------------|
-| SQL plugin | `0.1.0` | `com.jacoby6000:smithy-sql-plugin:0.1.0` |
+| SQL plugin | `0.1.0` | `com.jacoby6000:smithy-stache-plugin:0.1.0` |
 | Smithy toolchain | `1.71.0` (in plugin `libraryDependencies`) | Matching Smithy CLI |
 
 ## `smithy-build.json` example
@@ -30,7 +30,7 @@ Configure SmithyStache under the `smithy-stache` plugin key. SQL settings live u
   "sources": ["example"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithy-sql-plugin:0.1.0"
+      "com.jacoby6000:smithy-stache-plugin:0.1.0"
     ]
   },
   "plugins": {

@@ -1,6 +1,6 @@
 # SQL plugin
 
-Maven coordinate: `com.jacoby6000:smithy-sql-plugin:0.1.0`
+Maven coordinate: `com.jacoby6000:smithy-stache-plugin:0.1.0`
 
 Smithy build plugin (`smithy-stache`) and trait namespace for relational schema and repository codegen from Smithy models.
 

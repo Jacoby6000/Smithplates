@@ -1,6 +1,6 @@
 # Integration tests
 
-End-to-end tests for [`smithy-sql-plugin`](../sql-plugin/): Smithy models are extracted, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
+End-to-end tests for [`smithy-stache-plugin`](../sql-plugin/): Smithy models are extracted, dialect DDL is rendered, and the SQL is applied to real databases via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
 
 ## Modules
 

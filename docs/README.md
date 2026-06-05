@@ -14,7 +14,7 @@ SmithyStache publishes Smithy build plugins for SQL schema and repository codege
 
 | Document | Plugin |
 |----------|--------|
-| [SQL schema & service codegen](sql-plugin.md) | `com.jacoby6000:smithy-sql-plugin` |
+| [SQL schema & service codegen](sql-plugin.md) | `com.jacoby6000:smithy-stache-plugin` |
 
 ## Testing
 

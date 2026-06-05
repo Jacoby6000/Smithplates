@@ -15,7 +15,7 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 
 | Directory | Maven coordinate | Role |
 |-----------|------------------|------|
-| [`sql-plugin/`](../sql-plugin/) | `com.jacoby6000:smithy-sql-plugin:0.1.0` | `smithy-stache` build plugin; SQL trait definitions |
+| [`sql-plugin/`](../sql-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | `smithy-stache` build plugin; SQL trait definitions |
 | [`sql-plugin-common-it/`](../sql-plugin-common-it/) | — | Shared integration-test fixtures (`src/main`) |
 | [`sql-plugin-postgres-it/`](../sql-plugin-postgres-it/) | — | Postgres integration tests (testcontainers-scala) |
 | [`sql-plugin-sqlite-it/`](../sql-plugin-sqlite-it/) | — | SQLite integration tests (testcontainers-scala) |

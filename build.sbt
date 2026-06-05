@@ -38,7 +38,7 @@ def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
 lazy val smithySqlPlugin = (project in file("sql-plugin"))
   .settings(
     strictScala3Settings,
-    name := "smithy-sql-plugin",
+    name := "smithy-stache-plugin",
     organization := "com.jacoby6000",
     version := "0.1.0",
     crossPaths := false,

@@ -1,4 +1,4 @@
-# smithy-sql-plugin
+# smithy-stache-plugin
 
 Scala/SBT Smithy build plugin that generates SQLite and Postgres DDL from custom SQL traits.
 
@@ -227,7 +227,7 @@ Register in `smithy-build.json` (see [`docs/integration.md`](../docs/integration
 ```json
 "maven": {
   "dependencies": [
-    "com.jacoby6000:smithy-sql-plugin:0.1.0"
+    "com.jacoby6000:smithy-stache-plugin:0.1.0"
   ]
 },
 "plugins": {
