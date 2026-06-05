@@ -116,6 +116,28 @@ final class PostgresColumnRendererSpec extends FunSuite {
   validateColumnRender(
     "Timestamp (date-time)",
     SqlColumn(
+      name = "updated_at",
+      columnType = SqlColumnType.Timestamp(SqlTimestampFormat.DateTime),
+      nullable = false
+    ),
+    "TIMESTAMP NOT NULL",
+    "TIMESTAMP"
+  )
+
+  validateColumnRender(
+    "Timestamp (epoch-seconds)",
+    SqlColumn(
+      name = "occurred_at",
+      columnType = SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds),
+      nullable = false
+    ),
+    "DECIMAL(13, 3) NOT NULL",
+    "DECIMAL(13, 3)"
+  )
+
+  validateColumnRender(
+    "CreatedTimestamp (date-time)",
+    SqlColumn(
       name = "created_at",
       columnType = SqlColumnType.Timestamp(SqlTimestampFormat.DateTime),
       nullable = false,
@@ -126,9 +148,9 @@ final class PostgresColumnRendererSpec extends FunSuite {
   )
 
   validateColumnRender(
-    "Timestamp (epoch-seconds)",
+    "CreatedTimestamp (epoch-seconds)",
     SqlColumn(
-      name = "occurred_at",
+      name = "recorded_at",
       columnType = SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds),
       nullable = false,
       autoGeneration = Some(SqlCreatedTimestamp)
