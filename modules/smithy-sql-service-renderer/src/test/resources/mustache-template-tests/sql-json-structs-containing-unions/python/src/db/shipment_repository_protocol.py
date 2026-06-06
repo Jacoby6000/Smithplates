@@ -6,7 +6,6 @@ from typing import Protocol
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
-    ShipmentNotFound,
     DeliveryState,
 )
 
@@ -21,7 +20,7 @@ class ShipmentRepositoryServiceProtocol(Protocol):
     async def get_shipment(
         self,
         id: str,
-    ) -> Shipment | ShipmentNotFound:
+    ) -> Shipment | None:
         ...
     async def update_shipment(
         self,

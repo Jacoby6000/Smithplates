@@ -12,7 +12,6 @@ import psycopg
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
-    ShipmentNotFound,
     DeliveryState,
 )
 from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
@@ -42,16 +41,14 @@ class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol):
     async def get_shipment(
         self,
         id: str,
-    ) -> Shipment | ShipmentNotFound:
+    ) -> Shipment | None:
         cur = await self._connection.execute(
             """SELECT id, label, destination, state, created_at FROM shipments WHERE id = %s;""",
             (id,),
         )
         row = await cur.fetchone()
         if row is None:
-            return ShipmentNotFound(
-                message="Resource not found",
-            )
+            return None
         return Shipment(
             id=_read_str(row, 0),
             label=_read_str(row, 1),

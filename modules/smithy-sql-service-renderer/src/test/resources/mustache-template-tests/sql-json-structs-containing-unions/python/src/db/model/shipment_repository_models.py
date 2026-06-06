@@ -21,6 +21,3 @@ class Shipment:
     destination: PostalAddress
     state: DeliveryState
     created_at: datetime
-@dataclass
-class ShipmentNotFound:
-    message: str

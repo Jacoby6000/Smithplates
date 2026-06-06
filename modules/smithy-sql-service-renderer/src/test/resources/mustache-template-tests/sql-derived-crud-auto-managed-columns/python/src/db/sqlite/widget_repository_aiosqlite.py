@@ -10,7 +10,6 @@ import aiosqlite
 
 from widget_repository_models import (
     Widget,
-    WidgetNotFound,
 )
 from widget_repository_protocol import WidgetRepositoryServiceProtocol
 
@@ -38,16 +37,14 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol):
     async def get_widget(
         self,
         id: str,
-    ) -> Widget | WidgetNotFound:
+    ) -> Widget | None:
         cursor = await self._connection.execute(
             """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = ?;""",
             (id,),
         )
         row = await cursor.fetchone()
         if row is None:
-            return WidgetNotFound(
-                message="Resource not found",
-            )
+            return None
         return Widget(
             id=_read_str(row, 0),
             foo=_read_str(row, 1),

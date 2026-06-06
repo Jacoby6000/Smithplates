@@ -10,6 +10,3 @@ class Widget:
     bar: int | None
     created_at: datetime
     updated_at: datetime
-@dataclass
-class WidgetNotFound:
-    message: str

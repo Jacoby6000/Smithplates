@@ -5,7 +5,6 @@ from typing import Protocol
 
 from widget_repository_models import (
     Widget,
-    WidgetNotFound,
 )
 
 class WidgetRepositoryServiceProtocol(Protocol):
@@ -18,7 +17,7 @@ class WidgetRepositoryServiceProtocol(Protocol):
     async def get_widget(
         self,
         id: str,
-    ) -> Widget | WidgetNotFound:
+    ) -> Widget | None:
         ...
     async def update_widget(
         self,

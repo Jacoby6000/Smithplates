@@ -54,11 +54,8 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{i8}})
 {{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
-{{#hasNotFoundError}}{{i12}}return {{notFoundErrorClassName}}(
-{{i12}}    message="Resource not found",
-{{i12}})
-{{/hasNotFoundError}}{{^hasNotFoundError}}{{i12}}raise RuntimeError("SELECT returned no row")
-{{/hasNotFoundError}}{{i8}}return {{outputClassName}}(
+{{i12}}return None
+{{i8}}return {{outputClassName}}(
 {{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
 {{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
 {{/isJson}}{{/resultFields}}{{i8}})

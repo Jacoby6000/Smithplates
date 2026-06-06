@@ -114,47 +114,43 @@ object SqlCodegenTemplateAttributes {
     operation.sql match {
       case None      =>
         base ++ Map[String, Any](
-          "queryKind"              -> "",
-          "sqlStatement"           -> "",
-          "tableName"              -> "",
-          "bindParameters"         -> Nil,
-          "hasBindParameters"      -> false,
-          "executionMode"          -> "",
-          "isRowcountExecution"    -> false,
-          "outputKind"             -> "",
-          "isInsertScalar"         -> false,
-          "isInsertStructure"      -> false,
-          "isBooleanMutation"      -> false,
-          "isSelectOne"            -> false,
-          "returningColumnIndex"   -> null,
-          "resultFields"           -> Nil,
-          "hasResultFields"        -> false,
-          "notFoundErrorClassName" -> null,
-          "hasNotFoundError"       -> false
+          "queryKind"            -> "",
+          "sqlStatement"         -> "",
+          "tableName"            -> "",
+          "bindParameters"       -> Nil,
+          "hasBindParameters"    -> false,
+          "executionMode"        -> "",
+          "isRowcountExecution"  -> false,
+          "outputKind"           -> "",
+          "isInsertScalar"       -> false,
+          "isInsertStructure"    -> false,
+          "isBooleanMutation"    -> false,
+          "isSelectOne"          -> false,
+          "returningColumnIndex" -> null,
+          "resultFields"         -> Nil,
+          "hasResultFields"      -> false
         )
       case Some(sql) =>
         base ++ Map[String, Any](
-          "queryKind"              -> sql.queryKind,
-          "sqlStatement"           -> SqlBindPlaceholder.format(
+          "queryKind"            -> sql.queryKind,
+          "sqlStatement"         -> SqlBindPlaceholder.format(
             sql.sqlStatement.segments,
             bindPlaceholderStyle
           ),
-          "tableName"              -> sql.tableName,
-          "bindParameters"         -> withLastFlag(sql.bindParameters.map(bindParameterAttributes)),
-          "bindTupleExpression"    -> renderBindTupleExpression(sql.bindParameters),
-          "hasBindParameters"      -> sql.bindParameters.nonEmpty,
-          "executionMode"          -> sql.executionMode,
-          "isRowcountExecution"    -> (sql.executionMode == "rowcount"),
-          "outputKind"             -> sql.outputKind,
-          "isInsertScalar"         -> (sql.queryKind == "insert" && sql.outputKind == "scalar"),
-          "isInsertStructure"      -> (sql.queryKind == "insert" && sql.outputKind == "structure"),
-          "isBooleanMutation"      -> (sql.outputKind == "boolean"),
-          "isSelectOne"            -> (sql.queryKind == "selectOne"),
-          "returningColumnIndex"   -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
-          "resultFields"           -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
-          "hasResultFields"        -> sql.resultFields.nonEmpty,
-          "notFoundErrorClassName" -> sql.notFoundErrorClassName.orNull,
-          "hasNotFoundError"       -> sql.notFoundErrorClassName.isDefined
+          "tableName"            -> sql.tableName,
+          "bindParameters"       -> withLastFlag(sql.bindParameters.map(bindParameterAttributes)),
+          "bindTupleExpression"  -> renderBindTupleExpression(sql.bindParameters),
+          "hasBindParameters"    -> sql.bindParameters.nonEmpty,
+          "executionMode"        -> sql.executionMode,
+          "isRowcountExecution"  -> (sql.executionMode == "rowcount"),
+          "outputKind"           -> sql.outputKind,
+          "isInsertScalar"       -> (sql.queryKind == "insert" && sql.outputKind == "scalar"),
+          "isInsertStructure"    -> (sql.queryKind == "insert" && sql.outputKind == "structure"),
+          "isBooleanMutation"    -> (sql.outputKind == "boolean"),
+          "isSelectOne"          -> (sql.queryKind == "selectOne"),
+          "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
+          "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
+          "hasResultFields"      -> sql.resultFields.nonEmpty
         )
     }
   }
@@ -524,8 +520,6 @@ ${memberIndent})"""
       "methodName"                 -> operation.methodName,
       "callArguments"              -> operation.callArguments,
       "outputClassName"            -> operation.outputClassName.orNull,
-      "notFoundErrorClassName"     -> operation.notFoundErrorClassName.orNull,
-      "hasNotFoundError"           -> operation.notFoundErrorClassName.isDefined,
       "hasOutputClassName"         -> operation.outputClassName.isDefined,
       "resultAssertions"           -> withLastFlag(
         operation.resultAssertions.map(assertion => Map("line" -> assertion))

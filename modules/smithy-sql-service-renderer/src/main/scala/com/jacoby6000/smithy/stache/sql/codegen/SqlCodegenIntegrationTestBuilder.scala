@@ -89,7 +89,6 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial),
         updatedCallArguments = None,
         outputClassName = operation.outputClassName,
-        notFoundErrorClassName = None,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -117,7 +116,6 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputClassName = operation.outputClassName,
-        notFoundErrorClassName = operation.errors.headOption.map(_.className),
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial),
         updatedResultAssertions =
           resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated)
@@ -142,7 +140,6 @@ object SqlCodegenIntegrationTestBuilder {
         },
         updatedCallArguments = None,
         outputClassName = operation.outputClassName,
-        notFoundErrorClassName = None,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -155,7 +152,6 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputClassName = operation.outputClassName,
-        notFoundErrorClassName = None,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -186,19 +182,14 @@ object SqlCodegenIntegrationTestBuilder {
       serviceFixtureName: String,
       selectOne: SqlCodegenIntegrationTestOperation,
       delete: SqlCodegenIntegrationTestOperation
-  ): String = {
-    val notFoundErrorClassName =
-      selectOne.notFoundErrorClassName.getOrElse(
-        throw new IllegalStateException("selectOne integration test operation missing notFoundErrorClassName")
-      )
+  ): String =
     List(
       s"    deleted = await $serviceFixtureName.${delete.methodName}(${delete.callArguments})",
       "    assert deleted is True",
       "",
       s"    missing = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})",
-      s"    assert isinstance(missing, $notFoundErrorClassName)"
+      "    assert missing is None"
     ).mkString("\n")
-  }
 
   private def renderCallArguments(
       context: SqlCodegenServiceContext,

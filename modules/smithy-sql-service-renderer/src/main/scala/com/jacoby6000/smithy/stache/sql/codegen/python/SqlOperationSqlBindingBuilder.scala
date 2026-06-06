@@ -44,7 +44,7 @@ object SqlOperationSqlBindingBuilder {
           case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
             buildDeleteBinding(model, deleteQuery, statement, queryRenderer).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
-            buildSelectOneBinding(model, operation, selectOneQuery, statement, queryRenderer).validNel
+            buildSelectOneBinding(model, selectOneQuery, statement, queryRenderer).validNel
           case ResolvedSqlOperationQuery.Select(_)                 =>
             InvalidPluginConfig("unreachable select branch").invalidNel
         }
@@ -90,8 +90,7 @@ object SqlOperationSqlBindingBuilder {
         executionMode = "fetchone",
         outputKind = "scalar",
         returningColumnIndex = query.returningColumns.headOption.map(_ => 0),
-        resultFields = Nil,
-        notFoundErrorClassName = None
+        resultFields = Nil
       )
     } else {
       val resultFields =
@@ -106,8 +105,7 @@ object SqlOperationSqlBindingBuilder {
         executionMode = "fetchone",
         outputKind = "structure",
         returningColumnIndex = None,
-        resultFields = resultFields,
-        notFoundErrorClassName = None
+        resultFields = resultFields
       )
     }
   }
@@ -127,8 +125,7 @@ object SqlOperationSqlBindingBuilder {
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
       outputKind = "boolean",
       returningColumnIndex = None,
-      resultFields = Nil,
-      notFoundErrorClassName = None
+      resultFields = Nil
     )
 
   private def buildDeleteBinding(
@@ -146,13 +143,11 @@ object SqlOperationSqlBindingBuilder {
       executionMode = "fetchone",
       outputKind = "boolean",
       returningColumnIndex = None,
-      resultFields = Nil,
-      notFoundErrorClassName = None
+      resultFields = Nil
     )
 
   private def buildSelectOneBinding(
       model: Model,
-      operation: SqlOperation,
       query: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery,
       statement: SqlParameterizedStatement,
       queryRenderer: SqlQueryRenderer
@@ -170,8 +165,7 @@ object SqlOperationSqlBindingBuilder {
       executionMode = "fetchone",
       outputKind = "structure",
       returningColumnIndex = None,
-      resultFields = resultFields,
-      notFoundErrorClassName = operation.errorShapes.headOption.map(SqlCodegenNaming.className)
+      resultFields = resultFields
     )
   }
 

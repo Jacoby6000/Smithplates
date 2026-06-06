@@ -12,7 +12,6 @@ from shipment_repository_psycopg import ShipmentRepositoryPsycopgService
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
-    ShipmentNotFound,
     DeliveryState,
 )
 
@@ -88,4 +87,4 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert deleted is True
 
     missing = await shipment_repository_service.get_shipment(id=entity_id)
-    assert isinstance(missing, ShipmentNotFound)
+    assert missing is None

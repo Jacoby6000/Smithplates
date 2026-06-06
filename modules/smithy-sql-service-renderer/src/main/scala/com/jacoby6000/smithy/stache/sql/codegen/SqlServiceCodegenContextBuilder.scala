@@ -11,6 +11,7 @@ import com.jacoby6000.smithy.stache.sql.service.SqlOperation
 import com.jacoby6000.smithy.stache.sql.service.SqlQueries
 import com.jacoby6000.smithy.stache.sql.service.SqlQueryExtractor
 import com.jacoby6000.smithy.stache.sql.service.SqlService
+import com.jacoby6000.smithy.stache.sql.service.codegen.ResolvedSqlOperationQuery
 import com.jacoby6000.smithy.stache.sql.service.codegen.SqlOperationQueryResolver
 import software.amazon.smithy.model.Model
 
@@ -30,7 +31,13 @@ object SqlServiceCodegenContextBuilder {
         val rootShapeIds =
           service.operations
             .flatMap { operation =>
-              List(operation.inputShape) ++ operation.outputShape.toList ++ operation.errorShapes
+              val errorShapes =
+                SqlOperationQueryResolver.resolve(queries, operation.shapeId) match {
+                  case Some(_: ResolvedSqlOperationQuery.SelectOne) =>
+                    Nil
+                  case _                                            => operation.errorShapes
+                }
+              List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
             }
             .filterNot(_ == SqlCodegenTypeResolver.UnitShapeId)
             .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
@@ -96,13 +103,20 @@ object SqlServiceCodegenContextBuilder {
       }
 
     (parameters, sqlBinding).mapN { (resolvedParameters, resolvedSql) =>
+      val isSelectOne =
+        resolvedQuery.exists(_.isInstanceOf[ResolvedSqlOperationQuery.SelectOne])
+
       val errors =
-        operation.errorShapes.map { errorShapeId =>
-          SqlCodegenErrorType(
-            shapeId = errorShapeId,
-            name = errorShapeId.getName,
-            className = SqlCodegenNaming.className(errorShapeId)
-          )
+        if (isSelectOne) {
+          Nil
+        } else {
+          operation.errorShapes.map { errorShapeId =>
+            SqlCodegenErrorType(
+              shapeId = errorShapeId,
+              name = errorShapeId.getName,
+              className = SqlCodegenNaming.className(errorShapeId)
+            )
+          }
         }
 
       val outputClassName =
@@ -116,7 +130,12 @@ object SqlServiceCodegenContextBuilder {
           .filter(_ != SqlCodegenTypeResolver.UnitShapeId)
           .map(SqlCodegenTypeResolver.resolveOutputPythonTypeName)
 
-      val responseUnion = buildResponseUnion(outputPythonTypeName, errors)
+      val responseUnion =
+        if (isSelectOne) {
+          outputPythonTypeName.map(outputType => s"$outputType | None").getOrElse("None")
+        } else {
+          buildResponseUnion(outputPythonTypeName, errors)
+        }
       SqlCodegenOperation(
         shapeId = operation.shapeId,
         name = operation.name,

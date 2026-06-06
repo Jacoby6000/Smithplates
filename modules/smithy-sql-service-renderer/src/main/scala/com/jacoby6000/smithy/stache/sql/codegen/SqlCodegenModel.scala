@@ -74,8 +74,7 @@ final case class SqlCodegenSqlBinding(
     executionMode: String,
     outputKind: String,
     returningColumnIndex: Option[Int],
-    resultFields: List[SqlCodegenResultField],
-    notFoundErrorClassName: Option[String]
+    resultFields: List[SqlCodegenResultField]
 )
 
 final case class SqlCodegenUnionMember(
@@ -128,7 +127,6 @@ final case class SqlCodegenIntegrationTestOperation(
     callArguments: String,
     updatedCallArguments: Option[String],
     outputClassName: Option[String],
-    notFoundErrorClassName: Option[String],
     resultAssertions: List[String],
     updatedResultAssertions: List[String]
 )

@@ -12,7 +12,6 @@ import aiosqlite
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
-    ShipmentNotFound,
     DeliveryState,
 )
 from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
@@ -42,16 +41,14 @@ class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol):
     async def get_shipment(
         self,
         id: str,
-    ) -> Shipment | ShipmentNotFound:
+    ) -> Shipment | None:
         cursor = await self._connection.execute(
             """SELECT id, label, destination, state, created_at FROM shipments WHERE id = ?;""",
             (id,),
         )
         row = await cursor.fetchone()
         if row is None:
-            return ShipmentNotFound(
-                message="Resource not found",
-            )
+            return None
         return Shipment(
             id=_read_str(row, 0),
             label=_read_str(row, 1),

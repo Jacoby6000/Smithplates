@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
 from widget_repository_models import (
     Widget,
-    WidgetNotFound,
 )
 
 SCHEMA_DDL = """-- example#Widget
@@ -61,4 +60,4 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
     assert deleted is True
 
     missing = await widget_repository_service.get_widget(id=entity_id)
-    assert isinstance(missing, WidgetNotFound)
+    assert missing is None

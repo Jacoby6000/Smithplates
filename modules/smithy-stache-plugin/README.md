@@ -195,7 +195,7 @@ Models and the service Protocol are shared once under `db/model/` and `db/`; dri
 Each `@sqlService` produces one artifact set. Template context includes:
 
 - **models** — every input, output, and error structure referenced by the service (including nested structures), with all members and Smithy optionality (`required` / `@required` vs optional)
-- **operations** — one entry per service operation with flattened top-level input parameters (nested structures stay single typed arguments), output type, error types, and a precomputed response union (`Output | Error1 | …`)
+- **operations** — one entry per service operation with flattened top-level input parameters (nested structures stay single typed arguments), output type, error types, and a precomputed response union (`Output | Error1 | …`; `@sqlDeriveSelectOne` uses `Output | None` and does not surface operation errors in generated Python)
 - **sql** (when an operation matches a derived query by shape id) — rendered SQL statement, bind-parameter order, execution mode, and row-mapping metadata for `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, and `@sqlDeriveSelectOne`
 
 Bundled templates (under `python/db/`):
