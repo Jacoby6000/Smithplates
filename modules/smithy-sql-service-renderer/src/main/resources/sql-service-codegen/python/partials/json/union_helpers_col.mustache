@@ -1,0 +1,5 @@
+def _read_{{className}}_col(row: dict[str, object], column: str) -> {{className}}:
+{{> partials/json/row_data_postgres_col}}{{newline}}    present = [key for key in ({{{discriminatorKeys}}}) if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown {{className}} discriminator: {sorted(data.keys())}")
+    return cast({{className}}, data)

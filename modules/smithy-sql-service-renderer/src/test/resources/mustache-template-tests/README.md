@@ -52,3 +52,5 @@ When a registered backend variant has no `unsupported.md` and no expected files 
 1. Implement [`MustacheTemplateLanguageBackend`](../../scala/com/jacoby6000/smithy/stache/mustachetest/MustacheTemplateLanguageBackend.scala) with a [`MustacheTemplateVariant`](../../scala/com/jacoby6000/smithy/stache/mustachetest/MustacheTemplateVariant.scala) (`languageId`, `serviceTypeId`, `implementationId`), plus `loadModel`, `render`, and optional `validateRenderedOutputs`.
 2. Subclass `MustacheTemplateTestSuite` and pass your backend(s).
 3. Mismatch failures include a contextual diff via [`TextContentDiff`](../../scala/com/jacoby6000/smithy/stache/mustachetest/TextContentDiff.scala).
+
+Bundled Python templates live under `src/main/resources/sql-service-codegen/python/` with reusable snippets in `partials/` (types, models, SQL, row readers, JSON). Custom backends that fork those main templates should include matching `partials/` entries referenced via `{{> partials/...}}`; missing partials surface at render time, not during plugin config validation.

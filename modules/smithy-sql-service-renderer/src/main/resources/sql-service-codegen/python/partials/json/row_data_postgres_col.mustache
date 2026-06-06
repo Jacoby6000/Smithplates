@@ -1,0 +1,5 @@
+    value = row[column]
+    if isinstance(value, dict):
+        data = cast(dict[str, object], value)
+    else:
+        data = cast(dict[str, object], json.loads(cast(str, value)))

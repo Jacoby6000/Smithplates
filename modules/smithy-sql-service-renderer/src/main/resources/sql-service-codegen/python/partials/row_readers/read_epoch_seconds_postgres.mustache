@@ -1,0 +1,2 @@
+def _read_epoch_seconds(row: {{rowTypeName}}, index: int) -> datetime:
+    return datetime.fromtimestamp(float(cast(Decimal, row[index])), tz=timezone.utc)

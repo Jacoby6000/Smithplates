@@ -1,0 +1,5 @@
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    value = row[column]
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return cast(str, value)

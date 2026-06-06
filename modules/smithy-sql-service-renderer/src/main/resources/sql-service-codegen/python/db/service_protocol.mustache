@@ -4,14 +4,12 @@ from __future__ import annotations
 from typing import Protocol
 
 from {{serviceFileName}}_models import (
-{{#models}}{{i4}}{{className}},
-{{/models}}{{#unions}}{{i4}}{{className}},
-{{/unions}})
+{{#models}}{{i4}}{{className}},{{newline}}{{/models}}{{#unions}}{{i4}}{{className}},{{newline}}{{/unions}})
 
 class {{serviceClassName}}ServiceProtocol(Protocol):
 {{#operations}}{{i4}}async def {{methodName}}(
 {{i8}}self,
-{{#parameters}}{{i8}}{{name}}: {{#optional}}{{pythonTypeName}} | None{{/optional}}{{^optional}}{{pythonTypeName}}{{/optional}},
+{{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
 {{/parameters}}{{i4}}) -> {{pythonResponseType}}:
 {{i8}}...
 {{^last}}

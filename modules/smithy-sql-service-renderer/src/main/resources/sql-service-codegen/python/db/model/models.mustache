@@ -3,16 +3,4 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-{{#hasUnions}}from typing import TypedDict
-{{/hasUnions}}
-{{#unions}}{{#members}}class {{variantClassName}}(TypedDict):
-{{i4}}{{name}}: {{pythonTypeName}}
-{{/members}}{{className}} = {{unionTypeAlias}}
-
-{{/unions}}{{#models}}@dataclass
-class {{className}}:
-{{#hasMembers}}{{memberLines}}
-{{/hasMembers}}{{^hasMembers}}{{i4}}pass
-{{/hasMembers}}
-
-{{/models}}
+{{#hasUnions}}from typing import TypedDict{{newline}}{{/hasUnions}}{{#unions}}{{#members}}class {{variantClassName}}(TypedDict):{{newline}}{{i4}}{{name}}: {{pythonTypeName}}{{newline}}{{/members}}{{className}} = {{unionTypeAlias}}{{newline}}{{newline}}{{/unions}}{{#models}}@dataclass{{newline}}class {{className}}:{{newline}}{{#hasMembers}}{{{memberLines}}}{{/hasMembers}}{{^hasMembers}}{{i4}}pass{{newline}}{{/hasMembers}}{{/models}}

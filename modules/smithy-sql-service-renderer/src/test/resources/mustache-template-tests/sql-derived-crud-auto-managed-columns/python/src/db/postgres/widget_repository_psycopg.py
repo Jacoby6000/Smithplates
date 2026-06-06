@@ -3,9 +3,10 @@ from __future__ import annotations
 
 from typing import override
 
+from psycopg.rows import class_row
+from psycopg.types.string import TextLoader
 from typing import cast
 import uuid
-from datetime import datetime
 import psycopg
 
 from widget_repository_models import (
@@ -18,6 +19,7 @@ class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol):
     def __init__(self, connection: psycopg.AsyncConnection) -> None:
         super().__init__()
         self._connection = connection
+        connection.adapters.register_loader("uuid", TextLoader)
 
     @override
     async def create_widget(
@@ -38,20 +40,12 @@ class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol):
         self,
         id: str,
     ) -> Widget | None:
-        cur = await self._connection.execute(
-            """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = %s;""",
-            (id,),
-        )
-        row = await cur.fetchone()
-        if row is None:
-            return None
-        return Widget(
-            id=_read_str(row, 0),
-            foo=_read_str(row, 1),
-            bar=_read_int(row, 2),
-            created_at=_read_datetime(row, 3),
-            updated_at=_read_datetime(row, 4),
-        )
+        async with self._connection.cursor(row_factory=class_row(Widget)) as cur:
+            await cur.execute(
+                """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = %s;""",
+                (id,),
+            )
+            return await cur.fetchone()
     @override
     async def update_widget(
         self,
@@ -78,12 +72,6 @@ WHERE id = %s RETURNING updated_at;""",
         )
         row = await cur.fetchone()
         return row is not None
-def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
-    return cast(datetime, row[index])
-
-def _read_int(row: tuple[object, ...], index: int) -> int:
-    return cast(int, row[index])
-
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):

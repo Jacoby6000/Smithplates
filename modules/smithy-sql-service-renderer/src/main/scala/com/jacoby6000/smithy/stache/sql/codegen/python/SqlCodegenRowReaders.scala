@@ -12,4 +12,7 @@ object SqlCodegenRowReaders {
       case "Decimal"  => "_read_decimal"
       case other      => other
     }
+
+  def scalarReaderColName(pythonTypeName: String): String =
+    s"${scalarReaderName(pythonTypeName)}_col"
 }

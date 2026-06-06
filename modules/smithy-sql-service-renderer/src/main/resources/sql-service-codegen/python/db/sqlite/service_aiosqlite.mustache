@@ -3,12 +3,9 @@ from __future__ import annotations
 
 from typing import override
 
-{{rowReaderImports}}import aiosqlite
-
+{{> partials/helpers/imports}}import aiosqlite{{newline}}
 from {{serviceFileName}}_models import (
-{{#models}}{{i4}}{{className}},
-{{/models}}{{#unions}}{{i4}}{{className}},
-{{/unions}})
+{{#models}}{{i4}}{{className}},{{newline}}{{/models}}{{#unions}}{{i4}}{{className}},{{newline}}{{/unions}})
 from {{serviceFileName}}_protocol import {{serviceClassName}}ServiceProtocol
 
 
@@ -20,11 +17,11 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{#operations}}{{#hasSql}}{{i4}}@override
 {{i4}}async def {{methodName}}(
 {{i8}}self,
-{{#parameters}}{{i8}}{{name}}: {{#optional}}{{pythonTypeName}} | None{{/optional}}{{^optional}}{{pythonTypeName}}{{/optional}},
+{{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
 {{/parameters}}{{i4}}) -> {{pythonResponseType}}:
 {{#isInsertScalar}}{{i8}}cursor = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
@@ -32,7 +29,7 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{i8}}return _read_str(row, {{returningColumnIndex}})
 {{/isInsertScalar}}{{#isInsertStructure}}{{i8}}cursor = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
@@ -43,14 +40,14 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{/isJson}}{{/resultFields}}{{i8}})
 {{/isInsertStructure}}{{#isBooleanMutation}}{{i8}}cursor = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{#isRowcountExecution}}{{i8}}return cursor.rowcount > 0
 {{/isRowcountExecution}}{{^isRowcountExecution}}{{i8}}row = await cursor.fetchone()
 {{i8}}return row is not None
 {{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{i8}}cursor = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
@@ -63,5 +60,4 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{^last}}
 
 {{/last}}{{/hasSql}}{{/operations}}
-
 {{{rowReaderHelpers}}}

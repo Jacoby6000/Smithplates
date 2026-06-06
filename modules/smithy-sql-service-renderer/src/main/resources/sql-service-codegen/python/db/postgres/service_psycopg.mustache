@@ -3,12 +3,9 @@ from __future__ import annotations
 
 from typing import override
 
-{{rowReaderImports}}import psycopg
-
+{{> partials/helpers/imports}}import psycopg{{newline}}
 from {{serviceFileName}}_models import (
-{{#models}}{{i4}}{{className}},
-{{/models}}{{#unions}}{{i4}}{{className}},
-{{/unions}})
+{{#models}}{{i4}}{{className}},{{newline}}{{/models}}{{#unions}}{{i4}}{{className}},{{newline}}{{/unions}})
 from {{serviceFileName}}_protocol import {{serviceClassName}}ServiceProtocol
 
 
@@ -16,23 +13,30 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{i4}}def __init__(self, connection: psycopg.AsyncConnection) -> None:
 {{i8}}super().__init__()
 {{i8}}self._connection = connection
-
-{{#operations}}{{#hasSql}}{{i4}}@override
+{{#needsUuidTextLoader}}{{i8}}connection.adapters.register_loader("uuid", TextLoader){{newline}}{{/needsUuidTextLoader}}
+{{newline}}{{#operations}}{{#hasSql}}{{i4}}@override
 {{i4}}async def {{methodName}}(
 {{i8}}self,
-{{#parameters}}{{i8}}{{name}}: {{#optional}}{{pythonTypeName}} | None{{/optional}}{{^optional}}{{pythonTypeName}}{{/optional}},
+{{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
 {{/parameters}}{{i4}}) -> {{pythonResponseType}}:
 {{#isInsertScalar}}{{i8}}cur = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cur.fetchone()
 {{i8}}if row is None:
 {{i12}}raise RuntimeError("INSERT RETURNING produced no row")
 {{i8}}return _read_str(row, {{returningColumnIndex}})
-{{/isInsertScalar}}{{#isInsertStructure}}{{i8}}cur = await self._connection.execute(
+{{/isInsertScalar}}{{#isInsertStructure}}{{#usesDictRowFactory}}{{i8}}async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]{{newline}}{{i12}}{{> partials/sql/postgres_cursor_execute}}{{newline}}{{i12}}row = await cur.fetchone()
+{{i12}}if row is None:
+{{i16}}raise RuntimeError("INSERT RETURNING produced no row")
+{{i12}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i16}}{{fieldName}}={{{jsonReadExpressionCol}}},
+{{/isJson}}{{^isJson}}{{i16}}{{fieldName}}={{rowReaderCol}}(row, {{{columnNameLiteral}}}),
+{{/isJson}}{{/resultFields}}{{i12}})
+{{/usesDictRowFactory}}{{^usesDictRowFactory}}{{i8}}cur = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cur.fetchone()
 {{i8}}if row is None:
@@ -41,20 +45,28 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
 {{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
 {{/isJson}}{{/resultFields}}{{i8}})
-{{/isInsertStructure}}{{#isBooleanMutation}}{{^isRowcountExecution}}{{i8}}cur = await self._connection.execute(
+{{/usesDictRowFactory}}{{/isInsertStructure}}{{#isBooleanMutation}}{{^isRowcountExecution}}{{i8}}cur = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cur.fetchone()
 {{i8}}return row is not None
 {{/isRowcountExecution}}{{#isRowcountExecution}}{{i8}}cur = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}return cur.rowcount > 0
-{{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{i8}}cur = await self._connection.execute(
+{{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{#canUseClassRow}}{{i8}}async with self._connection.cursor(row_factory=class_row({{outputClassName}})) as cur:{{newline}}{{i12}}{{> partials/sql/postgres_cursor_execute}}{{newline}}{{i12}}return await cur.fetchone()
+{{/canUseClassRow}}{{^canUseClassRow}}{{#usesDictRowFactory}}{{i8}}async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]{{newline}}{{i12}}{{> partials/sql/postgres_cursor_execute}}{{newline}}{{i12}}row = await cur.fetchone()
+{{i12}}if row is None:
+{{i16}}return None
+{{i12}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i16}}{{fieldName}}={{{jsonReadExpressionCol}}},
+{{/isJson}}{{^isJson}}{{i16}}{{fieldName}}={{rowReaderCol}}(row, {{{columnNameLiteral}}}),
+{{/isJson}}{{/resultFields}}{{i12}})
+{{/usesDictRowFactory}}{{^usesDictRowFactory}}{{i8}}cur = await self._connection.execute(
 {{i12}}"""{{sqlStatement}}""",
-{{i12}}{{bindTupleExpression}},
+{{i12}}{{> partials/sql/bind_tuple}},
 {{i8}})
 {{i8}}row = await cur.fetchone()
 {{i8}}if row is None:
@@ -63,9 +75,8 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
 {{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
 {{/isJson}}{{/resultFields}}{{i8}})
-{{/isSelectOne}}
+{{/usesDictRowFactory}}{{/canUseClassRow}}{{/isSelectOne}}
 {{^last}}
 
 {{/last}}{{/hasSql}}{{/operations}}
-
 {{{rowReaderHelpers}}}

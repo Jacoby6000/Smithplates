@@ -59,6 +59,7 @@ final case class SqlCodegenBindParameter(
 
 final case class SqlCodegenResultField(
     fieldName: String,
+    columnName: String,
     columnIndex: Int,
     pythonTypeName: String,
     rowReader: String,

@@ -1,0 +1,8 @@
+def _json_bind_{{className}}(value: {{className}}) -> str:
+    payload = { {{#members}}"{{name}}": cast(object, getattr(value, "{{name}}")){{^last}}, {{/last}}{{/members}}{{{dictClose}}}
+    return json.dumps(payload)
+
+
+def _read_{{className}}(row: {{rowTypeName}}, index: int) -> {{className}}:
+    {{#isSqliteDialect}}{{> partials/json/row_data_sqlite}}{{/isSqliteDialect}}{{^isSqliteDialect}}{{> partials/json/row_data_postgres}}{{/isSqliteDialect}}{{newline}}    return {{className}}(
+{{#members}}{{i8}}{{name}}=cast({{pythonTypeName}}, data["{{name}}"]),{{newline}}{{/members}}{{i4}})

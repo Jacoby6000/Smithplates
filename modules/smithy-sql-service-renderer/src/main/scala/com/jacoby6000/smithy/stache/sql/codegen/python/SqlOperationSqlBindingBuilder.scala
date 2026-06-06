@@ -261,11 +261,13 @@ object SqlOperationSqlBindingBuilder {
   ): Option[SqlCodegenResultField] =
     tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
       tableStructure.getMember(memberName).toScala.map { member =>
-        val resolved = SqlCodegenTypeResolver.resolveMember(model, memberName, member)
+        val resolved   = SqlCodegenTypeResolver.resolveMember(model, memberName, member)
+        val columnName = member.sqlColumnName(memberName)
         jsonResultField(
           model,
           member,
           memberName,
+          columnName,
           columnIndex,
           resolved.pythonTypeName
         )
@@ -287,6 +289,7 @@ object SqlOperationSqlBindingBuilder {
               model,
               member,
               memberName,
+              columnName,
               columnIndex,
               resolved.pythonTypeName
             )
@@ -297,6 +300,7 @@ object SqlOperationSqlBindingBuilder {
       model: Model,
       member: software.amazon.smithy.model.shapes.MemberShape,
       memberName: String,
+      columnName: String,
       columnIndex: Int,
       pythonTypeName: String
   ): SqlCodegenResultField = {
@@ -304,6 +308,7 @@ object SqlOperationSqlBindingBuilder {
     val timestampFormat = SqlCodegenTimestampHelpers.resolveTimestampFormat(model, member)
     SqlCodegenResultField(
       fieldName = memberName,
+      columnName = columnName,
       columnIndex = columnIndex,
       pythonTypeName = pythonTypeName,
       rowReader = SqlCodegenTimestampHelpers.rowReaderName(pythonTypeName, timestampFormat),

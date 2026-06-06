@@ -1,0 +1,7 @@
+def _timestamp_bind_datetime(value: datetime) -> str:
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+    text = normalized.isoformat(timespec="milliseconds")
+    return text.replace("+00:00", "Z")

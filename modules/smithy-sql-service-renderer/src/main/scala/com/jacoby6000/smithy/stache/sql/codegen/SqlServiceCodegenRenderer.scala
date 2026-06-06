@@ -3,7 +3,6 @@ package com.jacoby6000.smithy.stache.sql.codegen
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTemplateAttributes
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlServiceIr
 import software.amazon.smithy.model.Model
@@ -46,8 +45,10 @@ object SqlServiceCodegenRenderer {
                   Nil
                 } else {
                   val templatePath = resolveTemplatePath(settings, artifactConfig)
-                  val attributes   = SqlCodegenTemplateAttributes.forService(context)
-                  val content      = MustacheTemplateEngine.renderClasspathTemplate(templatePath, attributes)
+                  val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+                  val attributes   = SqlCodegenTemplateAttributes.forService(context, templateRoot)
+                  val content      =
+                    MustacheTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
                   val relativePath = resolveOutputPath(settings, artifactConfig, context)
                   List(
                     SqlCodegenArtifact(

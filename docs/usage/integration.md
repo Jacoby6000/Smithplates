@@ -80,7 +80,7 @@ Map of language id → language target configuration (for example `python`). Con
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
-| `templateDirectory` | When language is not bundled | `classpath:sql-service-codegen/<languageId>` for bundled `python` only | Classpath prefix for Mustache templates; required for languages without bundled templates, and must contain all templates required by enabled dialects |
+| `templateDirectory` | When language is not bundled | `classpath:sql-service-codegen/<languageId>` for bundled `python` only | Classpath prefix for Mustache templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `partials/` tree referenced from main templates via `{{> partials/...}}`. |
 | `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
 | `testOutputDir` | Yes | — | Base directory for generated test artifacts |
 
