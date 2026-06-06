@@ -38,20 +38,16 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol):
         self,
         id: str,
     ) -> Widget | None:
-        cursor = await self._connection.execute(
-            """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = ?;""",
-            (id,),
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            return None
-        return Widget(
-            id=_read_str(row, 0),
-            foo=_read_str(row, 1),
-            bar=_read_int(row, 2),
-            created_at=_read_datetime(row, 3),
-            updated_at=_read_datetime(row, 4),
-        )
+        previous_row_factory = self._connection.row_factory
+        try:
+            self._connection.row_factory = _Widget_row_factory  # type: ignore[assignment]
+            cursor = await self._connection.execute(
+                """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = ?;""",
+                (id,),
+            )
+            return cast(Widget | None, await cursor.fetchone())
+        finally:
+            self._connection.row_factory = previous_row_factory
     @override
     async def update_widget(
         self,
@@ -78,7 +74,16 @@ WHERE id = ? RETURNING updated_at;""",
         )
         row = await cursor.fetchone()
         return row is not None
-def _read_datetime(row: sqlite3.Row, index: int) -> datetime:
+def _Widget_row_factory(cursor: sqlite3.Cursor, row: tuple[object, ...]) -> Widget:
+    return Widget(
+        id=_read_str(row, 0),
+        foo=_read_str(row, 1),
+        bar=_read_int(row, 2),
+        created_at=_read_datetime(row, 3),
+        updated_at=_read_datetime(row, 4),
+    )
+
+def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
     value = cast(str, row[index])
     if value.endswith("Z"):
         normalized = value[:-1] + "+00:00"
@@ -91,8 +96,8 @@ def _read_datetime(row: sqlite3.Row, index: int) -> datetime:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
-def _read_int(row: sqlite3.Row, index: int) -> int:
+def _read_int(row: tuple[object, ...] | sqlite3.Row, index: int) -> int:
     return cast(int, row[index])
 
-def _read_str(row: sqlite3.Row, index: int) -> str:
+def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])

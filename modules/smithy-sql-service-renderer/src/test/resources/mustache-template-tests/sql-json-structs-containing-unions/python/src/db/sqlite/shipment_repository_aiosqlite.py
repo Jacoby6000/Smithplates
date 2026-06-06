@@ -42,20 +42,25 @@ class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol):
         self,
         id: str,
     ) -> Shipment | None:
-        cursor = await self._connection.execute(
-            """SELECT id, label, destination, state, created_at FROM shipments WHERE id = ?;""",
-            (id,),
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            return None
-        return Shipment(
-            id=_read_str(row, 0),
-            label=_read_str(row, 1),
-            destination=_read_PostalAddress(row, 2),
-            state=_read_DeliveryState(row, 3),
-            created_at=_read_datetime(row, 4),
-        )
+        previous_row_factory = self._connection.row_factory
+        try:
+            self._connection.row_factory = sqlite3.Row
+            cursor = await self._connection.execute(
+                """SELECT id, label, destination, state, created_at FROM shipments WHERE id = ?;""",
+                (id,),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            return Shipment(
+                id=_read_str_col(row, "id"),
+                label=_read_str_col(row, "label"),
+                destination=_read_PostalAddress_col(row, "destination"),
+                state=_read_DeliveryState_col(row, "state"),
+                created_at=_read_datetime_col(row, "created_at"),
+            )
+        finally:
+            self._connection.row_factory = previous_row_factory
     @override
     async def update_shipment(
         self,
@@ -82,20 +87,7 @@ WHERE id = ?;""",
         )
         row = await cursor.fetchone()
         return row is not None
-def _read_datetime(row: sqlite3.Row, index: int) -> datetime:
-    value = cast(str, row[index])
-    if value.endswith("Z"):
-        normalized = value[:-1] + "+00:00"
-    elif " " in value and "T" not in value:
-        normalized = value.replace(" ", "T", 1) + "+00:00"
-    else:
-        normalized = value
-    parsed = datetime.fromisoformat(normalized)
-    if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
-
-def _read_str(row: sqlite3.Row, index: int) -> str:
+def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
 
 def _json_bind_DeliveryState(value: DeliveryState) -> str:
@@ -105,7 +97,7 @@ def _json_bind_DeliveryState(value: DeliveryState) -> str:
     return json.dumps(cast(object, value))
 
 
-def _read_DeliveryState(row: sqlite3.Row, index: int) -> DeliveryState:
+def _read_DeliveryState(row: tuple[object, ...] | sqlite3.Row, index: int) -> DeliveryState:
     data = cast(dict[str, object], json.loads(_read_str(row, index)))
     present = [key for key in ("pending", "delivered") if key in data]
     if len(present) != 1:
@@ -117,8 +109,38 @@ def _json_bind_PostalAddress(value: PostalAddress) -> str:
     return json.dumps(payload)
 
 
-def _read_PostalAddress(row: sqlite3.Row, index: int) -> PostalAddress:
+def _read_PostalAddress(row: tuple[object, ...] | sqlite3.Row, index: int) -> PostalAddress:
     data = cast(dict[str, object], json.loads(_read_str(row, index)))
+    return PostalAddress(
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
+    )
+
+def _read_datetime_col(row: sqlite3.Row, column: str) -> datetime:
+    value = cast(str, row[column])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+def _read_str_col(row: sqlite3.Row, column: str) -> str:
+    return cast(str, row[column])
+
+def _read_DeliveryState_col(row: sqlite3.Row, column: str) -> DeliveryState:
+    data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
+    present = [key for key in ("pending", "delivered") if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
+    return cast(DeliveryState, data)
+
+def _read_PostalAddress_col(row: sqlite3.Row, column: str) -> PostalAddress:
+    data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
     return PostalAddress(
         street=cast(str, data["street"]),
         city=cast(str, data["city"]),

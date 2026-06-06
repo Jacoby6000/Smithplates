@@ -20,7 +20,7 @@ object SqlCodegenDialectConfig {
 
   def rowTypeName(dialectKey: String): String =
     dialectKey match {
-      case "sqlite"   => "sqlite3.Row"
+      case "sqlite"   => "tuple[object, ...] | sqlite3.Row"
       case "postgres" => "tuple[object, ...]"
       case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }

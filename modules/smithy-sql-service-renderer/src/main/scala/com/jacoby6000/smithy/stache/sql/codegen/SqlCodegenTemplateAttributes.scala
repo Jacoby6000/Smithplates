@@ -146,18 +146,14 @@ object SqlCodegenTemplateAttributes {
           "isSelectOne"          -> false,
           "canUseClassRow"       -> false,
           "usesDictRowFactory"   -> false,
+          "classRowFactoryName"  -> "",
           "returningColumnIndex" -> null,
           "resultFields"         -> Nil,
           "hasResultFields"      -> false
         )
       case Some(sql) =>
-        val canUseClassRow     =
-          dialectKey == "postgres" && SqlCodegenHelperMetadata.canUsePostgresClassRow(sql)
-        val usesDictRowFactory =
-          dialectKey == "postgres" && (
-            (sql.queryKind == "selectOne" && !canUseClassRow) ||
-              (sql.queryKind == "insert" && sql.outputKind == "structure")
-          )
+        val canUseClassRow     = SqlCodegenHelperMetadata.canUseClassRow(sql)
+        val usesDictRowFactory = SqlCodegenHelperMetadata.usesDictRowFactory(sql)
         base ++ Map[String, Any](
           "queryKind"            -> sql.queryKind,
           "sqlStatement"         -> SqlBindPlaceholder.format(
@@ -176,6 +172,13 @@ object SqlCodegenTemplateAttributes {
           "isSelectOne"          -> (sql.queryKind == "selectOne"),
           "canUseClassRow"       -> canUseClassRow,
           "usesDictRowFactory"   -> usesDictRowFactory,
+          "classRowFactoryName"  -> (
+            if (canUseClassRow && dialectKey == "sqlite") {
+              s"_${operation.outputClassName.getOrElse("")}_row_factory"
+            } else {
+              ""
+            }
+          ),
           "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
           "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
           "hasResultFields"      -> sql.resultFields.nonEmpty
@@ -286,39 +289,37 @@ object SqlCodegenTemplateAttributes {
 
 private object SqlCodegenHelperMetadata {
   def collect(context: SqlCodegenServiceContext): Map[String, Any] = {
-    val operations        = context.operations
-    val isPostgresDialect = context.dialectKey == "postgres"
-    val rowReaders        = collectRowReaders(operations, isPostgresDialect)
-    val rowReadersCol     =
-      if (isPostgresDialect) {
-        collectRowReadersCol(operations)
+    val operations                 = context.operations
+    val isPostgresDialect          = context.dialectKey == "postgres"
+    val isSqliteDialect            = context.dialectKey == "sqlite"
+    val rowReaders                 = collectRowReaders(operations, context.dialectKey)
+    val rowReadersCol              = collectRowReadersCol(operations)
+    val timestampBinds             = collectTimestampBindHelpers(operations)
+    val usesJson                   = usesJsonSerialization(operations)
+    val usedJsonTypes              = collectUsedJsonPythonTypeNames(operations)
+    val usedJsonTypesCol           = collectUsedJsonPythonTypeNamesCol(operations)
+    val needsClassRow              =
+      isPostgresDialect && operations.exists(op => op.sql.exists(canUseClassRow))
+    val needsDictRow               =
+      isPostgresDialect && operations.exists(op => op.sql.exists(sql => usesDictRowFactory(sql)))
+    val needsSqliteClassRowFactory =
+      isSqliteDialect && operations.exists(op => op.sql.exists(canUseClassRow))
+    val needsSqliteNamedRowFactory =
+      isSqliteDialect && operations.exists(op => op.sql.exists(sql => usesDictRowFactory(sql)))
+    val sqliteClassRowFactories    =
+      if (isSqliteDialect) {
+        collectSqliteClassRowFactories(operations)
       } else {
-        Set.empty[String]
+        Nil
       }
-    val timestampBinds    = collectTimestampBindHelpers(operations)
-    val usesJson          = usesJsonSerialization(operations)
-    val usedJsonTypes     = collectUsedJsonPythonTypeNames(operations)
-    val usedJsonTypesCol  =
-      if (isPostgresDialect) {
-        collectUsedJsonPythonTypeNamesCol(operations)
-      } else {
-        Set.empty[String]
-      }
-    val needsClassRow     =
-      isPostgresDialect &&
-        operations.exists(op => op.sql.exists(canUsePostgresClassRow))
-    val needsDictRow      =
-      isPostgresDialect && operations.exists(op =>
-        op.sql.exists { sql =>
-          val classRow = canUsePostgresClassRow(sql)
-          (sql.queryKind == "selectOne" && !classRow) ||
-          (sql.queryKind == "insert" && sql.outputKind == "structure")
-        })
 
     Map(
       "needsClassRowImport"            -> needsClassRow,
       "needsDictRowImport"             -> needsDictRow,
       "needsPostgresRowFactoryImports" -> (needsClassRow || needsDictRow),
+      "needsSqliteClassRowFactory"     -> needsSqliteClassRowFactory,
+      "needsSqliteNamedRowFactory"     -> needsSqliteNamedRowFactory,
+      "sqliteClassRowFactories"        -> sqliteClassRowFactories,
       "needsUuidTextLoader"            -> needsClassRow,
       "usesReadStr"                    -> rowReaders.contains("_read_str"),
       "usesReadInt"                    -> rowReaders.contains("_read_int"),
@@ -371,18 +372,82 @@ private object SqlCodegenHelperMetadata {
           .filter(union => usedJsonTypes.contains(union.name))
           .map(jsonUnionAttributes)
       ),
-      "jsonStructuresCol"              -> withLastFlag(
-        context.models
-          .filter(model => usedJsonTypesCol.contains(model.name))
-          .map(jsonStructureAttributes)
+      "jsonUnionsColSqlite"            -> withLastFlag(
+        if (isSqliteDialect) {
+          context.unions
+            .filter(union => usedJsonTypesCol.contains(union.name))
+            .map(jsonUnionAttributes)
+        } else {
+          Nil
+        }
       ),
-      "jsonUnionsCol"                  -> withLastFlag(
-        context.unions
-          .filter(union => usedJsonTypesCol.contains(union.name))
-          .map(jsonUnionAttributes)
+      "jsonStructuresColSqlite"        -> withLastFlag(
+        if (isSqliteDialect) {
+          context.models
+            .filter(model => usedJsonTypesCol.contains(model.name))
+            .map(jsonStructureAttributes)
+        } else {
+          Nil
+        }
+      ),
+      "jsonUnionsColPostgres"          -> withLastFlag(
+        if (isPostgresDialect) {
+          context.unions
+            .filter(union => usedJsonTypesCol.contains(union.name))
+            .map(jsonUnionAttributes)
+        } else {
+          Nil
+        }
+      ),
+      "jsonStructuresColPostgres"      -> withLastFlag(
+        if (isPostgresDialect) {
+          context.models
+            .filter(model => usedJsonTypesCol.contains(model.name))
+            .map(jsonStructureAttributes)
+        } else {
+          Nil
+        }
       )
     )
   }
+
+  private def collectSqliteClassRowFactories(
+      operations: List[SqlCodegenOperation]
+  ): List[Map[String, Any]] =
+    operations
+      .flatMap { operation =>
+        operation.sql.toList.filter(canUseClassRow).flatMap { sql =>
+          operation.outputClassName.map { className =>
+            (
+              className,
+              sql.resultFields.map(resultFieldAttributesForFactory)
+            )
+          }
+        }
+      }
+      .groupBy(_._1)
+      .values
+      .map(_.head)
+      .map { case (className, resultFields) =>
+        Map(
+          "className"    -> className,
+          "factoryName"  -> s"_${className}_row_factory",
+          "resultFields" -> withLastFlag(resultFields),
+          "i4"           -> "    ",
+          "i8"           -> "        "
+        )
+      }
+      .toList
+
+  private def resultFieldAttributesForFactory(resultField: SqlCodegenResultField): Map[String, Any] =
+    Map(
+      "fieldName"          -> resultField.fieldName,
+      "columnIndex"        -> resultField.columnIndex,
+      "pythonTypeName"     -> resultField.pythonTypeName,
+      "isJson"             -> resultField.isJson,
+      "jsonReadExpression" -> resultField.jsonReadExpression.orNull,
+      "rowReader"          -> resultField.rowReader
+    )
 
   private def jsonStructureAttributes(structure: SqlCodegenStructure): Map[String, Any] =
     Map(
@@ -469,14 +534,20 @@ private object SqlCodegenHelperMetadata {
       }
       .toSet
 
-  def canUsePostgresClassRow(sql: SqlCodegenSqlBinding): Boolean =
+  def canUseClassRow(sql: SqlCodegenSqlBinding): Boolean =
     sql.queryKind == "selectOne" &&
       sql.resultFields.nonEmpty &&
       sql.resultFields.forall(field => !field.isJson)
 
+  def usesDictRowFactory(sql: SqlCodegenSqlBinding): Boolean = {
+    val classRow = canUseClassRow(sql)
+    (sql.queryKind == "selectOne" && !classRow) ||
+    (sql.queryKind == "insert" && sql.outputKind == "structure")
+  }
+
   private def collectRowReaders(
       operations: List[SqlCodegenOperation],
-      isPostgresDialect: Boolean
+      dialectKey: String
   ): Set[String] = {
     val scalarReaders =
       operations.flatMap(_.sql.toList).flatMap { sql =>
@@ -488,9 +559,9 @@ private object SqlCodegenHelperMetadata {
       }
     val fieldReaders  =
       operations.flatMap(_.sql.toList).flatMap { sql =>
-        if (isPostgresDialect && canUsePostgresClassRow(sql)) {
+        if (usesDictRowFactory(sql)) {
           Nil
-        } else if (isPostgresDialect && usesPostgresDictRowFactory(sql)) {
+        } else if (canUseClassRow(sql) && dialectKey == "postgres") {
           Nil
         } else {
           sql.resultFields.filterNot(_.isJson).map(_.rowReader)
@@ -502,20 +573,14 @@ private object SqlCodegenHelperMetadata {
   private def collectRowReadersCol(operations: List[SqlCodegenOperation]): Set[String] =
     operations
       .flatMap(_.sql.toList)
-      .filter(usesPostgresDictRowFactory)
+      .filter(usesDictRowFactory)
       .flatMap(_.resultFields.filterNot(_.isJson).map(field => s"${field.rowReader}_col"))
       .toSet
-
-  private def usesPostgresDictRowFactory(sql: SqlCodegenSqlBinding): Boolean = {
-    val classRow = SqlCodegenHelperMetadata.canUsePostgresClassRow(sql)
-    (sql.queryKind == "selectOne" && !classRow) ||
-    (sql.queryKind == "insert" && sql.outputKind == "structure")
-  }
 
   private def collectUsedJsonPythonTypeNamesCol(operations: List[SqlCodegenOperation]): Set[String] =
     operations
       .flatMap(_.sql.toList)
-      .filter(usesPostgresDictRowFactory)
+      .filter(usesDictRowFactory)
       .flatMap(_.resultFields.filter(_.isJson).map(_.pythonTypeName))
       .toSet
 }

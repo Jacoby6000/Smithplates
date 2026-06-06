@@ -13,50 +13,60 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol):
 {{i4}}def __init__(self, connection: aiosqlite.Connection) -> None:
 {{i8}}super().__init__()
 {{i8}}self._connection = connection
-
-{{#operations}}{{#hasSql}}{{i4}}@override
+{{newline}}{{#operations}}{{#hasSql}}{{i4}}@override
 {{i4}}async def {{methodName}}(
 {{i8}}self,
 {{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
 {{/parameters}}{{i4}}) -> {{pythonResponseType}}:
-{{#isInsertScalar}}{{i8}}cursor = await self._connection.execute(
-{{i12}}"""{{sqlStatement}}""",
-{{i12}}{{> partials/sql/bind_tuple}},
-{{i8}})
-{{i8}}row = await cursor.fetchone()
+{{#isInsertScalar}}{{i8}}{{> partials/sql/sqlite_cursor_execute}}{{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
 {{i12}}raise RuntimeError("INSERT RETURNING produced no row")
 {{i8}}return _read_str(row, {{returningColumnIndex}})
-{{/isInsertScalar}}{{#isInsertStructure}}{{i8}}cursor = await self._connection.execute(
-{{i12}}"""{{sqlStatement}}""",
-{{i12}}{{> partials/sql/bind_tuple}},
-{{i8}})
-{{i8}}row = await cursor.fetchone()
+{{/isInsertScalar}}{{#isInsertStructure}}{{#usesDictRowFactory}}{{i8}}previous_row_factory = self._connection.row_factory
+{{i8}}try:
+{{i12}}self._connection.row_factory = sqlite3.Row
+{{i12}}{{> partials/sql/sqlite_cursor_execute_nested}}{{i12}}row = await cursor.fetchone()
+{{i12}}if row is None:
+{{i16}}raise RuntimeError("INSERT RETURNING produced no row")
+{{i12}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i16}}{{fieldName}}={{{jsonReadExpressionCol}}},
+{{/isJson}}{{^isJson}}{{i16}}{{fieldName}}={{rowReaderCol}}(row, {{{columnNameLiteral}}}),
+{{/isJson}}{{/resultFields}}{{i12}})
+{{> partials/sql/sqlite_row_factory_restore}}
+{{/usesDictRowFactory}}{{^usesDictRowFactory}}{{i8}}{{> partials/sql/sqlite_cursor_execute}}{{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
 {{i12}}raise RuntimeError("INSERT RETURNING produced no row")
 {{i8}}return {{outputClassName}}(
 {{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
 {{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
 {{/isJson}}{{/resultFields}}{{i8}})
-{{/isInsertStructure}}{{#isBooleanMutation}}{{i8}}cursor = await self._connection.execute(
-{{i12}}"""{{sqlStatement}}""",
-{{i12}}{{> partials/sql/bind_tuple}},
-{{i8}})
-{{#isRowcountExecution}}{{i8}}return cursor.rowcount > 0
+{{/usesDictRowFactory}}{{/isInsertStructure}}{{#isBooleanMutation}}{{i8}}{{> partials/sql/sqlite_cursor_execute}}{{#isRowcountExecution}}{{i8}}return cursor.rowcount > 0
 {{/isRowcountExecution}}{{^isRowcountExecution}}{{i8}}row = await cursor.fetchone()
 {{i8}}return row is not None
-{{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{i8}}cursor = await self._connection.execute(
-{{i12}}"""{{sqlStatement}}""",
-{{i12}}{{> partials/sql/bind_tuple}},
-{{i8}})
-{{i8}}row = await cursor.fetchone()
+{{/isRowcountExecution}}{{/isBooleanMutation}}{{#isSelectOne}}{{#canUseClassRow}}{{i8}}previous_row_factory = self._connection.row_factory
+{{i8}}try:
+{{i12}}self._connection.row_factory = {{classRowFactoryName}}  # type: ignore[assignment]
+{{i12}}{{> partials/sql/sqlite_cursor_execute_nested}}{{i12}}return cast({{outputClassName}} | None, await cursor.fetchone())
+{{> partials/sql/sqlite_row_factory_restore}}
+{{/canUseClassRow}}{{^canUseClassRow}}{{#usesDictRowFactory}}{{i8}}previous_row_factory = self._connection.row_factory
+{{i8}}try:
+{{i12}}self._connection.row_factory = sqlite3.Row
+{{i12}}{{> partials/sql/sqlite_cursor_execute_nested}}{{i12}}row = await cursor.fetchone()
+{{i12}}if row is None:
+{{i16}}return None
+{{i12}}return {{outputClassName}}(
+{{#resultFields}}{{#isJson}}{{i16}}{{fieldName}}={{{jsonReadExpressionCol}}},
+{{/isJson}}{{^isJson}}{{i16}}{{fieldName}}={{rowReaderCol}}(row, {{{columnNameLiteral}}}),
+{{/isJson}}{{/resultFields}}{{i12}})
+{{> partials/sql/sqlite_row_factory_restore}}
+{{/usesDictRowFactory}}{{^usesDictRowFactory}}{{i8}}{{> partials/sql/sqlite_cursor_execute}}{{i8}}row = await cursor.fetchone()
 {{i8}}if row is None:
 {{i12}}return None
 {{i8}}return {{outputClassName}}(
 {{#resultFields}}{{#isJson}}{{i12}}{{fieldName}}={{jsonReadExpression}},
 {{/isJson}}{{^isJson}}{{i12}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
 {{/isJson}}{{/resultFields}}{{i8}})
-{{/isSelectOne}}
+{{/usesDictRowFactory}}{{/canUseClassRow}}{{/isSelectOne}}
 {{^last}}
 
 {{/last}}{{/hasSql}}{{/operations}}
