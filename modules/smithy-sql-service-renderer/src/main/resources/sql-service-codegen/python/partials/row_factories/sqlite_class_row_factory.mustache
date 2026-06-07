@@ -1,5 +1,0 @@
-def {{factoryName}}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> {{className}}:
-    return {{className}}(
-{{#resultFields}}{{#isJson}}{{i8}}{{fieldName}}={{{jsonReadExpression}}},
-{{/isJson}}{{^isJson}}{{i8}}{{fieldName}}={{rowReader}}(row, {{columnIndex}}),
-{{/isJson}}{{/resultFields}}{{i4}})

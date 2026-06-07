@@ -1,3 +1,0 @@
-def _read_{{className}}_col(row: dict[str, object], column: str) -> {{className}}:
-{{> partials/json/row_data_postgres_col}}{{newline}}    return {{className}}(
-{{#members}}{{i8}}{{name}}=cast({{languageTypeName}}, data["{{name}}"]),{{newline}}{{/members}}{{i4}})

@@ -1,0 +1,12 @@
+def _read_datetime(row: ${attrs("rowTypeName")}, index: int) -> datetime:
+    value = cast(str, row[index])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)

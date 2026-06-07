@@ -1,0 +1,65 @@
+# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from typing import override
+
+<% include("partials/helpers/imports") %>import aiosqlite
+from sqlite_transaction_run import run
+from ${attrs("serviceFileName")}_models import (
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${model("className")},${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${union("className")},${"\n"}<% } %>)
+from ${attrs("serviceFileName")}_protocol import ${attrs("serviceClassName")}ServiceProtocol
+
+
+class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServiceProtocol[${attrs("transactionTypeName")}]):
+${attrs("i4")}def __init__(self, connection: aiosqlite.Connection) -> None:
+${attrs("i8")}super().__init__()
+${attrs("i8")}self._connection = connection
+${"\n"}<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %><% if (operation("hasSql").asInstanceOf[Boolean]) { %>${attrs("i4")}@override
+${attrs("i4")}async def ${operation("methodName")}(
+${attrs("i8")}self,
+<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i8")}${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,
+<% } %><% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${attrs("i4")}) -> ${operation("responseType")}:
+${attrs("i8")}async def execute(conn: aiosqlite.Connection) -> ${operation("responseType")}:
+<% if (operation("isInsertScalar").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI8")}return _read_str(row, ${operation("returningColumnIndex")})
+<% } %><% if (operation("isInsertStructure").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI8")}<% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpressionNamedRowCol")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReaderCol")}(named_row, ${resultField("columnNameLiteral")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpression")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReader")}(row, ${resultField("columnIndex")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% } %><% if (operation("isBooleanMutation").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %><% if (operation("isRowcountExecution").asInstanceOf[Boolean]) { %>${operation("txI8")}return cursor.rowcount > 0
+<% } %><% if (!operation("isRowcountExecution").asInstanceOf[Boolean]) { %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}return row is not None
+<% } %><% } %><% if (operation("isSelectOne").asInstanceOf[Boolean]) { %><% if (operation("canUseClassRow").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}return None
+${operation("txI8")}return ${operation("classRowFactoryName")}(cursor, row)
+<% } %><% if (!operation("canUseClassRow").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}return None
+${operation("txI8")}<% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpressionNamedRowCol")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReaderCol")}(named_row, ${resultField("columnNameLiteral")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI8")}row = await cursor.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}return None
+${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpression")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReader")}(row, ${resultField("columnIndex")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% } %><% } %>
+${attrs("i8")}return await run(self._connection, transaction, execute)
+<% } %><% } %>
+${"\n"}${attrs("rowReaderHelpers")}

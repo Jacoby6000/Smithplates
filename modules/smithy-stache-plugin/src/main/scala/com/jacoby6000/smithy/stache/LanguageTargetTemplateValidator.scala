@@ -3,7 +3,7 @@ package com.jacoby6000.smithy.stache
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.InvalidPluginConfig
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.codegen.MustacheTemplateEngine
+import com.jacoby6000.smithy.stache.sql.codegen.ScalateSspTemplateEngine
 import com.jacoby6000.smithy.stache.sql.codegen.SqlServiceCodegenDbArtifacts
 
 object LanguageTargetTemplateValidator {
@@ -51,7 +51,7 @@ object LanguageTargetTemplateValidator {
 
     val missingTemplates =
       requiredTemplates.filterNot { template =>
-        MustacheTemplateEngine.classpathResourceExists(
+        ScalateSspTemplateEngine.classpathResourceExists(
           classpathResourcePath(templateDirectory, template)
         )
       }

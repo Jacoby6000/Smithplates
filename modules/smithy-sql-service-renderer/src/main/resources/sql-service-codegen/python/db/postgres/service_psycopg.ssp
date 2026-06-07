@@ -1,0 +1,83 @@
+# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from typing import override
+
+<% include("partials/helpers/imports") %>import psycopg
+from psycopg_transaction_run import run
+from ${attrs("serviceFileName")}_models import (
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${model("className")},${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${union("className")},${"\n"}<% } %>)
+from ${attrs("serviceFileName")}_protocol import ${attrs("serviceClassName")}ServiceProtocol
+
+
+class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServiceProtocol[${attrs("transactionTypeName")}]):
+${attrs("i4")}def __init__(self, connection: psycopg.AsyncConnection) -> None:
+${attrs("i8")}super().__init__()
+${attrs("i8")}self._connection = connection
+<% if (attrs.get("needsUuidTextLoader").exists(isTruthy)) { %>${attrs("i8")}connection.adapters.register_loader("uuid", TextLoader)${"\n"}<% } %>
+${"\n"}<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %><% if (operation("hasSql").asInstanceOf[Boolean]) { %>${attrs("i4")}@override
+${attrs("i4")}async def ${operation("methodName")}(
+${attrs("i8")}self,
+<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i8")}${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,
+<% } %><% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${attrs("i4")}) -> ${operation("responseType")}:
+${attrs("i8")}async def execute() -> ${operation("responseType")}:
+<% if (operation("isInsertScalar").asInstanceOf[Boolean]) { %>${operation("txI8")}cur = await self._connection.execute(
+${operation("txI12")}"""${operation("sqlStatement")}""",
+${operation("txI12")}<% render("partials/sql/bind_tuple", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>,
+${operation("txI8")})
+${operation("txI8")}row = await cur.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI8")}return _read_str(row, ${operation("returningColumnIndex")})
+<% } %><% if (operation("isInsertStructure").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]${"\n"}${operation("txI12")}<% render("partials/sql/postgres_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI12")}row = await cur.fetchone()
+${operation("txI12")}if row is None:
+${operation("txI16")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI12")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI16")}${resultField("fieldName")}=${resultField("jsonReadExpressionCol")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI16")}${resultField("fieldName")}=${resultField("rowReaderCol")}(row, ${resultField("columnNameLiteral")}),
+<% } %><% } %>${operation("txI12")})
+<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}cur = await self._connection.execute(
+${operation("txI12")}"""${operation("sqlStatement")}""",
+${operation("txI12")}<% render("partials/sql/bind_tuple", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>,
+${operation("txI8")})
+${operation("txI8")}row = await cur.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}raise RuntimeError("INSERT RETURNING produced no row")
+${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpression")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReader")}(row, ${resultField("columnIndex")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% } %><% if (operation("isBooleanMutation").asInstanceOf[Boolean]) { %><% if (!operation("isRowcountExecution").asInstanceOf[Boolean]) { %>${operation("txI8")}cur = await self._connection.execute(
+${operation("txI12")}"""${operation("sqlStatement")}""",
+${operation("txI12")}<% render("partials/sql/bind_tuple", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>,
+${operation("txI8")})
+${operation("txI8")}row = await cur.fetchone()
+${operation("txI8")}return row is not None
+<% } %><% if (operation("isRowcountExecution").asInstanceOf[Boolean]) { %>${operation("txI8")}cur = await self._connection.execute(
+${operation("txI12")}"""${operation("sqlStatement")}""",
+${operation("txI12")}<% render("partials/sql/bind_tuple", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>,
+${operation("txI8")})
+${operation("txI8")}return cur.rowcount > 0
+<% } %><% } %><% if (operation("isSelectOne").asInstanceOf[Boolean]) { %><% if (operation("canUseClassRow").asInstanceOf[Boolean]) { %>${operation("txI8")}async with self._connection.cursor(row_factory=class_row(${operation("outputClassName")})) as cur:${"\n"}${operation("txI12")}<% render("partials/sql/postgres_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI12")}return await cur.fetchone()
+<% } %><% if (!operation("canUseClassRow").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]${"\n"}${operation("txI12")}<% render("partials/sql/postgres_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>${operation("txI12")}row = await cur.fetchone()
+${operation("txI12")}if row is None:
+${operation("txI16")}return None
+${operation("txI12")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI16")}${resultField("fieldName")}=${resultField("jsonReadExpressionCol")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI16")}${resultField("fieldName")}=${resultField("rowReaderCol")}(row, ${resultField("columnNameLiteral")}),
+<% } %><% } %>${operation("txI12")})
+<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>${operation("txI8")}cur = await self._connection.execute(
+${operation("txI12")}"""${operation("sqlStatement")}""",
+${operation("txI12")}<% render("partials/sql/bind_tuple", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>,
+${operation("txI8")})
+${operation("txI8")}row = await cur.fetchone()
+${operation("txI8")}if row is None:
+${operation("txI12")}return None
+${operation("txI8")}return ${operation("outputClassName")}(
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("jsonReadExpression")},
+<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${operation("txI12")}${resultField("fieldName")}=${resultField("rowReader")}(row, ${resultField("columnIndex")}),
+<% } %><% } %>${operation("txI8")})
+<% } %><% } %><% } %>
+${attrs("i8")}return await run(self._connection, transaction, execute)
+<% } %><% } %>
+${attrs("rowReaderHelpers")}

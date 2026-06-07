@@ -205,7 +205,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("db/postgres/service_psycopg.mustache")))
+    assert(errors.exists(_.message.contains("db/postgres/service_psycopg.ssp")))
   }
 }
 

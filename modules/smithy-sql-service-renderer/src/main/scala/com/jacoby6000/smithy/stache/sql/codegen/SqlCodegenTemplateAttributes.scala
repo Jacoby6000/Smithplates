@@ -8,8 +8,8 @@ import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 
 object SqlCodegenTemplateAttributes {
   def forService(context: SqlCodegenServiceContext, templateRoot: String): Map[String, Any] = {
-    val helperPlan = PythonCodegenHelperPlanner.plan(context)
-    val attributes =
+    val helperPlan     = PythonCodegenHelperPlanner.plan(context)
+    val baseAttributes =
       Map(
         "serviceName"              -> context.name,
         "serviceClassName"         -> context.name,
@@ -37,6 +37,13 @@ object SqlCodegenTemplateAttributes {
         "hasIntegrationTest"       -> context.integrationTest.isDefined,
         "integrationTest"          -> context.integrationTest.map(integrationTestAttributes).orNull
       ) ++ helperPlan.attributes
+
+    val attributes = context.integrationTest match {
+      case Some(integrationTest) =>
+        baseAttributes ++ flattenIntegrationTestAttributes(integrationTestAttributes(integrationTest))
+      case None                  =>
+        baseAttributes
+    }
 
     attributes ++ Map(
       "rowReaderHelpers" -> renderHelperPartials(templateRoot, attributes, helperPlan)
@@ -116,7 +123,7 @@ object SqlCodegenTemplateAttributes {
       )
     val renderPlanned                           = (helpers: List[CodegenHelper]) =>
       helpers.map { helper =>
-        MustacheTemplateEngine
+        ScalateSspTemplateEngine
           .renderClasspathPartial(templateRoot, helper.partialPath, attributes)
           .stripTrailing()
       }
@@ -148,7 +155,7 @@ object SqlCodegenTemplateAttributes {
       .map(_.asInstanceOf[List[Map[String, Any]]])
       .getOrElse(Nil)
       .map { itemAttributes =>
-        MustacheTemplateEngine
+        ScalateSspTemplateEngine
           .renderClasspathPartial(templateRoot, partialPath, attributes ++ itemAttributes)
           .stripTrailing()
       }
@@ -161,7 +168,7 @@ object SqlCodegenTemplateAttributes {
       "shapeId"     -> model.shapeId.toString,
       "namespace"   -> model.namespace,
       "members"     -> members,
-      "memberLines" -> MustacheTemplateEngine.renderClasspathPartial(
+      "memberLines" -> ScalateSspTemplateEngine.renderClasspathPartial(
         templateRoot,
         "partials/models/member_lines",
         Map(
@@ -359,6 +366,19 @@ object SqlCodegenTemplateAttributes {
         integrationTest.transactionCommitAfterAssertions.map(assertion => Map("line" -> s"    $assertion"))
       )
     )
+
+  private def flattenIntegrationTestAttributes(integrationTest: Map[String, Any]): Map[String, Any] = {
+    val operationPrefixes = List("insertOperation", "selectOneOperation", "updateOperation", "deleteOperation")
+    val dottedOperations  = operationPrefixes
+      .flatMap { prefix =>
+        integrationTest.get(prefix).collect { case operation: Map[String, Any] @unchecked =>
+          operation.map { case (key, value) => s"$prefix.$key" -> value }
+        }
+      }
+      .flatten
+      .toMap
+    integrationTest ++ dottedOperations
+  }
 
   private def integrationOperationAttributes(
       operation: SqlCodegenIntegrationTestOperation

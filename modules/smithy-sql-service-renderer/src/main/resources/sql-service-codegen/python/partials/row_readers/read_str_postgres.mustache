@@ -1,5 +1,0 @@
-def _read_str(row: {{rowTypeName}}, index: int) -> str:
-    value = row[index]
-    if isinstance(value, uuid.UUID):
-        return str(value)
-    return cast(str, value)

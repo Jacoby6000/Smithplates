@@ -49,10 +49,10 @@ object SqlServiceCodegenRenderer {
                   val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
                   val content      =
                     if (artifactConfig.bundledResource) {
-                      MustacheTemplateEngine.readClasspathResource(templatePath)
+                      ScalateSspTemplateEngine.readClasspathResource(templatePath)
                     } else {
                       val attributes = SqlCodegenTemplateAttributes.forService(context, templateRoot)
-                      MustacheTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
+                      ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
                     }
                   val relativePath = resolveOutputPath(settings, artifactConfig, context)
                   List(

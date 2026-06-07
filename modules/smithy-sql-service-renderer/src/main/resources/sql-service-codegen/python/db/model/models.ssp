@@ -1,0 +1,6 @@
+# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import datetime
+<% if (attrs.get("hasUnions").exists(isTruthy)) { %>from typing import TypedDict${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %><% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>class ${member("variantClassName")}(TypedDict):${"\n"}${attrs("i4")}${member("name")}: ${member("languageTypeName")}${"\n"}<% } %>${union("className")} = ${union("unionTypeAlias")}${"\n"}${"\n"}<% } %><% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>@dataclass${"\n"}class ${model("className")}:${"\n"}<% if (model("hasMembers").asInstanceOf[Boolean]) { %>${model("memberLines")}<% } %><% if (!model("hasMembers").asInstanceOf[Boolean]) { %>${attrs("i4")}pass${"\n"}<% } %><% } %>

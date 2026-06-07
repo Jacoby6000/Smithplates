@@ -1,0 +1,4 @@
+${"\n"}${attrs("i4")}deleted = await ${attrs("serviceFixtureName")}.${attrs("deleteOperation.methodName")}(${attrs("deleteOperation.callArguments")})
+${attrs("i4")}assert deleted is True
+${"\n"}${attrs("i4")}missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+${attrs("i4")}assert missing is None

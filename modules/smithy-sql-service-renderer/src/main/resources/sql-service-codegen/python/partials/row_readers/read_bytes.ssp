@@ -1,0 +1,2 @@
+def _read_bytes(row: ${attrs("rowTypeName")}, index: int) -> bytes:
+    return cast(bytes, row[index])

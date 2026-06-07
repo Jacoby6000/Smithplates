@@ -1,0 +1,1 @@
+cursor = await conn.execute(${"\n"}${attrs("txI12")}"""${attrs("sqlStatement")}""",${"\n"}${attrs("txI12")}<% include("partials/sql/bind_tuple") %>,${"\n"}${attrs("txI8")})

@@ -1,7 +1,0 @@
-{{newline}}{{i4}}updated = await {{serviceFixtureName}}.{{{updateOperation.methodName}}}({{{updateOperation.callArguments}}})
-{{i4}}assert updated is True
-{{newline}}{{i4}}fetched_after_update = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
-{{i4}}assert isinstance(fetched_after_update, {{{selectOneOperation.outputClassName}}})
-{{#selectOneOperation}}{{#updatedResultAssertions}}
-{{{line}}}
-{{/updatedResultAssertions}}{{/selectOneOperation}}

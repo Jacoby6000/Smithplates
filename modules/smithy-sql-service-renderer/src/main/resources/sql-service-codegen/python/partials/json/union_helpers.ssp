@@ -1,0 +1,13 @@
+def _json_bind_${attrs("className")}(value: ${attrs("className")}) -> str:
+    present = [key for key in (${attrs("discriminatorKeys")}) if key in value]
+    if len(present) != 1:
+        raise ValueError("${attrs("className")} union value must contain exactly one member key")
+    return json.dumps(cast(object, value))
+
+
+def _read_${attrs("className")}(row: ${attrs("rowTypeName")}, index: int) -> ${attrs("className")}:
+<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_sqlite") %><% } %><% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_postgres") %><% } %>
+    present = [key for key in (${attrs("discriminatorKeys")}) if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown ${attrs("className")} discriminator: {sorted(data.keys())}")
+    return cast(${attrs("className")}, data)

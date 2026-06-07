@@ -1,6 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.mustachetest.MustacheTemplateTestDiscovery
+import com.jacoby6000.smithy.stache.codegentest.CodegenTemplateTestDiscovery
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.sqlite.SqliteSqlQueryRenderer
@@ -8,11 +8,11 @@ import com.jacoby6000.smithy.stache.sql.service.SqlModelExtractor
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   private def loadTestCaseModel(testName: String) =
-    MustacheTemplateTestDiscovery
-      .discover(getClass.getClassLoader, Set(SqlServiceCodegenPythonDbBackend.sqlite.variant))
+    CodegenTemplateTestDiscovery
+      .discover(getClass.getClassLoader, Set(SqlServiceCodegenTemplateBackend.pythonSqlite.variant))
       .find(_.name == testName)
       .map(testCase => SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent))
-      .getOrElse(fail(s"expected mustache-template-tests case '$testName'"))
+      .getOrElse(fail(s"expected codegen-template-tests case '$testName'"))
 
   test("ServiceCodegen - derives CRUD for @sqlJson struct and union columns") {
     val schema = SqlModelExtractor.extractOrThrow(loadTestCaseModel("sql-json-structs-containing-unions"))
@@ -46,7 +46,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         unions = Nil,
         operations = Nil
       )
-    val settings                = SqlServiceCodegenPythonBackend.settingsForTests
+    val settings                = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
     val modelArtifact           = settings.artifacts.head
     val integrationTestArtifact = settings.artifacts.last
 
