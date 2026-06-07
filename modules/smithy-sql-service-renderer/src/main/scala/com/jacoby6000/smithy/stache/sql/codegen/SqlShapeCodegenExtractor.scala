@@ -2,7 +2,7 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
+import com.jacoby6000.smithy.stache.sql.codegen.language.LanguageTypeResolver
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.shapes.StructureShape
@@ -28,13 +28,13 @@ object SqlShapeCodegenExtractor {
 
   def collectStructures(model: Model, rootShapeIds: Iterable[ShapeId]): SqlValidated[List[SqlCodegenStructure]] = {
     val orderedShapeIds =
-      rootShapeIds.toList.flatMap(SqlCodegenTypeResolver.referencedStructureIds(model, _)).distinct
+      rootShapeIds.toList.flatMap(SqlCodegenShapeGraph.referencedStructureIds(model, _)).distinct
     orderedShapeIds.traverse(extractStructure(model, _))
   }
 
   def collectUnions(model: Model, rootShapeIds: Iterable[ShapeId]): SqlValidated[List[SqlCodegenUnion]] = {
     val orderedShapeIds =
-      SqlCodegenTypeResolver.referencedUnionIds(model, rootShapeIds).distinct
+      SqlCodegenShapeGraph.referencedUnionIds(model, rootShapeIds).distinct
     orderedShapeIds.traverse(extractUnion(model, _))
   }
 
@@ -49,7 +49,7 @@ object SqlShapeCodegenExtractor {
             SqlCodegenUnionMember(
               name = memberName,
               variantClassName = SqlCodegenNaming.unionVariantClassName(shapeId.getName, memberName),
-              languageTypeName = SqlCodegenTypeResolver.resolvePythonTypeName(model, targetShape)
+              typeName = LanguageTypeResolver.resolveTypeName(model, targetShape)
             )
           }
           .validNel
@@ -76,7 +76,7 @@ object SqlShapeCodegenExtractor {
 
     structure.getAllMembers.asScala.toList
       .map { case (memberName, member) =>
-        SqlCodegenTypeResolver.resolveMember(model, memberName, member, memberRole)
+        LanguageTypeResolver.resolveMember(model, memberName, member, memberRole)
       }
       .validNel
       .map { members =>

@@ -16,7 +16,6 @@ final case class SqlCodegenStructure(
 final case class SqlCodegenMember(
     name: String,
     typeName: String,
-    languageTypeName: String,
     optional: Boolean,
     isStructure: Boolean,
     structureShapeId: Option[ShapeId],
@@ -26,7 +25,6 @@ final case class SqlCodegenMember(
 final case class SqlCodegenParameter(
     name: String,
     typeName: String,
-    languageTypeName: String,
     optional: Boolean,
     isStructure: Boolean,
     structureShapeId: Option[ShapeId]
@@ -44,31 +42,27 @@ final case class SqlCodegenOperation(
     methodName: String,
     parameters: List[SqlCodegenParameter],
     outputShapeId: Option[ShapeId],
+    outputTypeName: Option[String],
     outputClassName: Option[String],
     errors: List[SqlCodegenErrorType],
-    responseUnion: String,
-    responseType: String,
     sql: Option[SqlCodegenSqlBinding] = None
 )
 
 final case class SqlCodegenBindParameter(
     memberName: String,
-    languageTypeName: String,
+    typeName: String,
     isJson: Boolean = false,
     jsonTypeName: Option[String] = None,
-    timestampFormat: Option[SqlTimestampFormat] = None,
-    bindExpression: Option[String] = None
+    timestampFormat: Option[SqlTimestampFormat] = None
 )
 
 final case class SqlCodegenResultField(
     fieldName: String,
     columnName: String,
     columnIndex: Int,
-    languageTypeName: String,
+    typeName: String,
     isJson: Boolean = false,
-    timestampFormat: Option[SqlTimestampFormat] = None,
-    rowReader: Option[String] = None,
-    jsonReadExpression: Option[String] = None
+    timestampFormat: Option[SqlTimestampFormat] = None
 )
 
 final case class SqlCodegenSqlBinding(
@@ -85,7 +79,7 @@ final case class SqlCodegenSqlBinding(
 final case class SqlCodegenUnionMember(
     name: String,
     variantClassName: String,
-    languageTypeName: String
+    typeName: String
 )
 
 final case class SqlCodegenUnion(

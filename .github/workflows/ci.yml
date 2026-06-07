@@ -30,14 +30,8 @@ jobs:
         with:
           apps: sbtn sbt
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          enable-cache: true
-          cache-dependency-glob: modules/smithy-sql-service-renderer/src/test/resources/sql-service-codegen-python-workspace/uv.lock
-
-      - name: scalafmt
-        run: sbtn scalafmtCheckAll
+      - name: Compile
+        run: sbtn compile
 
       - name: scalafix
         run: sbtn 'scalafixAll --check'

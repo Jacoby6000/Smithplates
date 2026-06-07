@@ -3,8 +3,6 @@ package com.jacoby6000.smithy.stache.sql.codegen
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.codegen.language.LanguageTypeResolver
-import com.jacoby6000.smithy.stache.sql.codegen.python.PythonSqlBindingEnricher
-import com.jacoby6000.smithy.stache.sql.codegen.python.PythonTypeMapper
 import com.jacoby6000.smithy.stache.sql.query.SqlParameterizedStatement
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
@@ -25,9 +23,7 @@ object SqlOperationBindingBuilder {
       query: ResolvedSqlOperationQuery,
       queryRenderer: SqlQueryRenderer
   ): SqlValidated[SqlCodegenSqlBinding] =
-    buildNeutral(model, operation, query, queryRenderer).map { binding =>
-      PythonSqlBindingEnricher.enrich(binding, queryRenderer.key)
-    }
+    buildBinding(model, operation, query, queryRenderer)
 
   def parametersFromQuery(
       model: Model,
@@ -49,7 +45,7 @@ object SqlOperationBindingBuilder {
         ).invalidNel
     }
 
-  private def buildNeutral(
+  private def buildBinding(
       model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery,
@@ -193,7 +189,6 @@ object SqlOperationBindingBuilder {
     SqlCodegenParameter(
       name = member.name,
       typeName = member.typeName,
-      languageTypeName = member.languageTypeName,
       optional = member.optional,
       isStructure = member.isStructure,
       structureShapeId = member.structureShapeId
@@ -206,7 +201,7 @@ object SqlOperationBindingBuilder {
   ): SqlValidated[SqlCodegenParameter] =
     tableStructure(model, tableShapeId).map { tableStructure =>
       val member   = tableStructure.getMember(column.memberName).get()
-      val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member, PythonTypeMapper)
+      val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member)
       memberToParameter(resolved).copy(optional = false)
     }
 
@@ -215,28 +210,28 @@ object SqlOperationBindingBuilder {
       tableShapeId: ShapeId,
       column: SqlQueryColumn
   ): SqlCodegenBindParameter = {
-    val isJson           = isJsonMember(model, tableShapeId, column.memberName)
-    val jsonTypeName     =
+    val isJson          = isJsonMember(model, tableShapeId, column.memberName)
+    val memberAndType   =
+      tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
+        tableStructure.getMember(column.memberName).toScala.map { member =>
+          val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member)
+          (member, resolved.typeName)
+        }
+      }
+    val typeName        = memberAndType.map(_._2).getOrElse("String")
+    val jsonTypeName    =
       if (isJson) {
         Some(jsonTypeNameForMember(model, tableShapeId, column.memberName))
       } else {
         None
       }
-    val memberAndType    =
-      tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
-        tableStructure.getMember(column.memberName).toScala.map { member =>
-          val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member, PythonTypeMapper)
-          (member, resolved.languageTypeName)
-        }
-      }
-    val languageTypeName = memberAndType.map(_._2).getOrElse("str")
-    val timestampFormat  =
+    val timestampFormat =
       memberAndType.flatMap { case (member, _) =>
-        PythonSqlBindingEnricher.resolveTimestampFormat(model, member)
+        SqlCodegenTimestampResolver.resolveTimestampFormat(model, member)
       }
     SqlCodegenBindParameter(
       memberName = column.memberName,
-      languageTypeName = languageTypeName,
+      typeName = typeName,
       isJson = isJson,
       jsonTypeName = jsonTypeName,
       timestampFormat = timestampFormat
@@ -258,9 +253,9 @@ object SqlOperationBindingBuilder {
   ): Option[SqlCodegenResultField] =
     tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
       tableStructure.getMember(memberName).toScala.map { member =>
-        val resolved   = LanguageTypeResolver.resolveMember(model, memberName, member, PythonTypeMapper)
+        val resolved   = LanguageTypeResolver.resolveMember(model, memberName, member)
         val columnName = member.sqlColumnName(memberName)
-        neutralResultField(model, member, memberName, columnName, columnIndex, resolved.languageTypeName)
+        neutralResultField(model, member, memberName, columnName, columnIndex, resolved.typeName)
       }
     }
 
@@ -274,14 +269,14 @@ object SqlOperationBindingBuilder {
       tableStructure.getAllMembers.asScala.toList
         .collectFirst {
           case (memberName, member) if member.sqlColumnName(memberName) == columnName =>
-            val resolved = LanguageTypeResolver.resolveMember(model, memberName, member, PythonTypeMapper)
+            val resolved = LanguageTypeResolver.resolveMember(model, memberName, member)
             neutralResultField(
               model,
               member,
               memberName,
               columnName,
               columnIndex,
-              resolved.languageTypeName
+              resolved.typeName
             )
         }
     }
@@ -292,15 +287,15 @@ object SqlOperationBindingBuilder {
       memberName: String,
       columnName: String,
       columnIndex: Int,
-      languageTypeName: String
+      typeName: String
   ): SqlCodegenResultField = {
     val isJson          = member.sqlJson
-    val timestampFormat = PythonSqlBindingEnricher.resolveTimestampFormat(model, member)
+    val timestampFormat = SqlCodegenTimestampResolver.resolveTimestampFormat(model, member)
     SqlCodegenResultField(
       fieldName = memberName,
       columnName = columnName,
       columnIndex = columnIndex,
-      languageTypeName = languageTypeName,
+      typeName = typeName,
       isJson = isJson,
       timestampFormat = timestampFormat
     )
@@ -314,8 +309,8 @@ object SqlOperationBindingBuilder {
     tableStructure(model, tableShapeId).toOption.fold(memberName) { tableStructure =>
       val member = tableStructure.getMember(memberName).get()
       LanguageTypeResolver
-        .resolveMember(model, memberName, member, PythonTypeMapper, SqlCodegenMemberRole.SqlTableRow)
-        .languageTypeName
+        .resolveMember(model, memberName, member, SqlCodegenMemberRole.SqlTableRow)
+        .typeName
     }
 
   private def isPreludeShape(shapeId: ShapeId): Boolean =

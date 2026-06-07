@@ -209,7 +209,7 @@ object SqlCodegenIntegrationTestBuilder {
       .getOrElse(Nil)
 
   private def isUnionParameter(context: SqlCodegenServiceContext, parameter: SqlCodegenParameter): Boolean =
-    context.unions.exists(_.name == parameter.languageTypeName)
+    context.unions.exists(_.name == parameter.typeName)
 
   private def sampleExpression(
       context: SqlCodegenServiceContext,
@@ -222,19 +222,19 @@ object SqlCodegenIntegrationTestBuilder {
         members
           .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant)}")
           .mkString(", ")
-      s"${parameter.languageTypeName}($arguments)"
+      s"${parameter.typeName}($arguments)"
     } else if (isUnionParameter(context, parameter)) {
       val union       =
         context.unions
-          .find(_.name == parameter.languageTypeName)
-          .getOrElse(throw new IllegalStateException(s"Missing union model for ${parameter.languageTypeName}"))
+          .find(_.name == parameter.typeName)
+          .getOrElse(throw new IllegalStateException(s"Missing union model for ${parameter.typeName}"))
       val member      = union.members.headOption.getOrElse {
         throw new IllegalStateException(s"Union ${union.name} has no members for integration test sampling")
       }
-      val sampleValue = sampleLiteral(context, member.languageTypeName, variant, member.name)
+      val sampleValue = sampleLiteral(context, member.typeName, variant, member.name)
       s"""{"${member.name}": $sampleValue}"""
     } else {
-      sampleLiteral(context, parameter.languageTypeName, variant, parameter.name)
+      sampleLiteral(context, parameter.typeName, variant, parameter.name)
     }
 
   private def sampleMemberExpression(
@@ -242,11 +242,11 @@ object SqlCodegenIntegrationTestBuilder {
       member: SqlCodegenMember,
       variant: SampleVariant
   ): String =
-    sampleLiteral(context, member.languageTypeName, variant, member.name)
+    sampleLiteral(context, member.typeName, variant, member.name)
 
   private def sampleLiteral(
       context: SqlCodegenServiceContext,
-      languageTypeName: String,
+      typeName: String,
       variant: SampleVariant,
       seed: String
   ): String = {
@@ -256,13 +256,13 @@ object SqlCodegenIntegrationTestBuilder {
         case SampleVariant.Updated => s"updated-$seed"
       }
 
-    languageTypeName match {
-      case "str"                                           => s"\"integration-$suffix\""
-      case "int"                                           => if (variant == SampleVariant.Initial) "42" else "84"
-      case "float"                                         => if (variant == SampleVariant.Initial) "3.5" else "7.0"
-      case "bool"                                          => "True"
-      case "bytes"                                         => s"b\"integration-$suffix\""
-      case "datetime"                                      => "datetime.now(timezone.utc)"
+    typeName match {
+      case "String"                                        => s"\"integration-$suffix\""
+      case "Integer" | "Long" | "BigInteger"               => if (variant == SampleVariant.Initial) "42" else "84"
+      case "Float" | "Double"                              => if (variant == SampleVariant.Initial) "3.5" else "7.0"
+      case "Boolean"                                       => "True"
+      case "Blob"                                          => s"b\"integration-$suffix\""
+      case "Timestamp"                                     => "datetime.now(timezone.utc)"
       case other if context.models.exists(_.name == other) =>
         val structure = context.models.find(_.name == other).get
         val arguments =
@@ -273,7 +273,7 @@ object SqlCodegenIntegrationTestBuilder {
       case other if context.unions.exists(_.name == other) =>
         val union       = context.unions.find(_.name == other).get
         val member      = union.members.head
-        val memberValue = sampleLiteral(context, member.languageTypeName, variant, member.name)
+        val memberValue = sampleLiteral(context, member.typeName, variant, member.name)
         s"""{"${member.name}": $memberValue}"""
       case other                                           =>
         throw new IllegalArgumentException(s"Unsupported integration test sample type: $other")
@@ -282,9 +282,9 @@ object SqlCodegenIntegrationTestBuilder {
 
   private def collectExtraImports(context: SqlCodegenServiceContext): List[String] = {
     val needsDatetime =
-      context.operations.exists(_.parameters.exists(_.languageTypeName == "datetime")) ||
-        context.models.exists(_.members.exists(_.languageTypeName == "datetime")) ||
-        context.unions.exists(_.members.exists(_.languageTypeName == "datetime"))
+      context.operations.exists(_.parameters.exists(_.typeName == "Timestamp")) ||
+        context.models.exists(_.members.exists(_.typeName == "Timestamp")) ||
+        context.unions.exists(_.members.exists(_.typeName == "Timestamp"))
 
     if (needsDatetime) {
       List("from datetime import datetime, timezone")

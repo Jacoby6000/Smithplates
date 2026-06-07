@@ -3,7 +3,7 @@ package com.jacoby6000.smithy.stache.sql.codegen
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
+import com.jacoby6000.smithy.stache.sql.codegen.language.LanguageTypeResolver
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
@@ -38,7 +38,7 @@ object SqlServiceCodegenContextBuilder {
                 }
               List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
             }
-            .filterNot(_ == SqlCodegenTypeResolver.UnitShapeId)
+            .filterNot(_ == SqlCodegenShapeGraph.UnitShapeId)
             .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
             .distinct
 
@@ -118,33 +118,26 @@ object SqlServiceCodegenContextBuilder {
           }
         }
 
+      val outputShapeId =
+        operation.outputShape.filter(_ != SqlCodegenShapeGraph.UnitShapeId)
+
+      val outputTypeName =
+        outputShapeId.map(shapeId => LanguageTypeResolver.resolveShapeTypeName(model, shapeId))
+
       val outputClassName =
-        operation.outputShape
-          .filter(_ != SqlCodegenTypeResolver.UnitShapeId)
-          .filterNot(SqlCodegenTypeResolver.isPreludeShape)
+        outputShapeId
+          .filterNot(SqlCodegenShapeGraph.isPreludeShape)
           .map(SqlCodegenNaming.className)
 
-      val outputPythonTypeName =
-        operation.outputShape
-          .filter(_ != SqlCodegenTypeResolver.UnitShapeId)
-          .map(SqlCodegenTypeResolver.resolveOutputPythonTypeName)
-
-      val responseUnion =
-        if (isSelectOne) {
-          outputPythonTypeName.map(outputType => s"$outputType | None").getOrElse("None")
-        } else {
-          buildResponseUnion(outputPythonTypeName, errors)
-        }
       SqlCodegenOperation(
         shapeId = operation.shapeId,
         name = operation.name,
         methodName = SqlCodegenNaming.methodName(operation.name),
         parameters = resolvedParameters,
-        outputShapeId = operation.outputShape.filter(_ != SqlCodegenTypeResolver.UnitShapeId),
+        outputShapeId = outputShapeId,
+        outputTypeName = outputTypeName,
         outputClassName = outputClassName,
         errors = errors,
-        responseUnion = responseUnion,
-        responseType = responseUnion,
         sql = resolvedSql
       )
     }
@@ -154,7 +147,7 @@ object SqlServiceCodegenContextBuilder {
       model: Model,
       operation: SqlOperation
   ): SqlValidated[List[SqlCodegenParameter]] =
-    if (operation.inputShape == SqlCodegenTypeResolver.UnitShapeId) {
+    if (operation.inputShape == SqlCodegenShapeGraph.UnitShapeId) {
       Nil.validNel
     } else {
       SqlShapeCodegenExtractor.extractStructure(model, operation.inputShape).map { inputStructure =>
@@ -162,7 +155,6 @@ object SqlServiceCodegenContextBuilder {
           SqlCodegenParameter(
             name = member.name,
             typeName = member.typeName,
-            languageTypeName = member.languageTypeName,
             optional = member.optional,
             isStructure = member.isStructure,
             structureShapeId = member.structureShapeId
@@ -170,17 +162,4 @@ object SqlServiceCodegenContextBuilder {
         }
       }
     }
-
-  private def buildResponseUnion(
-      outputPythonTypeName: Option[String],
-      errors: List[SqlCodegenErrorType]
-  ): String = {
-    val responseTypes =
-      outputPythonTypeName.toList ++ errors.map(_.className)
-    responseTypes match {
-      case Nil           => "None"
-      case single :: Nil => single
-      case many          => many.mkString(" | ")
-    }
-  }
 }

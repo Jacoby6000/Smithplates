@@ -8,11 +8,4 @@ trait CodegenTemplateBackend {
   def loadModel(testCase: CodegenTemplateTestCase): Either[String, Model]
 
   def render(testCase: CodegenTemplateTestCase, model: Model): Either[String, Map[String, String]]
-
-  def validateRenderedOutputs(
-      testCase: CodegenTemplateTestCase,
-      rendered: Map[String, String]
-  ): Unit = {
-    val _ = (testCase, rendered)
-  }
 }

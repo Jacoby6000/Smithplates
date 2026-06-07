@@ -1,5 +1,3 @@
 def ${attrs("factoryName")}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${attrs("className")}:
     return ${attrs("className")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% if (resultField("isJson").asInstanceOf[Boolean]) { %>${attrs("i8")}${resultField("fieldName")}=${resultField("jsonReadExpression")},
-<% } %><% if (!resultField("isJson").asInstanceOf[Boolean]) { %>${attrs("i8")}${resultField("fieldName")}=${resultField("rowReader")}(row, ${resultField("columnIndex")}),
-<% } %><% } %>${attrs("i4")})
+<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %><% render("partials/python/result_field_assignment", Map("attrs" -> (attrs ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("indent" -> attrs("i8"), "readMode" -> "index")))) %><% } %>${attrs("i4")})

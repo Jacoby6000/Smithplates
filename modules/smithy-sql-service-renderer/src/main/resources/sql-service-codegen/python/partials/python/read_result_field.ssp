@@ -1,0 +1,16 @@
+<% 
+def rowReaderName(typeName: String, timestampFormat: Any): String = {
+  typeName match {
+    case "String"                          => "_read_str"
+    case "Integer" | "Long" | "BigInteger" => "_read_int"
+    case "Float" | "Double"                => "_read_float"
+    case "Boolean"                         => "_read_bool"
+    case "Blob"                            => "_read_bytes"
+    case "BigDecimal"                      => "_read_decimal"
+    case "Timestamp" if timestampFormat == "EpochSeconds" => "_read_epoch_seconds"
+    case "Timestamp"                       => "_read_datetime"
+    case other                             => other
+  }
+}
+%>
+<% if (attrs.get("isJson").exists(isTruthy)) { %><% if (attrs("readMode") == "col") { %>_read_${attrs("typeName")}_col(${attrs.getOrElse("rowVar", "row")}, ${attrs("columnNameLiteral")})<% } else { %>_read_${attrs("typeName")}(row, ${attrs("columnIndex")})<% } %><% } else { %><% val reader = rowReaderName(attrs("typeName").toString, attrs.get("timestampFormat").orNull) %><% if (attrs("readMode") == "col") { %>${reader}_col(${attrs.getOrElse("rowVar", "row")}, ${attrs("columnNameLiteral")})<% } else { %>${reader}(row, ${attrs("columnIndex")})<% } %><% } %>

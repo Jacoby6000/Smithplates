@@ -1,1 +1,1 @@
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${member("name")}: <% if (member("optional").asInstanceOf[Boolean]) { %>${member("languageTypeName")} | None<% } %><% if (!member("optional").asInstanceOf[Boolean]) { %>${member("languageTypeName")}<% } %>${"\n"}<% } %>
+<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${member("name")}: <% render("partials/python/type_annotation", Map("attrs" -> (attrs ++ member.asInstanceOf[Map[String, Any]]))) %>${"\n"}<% } %>

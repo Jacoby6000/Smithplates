@@ -1,14 +1,10 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.codegen.python.CodegenHelper
-import com.jacoby6000.smithy.stache.sql.codegen.python.PythonCodegenHelperPlan
-import com.jacoby6000.smithy.stache.sql.codegen.python.PythonCodegenHelperPlanner
-import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenSqlBindingMetadata
+import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 
 object SqlCodegenTemplateAttributes {
-  def forService(context: SqlCodegenServiceContext, templateRoot: String): Map[String, Any] = {
-    val helperPlan     = PythonCodegenHelperPlanner.plan(context)
+  def forService(context: SqlCodegenServiceContext): Map[String, Any] = {
     val baseAttributes =
       Map(
         "serviceName"              -> context.name,
@@ -28,7 +24,7 @@ object SqlCodegenTemplateAttributes {
         "i4"                       -> "    ",
         "i8"                       -> "        ",
         "i12"                      -> "            ",
-        "models"                   -> withLastFlag(context.models.map(modelAttributes(templateRoot, _))),
+        "models"                   -> withLastFlag(context.models.map(modelAttributes)),
         "unions"                   -> withLastFlag(context.unions.map(unionAttributes)),
         "hasUnions"                -> context.unions.nonEmpty,
         "operations"               -> withLastFlag(
@@ -36,18 +32,14 @@ object SqlCodegenTemplateAttributes {
         ),
         "hasIntegrationTest"       -> context.integrationTest.isDefined,
         "integrationTest"          -> context.integrationTest.map(integrationTestAttributes).orNull
-      ) ++ helperPlan.attributes
+      ) ++ SqlCodegenHelperAttributes.forService(context)
 
-    val attributes = context.integrationTest match {
+    context.integrationTest match {
       case Some(integrationTest) =>
         baseAttributes ++ flattenIntegrationTestAttributes(integrationTestAttributes(integrationTest))
       case None                  =>
         baseAttributes
     }
-
-    attributes ++ Map(
-      "rowReaderHelpers" -> renderHelperPartials(templateRoot, attributes, helperPlan)
-    )
   }
 
   def renderOutputPath(pattern: String, context: SqlCodegenServiceContext): String =
@@ -60,123 +52,15 @@ object SqlCodegenTemplateAttributes {
       .replace("{{serviceVersion}}", context.version)
       .replace("{{implementationClassName}}", context.implementationClassName)
 
-  private def renderHelperPartials(
-      templateRoot: String,
-      attributes: Map[String, Any],
-      helperPlan: PythonCodegenHelperPlan
-  ): String = {
-    val sqliteFactoryPartials            = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "sqliteClassRowFactories",
-      "partials/row_factories/sqlite_class_row_factory"
-    )
-    val jsonUnionPartials                = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonUnions",
-      "partials/json/union_helpers"
-    )
-    val jsonStructurePartials            = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonStructures",
-      "partials/json/structure_helpers"
-    )
-    val jsonUnionColPostgresPartials     = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonUnionsColPostgres",
-      "partials/json/union_helpers_col"
-    )
-    val jsonStructureColPostgresPartials = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonStructuresColPostgres",
-      "partials/json/structure_helpers_col"
-    )
-    val jsonUnionColSqlitePartials       = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonUnionsColSqlite",
-      "partials/json/union_helpers_col_sqlite"
-    )
-    val jsonStructureColSqlitePartials   = renderLoopedPartials(
-      templateRoot,
-      attributes,
-      "jsonStructuresColSqlite",
-      "partials/json/structure_helpers_col_sqlite"
-    )
-
-    val colReaderPartialPaths                   =
-      Set(
-        "partials/row_readers/read_bool_col",
-        "partials/row_readers/read_bytes_col",
-        "partials/row_readers/read_datetime_sqlite_col",
-        "partials/row_readers/read_datetime_postgres_col",
-        "partials/row_readers/read_decimal_col",
-        "partials/row_readers/read_epoch_seconds_postgres_col",
-        "partials/row_readers/read_float_col",
-        "partials/row_readers/read_int_col",
-        "partials/row_readers/read_str_sqlite_col",
-        "partials/row_readers/read_str_postgres_col"
-      )
-    val renderPlanned                           = (helpers: List[CodegenHelper]) =>
-      helpers.map { helper =>
-        ScalateSspTemplateEngine
-          .renderClasspathPartial(templateRoot, helper.partialPath, attributes)
-          .stripTrailing()
-      }
-    val (colReaderHelpers, preColReaderHelpers) =
-      helperPlan.helpers.partition(helper => colReaderPartialPaths.contains(helper.partialPath))
-
-    (sqliteFactoryPartials ++
-      renderPlanned(preColReaderHelpers) ++
-      jsonUnionPartials ++
-      jsonStructurePartials ++
-      renderPlanned(colReaderHelpers) ++
-      jsonUnionColPostgresPartials ++
-      jsonStructureColPostgresPartials ++
-      jsonUnionColSqlitePartials ++
-      jsonStructureColSqlitePartials)
-      .filter(_.nonEmpty)
-      .mkString("\n\n")
-      .stripTrailing()
-  }
-
-  private def renderLoopedPartials(
-      templateRoot: String,
-      attributes: Map[String, Any],
-      attributeKey: String,
-      partialPath: String
-  ): List[String] =
-    attributes
-      .get(attributeKey)
-      .map(_.asInstanceOf[List[Map[String, Any]]])
-      .getOrElse(Nil)
-      .map { itemAttributes =>
-        ScalateSspTemplateEngine
-          .renderClasspathPartial(templateRoot, partialPath, attributes ++ itemAttributes)
-          .stripTrailing()
-      }
-
-  private def modelAttributes(templateRoot: String, model: SqlCodegenStructure): Map[String, Any] = {
-    val members        = withLastFlag(model.members.map(memberAttributes))
+  private def modelAttributes(model: SqlCodegenStructure): Map[String, Any] = {
+    val members       = withLastFlag(model.members.map(memberAttributes))
     Map(
-      "name"        -> model.name,
-      "className"   -> model.name,
-      "shapeId"     -> model.shapeId.toString,
-      "namespace"   -> model.namespace,
-      "members"     -> members,
-      "memberLines" -> ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
-        "partials/models/member_lines",
-        Map(
-          "members" -> members,
-          "i4"      -> "    "
-        )
-      ),
-      "hasMembers"  -> model.members.nonEmpty
+      "name"       -> model.name,
+      "className"  -> model.name,
+      "shapeId"    -> model.shapeId.toString,
+      "namespace"  -> model.namespace,
+      "members"    -> members,
+      "hasMembers" -> model.members.nonEmpty
     )
   }
 
@@ -194,14 +78,13 @@ object SqlCodegenTemplateAttributes {
     Map(
       "name"             -> member.name,
       "variantClassName" -> member.variantClassName,
-      "languageTypeName" -> member.languageTypeName
+      "typeName"         -> member.typeName
     )
 
   private def memberAttributes(member: SqlCodegenMember): Map[String, Any] =
     Map(
       "name"               -> member.name,
       "typeName"           -> member.typeName,
-      "languageTypeName"   -> member.languageTypeName,
       "optional"           -> member.optional,
       "required"           -> !member.optional,
       "isStructure"        -> member.isStructure,
@@ -224,14 +107,13 @@ object SqlCodegenTemplateAttributes {
         "operationShapeId" -> operation.shapeId.toString,
         "parameters"       -> withLastFlag(operation.parameters.map(parameterAttributes)),
         "hasParameters"    -> operation.parameters.nonEmpty,
-        "hasOutput"        -> operation.outputClassName.isDefined,
+        "hasOutput"        -> operation.outputTypeName.isDefined,
         "outputClassName"  -> operation.outputClassName.orNull,
-        "outputTypeName"   -> operation.outputClassName.getOrElse("Unit"),
+        "outputTypeName"   -> operation.outputTypeName.orNull,
         "errors"           -> withLastFlag(operation.errors.map(errorAttributes)),
         "hasErrors"        -> operation.errors.nonEmpty,
-        "responseUnion"    -> operation.responseUnion,
-        "responseType"     -> operation.responseType,
-        "hasSql"           -> operation.sql.isDefined
+        "hasSql"           -> operation.sql.isDefined,
+        "dialectKey"       -> dialectKey
       )
 
     operation.sql match {
@@ -266,7 +148,9 @@ object SqlCodegenTemplateAttributes {
             bindPlaceholderStyle
           ),
           "tableName"            -> sql.tableName,
-          "bindParameters"       -> withBindParameterPositionFlags(sql.bindParameters.map(bindParameterAttributes)),
+          "bindParameters"       -> withBindParameterPositionFlags(
+            sql.bindParameters.map(bindParameterAttributes(dialectKey, _))
+          ),
           "hasBindParameters"    -> sql.bindParameters.nonEmpty,
           "executionMode"        -> sql.executionMode,
           "isRowcountExecution"  -> (sql.executionMode == "rowcount"),
@@ -299,40 +183,41 @@ object SqlCodegenTemplateAttributes {
     Map(
       "name"               -> parameter.name,
       "typeName"           -> parameter.typeName,
-      "languageTypeName"   -> parameter.languageTypeName,
       "optional"           -> parameter.optional,
       "required"           -> !parameter.optional,
       "isStructure"        -> parameter.isStructure,
       "structureClassName" -> parameter.structureShapeId.map(_.getName).orNull
     )
 
-  private def bindParameterAttributes(bindParameter: SqlCodegenBindParameter): Map[String, Any] =
+  private def bindParameterAttributes(
+      dialectKey: String,
+      bindParameter: SqlCodegenBindParameter
+  ): Map[String, Any]      =
     Map(
-      "memberName"     -> bindParameter.memberName,
-      "bindExpression" -> bindParameter.bindExpression.orNull
+      "memberName"      -> bindParameter.memberName,
+      "typeName"        -> bindParameter.typeName,
+      "isJson"          -> bindParameter.isJson,
+      "jsonTypeName"    -> bindParameter.jsonTypeName.orNull,
+      "timestampFormat" -> timestampFormatName(bindParameter.timestampFormat),
+      "dialectKey"      -> dialectKey
     )
 
   private def resultFieldAttributes(resultField: SqlCodegenResultField): Map[String, Any] =
     Map(
-      "fieldName"                     -> resultField.fieldName,
-      "columnName"                    -> resultField.columnName,
-      "columnNameLiteral"             -> s"\"${resultField.columnName}\"",
-      "columnIndex"                   -> resultField.columnIndex,
-      "languageTypeName"              -> resultField.languageTypeName,
-      "isJson"                        -> resultField.isJson,
-      "jsonReadExpression"            -> resultField.jsonReadExpression.orNull,
-      "jsonReadExpressionCol"         -> jsonReadExpressionCol(resultField),
-      "jsonReadExpressionNamedRowCol" -> jsonReadExpressionCol(resultField, "named_row"),
-      "rowReader"                     -> resultField.rowReader.orNull,
-      "rowReaderCol"                  -> resultField.rowReader.map(reader => s"${reader}_col").orNull
+      "fieldName"         -> resultField.fieldName,
+      "columnName"        -> resultField.columnName,
+      "columnNameLiteral" -> s"\"${resultField.columnName}\"",
+      "columnIndex"       -> resultField.columnIndex,
+      "typeName"          -> resultField.typeName,
+      "isJson"            -> resultField.isJson,
+      "timestampFormat"   -> timestampFormatName(resultField.timestampFormat)
     )
 
-  private def jsonReadExpressionCol(resultField: SqlCodegenResultField, rowVar: String = "row"): String =
-    if (resultField.isJson) {
-      s"_read_${resultField.languageTypeName}_col($rowVar, \"${resultField.columnName}\")"
-    } else {
-      ""
-    }
+  private def timestampFormatName(format: Option[SqlTimestampFormat]): Any =
+    format.map {
+      case SqlTimestampFormat.DateTime     => "DateTime"
+      case SqlTimestampFormat.EpochSeconds => "EpochSeconds"
+    }.orNull
 
   private def errorAttributes(error: SqlCodegenErrorType): Map[String, Any] =
     Map(

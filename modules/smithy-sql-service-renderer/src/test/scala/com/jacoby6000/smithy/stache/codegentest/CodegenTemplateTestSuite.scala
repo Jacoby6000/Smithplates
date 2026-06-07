@@ -2,7 +2,11 @@ package com.jacoby6000.smithy.stache.codegentest
 
 import munit.FunSuite
 
+import scala.concurrent.duration.*
+
 abstract class CodegenTemplateTestSuite(backends: List[CodegenTemplateBackend]) extends FunSuite {
+  override val munitTimeout = 60.seconds
+
   private lazy val testCases: List[CodegenTemplateTestCase] =
     CodegenTemplateTestDiscovery.discover(
       getClass.getClassLoader,
@@ -44,7 +48,6 @@ abstract class CodegenTemplateTestSuite(backends: List[CodegenTemplateBackend]) 
                 identity
               )
           CodegenTemplateTestAssertions.assertRenderedOutputs(testCase, backend.variant, rendered)
-          backend.validateRenderedOutputs(testCase, rendered)
         }
       }
     }

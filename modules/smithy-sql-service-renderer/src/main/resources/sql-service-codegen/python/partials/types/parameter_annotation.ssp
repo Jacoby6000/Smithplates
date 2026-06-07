@@ -1,1 +1,1 @@
-<% if (attrs.get("optional").exists(isTruthy)) { %>${attrs("languageTypeName")} | None<% } %><% if (!attrs.get("optional").exists(isTruthy)) { %>${attrs("languageTypeName")}<% } %>
+<% render("partials/python/type_annotation", Map("attrs" -> attrs)) %>

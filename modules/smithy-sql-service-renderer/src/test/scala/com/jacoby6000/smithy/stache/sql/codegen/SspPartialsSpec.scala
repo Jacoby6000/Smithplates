@@ -46,16 +46,16 @@ class SspPartialsSpec extends munit.FunSuite {
         Map(
           "members" -> List(
             Map(
-              "name"             -> "street",
-              "languageTypeName" -> "str",
-              "optional"         -> false,
-              "last"             -> false
+              "name"     -> "street",
+              "typeName" -> "String",
+              "optional" -> false,
+              "last"     -> false
             ),
             Map(
-              "name"             -> "city",
-              "languageTypeName" -> "str",
-              "optional"         -> false,
-              "last"             -> true
+              "name"     -> "city",
+              "typeName" -> "String",
+              "optional" -> false,
+              "last"     -> true
             )
           ),
           "i4"      -> "    "

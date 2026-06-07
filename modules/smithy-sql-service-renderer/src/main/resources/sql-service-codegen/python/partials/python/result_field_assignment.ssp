@@ -1,0 +1,1 @@
+${attrs("indent")}${attrs("fieldName")}=<% render("partials/python/read_result_field", Map("attrs" -> attrs)) %>,${"\n"}

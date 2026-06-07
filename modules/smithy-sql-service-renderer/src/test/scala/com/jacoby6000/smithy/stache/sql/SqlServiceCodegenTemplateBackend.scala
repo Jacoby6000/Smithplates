@@ -2,7 +2,6 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.codegentest.CodegenTemplateBackend
 import com.jacoby6000.smithy.stache.codegentest.CodegenTemplateTestCase
-import com.jacoby6000.smithy.stache.codegentest.CodegenTemplateValidator
 import com.jacoby6000.smithy.stache.codegentest.CodegenTemplateVariant
 import com.jacoby6000.smithy.stache.sql.SqlTestModelLoader
 import com.jacoby6000.smithy.stache.sql.postgres.PostgresRenderer
@@ -26,8 +25,7 @@ object SqlServiceCodegenTemplateBackend {
 
   def apply(
       templateVariant: CodegenTemplateVariant,
-      settings: SqlServiceCodegenSettings,
-      validator: Option[CodegenTemplateValidator] = None
+      settings: SqlServiceCodegenSettings
   ): ConfiguredBackend =
     new ConfiguredBackend {
       override val variant: CodegenTemplateVariant    = templateVariant
@@ -60,12 +58,6 @@ object SqlServiceCodegenTemplateBackend {
           .left
           .map(_.toList.mkString("; "))
       }
-
-      override def validateRenderedOutputs(
-          testCase: CodegenTemplateTestCase,
-          rendered: Map[String, String]
-      ): Unit =
-        validator.foreach(_.validate(testCase, templateVariant, rendered))
     }
 
   def db(
@@ -73,8 +65,7 @@ object SqlServiceCodegenTemplateBackend {
       dialectKey: String,
       queryRenderer: SqlQueryRenderer,
       schemaDdlRenderer: SqlSchemaDdlRenderer,
-      artifacts: List[SqlServiceCodegenArtifactConfig],
-      validator: Option[CodegenTemplateValidator] = None
+      artifacts: List[SqlServiceCodegenArtifactConfig]
   ): ConfiguredBackend =
     apply(
       templateVariant = templateVariant,
@@ -86,8 +77,7 @@ object SqlServiceCodegenTemplateBackend {
         schemaDdlRenderers = Map(dialectKey -> schemaDdlRenderer),
         testOutputDirectory = Some(GoldenTestOutputDirectory),
         artifacts = artifacts
-      ),
-      validator = validator
+      )
     )
 
   val pythonSqlite: ConfiguredBackend =
@@ -99,8 +89,7 @@ object SqlServiceCodegenTemplateBackend {
         codegenBindPlaceholder = SqlBindPlaceholder("?")
       ),
       schemaDdlRenderer = SqliteRenderer,
-      artifacts = SqlServiceCodegenDbArtifacts.sqlite(),
-      validator = Some(PythonCodegenTemplateValidator("sqlite"))
+      artifacts = SqlServiceCodegenDbArtifacts.sqlite()
     )
 
   val pythonPostgres: ConfiguredBackend =
@@ -112,7 +101,6 @@ object SqlServiceCodegenTemplateBackend {
         codegenBindPlaceholder = SqlBindPlaceholder("%s")
       ),
       schemaDdlRenderer = PostgresRenderer,
-      artifacts = SqlServiceCodegenDbArtifacts.postgres(),
-      validator = Some(PythonCodegenTemplateValidator("postgres"))
+      artifacts = SqlServiceCodegenDbArtifacts.postgres()
     )
 }

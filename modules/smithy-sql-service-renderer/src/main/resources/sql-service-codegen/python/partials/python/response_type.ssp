@@ -1,0 +1,56 @@
+<% 
+def pythonTypeName(typeName: String): String = {
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"list[${pythonTypeName(inner)}]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"dict[str, ${pythonTypeName(inner)}]"
+  } else {
+    typeName match {
+      case "String"                          => "str"
+      case "Integer" | "Long" | "BigInteger" => "int"
+      case "Float" | "Double"                => "float"
+      case "BigDecimal"                      => "Decimal"
+      case "Boolean"                         => "bool"
+      case "Blob"                            => "bytes"
+      case "Timestamp"                       => "datetime"
+      case "Document"                        => "Any"
+      case "Unit"                            => "None"
+      case other                             => other
+    }
+  }
+}
+
+def responseType(attrs: Map[String, Any]): String = {
+  val isSelectOne = attrs.get("isSelectOne").exists {
+    case value: Boolean => value
+    case _              => false
+  }
+  val hasOutput = attrs.get("hasOutput").exists {
+    case value: Boolean => value
+    case _              => false
+  }
+
+  if (isSelectOne) {
+    if (hasOutput) {
+      s"${pythonTypeName(attrs("outputTypeName").toString)} | None"
+    } else {
+      "None"
+    }
+  } else {
+    val responseTypes = scala.collection.mutable.ListBuffer.empty[String]
+    if (hasOutput) {
+      responseTypes += pythonTypeName(attrs("outputTypeName").toString)
+    }
+    attrs("errors").asInstanceOf[List[Map[String, Any]]].foreach { error =>
+      responseTypes += error("className").toString
+    }
+    responseTypes.toList match {
+      case Nil           => "None"
+      case single :: Nil => single
+      case many          => many.mkString(" | ")
+    }
+  }
+}
+%>${responseType(attrs)}

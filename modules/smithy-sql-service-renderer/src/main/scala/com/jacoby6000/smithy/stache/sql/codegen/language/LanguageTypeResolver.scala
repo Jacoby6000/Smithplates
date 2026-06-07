@@ -27,11 +27,17 @@ object LanguageTypeResolver {
         resolvePrimitiveTypeName(shape.toShapeId)
     }
 
+  def resolveShapeTypeName(model: Model, shapeId: ShapeId): String =
+    if (SqlCodegenShapeGraph.isPreludeShape(shapeId)) {
+      resolvePrimitiveTypeName(shapeId)
+    } else {
+      resolveTypeName(model, model.expectShape(shapeId))
+    }
+
   def resolveMember(
       model: Model,
       memberName: String,
       member: MemberShape,
-      mapper: LanguageTypeMapper,
       role: SqlCodegenMemberRole = SqlCodegenMemberRole.General
   ): SqlCodegenMember = {
     val targetShape      = model.expectShape(member.getTarget)
@@ -45,15 +51,14 @@ object LanguageTypeResolver {
     SqlCodegenMember(
       name = memberName,
       typeName = resolveTypeName(model, targetShape),
-      languageTypeName = mapper.resolveLanguageTypeName(model, targetShape),
-      optional = mapper.isOptionalMember(member, role),
+      optional = SqlCodegenMemberOptional.isOptional(member, role),
       isStructure = structureShapeId.isDefined,
       structureShapeId = structureShapeId,
       isUnion = targetShape.isUnionShape
     )
   }
 
-  private def resolvePrimitiveTypeName(shapeId: ShapeId): String =
+  def resolvePrimitiveTypeName(shapeId: ShapeId): String =
     shapeId.getName match {
       case "String"     => "String"
       case "Integer"    => "Integer"
