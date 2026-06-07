@@ -82,3 +82,39 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
 
     missing = await widget_repository_service.get_widget(id=entity_id)
     assert missing is None
+
+@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit(widget_repository_service: WidgetRepositoryPsycopgService) -> None:
+    connection = widget_repository_service._connection
+    async with connection.transaction() as tx:
+        entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42, transaction=tx)
+        assert isinstance(entity_id, str)
+        assert entity_id
+
+        fetched = await widget_repository_service.get_widget(id=entity_id, transaction=tx)
+        assert isinstance(fetched, Widget)
+        assert fetched.foo == "integration-foo"
+        assert fetched.bar == 42
+
+    fetched_after_commit = await widget_repository_service.get_widget(id=entity_id)
+    assert isinstance(fetched_after_commit, Widget)
+    assert fetched_after_commit.foo == "integration-foo"
+    assert fetched_after_commit.bar == 42
+
+
+@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback(widget_repository_service: WidgetRepositoryPsycopgService) -> None:
+    connection = widget_repository_service._connection
+    entity_id: str | None = None
+    with pytest.raises(RuntimeError, match="rollback probe"):
+        async with connection.transaction() as tx:
+            entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42, transaction=tx)
+            raise RuntimeError("rollback probe")
+
+    assert entity_id is not None
+    missing = await widget_repository_service.get_widget(id=entity_id)
+    assert missing is None

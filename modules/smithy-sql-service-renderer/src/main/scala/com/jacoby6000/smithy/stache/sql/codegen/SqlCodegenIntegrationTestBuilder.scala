@@ -31,15 +31,31 @@ object SqlCodegenIntegrationTestBuilder {
 
     (insertOperation, selectOneOperation) match {
       case (Some(insert), Some(selectOne)) =>
-        val serviceFixtureName        = s"${context.fileName}_service"
-        val selectOneResultAssertions =
+        val serviceFixtureName           = s"${context.fileName}_service"
+        val selectOneResultAssertions    =
           selectOne.resultAssertions.map(line => s"    $line").mkString("\n")
-        val updateLifecycleBlock      =
+        val updateLifecycleBlock         =
           updateOperation.map(
             renderUpdateLifecycleBlock(serviceFixtureName, selectOne, _, selectOne.updatedResultAssertions)
           )
-        val deleteLifecycleBlock      =
+        val deleteLifecycleBlock         =
           deleteOperation.map(renderDeleteLifecycleBlock(serviceFixtureName, selectOne, _))
+        val transactionCommitTestBlock   =
+          renderTransactionCommitTestBlock(
+            serviceFixtureName,
+            insert,
+            selectOne,
+            context.dialectKey,
+            context.implementationClassName
+          )
+        val transactionRollbackTestBlock =
+          renderTransactionRollbackTestBlock(
+            serviceFixtureName,
+            insert,
+            selectOne,
+            context.dialectKey,
+            context.implementationClassName
+          )
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = schemaDdl(schema, sqlOperations, context.dialectKey, schemaDdlRenderers),
@@ -52,6 +68,8 @@ object SqlCodegenIntegrationTestBuilder {
             selectOneResultAssertions = selectOneResultAssertions,
             updateLifecycleBlock = updateLifecycleBlock,
             deleteLifecycleBlock = deleteLifecycleBlock,
+            transactionCommitTestBlock = transactionCommitTestBlock,
+            transactionRollbackTestBlock = transactionRollbackTestBlock,
             extraImports = collectExtraImports(context)
           )
         )
@@ -190,6 +208,128 @@ object SqlCodegenIntegrationTestBuilder {
       s"    missing = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})",
       "    assert missing is None"
     ).mkString("\n")
+
+  private def renderTransactionCommitTestBlock(
+      serviceFixtureName: String,
+      insert: SqlCodegenIntegrationTestOperation,
+      selectOne: SqlCodegenIntegrationTestOperation,
+      dialectKey: String,
+      implementationClassName: String
+  ): String = {
+    val outputClassName         =
+      selectOne.outputClassName.getOrElse(
+        throw new IllegalStateException("selectOne integration test operation missing outputClassName")
+      )
+    val inTransactionAssertions =
+      indentAssertionLines(selectOne.resultAssertions, spaces = 8)
+    val afterCommitAssertions   =
+      indentAssertionLines(
+        remapAssertionTarget(selectOne.resultAssertions, "fetched", "fetched_after_commit"),
+        spaces = 4
+      )
+    dialectKey match {
+      case "sqlite"   =>
+        val insertCall    = s"${insert.callArguments}, transaction=connection"
+        val selectOneCall = s"${selectOne.callArguments}, transaction=connection"
+        s"""@pytest.mark.integration
+@pytest.mark.sqlite
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit($serviceFixtureName: $implementationClassName) -> None:
+    connection = $serviceFixtureName._connection
+    await connection.execute("BEGIN")
+    try:
+        entity_id = await $serviceFixtureName.${insert.methodName}($insertCall)
+        assert isinstance(entity_id, str)
+        assert entity_id
+
+        fetched = await $serviceFixtureName.${selectOne.methodName}($selectOneCall)
+        assert isinstance(fetched, $outputClassName)
+$inTransactionAssertions
+        await connection.commit()
+    except BaseException:
+        await connection.rollback()
+        raise
+
+    fetched_after_commit = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})
+    assert isinstance(fetched_after_commit, $outputClassName)
+$afterCommitAssertions"""
+      case "postgres" =>
+        val insertCall    = s"${insert.callArguments}, transaction=tx"
+        val selectOneCall = s"${selectOne.callArguments}, transaction=tx"
+        s"""@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit($serviceFixtureName: $implementationClassName) -> None:
+    connection = $serviceFixtureName._connection
+    async with connection.transaction() as tx:
+        entity_id = await $serviceFixtureName.${insert.methodName}($insertCall)
+        assert isinstance(entity_id, str)
+        assert entity_id
+
+        fetched = await $serviceFixtureName.${selectOne.methodName}($selectOneCall)
+        assert isinstance(fetched, $outputClassName)
+$inTransactionAssertions
+
+    fetched_after_commit = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})
+    assert isinstance(fetched_after_commit, $outputClassName)
+$afterCommitAssertions"""
+      case other      =>
+        throw new IllegalArgumentException(s"Unsupported integration test dialect key: $other")
+    }
+  }
+
+  private def renderTransactionRollbackTestBlock(
+      serviceFixtureName: String,
+      insert: SqlCodegenIntegrationTestOperation,
+      selectOne: SqlCodegenIntegrationTestOperation,
+      dialectKey: String,
+      implementationClassName: String
+  ): String =
+    dialectKey match {
+      case "sqlite"   =>
+        val insertCall = s"${insert.callArguments}, transaction=connection"
+        s"""@pytest.mark.integration
+@pytest.mark.sqlite
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback($serviceFixtureName: $implementationClassName) -> None:
+    connection = $serviceFixtureName._connection
+    await connection.execute("BEGIN")
+    entity_id = await $serviceFixtureName.${insert.methodName}($insertCall)
+    assert isinstance(entity_id, str)
+    assert entity_id
+    await connection.rollback()
+
+    missing = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})
+    assert missing is None"""
+      case "postgres" =>
+        val insertCall = s"${insert.callArguments}, transaction=tx"
+        s"""@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback($serviceFixtureName: $implementationClassName) -> None:
+    connection = $serviceFixtureName._connection
+    entity_id: str | None = None
+    with pytest.raises(RuntimeError, match="rollback probe"):
+        async with connection.transaction() as tx:
+            entity_id = await $serviceFixtureName.${insert.methodName}($insertCall)
+            raise RuntimeError("rollback probe")
+
+    assert entity_id is not None
+    missing = await $serviceFixtureName.${selectOne.methodName}(${selectOne.callArguments})
+    assert missing is None"""
+      case other      =>
+        throw new IllegalArgumentException(s"Unsupported integration test dialect key: $other")
+    }
+
+  private def indentAssertionLines(assertions: List[String], spaces: Int): String =
+    assertions.map(line => s"${" " * spaces}$line").mkString("\n")
+
+  private def remapAssertionTarget(
+      assertions: List[String],
+      from: String,
+      to: String
+  ): List[String] =
+    assertions.map(_.replace(s"$from.", s"$to."))
 
   private def renderCallArguments(
       context: SqlCodegenServiceContext,

@@ -1,16 +1,19 @@
 # Generated from {{serviceShapeId}} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from {{serviceFileName}}_models import (
 {{#models}}{{i4}}{{className}},{{newline}}{{/models}}{{#unions}}{{i4}}{{className}},{{newline}}{{/unions}})
 
-class {{serviceClassName}}ServiceProtocol(Protocol):
+T = TypeVar("T", contravariant=True)
+
+
+class {{serviceClassName}}ServiceProtocol(Protocol[T]):
 {{#operations}}{{i4}}async def {{methodName}}(
 {{i8}}self,
 {{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
-{{/parameters}}{{i4}}) -> {{pythonResponseType}}:
+{{/parameters}}{{> partials/types/transaction_parameter_protocol}}{{i4}}) -> {{pythonResponseType}}:
 {{i8}}...
 {{^last}}
 

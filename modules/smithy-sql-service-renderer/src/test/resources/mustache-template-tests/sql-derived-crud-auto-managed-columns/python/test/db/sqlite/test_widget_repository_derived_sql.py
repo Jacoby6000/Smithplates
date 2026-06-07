@@ -61,3 +61,43 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
 
     missing = await widget_repository_service.get_widget(id=entity_id)
     assert missing is None
+
+@pytest.mark.integration
+@pytest.mark.sqlite
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit(widget_repository_service: WidgetRepositoryAiosqliteService) -> None:
+    connection = widget_repository_service._connection
+    await connection.execute("BEGIN")
+    try:
+        entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42, transaction=connection)
+        assert isinstance(entity_id, str)
+        assert entity_id
+
+        fetched = await widget_repository_service.get_widget(id=entity_id, transaction=connection)
+        assert isinstance(fetched, Widget)
+        assert fetched.foo == "integration-foo"
+        assert fetched.bar == 42
+        await connection.commit()
+    except BaseException:
+        await connection.rollback()
+        raise
+
+    fetched_after_commit = await widget_repository_service.get_widget(id=entity_id)
+    assert isinstance(fetched_after_commit, Widget)
+    assert fetched_after_commit.foo == "integration-foo"
+    assert fetched_after_commit.bar == 42
+
+
+@pytest.mark.integration
+@pytest.mark.sqlite
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback(widget_repository_service: WidgetRepositoryAiosqliteService) -> None:
+    connection = widget_repository_service._connection
+    await connection.execute("BEGIN")
+    entity_id = await widget_repository_service.create_widget(foo="integration-foo", bar=42, transaction=connection)
+    assert isinstance(entity_id, str)
+    assert entity_id
+    await connection.rollback()
+
+    missing = await widget_repository_service.get_widget(id=entity_id)
+    assert missing is None

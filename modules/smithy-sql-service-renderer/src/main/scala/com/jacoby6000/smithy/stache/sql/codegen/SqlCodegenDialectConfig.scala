@@ -34,4 +34,12 @@ object SqlCodegenDialectConfig {
 
   def usesUuidRowConversion(dialectKey: String): Boolean =
     dialectKey == "postgres"
+
+  def transactionTypeName(dialectKey: String): String =
+    dialectKey match {
+      case "sqlite"   => "aiosqlite.Connection"
+      case "postgres" => "psycopg.AsyncTransaction"
+      case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+    }
+
 }

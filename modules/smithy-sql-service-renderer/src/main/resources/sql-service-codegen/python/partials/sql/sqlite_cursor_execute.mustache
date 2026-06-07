@@ -1,1 +1,1 @@
-cursor = await self._connection.execute({{newline}}{{i12}}"""{{sqlStatement}}""",{{newline}}{{i12}}{{> partials/sql/bind_tuple}},{{newline}}{{i8}}){{newline}}
+cursor = await conn.execute({{newline}}{{txI12}}"""{{sqlStatement}}""",{{newline}}{{txI12}}{{> partials/sql/bind_tuple}},{{newline}}{{txI8}}){{newline}}

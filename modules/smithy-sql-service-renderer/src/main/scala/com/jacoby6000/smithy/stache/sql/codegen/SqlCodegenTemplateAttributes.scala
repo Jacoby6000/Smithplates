@@ -20,6 +20,7 @@ object SqlCodegenTemplateAttributes {
         "isPostgresDialect"        -> (context.dialectKey == "postgres"),
         "isSqliteDialect"          -> (context.dialectKey == "sqlite"),
         "rowTypeName"              -> SqlCodegenDialectConfig.rowTypeName(context.dialectKey),
+        "transactionTypeName"      -> SqlCodegenDialectConfig.transactionTypeName(context.dialectKey),
         "i4"                       -> "    ",
         "i8"                       -> "        ",
         "i12"                      -> "            ",
@@ -33,15 +34,14 @@ object SqlCodegenTemplateAttributes {
         "integrationTest"          -> context.integrationTest.map(integrationTestAttributes).orNull
       ) ++ helperFlags
 
-    attributes + (
-      "rowReaderHelpers" ->
-        MustacheTemplateEngine
-          .renderClasspathPartial(
-            templateRoot,
-            "partials/helpers/row_reader_helpers",
-            attributes
-          )
-          .stripTrailing()
+    attributes ++ Map(
+      "rowReaderHelpers" -> MustacheTemplateEngine
+        .renderClasspathPartial(
+          templateRoot,
+          "partials/helpers/row_reader_helpers",
+          attributes
+        )
+        .stripTrailing()
     )
   }
 
@@ -181,7 +181,11 @@ object SqlCodegenTemplateAttributes {
           ),
           "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
           "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
-          "hasResultFields"      -> sql.resultFields.nonEmpty
+          "hasResultFields"      -> sql.resultFields.nonEmpty,
+          "txI8"                 -> "            ",
+          "txI12"                -> "                ",
+          "txI16"                -> "                    ",
+          "txI20"                -> "                        "
         )
     }
   }
@@ -205,21 +209,22 @@ object SqlCodegenTemplateAttributes {
 
   private def resultFieldAttributes(resultField: SqlCodegenResultField): Map[String, Any] =
     Map(
-      "fieldName"             -> resultField.fieldName,
-      "columnName"            -> resultField.columnName,
-      "columnNameLiteral"     -> s"\"${resultField.columnName}\"",
-      "columnIndex"           -> resultField.columnIndex,
-      "pythonTypeName"        -> resultField.pythonTypeName,
-      "isJson"                -> resultField.isJson,
-      "jsonReadExpression"    -> resultField.jsonReadExpression.orNull,
-      "jsonReadExpressionCol" -> jsonReadExpressionCol(resultField),
-      "rowReader"             -> resultField.rowReader,
-      "rowReaderCol"          -> s"${resultField.rowReader}_col"
+      "fieldName"                     -> resultField.fieldName,
+      "columnName"                    -> resultField.columnName,
+      "columnNameLiteral"             -> s"\"${resultField.columnName}\"",
+      "columnIndex"                   -> resultField.columnIndex,
+      "pythonTypeName"                -> resultField.pythonTypeName,
+      "isJson"                        -> resultField.isJson,
+      "jsonReadExpression"            -> resultField.jsonReadExpression.orNull,
+      "jsonReadExpressionCol"         -> jsonReadExpressionCol(resultField),
+      "jsonReadExpressionNamedRowCol" -> jsonReadExpressionCol(resultField, "named_row"),
+      "rowReader"                     -> resultField.rowReader,
+      "rowReaderCol"                  -> s"${resultField.rowReader}_col"
     )
 
-  private def jsonReadExpressionCol(resultField: SqlCodegenResultField): String =
+  private def jsonReadExpressionCol(resultField: SqlCodegenResultField, rowVar: String = "row"): String =
     if (resultField.isJson) {
-      s"_read_${resultField.pythonTypeName}_col(row, \"${resultField.columnName}\")"
+      s"_read_${resultField.pythonTypeName}_col($rowVar, \"${resultField.columnName}\")"
     } else {
       ""
     }
@@ -233,23 +238,25 @@ object SqlCodegenTemplateAttributes {
 
   private def integrationTestAttributes(
       integrationTest: SqlCodegenIntegrationTestContext
-  ): Map[String, Any]                 =
+  ): Map[String, Any]                    =
     Map(
-      "schemaDdl"                 -> integrationTest.schemaDdl,
-      "implementationModuleName"  -> integrationTest.implementationModuleName,
-      "serviceFixtureName"        -> integrationTest.serviceFixtureName,
-      "extraImports"              -> integrationTest.extraImports.mkString("", "\n", "\n"),
-      "insertOperation"           -> integrationOperationAttributes(integrationTest.insertOperation),
-      "selectOneOperation"        -> integrationOperationAttributes(integrationTest.selectOneOperation),
-      "updateOperation"           -> integrationTest.updateOperation.map(integrationOperationAttributes).orNull,
-      "deleteOperation"           -> integrationTest.deleteOperation.map(integrationOperationAttributes).orNull,
-      "hasUpdateOperation"        -> integrationTest.updateOperation.isDefined,
-      "hasDeleteOperation"        -> integrationTest.deleteOperation.isDefined,
-      "selectOneResultAssertions" -> integrationTest.selectOneResultAssertions,
-      "updateLifecycleBlock"      -> integrationTest.updateLifecycleBlock.orNull,
-      "deleteLifecycleBlock"      -> integrationTest.deleteLifecycleBlock.orNull,
-      "hasUpdateLifecycleBlock"   -> integrationTest.updateLifecycleBlock.isDefined,
-      "hasDeleteLifecycleBlock"   -> integrationTest.deleteLifecycleBlock.isDefined
+      "schemaDdl"                    -> integrationTest.schemaDdl,
+      "implementationModuleName"     -> integrationTest.implementationModuleName,
+      "serviceFixtureName"           -> integrationTest.serviceFixtureName,
+      "extraImports"                 -> integrationTest.extraImports.mkString("", "\n", "\n"),
+      "insertOperation"              -> integrationOperationAttributes(integrationTest.insertOperation),
+      "selectOneOperation"           -> integrationOperationAttributes(integrationTest.selectOneOperation),
+      "updateOperation"              -> integrationTest.updateOperation.map(integrationOperationAttributes).orNull,
+      "deleteOperation"              -> integrationTest.deleteOperation.map(integrationOperationAttributes).orNull,
+      "hasUpdateOperation"           -> integrationTest.updateOperation.isDefined,
+      "hasDeleteOperation"           -> integrationTest.deleteOperation.isDefined,
+      "selectOneResultAssertions"    -> integrationTest.selectOneResultAssertions,
+      "updateLifecycleBlock"         -> integrationTest.updateLifecycleBlock.orNull,
+      "deleteLifecycleBlock"         -> integrationTest.deleteLifecycleBlock.orNull,
+      "hasUpdateLifecycleBlock"      -> integrationTest.updateLifecycleBlock.isDefined,
+      "hasDeleteLifecycleBlock"      -> integrationTest.deleteLifecycleBlock.isDefined,
+      "transactionCommitTestBlock"   -> integrationTest.transactionCommitTestBlock,
+      "transactionRollbackTestBlock" -> integrationTest.transactionRollbackTestBlock
     )
 
   private def integrationOperationAttributes(
@@ -289,37 +296,35 @@ object SqlCodegenTemplateAttributes {
 
 private object SqlCodegenHelperMetadata {
   def collect(context: SqlCodegenServiceContext): Map[String, Any] = {
-    val operations                 = context.operations
-    val isPostgresDialect          = context.dialectKey == "postgres"
-    val isSqliteDialect            = context.dialectKey == "sqlite"
-    val rowReaders                 = collectRowReaders(operations, context.dialectKey)
-    val rowReadersCol              = collectRowReadersCol(operations)
-    val timestampBinds             = collectTimestampBindHelpers(operations)
-    val usesJson                   = usesJsonSerialization(operations)
-    val usedJsonTypes              = collectUsedJsonPythonTypeNames(operations)
-    val usedJsonTypesCol           = collectUsedJsonPythonTypeNamesCol(operations)
-    val needsClassRow              =
+    val operations               = context.operations
+    val isPostgresDialect        = context.dialectKey == "postgres"
+    val isSqliteDialect          = context.dialectKey == "sqlite"
+    val rowReaders               = collectRowReaders(operations, context.dialectKey)
+    val rowReadersCol            = collectRowReadersCol(operations)
+    val timestampBinds           = collectTimestampBindHelpers(operations)
+    val usesJson                 = usesJsonSerialization(operations)
+    val usedJsonTypes            = collectUsedJsonPythonTypeNames(operations)
+    val usedJsonTypesCol         = collectUsedJsonPythonTypeNamesCol(operations)
+    val needsClassRow            =
       isPostgresDialect && operations.exists(op => op.sql.exists(canUseClassRow))
-    val needsDictRow               =
+    val needsDictRow             =
       isPostgresDialect && operations.exists(op => op.sql.exists(sql => usesDictRowFactory(sql)))
-    val needsSqliteClassRowFactory =
-      isSqliteDialect && operations.exists(op => op.sql.exists(canUseClassRow))
-    val needsSqliteNamedRowFactory =
-      isSqliteDialect && operations.exists(op => op.sql.exists(sql => usesDictRowFactory(sql)))
-    val sqliteClassRowFactories    =
+    val sqliteClassRowFactories  =
       if (isSqliteDialect) {
         collectSqliteClassRowFactories(operations)
       } else {
         Nil
       }
+    val usesSqliteNamedRowMapper =
+      isSqliteDialect && operations.exists(op => op.sql.exists(usesDictRowFactory))
 
     Map(
+      "needsTransactionImports"        -> false,
       "needsClassRowImport"            -> needsClassRow,
       "needsDictRowImport"             -> needsDictRow,
       "needsPostgresRowFactoryImports" -> (needsClassRow || needsDictRow),
-      "needsSqliteClassRowFactory"     -> needsSqliteClassRowFactory,
-      "needsSqliteNamedRowFactory"     -> needsSqliteNamedRowFactory,
       "sqliteClassRowFactories"        -> sqliteClassRowFactories,
+      "usesSqliteNamedRowMapper"       -> usesSqliteNamedRowMapper,
       "needsUuidTextLoader"            -> needsClassRow,
       "usesReadStr"                    -> rowReaders.contains("_read_str"),
       "usesReadInt"                    -> rowReaders.contains("_read_int"),

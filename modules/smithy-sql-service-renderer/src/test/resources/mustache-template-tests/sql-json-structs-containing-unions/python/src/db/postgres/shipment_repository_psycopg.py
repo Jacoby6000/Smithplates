@@ -9,7 +9,7 @@ import uuid
 import json
 from datetime import datetime
 import psycopg
-
+from psycopg_transaction_run import run
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
@@ -18,7 +18,7 @@ from shipment_repository_models import (
 from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
 
 
-class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol):
+class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol[psycopg.AsyncTransaction]):
     def __init__(self, connection: psycopg.AsyncConnection) -> None:
         super().__init__()
         self._connection = connection
@@ -29,35 +29,43 @@ class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol):
         label: str,
         destination: PostalAddress,
         state: DeliveryState,
+        *,
+        transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:
-        cur = await self._connection.execute(
-            """INSERT INTO shipments (label, destination, state) VALUES (%s, %s, %s) RETURNING id;""",
-            (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
-        )
-        row = await cur.fetchone()
-        if row is None:
-            raise RuntimeError("INSERT RETURNING produced no row")
-        return _read_str(row, 0)
+        async def execute() -> str:
+            cur = await self._connection.execute(
+                """INSERT INTO shipments (label, destination, state) VALUES (%s, %s, %s) RETURNING id;""",
+                (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return _read_str(row, 0)
+        return await run(self._connection, transaction, execute)
     @override
     async def get_shipment(
         self,
         id: str,
+        *,
+        transaction: psycopg.AsyncTransaction | None = None,
     ) -> Shipment | None:
-        async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]
-            await cur.execute(
-                """SELECT id, label, destination, state, created_at FROM shipments WHERE id = %s;""",
-                (id,),
-            )
-            row = await cur.fetchone()
-            if row is None:
-                return None
-            return Shipment(
-                id=_read_str_col(row, "id"),
-                label=_read_str_col(row, "label"),
-                destination=_read_PostalAddress_col(row, "destination"),
-                state=_read_DeliveryState_col(row, "state"),
-                created_at=_read_datetime_col(row, "created_at"),
-            )
+        async def execute() -> Shipment | None:
+            async with self._connection.cursor(row_factory=dict_row) as cur:  # type: ignore[misc]
+                await cur.execute(
+                    """SELECT id, label, destination, state, created_at FROM shipments WHERE id = %s;""",
+                    (id,),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    return None
+                return Shipment(
+                    id=_read_str_col(row, "id"),
+                    label=_read_str_col(row, "label"),
+                    destination=_read_PostalAddress_col(row, "destination"),
+                    state=_read_DeliveryState_col(row, "state"),
+                    created_at=_read_datetime_col(row, "created_at"),
+                )
+        return await run(self._connection, transaction, execute)
     @override
     async def update_shipment(
         self,
@@ -65,25 +73,33 @@ class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol):
         destination: PostalAddress,
         state: DeliveryState,
         id: str,
+        *,
+        transaction: psycopg.AsyncTransaction | None = None,
     ) -> bool:
-        cur = await self._connection.execute(
-            """UPDATE shipments
+        async def execute() -> bool:
+            cur = await self._connection.execute(
+                """UPDATE shipments
 SET label = %s, destination = %s, state = %s
 WHERE id = %s;""",
-            (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
-        )
-        return cur.rowcount > 0
+                (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
+            )
+            return cur.rowcount > 0
+        return await run(self._connection, transaction, execute)
     @override
     async def delete_shipment(
         self,
         id: str,
+        *,
+        transaction: psycopg.AsyncTransaction | None = None,
     ) -> bool:
-        cur = await self._connection.execute(
-            """DELETE FROM shipments WHERE id = %s RETURNING id;""",
-            (id,),
-        )
-        row = await cur.fetchone()
-        return row is not None
+        async def execute() -> bool:
+            cur = await self._connection.execute(
+                """DELETE FROM shipments WHERE id = %s RETURNING id;""",
+                (id,),
+            )
+            row = await cur.fetchone()
+            return row is not None
+        return await run(self._connection, transaction, execute)
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):

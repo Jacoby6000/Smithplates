@@ -10,7 +10,8 @@ import software.amazon.smithy.model.Model
 final case class SqlServiceCodegenArtifactConfig(
     kind: SqlServiceCodegenArtifactKind,
     template: String,
-    outputFile: String
+    outputFile: String,
+    bundledResource: Boolean = false
 )
 
 final case class SqlServiceCodegenSettings(
@@ -46,9 +47,13 @@ object SqlServiceCodegenRenderer {
                 } else {
                   val templatePath = resolveTemplatePath(settings, artifactConfig)
                   val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
-                  val attributes   = SqlCodegenTemplateAttributes.forService(context, templateRoot)
                   val content      =
-                    MustacheTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
+                    if (artifactConfig.bundledResource) {
+                      MustacheTemplateEngine.readClasspathResource(templatePath)
+                    } else {
+                      val attributes = SqlCodegenTemplateAttributes.forService(context, templateRoot)
+                      MustacheTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
+                    }
                   val relativePath = resolveOutputPath(settings, artifactConfig, context)
                   List(
                     SqlCodegenArtifact(

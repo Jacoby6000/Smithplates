@@ -42,4 +42,9 @@ async def test_derived_sql_methods_lifecycle({{serviceFixtureName}}: {{implement
 {{#hasUpdateLifecycleBlock}}{{{updateLifecycleBlock}}}
 
 {{/hasUpdateLifecycleBlock}}{{#hasDeleteLifecycleBlock}}{{{deleteLifecycleBlock}}}
-{{/hasDeleteLifecycleBlock}}{{/integrationTest}}
+
+{{/hasDeleteLifecycleBlock}}{{{transactionCommitTestBlock}}}
+
+
+{{{transactionRollbackTestBlock}}}
+{{/integrationTest}}

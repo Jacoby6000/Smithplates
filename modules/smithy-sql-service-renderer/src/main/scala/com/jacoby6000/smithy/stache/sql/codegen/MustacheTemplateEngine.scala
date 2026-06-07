@@ -19,6 +19,11 @@ object MustacheTemplateEngine {
   private val compiledTemplateCache          = new ConcurrentHashMap[String, Template]()
   private val partialReferencePattern: Regex = """\{\{>\s*([^#^/][^}]*)\s*\}\}""".r
 
+  def readClasspathResource(resourceClasspath: String): String = {
+    val resourcePath = normalizeResourcePath(normalizeClasspathUri(resourceClasspath))
+    normalizeRenderedOutput(readClasspathTemplate(resourcePath))
+  }
+
   def classpathResourceExists(resourcePath: String): Boolean = {
     val normalized = normalizeResourcePath(resourcePath)
     Option(getClass.getResource(normalized)).isDefined

@@ -1,4 +1,4 @@
-def _read_datetime_col(row: sqlite3.Row, column: str) -> datetime:
+def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
     value = cast(str, row[column])
     if value.endswith("Z"):
         normalized = value[:-1] + "+00:00"

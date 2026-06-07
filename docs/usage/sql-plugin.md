@@ -85,6 +85,27 @@ db/
 
 `dialect` selects SQLite (`?` placeholders) or Postgres (`%s` placeholders unless `bindPlaceholderStyle` is overridden).
 
+### Python row mapping (Postgres vs SQLite)
+
+Generated Postgres (`*_psycopg.py`) implementations set **per-cursor** row factories (`class_row`, `dict_row`) on `psycopg.AsyncConnection.cursor(...)`. Each fetch is isolated to that cursor, so concurrent coroutines can share a connection safely.
+
+Generated SQLite (`*_aiosqlite.py`) implementations use **mapper-style** row factories instead of assigning `connection.row_factory`. After `fetchone()` returns the default tuple row, codegen maps rows in-process—for example `_Widget_row_factory(cursor, row)` for scalar `selectOne`, or `_as_sqlite_named_row(cursor, row)` (a column-name `dict`) before column-keyed readers for JSON structures. The dict mapper avoids `sqlite3.Row(cursor, row)`, which requires a stdlib `sqlite3.Cursor` and does not accept `aiosqlite` cursors.
+
+SQLite’s stdlib API only supports `row_factory` on the **connection**. Temporarily swapping it in async code is unsafe when multiple coroutines share one `aiosqlite.Connection`: a task can `await` between `execute` and `fetchone` while another task changes or restores `row_factory`, producing mis-typed rows or clobbering another task’s setting. Mapper-style factories keep the ergonomics of row factories without mutating shared connection state.
+
+### Optional `transaction` parameter
+
+Every generated service method ends with a keyword-only `transaction` parameter (default `None`). The shared `{{serviceFileName}}_protocol.py` is generic over a type parameter `T` (`class {{serviceClassName}}ServiceProtocol(Protocol[T])`) and declares `transaction: T | None`. Each dialect implementation binds `T` to that backend’s transaction handle type and implements the protocol as `{{serviceClassName}}ServiceProtocol[{{transactionTypeName}}]`:
+
+| Dialect | `T` (transaction handle) | Pass when joining an outer transaction | Auto transaction when `None` |
+|---------|--------------------------|----------------------------------------|------------------------------|
+| Postgres (`*_psycopg.py`) | `psycopg.AsyncTransaction` | `psycopg.AsyncTransaction` from `async with connection.transaction() as tx:` (SQL still runs on `self._connection`; the handle signals an open transaction on that connection) | `psycopg_transaction_run.run` wraps the method `execute` lambda in `self._connection.transaction()` when `transaction` is `None` |
+| SQLite (`*_aiosqlite.py`) | `aiosqlite.Connection` | `aiosqlite.Connection` after the caller has issued `BEGIN` (or `async with conn.transaction():`); SQL runs on that connection | `sqlite_transaction_run.run` issues `BEGIN` → `execute(conn)` → `commit` (or `rollback` on error) when `transaction` is `None` |
+
+Pass the same transaction handle into multiple service calls to run them atomically. When `transaction` is omitted, each method still wraps its SQL in a single-operation transaction.
+
+Generated `test_*_derived_sql.py` integration tests exercise this: `test_derived_sql_methods_transaction_commit` runs insert + select-one inside a caller-managed transaction and asserts rows persist after commit; `test_derived_sql_methods_transaction_rollback` asserts a rolled-back insert is not visible.
+
 ## Full reference
 
 Trait tables, Smithy examples, template context fields, SPI entries, and Python validation test setup:

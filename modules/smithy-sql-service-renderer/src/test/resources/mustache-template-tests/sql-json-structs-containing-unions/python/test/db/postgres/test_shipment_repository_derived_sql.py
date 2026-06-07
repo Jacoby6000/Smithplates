@@ -88,3 +88,43 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
 
     missing = await shipment_repository_service.get_shipment(id=entity_id)
     assert missing is None
+
+@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit(shipment_repository_service: ShipmentRepositoryPsycopgService) -> None:
+    connection = shipment_repository_service._connection
+    async with connection.transaction() as tx:
+        entity_id = await shipment_repository_service.create_shipment(label="integration-label", destination=PostalAddress(street="integration-street", city="integration-city"), state={"pending": "integration-pending"}, transaction=tx)
+        assert isinstance(entity_id, str)
+        assert entity_id
+
+        fetched = await shipment_repository_service.get_shipment(id=entity_id, transaction=tx)
+        assert isinstance(fetched, Shipment)
+        assert fetched.label == "integration-label"
+        assert fetched.destination.street == "integration-street"
+        assert fetched.destination.city == "integration-city"
+        assert fetched.state == {"pending": "integration-pending"}
+
+    fetched_after_commit = await shipment_repository_service.get_shipment(id=entity_id)
+    assert isinstance(fetched_after_commit, Shipment)
+    assert fetched_after_commit.label == "integration-label"
+    assert fetched_after_commit.destination.street == "integration-street"
+    assert fetched_after_commit.destination.city == "integration-city"
+    assert fetched_after_commit.state == {"pending": "integration-pending"}
+
+
+@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback(shipment_repository_service: ShipmentRepositoryPsycopgService) -> None:
+    connection = shipment_repository_service._connection
+    entity_id: str | None = None
+    with pytest.raises(RuntimeError, match="rollback probe"):
+        async with connection.transaction() as tx:
+            entity_id = await shipment_repository_service.create_shipment(label="integration-label", destination=PostalAddress(street="integration-street", city="integration-city"), state={"pending": "integration-pending"}, transaction=tx)
+            raise RuntimeError("rollback probe")
+
+    assert entity_id is not None
+    missing = await shipment_repository_service.get_shipment(id=entity_id)
+    assert missing is None

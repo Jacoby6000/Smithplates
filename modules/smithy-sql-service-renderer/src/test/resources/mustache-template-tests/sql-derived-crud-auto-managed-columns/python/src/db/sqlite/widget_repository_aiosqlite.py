@@ -7,14 +7,14 @@ import sqlite3
 from typing import cast
 from datetime import datetime, timezone
 import aiosqlite
-
+from sqlite_transaction_run import run
 from widget_repository_models import (
     Widget,
 )
 from widget_repository_protocol import WidgetRepositoryServiceProtocol
 
 
-class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol):
+class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol[aiosqlite.Connection]):
     def __init__(self, connection: aiosqlite.Connection) -> None:
         super().__init__()
         self._connection = connection
@@ -24,57 +24,72 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol):
         self,
         foo: str,
         bar: int,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> str:
-        cursor = await self._connection.execute(
-            """INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;""",
-            (foo, bar),
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            raise RuntimeError("INSERT RETURNING produced no row")
-        return _read_str(row, 0)
+        async def execute(conn: aiosqlite.Connection) -> str:
+            cursor = await conn.execute(
+                """INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;""",
+                (foo, bar),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return _read_str(row, 0)
+        return await run(self._connection, transaction, execute)
     @override
     async def get_widget(
         self,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> Widget | None:
-        previous_row_factory = self._connection.row_factory
-        try:
-            self._connection.row_factory = _Widget_row_factory  # type: ignore[assignment]
-            cursor = await self._connection.execute(
+        async def execute(conn: aiosqlite.Connection) -> Widget | None:
+            cursor = await conn.execute(
                 """SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = ?;""",
                 (id,),
             )
-            return cast(Widget | None, await cursor.fetchone())
-        finally:
-            self._connection.row_factory = previous_row_factory
+            row = await cursor.fetchone()
+            if row is None:
+                return None
+            return _Widget_row_factory(cursor, row)
+        return await run(self._connection, transaction, execute)
     @override
     async def update_widget(
         self,
         foo: str,
         bar: int,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> bool:
-        cursor = await self._connection.execute(
-            """UPDATE widgets
+        async def execute(conn: aiosqlite.Connection) -> bool:
+            cursor = await conn.execute(
+                """UPDATE widgets
 SET foo = ?, bar = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ? RETURNING updated_at;""",
-            (foo, bar, id),
-        )
-        row = await cursor.fetchone()
-        return row is not None
+                (foo, bar, id),
+            )
+            row = await cursor.fetchone()
+            return row is not None
+        return await run(self._connection, transaction, execute)
     @override
     async def delete_widget(
         self,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> bool:
-        cursor = await self._connection.execute(
-            """DELETE FROM widgets WHERE id = ? RETURNING id;""",
-            (id,),
-        )
-        row = await cursor.fetchone()
-        return row is not None
-def _Widget_row_factory(cursor: sqlite3.Cursor, row: tuple[object, ...]) -> Widget:
+        async def execute(conn: aiosqlite.Connection) -> bool:
+            cursor = await conn.execute(
+                """DELETE FROM widgets WHERE id = ? RETURNING id;""",
+                (id,),
+            )
+            row = await cursor.fetchone()
+            return row is not None
+        return await run(self._connection, transaction, execute)
+
+def _Widget_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Widget:
     return Widget(
         id=_read_str(row, 0),
         foo=_read_str(row, 1),

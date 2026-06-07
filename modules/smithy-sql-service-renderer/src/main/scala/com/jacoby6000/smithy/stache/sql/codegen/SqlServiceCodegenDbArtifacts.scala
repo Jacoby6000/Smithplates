@@ -19,10 +19,18 @@ object SqlServiceCodegenDbArtifacts {
   def sqlite(
       serviceTemplate: String = "db/sqlite/service_aiosqlite.mustache",
       serviceOutputFile: String = "db/sqlite/{{serviceFileName}}_aiosqlite.py",
+      transactionRunResource: String = "db/sqlite/sqlite_transaction_run.py",
+      transactionRunOutputFile: String = "db/sqlite/sqlite_transaction_run.py",
       integrationTestTemplate: String = "db/sqlite/tests/service_derived_sql_integration_tests.mustache",
       integrationTestOutputFile: String = "db/sqlite/test_{{serviceFileName}}_derived_sql.py"
   ): List[SqlServiceCodegenArtifactConfig] =
     shared ++ List(
+      SqlServiceCodegenArtifactConfig(
+        kind = SqlServiceCodegenArtifactKind.Src,
+        template = transactionRunResource,
+        outputFile = transactionRunOutputFile,
+        bundledResource = true
+      ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
         template = serviceTemplate,
@@ -38,10 +46,18 @@ object SqlServiceCodegenDbArtifacts {
   def postgres(
       serviceTemplate: String = "db/postgres/service_psycopg.mustache",
       serviceOutputFile: String = "db/postgres/{{serviceFileName}}_psycopg.py",
+      transactionRunResource: String = "db/postgres/psycopg_transaction_run.py",
+      transactionRunOutputFile: String = "db/postgres/psycopg_transaction_run.py",
       integrationTestTemplate: String = "db/postgres/tests/service_derived_sql_integration_tests_postgres.mustache",
       integrationTestOutputFile: String = "db/postgres/test_{{serviceFileName}}_derived_sql.py"
   ): List[SqlServiceCodegenArtifactConfig] =
     shared ++ List(
+      SqlServiceCodegenArtifactConfig(
+        kind = SqlServiceCodegenArtifactKind.Src,
+        template = transactionRunResource,
+        outputFile = transactionRunOutputFile,
+        bundledResource = true
+      ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
         template = serviceTemplate,

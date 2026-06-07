@@ -1,22 +1,29 @@
 # Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TypeVar
 
 from widget_repository_models import (
     Widget,
 )
 
-class WidgetRepositoryServiceProtocol(Protocol):
+T = TypeVar("T", contravariant=True)
+
+
+class WidgetRepositoryServiceProtocol(Protocol[T]):
     async def create_widget(
         self,
         foo: str,
         bar: int,
+        *,
+        transaction: T | None = None,
     ) -> str:
         ...
     async def get_widget(
         self,
         id: str,
+        *,
+        transaction: T | None = None,
     ) -> Widget | None:
         ...
     async def update_widget(
@@ -24,10 +31,14 @@ class WidgetRepositoryServiceProtocol(Protocol):
         foo: str,
         bar: int,
         id: str,
+        *,
+        transaction: T | None = None,
     ) -> bool:
         ...
     async def delete_widget(
         self,
         id: str,
+        *,
+        transaction: T | None = None,
     ) -> bool:
         ...

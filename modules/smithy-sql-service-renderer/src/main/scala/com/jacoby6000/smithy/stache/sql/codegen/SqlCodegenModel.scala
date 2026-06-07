@@ -120,6 +120,8 @@ final case class SqlCodegenIntegrationTestContext(
     selectOneResultAssertions: String,
     updateLifecycleBlock: Option[String],
     deleteLifecycleBlock: Option[String],
+    transactionCommitTestBlock: String,
+    transactionRollbackTestBlock: String,
     extraImports: List[String]
 )
 

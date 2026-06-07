@@ -8,7 +8,7 @@ from typing import cast
 import json
 from datetime import datetime, timezone
 import aiosqlite
-
+from sqlite_transaction_run import run
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
@@ -17,7 +17,7 @@ from shipment_repository_models import (
 from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
 
 
-class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol):
+class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol[aiosqlite.Connection]):
     def __init__(self, connection: aiosqlite.Connection) -> None:
         super().__init__()
         self._connection = connection
@@ -28,39 +28,43 @@ class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol):
         label: str,
         destination: PostalAddress,
         state: DeliveryState,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> str:
-        cursor = await self._connection.execute(
-            """INSERT INTO shipments (label, destination, state) VALUES (?, ?, ?) RETURNING id;""",
-            (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
-        )
-        row = await cursor.fetchone()
-        if row is None:
-            raise RuntimeError("INSERT RETURNING produced no row")
-        return _read_str(row, 0)
+        async def execute(conn: aiosqlite.Connection) -> str:
+            cursor = await conn.execute(
+                """INSERT INTO shipments (label, destination, state) VALUES (?, ?, ?) RETURNING id;""",
+                (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
+            )
+            row = await cursor.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return _read_str(row, 0)
+        return await run(self._connection, transaction, execute)
     @override
     async def get_shipment(
         self,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> Shipment | None:
-        previous_row_factory = self._connection.row_factory
-        try:
-            self._connection.row_factory = sqlite3.Row
-            cursor = await self._connection.execute(
+        async def execute(conn: aiosqlite.Connection) -> Shipment | None:
+            cursor = await conn.execute(
                 """SELECT id, label, destination, state, created_at FROM shipments WHERE id = ?;""",
                 (id,),
             )
             row = await cursor.fetchone()
             if row is None:
                 return None
+            named_row = _as_sqlite_named_row(cursor, row)
             return Shipment(
-                id=_read_str_col(row, "id"),
-                label=_read_str_col(row, "label"),
-                destination=_read_PostalAddress_col(row, "destination"),
-                state=_read_DeliveryState_col(row, "state"),
-                created_at=_read_datetime_col(row, "created_at"),
+                id=_read_str_col(named_row, "id"),
+                label=_read_str_col(named_row, "label"),
+                destination=_read_PostalAddress_col(named_row, "destination"),
+                state=_read_DeliveryState_col(named_row, "state"),
+                created_at=_read_datetime_col(named_row, "created_at"),
             )
-        finally:
-            self._connection.row_factory = previous_row_factory
+        return await run(self._connection, transaction, execute)
     @override
     async def update_shipment(
         self,
@@ -68,25 +72,41 @@ class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol):
         destination: PostalAddress,
         state: DeliveryState,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> bool:
-        cursor = await self._connection.execute(
-            """UPDATE shipments
+        async def execute(conn: aiosqlite.Connection) -> bool:
+            cursor = await conn.execute(
+                """UPDATE shipments
 SET label = ?, destination = ?, state = ?
 WHERE id = ?;""",
-            (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
-        )
-        return cursor.rowcount > 0
+                (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
+            )
+            return cursor.rowcount > 0
+        return await run(self._connection, transaction, execute)
     @override
     async def delete_shipment(
         self,
         id: str,
+        *,
+        transaction: aiosqlite.Connection | None = None,
     ) -> bool:
-        cursor = await self._connection.execute(
-            """DELETE FROM shipments WHERE id = ? RETURNING id;""",
-            (id,),
-        )
-        row = await cursor.fetchone()
-        return row is not None
+        async def execute(conn: aiosqlite.Connection) -> bool:
+            cursor = await conn.execute(
+                """DELETE FROM shipments WHERE id = ? RETURNING id;""",
+                (id,),
+            )
+            row = await cursor.fetchone()
+            return row is not None
+        return await run(self._connection, transaction, execute)
+
+def _as_sqlite_named_row(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> dict[str, object]:
+    if type(row) is not tuple:
+        named = cast(sqlite3.Row, row)
+        return {key: cast(object, named[key]) for key in named.keys()}
+    description = cast(tuple[tuple[object, ...], ...], getattr(cursor, "description"))
+    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
+
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
 
@@ -116,7 +136,7 @@ def _read_PostalAddress(row: tuple[object, ...] | sqlite3.Row, index: int) -> Po
         city=cast(str, data["city"]),
     )
 
-def _read_datetime_col(row: sqlite3.Row, column: str) -> datetime:
+def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
     value = cast(str, row[column])
     if value.endswith("Z"):
         normalized = value[:-1] + "+00:00"
@@ -129,17 +149,17 @@ def _read_datetime_col(row: sqlite3.Row, column: str) -> datetime:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
-def _read_str_col(row: sqlite3.Row, column: str) -> str:
+def _read_str_col(row: dict[str, object], column: str) -> str:
     return cast(str, row[column])
 
-def _read_DeliveryState_col(row: sqlite3.Row, column: str) -> DeliveryState:
+def _read_DeliveryState_col(row: dict[str, object], column: str) -> DeliveryState:
     data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
     present = [key for key in ("pending", "delivered") if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
     return cast(DeliveryState, data)
 
-def _read_PostalAddress_col(row: sqlite3.Row, column: str) -> PostalAddress:
+def _read_PostalAddress_col(row: dict[str, object], column: str) -> PostalAddress:
     data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
     return PostalAddress(
         street=cast(str, data["street"]),

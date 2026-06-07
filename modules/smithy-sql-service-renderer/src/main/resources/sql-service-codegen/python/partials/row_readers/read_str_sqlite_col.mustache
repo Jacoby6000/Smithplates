@@ -1,2 +1,2 @@
-def _read_str_col(row: sqlite3.Row, column: str) -> str:
+def _read_str_col(row: dict[str, object], column: str) -> str:
     return cast(str, row[column])
