@@ -18,8 +18,8 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol[{{transact
 {{i4}}async def {{methodName}}(
 {{i8}}self,
 {{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
-{{/parameters}}{{> partials/types/transaction_parameter_impl}}{{i4}}) -> {{pythonResponseType}}:
-{{i8}}async def execute(conn: aiosqlite.Connection) -> {{pythonResponseType}}:
+{{/parameters}}{{> partials/types/transaction_parameter_impl}}{{i4}}) -> {{responseType}}:
+{{i8}}async def execute(conn: aiosqlite.Connection) -> {{responseType}}:
 {{#isInsertScalar}}{{txI8}}{{> partials/sql/sqlite_cursor_execute}}{{txI8}}row = await cursor.fetchone()
 {{txI8}}if row is None:
 {{txI12}}raise RuntimeError("INSERT RETURNING produced no row")

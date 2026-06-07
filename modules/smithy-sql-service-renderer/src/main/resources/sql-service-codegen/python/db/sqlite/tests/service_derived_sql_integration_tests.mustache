@@ -37,14 +37,15 @@ async def test_derived_sql_methods_lifecycle({{serviceFixtureName}}: {{implement
 
     fetched = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
     assert isinstance(fetched, {{{selectOneOperation.outputClassName}}})
-{{{selectOneResultAssertions}}}
-
-{{#hasUpdateLifecycleBlock}}{{{updateLifecycleBlock}}}
-
-{{/hasUpdateLifecycleBlock}}{{#hasDeleteLifecycleBlock}}{{{deleteLifecycleBlock}}}
-
-{{/hasDeleteLifecycleBlock}}{{{transactionCommitTestBlock}}}
-
-
-{{{transactionRollbackTestBlock}}}
+{{#selectOneOperation}}{{#resultAssertions}}
+{{{line}}}
+{{/resultAssertions}}{{/selectOneOperation}}
+{{#hasUpdateOperation}}
+{{> partials/tests/update_lifecycle}}
+{{/hasUpdateOperation}}
+{{#hasDeleteOperation}}
+{{> partials/tests/delete_lifecycle}}
+{{/hasDeleteOperation}}
+{{> db/sqlite/tests/transaction_commit}}
+{{> db/sqlite/tests/transaction_rollback}}
 {{/integrationTest}}

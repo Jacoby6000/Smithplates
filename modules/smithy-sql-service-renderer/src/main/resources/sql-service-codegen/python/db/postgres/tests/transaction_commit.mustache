@@ -1,0 +1,21 @@
+{{newline}}@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_commit({{serviceFixtureName}}: {{implementationClassName}}) -> None:
+{{i4}}connection = {{serviceFixtureName}}._connection
+{{i4}}async with connection.transaction() as tx:
+{{i8}}entity_id = await {{serviceFixtureName}}.{{{insertOperation.methodName}}}({{{insertOperation.callArguments}}}, transaction=tx)
+{{i8}}assert isinstance(entity_id, str)
+{{i8}}assert entity_id
+
+{{i8}}fetched = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}}, transaction=tx)
+{{i8}}assert isinstance(fetched, {{{selectOneOperation.outputClassName}}})
+{{#transactionCommitInTxAssertions}}
+{{{line}}}
+{{/transactionCommitInTxAssertions}}
+{{newline}}{{i4}}fetched_after_commit = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
+{{i4}}assert isinstance(fetched_after_commit, {{{selectOneOperation.outputClassName}}})
+{{#transactionCommitAfterAssertions}}
+{{{line}}}
+{{/transactionCommitAfterAssertions}}
+{{newline}}

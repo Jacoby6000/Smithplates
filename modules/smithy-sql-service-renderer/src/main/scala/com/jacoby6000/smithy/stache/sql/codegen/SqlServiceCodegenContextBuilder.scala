@@ -4,7 +4,6 @@ import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
 import com.jacoby6000.smithy.stache.sql.codegen.python.SqlCodegenTypeResolver
-import com.jacoby6000.smithy.stache.sql.codegen.python.SqlOperationSqlBindingBuilder
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
@@ -89,7 +88,7 @@ object SqlServiceCodegenContextBuilder {
     val parameters =
       resolvedQuery match {
         case Some(query) if usesDerivedInput =>
-          SqlOperationSqlBindingBuilder.parametersFromQuery(model, operation, query)
+          SqlOperationBindingBuilder.parametersFromQuery(model, operation, query)
         case _                               =>
           buildInputParameters(model, operation)
       }
@@ -97,7 +96,7 @@ object SqlServiceCodegenContextBuilder {
     val sqlBinding =
       resolvedQuery match {
         case Some(query) =>
-          SqlOperationSqlBindingBuilder.build(model, operation, query, queryRenderer).map(Some(_))
+          SqlOperationBindingBuilder.build(model, operation, query, queryRenderer).map(Some(_))
         case None        =>
           None.validNel
       }
@@ -145,7 +144,7 @@ object SqlServiceCodegenContextBuilder {
         outputClassName = outputClassName,
         errors = errors,
         responseUnion = responseUnion,
-        pythonResponseType = responseUnion,
+        responseType = responseUnion,
         sql = resolvedSql
       )
     }
@@ -163,7 +162,7 @@ object SqlServiceCodegenContextBuilder {
           SqlCodegenParameter(
             name = member.name,
             typeName = member.typeName,
-            pythonTypeName = member.pythonTypeName,
+            languageTypeName = member.languageTypeName,
             optional = member.optional,
             isStructure = member.isStructure,
             structureShapeId = member.structureShapeId

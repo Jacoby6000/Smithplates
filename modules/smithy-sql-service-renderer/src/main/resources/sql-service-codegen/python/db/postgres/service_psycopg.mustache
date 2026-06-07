@@ -19,8 +19,8 @@ class {{implementationClassName}}({{serviceClassName}}ServiceProtocol[{{transact
 {{i4}}async def {{methodName}}(
 {{i8}}self,
 {{#parameters}}{{i8}}{{name}}: {{> partials/types/parameter_annotation}},
-{{/parameters}}{{> partials/types/transaction_parameter_impl}}{{i4}}) -> {{pythonResponseType}}:
-{{i8}}async def execute() -> {{pythonResponseType}}:
+{{/parameters}}{{> partials/types/transaction_parameter_impl}}{{i4}}) -> {{responseType}}:
+{{i8}}async def execute() -> {{responseType}}:
 {{#isInsertScalar}}{{txI8}}cur = await self._connection.execute(
 {{txI12}}"""{{sqlStatement}}""",
 {{txI12}}{{> partials/sql/bind_tuple}},

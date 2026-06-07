@@ -1,0 +1,14 @@
+@pytest.mark.integration
+@pytest.mark.postgres
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback({{serviceFixtureName}}: {{implementationClassName}}) -> None:
+{{i4}}connection = {{serviceFixtureName}}._connection
+{{i4}}entity_id: str | None = None
+{{i4}}with pytest.raises(RuntimeError, match="rollback probe"):
+{{i8}}async with connection.transaction() as tx:
+{{i12}}entity_id = await {{serviceFixtureName}}.{{{insertOperation.methodName}}}({{{insertOperation.callArguments}}}, transaction=tx)
+{{i12}}raise RuntimeError("rollback probe")
+
+{{i4}}assert entity_id is not None
+{{i4}}missing = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
+{{i4}}assert missing is None

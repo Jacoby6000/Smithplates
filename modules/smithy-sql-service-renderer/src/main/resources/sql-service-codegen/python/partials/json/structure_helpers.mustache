@@ -5,4 +5,4 @@ def _json_bind_{{className}}(value: {{className}}) -> str:
 
 def _read_{{className}}(row: {{rowTypeName}}, index: int) -> {{className}}:
     {{#isSqliteDialect}}{{> partials/json/row_data_sqlite}}{{/isSqliteDialect}}{{^isSqliteDialect}}{{> partials/json/row_data_postgres}}{{/isSqliteDialect}}{{newline}}    return {{className}}(
-{{#members}}{{i8}}{{name}}=cast({{pythonTypeName}}, data["{{name}}"]),{{newline}}{{/members}}{{i4}})
+{{#members}}{{i8}}{{name}}=cast({{languageTypeName}}, data["{{name}}"]),{{newline}}{{/members}}{{i4}})

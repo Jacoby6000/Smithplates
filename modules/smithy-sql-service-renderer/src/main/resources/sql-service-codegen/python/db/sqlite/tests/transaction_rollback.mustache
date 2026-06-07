@@ -1,0 +1,13 @@
+@pytest.mark.integration
+@pytest.mark.sqlite
+@pytest.mark.asyncio
+async def test_derived_sql_methods_transaction_rollback({{serviceFixtureName}}: {{implementationClassName}}) -> None:
+{{i4}}connection = {{serviceFixtureName}}._connection
+{{i4}}await connection.execute("BEGIN")
+{{i4}}entity_id = await {{serviceFixtureName}}.{{{insertOperation.methodName}}}({{{insertOperation.callArguments}}}, transaction=connection)
+{{i4}}assert isinstance(entity_id, str)
+{{i4}}assert entity_id
+{{i4}}await connection.rollback()
+
+{{i4}}missing = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
+{{i4}}assert missing is None

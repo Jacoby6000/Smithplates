@@ -1,5 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
+import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlParameterizedStatement
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
@@ -15,7 +16,7 @@ final case class SqlCodegenStructure(
 final case class SqlCodegenMember(
     name: String,
     typeName: String,
-    pythonTypeName: String,
+    languageTypeName: String,
     optional: Boolean,
     isStructure: Boolean,
     structureShapeId: Option[ShapeId],
@@ -25,7 +26,7 @@ final case class SqlCodegenMember(
 final case class SqlCodegenParameter(
     name: String,
     typeName: String,
-    pythonTypeName: String,
+    languageTypeName: String,
     optional: Boolean,
     isStructure: Boolean,
     structureShapeId: Option[ShapeId]
@@ -46,24 +47,27 @@ final case class SqlCodegenOperation(
     outputClassName: Option[String],
     errors: List[SqlCodegenErrorType],
     responseUnion: String,
-    pythonResponseType: String,
+    responseType: String,
     sql: Option[SqlCodegenSqlBinding] = None
 )
 
 final case class SqlCodegenBindParameter(
     memberName: String,
-    pythonExpression: String,
+    languageTypeName: String,
     isJson: Boolean = false,
-    jsonPythonTypeName: Option[String] = None
+    jsonTypeName: Option[String] = None,
+    timestampFormat: Option[SqlTimestampFormat] = None,
+    bindExpression: Option[String] = None
 )
 
 final case class SqlCodegenResultField(
     fieldName: String,
     columnName: String,
     columnIndex: Int,
-    pythonTypeName: String,
-    rowReader: String,
+    languageTypeName: String,
     isJson: Boolean = false,
+    timestampFormat: Option[SqlTimestampFormat] = None,
+    rowReader: Option[String] = None,
     jsonReadExpression: Option[String] = None
 )
 
@@ -81,7 +85,7 @@ final case class SqlCodegenSqlBinding(
 final case class SqlCodegenUnionMember(
     name: String,
     variantClassName: String,
-    pythonTypeName: String
+    languageTypeName: String
 )
 
 final case class SqlCodegenUnion(
@@ -112,16 +116,14 @@ final case class SqlCodegenServiceContext(
 final case class SqlCodegenIntegrationTestContext(
     schemaDdl: String,
     serviceFixtureName: String,
+    implementationClassName: String,
     implementationModuleName: String,
     insertOperation: SqlCodegenIntegrationTestOperation,
     selectOneOperation: SqlCodegenIntegrationTestOperation,
     updateOperation: Option[SqlCodegenIntegrationTestOperation],
     deleteOperation: Option[SqlCodegenIntegrationTestOperation],
-    selectOneResultAssertions: String,
-    updateLifecycleBlock: Option[String],
-    deleteLifecycleBlock: Option[String],
-    transactionCommitTestBlock: String,
-    transactionRollbackTestBlock: String,
+    transactionCommitInTxAssertions: List[String],
+    transactionCommitAfterAssertions: List[String],
     extraImports: List[String]
 )
 

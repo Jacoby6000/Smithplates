@@ -1,0 +1,4 @@
+{{newline}}{{i4}}deleted = await {{serviceFixtureName}}.{{{deleteOperation.methodName}}}({{{deleteOperation.callArguments}}})
+{{i4}}assert deleted is True
+{{newline}}{{i4}}missing = await {{serviceFixtureName}}.{{{selectOneOperation.methodName}}}({{{selectOneOperation.callArguments}}})
+{{i4}}assert missing is None

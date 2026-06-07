@@ -46,16 +46,16 @@ class MustachePartialsSpec extends munit.FunSuite {
         Map(
           "members" -> List(
             Map(
-              "name"           -> "street",
-              "pythonTypeName" -> "str",
-              "optional"       -> false,
-              "last"           -> false
+              "name"             -> "street",
+              "languageTypeName" -> "str",
+              "optional"         -> false,
+              "last"             -> false
             ),
             Map(
-              "name"           -> "city",
-              "pythonTypeName" -> "str",
-              "optional"       -> false,
-              "last"           -> true
+              "name"             -> "city",
+              "languageTypeName" -> "str",
+              "optional"         -> false,
+              "last"             -> true
             )
           ),
           "i4"      -> "    "
