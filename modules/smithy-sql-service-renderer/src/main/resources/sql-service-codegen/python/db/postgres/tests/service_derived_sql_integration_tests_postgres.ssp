@@ -9,14 +9,7 @@ import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %><% if (attrs.get("extraImports").exists(isTruthy)) { %>${attrs("extraImports")}<% } %><% } %>
 from ${implementationModuleName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])} import ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}
-from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${model("name")},
-<% } %>
-<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${union("name")},
-<% } %>
-)
+<% include("partials/helpers/model_imports") %>
 
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %>SCHEMA_DDL = """${attrs("schemaDdl")}"""
 

@@ -3,14 +3,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${model("name")},
-<% } %>
-<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${union("name")},
-<% } %>
-)
+<% include("partials/helpers/model_imports") %>
 
 T = TypeVar("T", contravariant=True)
 

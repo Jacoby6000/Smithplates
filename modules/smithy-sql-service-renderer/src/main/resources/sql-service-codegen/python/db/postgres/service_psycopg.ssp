@@ -5,14 +5,7 @@ from typing import override
 
 <% include("partials/helpers/imports") +%>import psycopg
 from psycopg_transaction_run import run
-from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${model("name")},
-<% } %>
-<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${union("name")},
-<% } %>
-)
+<% include("partials/helpers/model_imports") %>
 from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_protocol import ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}
 
 
