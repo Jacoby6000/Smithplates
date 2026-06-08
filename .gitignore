@@ -13,3 +13,5 @@ templates/**/__pycache__/
 templates/**/.pytest_cache/
 .pre-commit-home
 .xdg-runtime
+result
+.direnv
