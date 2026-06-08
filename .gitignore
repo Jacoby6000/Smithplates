@@ -4,3 +4,4 @@ target/
 .bsp
 .bloop
 .coursier-cache
+__pycache__
