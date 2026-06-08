@@ -42,7 +42,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(insert.shapeId.toString, "example#CreateWidget")
     assertEquals(insert.table.name, "widgets")
     assertEquals(insert.columns.map(_.memberName), List("foo", "bar", "optional_note"))
-    assertEquals(insert.returningColumns, List("id"))
+    assertEquals(insert.returningColumns.map(_.columnName), List("id"))
   }
 
   test("DeriveInsert - maps output structure members to RETURNING columns") {
@@ -83,7 +83,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
 
     val schema = SqlModelExtractor.extractOrThrow(model)
     val insert = schema.queries.inserts.head
-    assertEquals(insert.returningColumns, List("id", "created_at"))
+    assertEquals(insert.returningColumns.map(_.columnName), List("id", "created_at"))
   }
 
   test("DeriveInsert - includes non-auto-generated primary keys in derived input columns") {
@@ -114,7 +114,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     val schema = SqlModelExtractor.extractOrThrow(model)
     val insert = schema.queries.inserts.head
     assertEquals(insert.columns.map(_.memberName), List("id", "foo"))
-    assertEquals(insert.returningColumns, List("id"))
+    assertEquals(insert.returningColumns.map(_.columnName), List("id"))
   }
 
   test("DeriveInsert - fails when input is Unit") {
@@ -340,7 +340,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(update.shapeId.toString, "example#UpdateWidget")
     assertEquals(update.whereColumns.map(_.memberName), List("id"))
     assertEquals(update.setColumns.map(_.memberName), List("foo", "bar"))
-    assertEquals(update.returningColumns, List("updated_at"))
+    assertEquals(update.returningColumns.map(_.columnName), List("updated_at"))
   }
 
   test("DeriveUpdate - fails when input is not DerivedStruct") {
@@ -497,7 +497,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     val delete = schema.queries.deletes.head
     assertEquals(delete.shapeId.toString, "example#DeleteWidget")
     assertEquals(delete.whereColumns.map(_.memberName), List("id"))
-    assertEquals(delete.returningColumns, List("id"))
+    assertEquals(delete.returningColumns.map(_.columnName), List("id"))
   }
 
   test("DeriveDelete - fails when input is not DerivedStruct") {
@@ -778,7 +778,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     val update = schema.queries.updates.head
     assertEquals(update.setColumns.map(_.memberName), List("foo"))
     assertEquals(update.whereColumns.map(_.memberName), List("id"))
-    assertEquals(update.returningColumns, List("updated_at"))
+    assertEquals(update.returningColumns.map(_.columnName), List("updated_at"))
   }
 
   test("Update - fails when primary key member is missing") {

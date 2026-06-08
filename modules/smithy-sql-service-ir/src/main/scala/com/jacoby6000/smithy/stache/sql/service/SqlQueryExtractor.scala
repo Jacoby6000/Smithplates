@@ -68,6 +68,28 @@ object SqlQueryExtractor {
   private val BooleanShapeId: ShapeId = ShapeId.from("smithy.api#Boolean")
   val DerivedStructShapeId: ShapeId   = ShapeId.from("stache.codegen.sql#DerivedStruct")
 
+  private def queryColumn(
+      model: Model,
+      tableStructure: StructureShape,
+      table: SqlTable,
+      tableMember: SqlTableMemberCatalog.TableMemberInfo
+  ): SqlQueryColumn = {
+    val member       = tableStructure.getMember(tableMember.memberName).get()
+    val memberType   = SqlIrTypeNameResolver.resolveMember(model, tableMember.memberName, member)
+    val jsonTypeName =
+      table.columns
+        .find(_.name == tableMember.columnName)
+        .collect { case column if column.columnType == SqlColumnType.Json => memberType.typeName }
+    SqlQueryColumn(
+      memberName = tableMember.memberName,
+      columnName = tableMember.columnName,
+      typeName = memberType.typeName,
+      jsonTypeName = jsonTypeName,
+      isStructure = memberType.isStructure,
+      structureShapeId = memberType.structureShapeId
+    )
+  }
+
   def extract(model: Model, schema: SqlSchema): SqlValidated[SqlQueries] =
     (
       extractInserts(model, schema),
@@ -148,11 +170,10 @@ object SqlQueryExtractor {
           operation,
           tableStructure,
           tableMembersByName,
+          table,
           table.name
         ).map { returningColumns =>
-          val columns = insertableMembers.map { tableMember =>
-            SqlQueryColumn(tableMember.memberName, tableMember.columnName)
-          }
+          val columns = insertableMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember))
           SqlInsertQuery(
             shapeId = operationShape,
             table = table,
@@ -246,19 +267,25 @@ object SqlQueryExtractor {
       (
         requireDerivedStructInput(operation, "sqlDeriveUpdate"),
         requireBooleanDeriveUpdateOutput(operation),
-        validateDeriveUpdateColumns(operationShape, table.name, tableStructure)
+        validateDeriveUpdateColumns(
+          operationShape,
+          table.name,
+          model,
+          tableStructure,
+          table
+        )
       ).mapN { (_, _, columns) =>
-        val autoUpdatedColumns =
+        val returningColumns =
           SqlTableMemberCatalog
             .membersFor(tableStructure)
             .filter(_.autoGeneration.contains(SqlUpdatedTimestamp))
-            .map(_.columnName)
+            .map(tableMember => queryColumn(model, tableStructure, table, tableMember))
         SqlUpdateQuery(
           shapeId = operationShape,
           table = table,
           setColumns = columns.setColumns,
           whereColumns = columns.whereColumns,
-          returningColumns = autoUpdatedColumns
+          returningColumns = returningColumns
         )
       }
     }
@@ -277,13 +304,13 @@ object SqlQueryExtractor {
       (
         requireDerivedStructInput(operation, "sqlDeriveDelete"),
         requireBooleanDeriveDeleteOutput(operation),
-        validateDeriveDeleteColumns(operationShape, table.name, tableStructure)
+        validateDeriveDeleteColumns(operationShape, table.name, model, tableStructure, table)
       ).mapN { (_, _, whereColumns) =>
         SqlDeleteQuery(
           shapeId = operationShape,
           table = table,
           whereColumns = whereColumns,
-          returningColumns = whereColumns.map(_.columnName)
+          returningColumns = whereColumns
         )
       }
     }
@@ -292,9 +319,11 @@ object SqlQueryExtractor {
   private def validateDeriveDeleteColumns(
       operationShape: ShapeId,
       tableName: String,
-      tableStructure: StructureShape
+      model: Model,
+      tableStructure: StructureShape,
+      table: SqlTable
   ): SqlValidated[List[SqlQueryColumn]] =
-    validateDerivePrimaryKeyColumns(operationShape, tableName, tableStructure, InvalidDeriveDelete(_, _))
+    validateDerivePrimaryKeyColumns(operationShape, tableName, model, tableStructure, table, InvalidDeriveDelete(_, _))
 
   private def extractDeriveSelectOne(
       model: Model,
@@ -312,13 +341,15 @@ object SqlQueryExtractor {
         validateDerivePrimaryKeyColumns(
           operationShape,
           table.name,
+          model,
           tableStructure,
+          table,
           InvalidDeriveSelectOne(_, _)
         )
       ).mapN { (_, _, whereColumns) =>
         val selectColumns =
           SqlTableMemberCatalog.membersFor(tableStructure).map { tableMember =>
-            SqlQueryColumn(tableMember.memberName, tableMember.columnName)
+            queryColumn(model, tableStructure, table, tableMember)
           }
         SqlSelectOneQuery(
           shapeId = operationShape,
@@ -347,7 +378,9 @@ object SqlQueryExtractor {
   private def validateDerivePrimaryKeyColumns(
       operationShape: ShapeId,
       tableName: String,
+      model: Model,
       tableStructure: StructureShape,
+      table: SqlTable,
       toError: (ShapeId, String) => SqlSchemaError
   ): SqlValidated[List[SqlQueryColumn]] = {
     val primaryKeyMembers = SqlTableMemberCatalog.membersFor(tableStructure).filter(_.isPrimaryKey)
@@ -358,9 +391,9 @@ object SqlQueryExtractor {
         s"table '$tableName' has no @sqlPrimaryKey members for whereClause"
       ).invalidNel
     } else {
-      primaryKeyMembers.map { tableMember =>
-        SqlQueryColumn(tableMember.memberName, tableMember.columnName)
-      }.validNel
+      primaryKeyMembers
+        .map(tableMember => queryColumn(model, tableStructure, table, tableMember))
+        .validNel
     }
   }
 
@@ -372,7 +405,9 @@ object SqlQueryExtractor {
   private def validateDeriveUpdateColumns(
       operationShape: ShapeId,
       tableName: String,
-      tableStructure: StructureShape
+      model: Model,
+      tableStructure: StructureShape,
+      table: SqlTable
   ): SqlValidated[DeriveUpdateColumns] = {
     val tableMembers      = SqlTableMemberCatalog.membersFor(tableStructure)
     val primaryKeyMembers = tableMembers.filter(_.isPrimaryKey)
@@ -390,12 +425,8 @@ object SqlQueryExtractor {
       ).invalidNel
     } else {
       DeriveUpdateColumns(
-        whereColumns = primaryKeyMembers.map { tableMember =>
-          SqlQueryColumn(tableMember.memberName, tableMember.columnName)
-        },
-        setColumns = setMembers.map { tableMember =>
-          SqlQueryColumn(tableMember.memberName, tableMember.columnName)
-        }
+        whereColumns = primaryKeyMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember)),
+        setColumns = setMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember))
       ).validNel
     }
   }
@@ -405,8 +436,9 @@ object SqlQueryExtractor {
       operation: OperationShape,
       tableStructure: StructureShape,
       tableMembersByName: Map[String, SqlTableMemberCatalog.TableMemberInfo],
+      table: SqlTable,
       tableName: String
-  ): SqlValidated[List[String]] = {
+  ): SqlValidated[List[SqlQueryColumn]] = {
     val operationShape    = operation.getId
     val outputShapeId     = operation.getOutput.toScala.getOrElse(operation.getOutputShape)
     val primaryKeyTargets = primaryKeyMemberTargets(tableStructure)
@@ -429,7 +461,8 @@ object SqlQueryExtractor {
           outputStructure.getAllMembers.asScala.toList
             .traverse { case (memberName, _) =>
               tableMembersByName.get(memberName) match {
-                case Some(tableMember) => tableMember.columnName.validNel
+                case Some(tableMember) =>
+                  queryColumn(model, tableStructure, table, tableMember).validNel
                 case None              =>
                   QueryMemberNotOnTable(
                     operationShape,
@@ -442,7 +475,7 @@ object SqlQueryExtractor {
         case Some(_)                               =>
           primaryKeyMemberNameForOutputType(outputShapeId, primaryKeyTargets) match {
             case Some(primaryKeyMemberName) =>
-              List(tableMembersByName(primaryKeyMemberName).columnName).validNel
+              List(queryColumn(model, tableStructure, table, tableMembersByName(primaryKeyMemberName))).validNel
             case None                       =>
               SqlValidated.invalid(
                 InvalidDeriveInsert(
@@ -513,21 +546,25 @@ object SqlQueryExtractor {
         validateUpdateSetMembers(
           updateStructure.getId,
           table.name,
+          model,
+          tableStructure,
+          table,
           updateMembers,
           tableMembersByName
         )
       ).mapN { (_, _, _, setMembers) =>
-        val whereColumns       = primaryKeyMembers.map { tableMember =>
-          SqlQueryColumn(tableMember.memberName, tableMember.columnName)
-        }
-        val autoUpdatedColumns =
-          tableMembers.filter(_.autoGeneration.contains(SqlUpdatedTimestamp)).map(_.columnName)
+        val whereColumns     =
+          primaryKeyMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember))
+        val returningColumns =
+          tableMembers
+            .filter(_.autoGeneration.contains(SqlUpdatedTimestamp))
+            .map(tableMember => queryColumn(model, tableStructure, table, tableMember))
         SqlUpdateQuery(
           shapeId = updateStructure.getId,
           table = table,
           setColumns = setMembers,
           whereColumns = whereColumns,
-          returningColumns = autoUpdatedColumns
+          returningColumns = returningColumns
         )
       }
     }
@@ -605,6 +642,9 @@ object SqlQueryExtractor {
   private def validateUpdateSetMembers(
       queryShape: ShapeId,
       tableName: String,
+      model: Model,
+      tableStructure: StructureShape,
+      table: SqlTable,
       updateMembers: List[(String, MemberShape)],
       tableMembersByName: Map[String, SqlTableMemberCatalog.TableMemberInfo]
   ): SqlValidated[List[SqlQueryColumn]] = {
@@ -626,7 +666,7 @@ object SqlQueryExtractor {
     } else {
       setMembers.map { case (memberName, _) =>
         val tableMember = tableMembersByName(memberName)
-        SqlQueryColumn(memberName, tableMember.columnName)
+        queryColumn(model, tableStructure, table, tableMember)
       }.validNel
     }
   }

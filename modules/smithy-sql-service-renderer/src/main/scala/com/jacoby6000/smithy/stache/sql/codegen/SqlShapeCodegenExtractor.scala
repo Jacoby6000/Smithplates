@@ -49,7 +49,7 @@ object SqlShapeCodegenExtractor {
             SqlCodegenUnionMember(
               name = memberName,
               variantClassName = SqlCodegenNaming.unionVariantClassName(shapeId.getName, memberName),
-              typeName = LanguageTypeResolver.resolveTypeName(model, targetShape)
+              typeName = SqlIrTypeNameResolver.resolveTypeName(model, targetShape)
             )
           }
           .validNel

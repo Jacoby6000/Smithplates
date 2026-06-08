@@ -34,7 +34,7 @@ final case class SqlInsertQuery(
     shapeId: ShapeId,
     table: SqlTable,
     columns: List[SqlQueryColumn],
-    returningColumns: List[String]
+    returningColumns: List[SqlQueryColumn]
 )
 
 final case class SqlUpdateQuery(
@@ -42,14 +42,14 @@ final case class SqlUpdateQuery(
     table: SqlTable,
     setColumns: List[SqlQueryColumn],
     whereColumns: List[SqlQueryColumn],
-    returningColumns: List[String]
+    returningColumns: List[SqlQueryColumn]
 )
 
 final case class SqlDeleteQuery(
     shapeId: ShapeId,
     table: SqlTable,
     whereColumns: List[SqlQueryColumn],
-    returningColumns: List[String]
+    returningColumns: List[SqlQueryColumn]
 )
 
 final case class SqlSelectOneQuery(
@@ -61,7 +61,11 @@ final case class SqlSelectOneQuery(
 
 final case class SqlQueryColumn(
     memberName: String,
-    columnName: String
+    columnName: String,
+    typeName: String,
+    jsonTypeName: Option[String] = None,
+    isStructure: Boolean = false,
+    structureShapeId: Option[ShapeId] = None
 )
 
 sealed trait SqlJoinType

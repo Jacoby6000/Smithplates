@@ -5,7 +5,13 @@ import software.amazon.smithy.model.shapes.ShapeId
 final case class SqlSchema(
     tables: List[SqlTable],
     relationships: List[SqlRelationship] = Nil
-)
+) {
+  def columnType(tableShapeId: ShapeId, columnName: String): Option[SqlColumnType] =
+    tables
+      .find(_.shapeId == tableShapeId)
+      .flatMap(_.columns.find(_.name == columnName))
+      .map(_.columnType)
+}
 
 final case class SqlTable(
     name: String,

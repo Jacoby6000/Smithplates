@@ -1,9 +1,9 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
+import com.jacoby6000.smithy.stache.sql.SqlIrTypeNameResolver
 import com.jacoby6000.smithy.stache.sql.SqlSchema
 import com.jacoby6000.smithy.stache.sql.SqlValidated
-import com.jacoby6000.smithy.stache.sql.codegen.language.LanguageTypeResolver
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
@@ -88,7 +88,7 @@ object SqlServiceCodegenContextBuilder {
     val parameters =
       resolvedQuery match {
         case Some(query) if usesDerivedInput =>
-          SqlOperationBindingBuilder.parametersFromQuery(model, operation, query)
+          SqlOperationBindingBuilder.parametersFromQuery(operation, query)
         case _                               =>
           buildInputParameters(model, operation)
       }
@@ -96,7 +96,7 @@ object SqlServiceCodegenContextBuilder {
     val sqlBinding =
       resolvedQuery match {
         case Some(query) =>
-          SqlOperationBindingBuilder.build(model, operation, query, queryRenderer).map(Some(_))
+          SqlOperationBindingBuilder.build(operation, query, queryRenderer).map(Some(_))
         case None        =>
           None.validNel
       }
@@ -122,7 +122,7 @@ object SqlServiceCodegenContextBuilder {
         operation.outputShape.filter(_ != SqlCodegenShapeGraph.UnitShapeId)
 
       val outputTypeName =
-        outputShapeId.map(shapeId => LanguageTypeResolver.resolveShapeTypeName(model, shapeId))
+        outputShapeId.map(shapeId => SqlIrTypeNameResolver.resolveShapeTypeName(model, shapeId))
 
       val outputClassName =
         outputShapeId

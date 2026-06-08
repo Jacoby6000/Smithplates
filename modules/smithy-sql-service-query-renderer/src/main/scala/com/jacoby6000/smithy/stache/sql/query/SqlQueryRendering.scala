@@ -36,7 +36,7 @@ private[query] object SqlQueryRendering {
       builder.appendParameter()
     }
     builder.appendText(")")
-    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(identity)
+    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(_.columnName)
     builder.appendText(";")
     SqlRenderedQuery(query.shapeId, builder.build)
   }
@@ -65,7 +65,7 @@ private[query] object SqlQueryRendering {
     }
     builder.appendText("\nWHERE ")
     appendPlaceholderEqualities(builder, query.whereColumns)(_.columnName)
-    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(identity)
+    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(_.columnName)
     builder.appendText(";")
     SqlRenderedQuery(query.shapeId, builder.build)
   }
@@ -74,7 +74,7 @@ private[query] object SqlQueryRendering {
     val builder = SqlQuerySegmentBuilder.empty
     builder.appendText(s"DELETE FROM ${query.table.name} WHERE ")
     appendPlaceholderEqualities(builder, query.whereColumns)(_.columnName)
-    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(identity)
+    renderOptionalClause(query.returningColumns, builder, " RETURNING ", ", ")(_.columnName)
     builder.appendText(";")
     SqlRenderedQuery(query.shapeId, builder.build)
   }

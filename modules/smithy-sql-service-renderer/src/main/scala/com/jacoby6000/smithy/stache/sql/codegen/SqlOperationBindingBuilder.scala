@@ -2,43 +2,35 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithy.stache.sql.*
-import com.jacoby6000.smithy.stache.sql.codegen.language.LanguageTypeResolver
 import com.jacoby6000.smithy.stache.sql.query.SqlParameterizedStatement
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
 import com.jacoby6000.smithy.stache.sql.service.SqlQueries
 import com.jacoby6000.smithy.stache.sql.service.SqlQueryColumn
 import com.jacoby6000.smithy.stache.sql.service.codegen.ResolvedSqlOperationQuery
-import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
-import software.amazon.smithy.model.shapes.StructureShape
-
-import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
 
 object SqlOperationBindingBuilder {
   def build(
-      model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery,
       queryRenderer: SqlQueryRenderer
   ): SqlValidated[SqlCodegenSqlBinding] =
-    buildBinding(model, operation, query, queryRenderer)
+    buildBinding(operation, query, queryRenderer)
 
   def parametersFromQuery(
-      model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery
   ): SqlValidated[List[SqlCodegenParameter]] =
     query match {
       case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
-        parametersForColumns(model, insertQuery.table.shapeId, insertQuery.columns)
+        parametersForColumns(insertQuery.columns)
       case ResolvedSqlOperationQuery.Update(updateQuery)       =>
-        parametersForColumns(model, updateQuery.table.shapeId, updateQuery.setColumns ++ updateQuery.whereColumns)
+        parametersForColumns(updateQuery.setColumns ++ updateQuery.whereColumns)
       case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
-        parametersForColumns(model, deleteQuery.table.shapeId, deleteQuery.whereColumns)
+        parametersForColumns(deleteQuery.whereColumns)
       case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
-        parametersForColumns(model, selectOneQuery.table.shapeId, selectOneQuery.whereColumns)
+        parametersForColumns(selectOneQuery.whereColumns)
       case ResolvedSqlOperationQuery.Select(_)                 =>
         InvalidPluginConfig(
           s"@sqlDeriveSelect on ${operation.shapeId.toString} is not supported for aiosqlite implementation generation"
@@ -46,7 +38,6 @@ object SqlOperationBindingBuilder {
     }
 
   private def buildBinding(
-      model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery,
       queryRenderer: SqlQueryRenderer
@@ -66,26 +57,24 @@ object SqlOperationBindingBuilder {
 
         other match {
           case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
-            buildInsertBinding(model, operation, insertQuery, statement).validNel
+            buildInsertBinding(operation, insertQuery, statement).validNel
           case ResolvedSqlOperationQuery.Update(updateQuery)       =>
-            buildUpdateBinding(model, updateQuery, statement).validNel
+            buildUpdateBinding(updateQuery, statement).validNel
           case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
-            buildDeleteBinding(model, deleteQuery, statement).validNel
+            buildDeleteBinding(deleteQuery, statement).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
-            buildSelectOneBinding(model, selectOneQuery, statement).validNel
+            buildSelectOneBinding(selectOneQuery, statement).validNel
           case ResolvedSqlOperationQuery.Select(_)                 =>
             InvalidPluginConfig("unreachable select branch").invalidNel
         }
     }
 
   private def buildInsertBinding(
-      model: Model,
       operation: SqlOperation,
       query: com.jacoby6000.smithy.stache.sql.service.SqlInsertQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
-    val bindParameters =
-      query.columns.map(column => columnToBindParameter(model, query.table.shapeId, column))
+    val bindParameters = query.columns.map(column => columnToBindParameter(query.table, column))
     val outputShapeId  = operation.outputShape.getOrElse(SqlCodegenShapeGraph.UnitShapeId)
 
     if (isPreludeShape(outputShapeId)) {
@@ -101,8 +90,8 @@ object SqlOperationBindingBuilder {
       )
     } else {
       val resultFields =
-        query.returningColumns.zipWithIndex.flatMap { case (columnName, index) =>
-          columnNameToResultField(model, query.table.shapeId, columnName, index)
+        query.returningColumns.zipWithIndex.map { case (column, index) =>
+          columnToResultField(query.table, column, index)
         }
       SqlCodegenSqlBinding(
         queryKind = "insert",
@@ -118,7 +107,6 @@ object SqlOperationBindingBuilder {
   }
 
   private def buildUpdateBinding(
-      model: Model,
       query: com.jacoby6000.smithy.stache.sql.service.SqlUpdateQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding =
@@ -126,8 +114,8 @@ object SqlOperationBindingBuilder {
       queryKind = "update",
       sqlStatement = statement,
       tableName = query.table.name,
-      bindParameters = (query.setColumns ++ query.whereColumns).map(column =>
-        columnToBindParameter(model, query.table.shapeId, column)),
+      bindParameters =
+        (query.setColumns ++ query.whereColumns).map(column => columnToBindParameter(query.table, column)),
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
       outputKind = "boolean",
       returningColumnIndex = None,
@@ -135,7 +123,6 @@ object SqlOperationBindingBuilder {
     )
 
   private def buildDeleteBinding(
-      model: Model,
       query: com.jacoby6000.smithy.stache.sql.service.SqlDeleteQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding =
@@ -143,7 +130,7 @@ object SqlOperationBindingBuilder {
       queryKind = "delete",
       sqlStatement = statement,
       tableName = query.table.name,
-      bindParameters = query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column)),
+      bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
       executionMode = "fetchone",
       outputKind = "boolean",
       returningColumnIndex = None,
@@ -151,19 +138,18 @@ object SqlOperationBindingBuilder {
     )
 
   private def buildSelectOneBinding(
-      model: Model,
       query: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val resultFields =
-      query.selectColumns.zipWithIndex.flatMap { case (column, index) =>
-        memberNameToResultField(model, query.table.shapeId, column.memberName, index)
+      query.selectColumns.zipWithIndex.map { case (column, index) =>
+        columnToResultField(query.table, column, index)
       }
     SqlCodegenSqlBinding(
       queryKind = "selectOne",
       sqlStatement = statement,
       tableName = query.table.name,
-      bindParameters = query.whereColumns.map(column => columnToBindParameter(model, query.table.shapeId, column)),
+      bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
       executionMode = "fetchone",
       outputKind = "structure",
       returningColumnIndex = None,
@@ -171,150 +157,62 @@ object SqlOperationBindingBuilder {
     )
   }
 
-  private def parametersForColumns(
-      model: Model,
-      tableShapeId: ShapeId,
-      columns: List[SqlQueryColumn]
-  ): SqlValidated[List[SqlCodegenParameter]] =
-    columns.traverse(column => requiredQueryParameter(model, tableShapeId, column))
+  private def parametersForColumns(columns: List[SqlQueryColumn]): SqlValidated[List[SqlCodegenParameter]] =
+    columns.map(queryColumnToParameter).validNel
 
-  private def tableStructure(model: Model, tableShapeId: ShapeId): SqlValidated[StructureShape] =
-    model.getShape(tableShapeId).toScala.flatMap(_.asStructureShape.toScala) match {
-      case Some(structure) => structure.validNel
-      case None            =>
-        InvalidCodegenShape(tableShapeId, "expected a @sqlTable structure for SQL bind parameters").invalidNel
-    }
-
-  private def memberToParameter(member: SqlCodegenMember): SqlCodegenParameter =
+  private def queryColumnToParameter(column: SqlQueryColumn): SqlCodegenParameter =
     SqlCodegenParameter(
-      name = member.name,
-      typeName = member.typeName,
-      optional = member.optional,
-      isStructure = member.isStructure,
-      structureShapeId = member.structureShapeId
+      name = column.memberName,
+      typeName = column.typeName,
+      optional = false,
+      isStructure = column.isStructure,
+      structureShapeId = column.structureShapeId
     )
 
-  private def requiredQueryParameter(
-      model: Model,
-      tableShapeId: ShapeId,
-      column: SqlQueryColumn
-  ): SqlValidated[SqlCodegenParameter] =
-    tableStructure(model, tableShapeId).map { tableStructure =>
-      val member   = tableStructure.getMember(column.memberName).get()
-      val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member)
-      memberToParameter(resolved).copy(optional = false)
-    }
-
-  private def columnToBindParameter(
-      model: Model,
-      tableShapeId: ShapeId,
-      column: SqlQueryColumn
-  ): SqlCodegenBindParameter = {
-    val isJson          = isJsonMember(model, tableShapeId, column.memberName)
-    val memberAndType   =
-      tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
-        tableStructure.getMember(column.memberName).toScala.map { member =>
-          val resolved = LanguageTypeResolver.resolveMember(model, column.memberName, member)
-          (member, resolved.typeName)
-        }
-      }
-    val typeName        = memberAndType.map(_._2).getOrElse("String")
-    val jsonTypeName    =
-      if (isJson) {
-        Some(jsonTypeNameForMember(model, tableShapeId, column.memberName))
-      } else {
-        None
-      }
-    val timestampFormat =
-      memberAndType.flatMap { case (member, _) =>
-        SqlCodegenTimestampResolver.resolveTimestampFormat(model, member)
-      }
+  private def columnToBindParameter(table: SqlTable, column: SqlQueryColumn): SqlCodegenBindParameter = {
+    val columnType                = tableColumnType(table, column.columnName)
+    val (isJson, timestampFormat) = columnBindingMetadata(columnType)
     SqlCodegenBindParameter(
       memberName = column.memberName,
-      typeName = typeName,
+      typeName = column.typeName,
       isJson = isJson,
-      jsonTypeName = jsonTypeName,
+      jsonTypeName = column.jsonTypeName,
       timestampFormat = timestampFormat
     )
   }
 
-  private def isJsonMember(model: Model, tableShapeId: ShapeId, memberName: String): Boolean =
-    tableStructure(model, tableShapeId).toOption
-      .flatMap { tableStructure =>
-        tableStructure.getMember(memberName).toScala.map(_.sqlJson)
-      }
-      .getOrElse(false)
-
-  private def memberNameToResultField(
-      model: Model,
-      tableShapeId: ShapeId,
-      memberName: String,
+  private def columnToResultField(
+      table: SqlTable,
+      column: SqlQueryColumn,
       columnIndex: Int
-  ): Option[SqlCodegenResultField] =
-    tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
-      tableStructure.getMember(memberName).toScala.map { member =>
-        val resolved   = LanguageTypeResolver.resolveMember(model, memberName, member)
-        val columnName = member.sqlColumnName(memberName)
-        neutralResultField(model, member, memberName, columnName, columnIndex, resolved.typeName)
-      }
-    }
-
-  private def columnNameToResultField(
-      model: Model,
-      tableShapeId: ShapeId,
-      columnName: String,
-      columnIndex: Int
-  ): Option[SqlCodegenResultField] =
-    tableStructure(model, tableShapeId).toOption.flatMap { tableStructure =>
-      tableStructure.getAllMembers.asScala.toList
-        .collectFirst {
-          case (memberName, member) if member.sqlColumnName(memberName) == columnName =>
-            val resolved = LanguageTypeResolver.resolveMember(model, memberName, member)
-            neutralResultField(
-              model,
-              member,
-              memberName,
-              columnName,
-              columnIndex,
-              resolved.typeName
-            )
-        }
-    }
-
-  private def neutralResultField(
-      model: Model,
-      member: software.amazon.smithy.model.shapes.MemberShape,
-      memberName: String,
-      columnName: String,
-      columnIndex: Int,
-      typeName: String
   ): SqlCodegenResultField = {
-    val isJson          = member.sqlJson
-    val timestampFormat = SqlCodegenTimestampResolver.resolveTimestampFormat(model, member)
+    val columnType                = tableColumnType(table, column.columnName)
+    val (isJson, timestampFormat) = columnBindingMetadata(columnType)
     SqlCodegenResultField(
-      fieldName = memberName,
-      columnName = columnName,
+      fieldName = column.memberName,
+      columnName = column.columnName,
       columnIndex = columnIndex,
-      typeName = typeName,
+      typeName = column.typeName,
       isJson = isJson,
       timestampFormat = timestampFormat
     )
   }
 
-  private def jsonTypeNameForMember(
-      model: Model,
-      tableShapeId: ShapeId,
-      memberName: String
-  ): String =
-    tableStructure(model, tableShapeId).toOption.fold(memberName) { tableStructure =>
-      val member = tableStructure.getMember(memberName).get()
-      LanguageTypeResolver
-        .resolveMember(model, memberName, member, SqlCodegenMemberRole.SqlTableRow)
-        .typeName
+  private def tableColumnType(table: SqlTable, columnName: String): Option[SqlColumnType] =
+    table.columns.find(_.name == columnName).map(_.columnType)
+
+  private def columnBindingMetadata(
+      columnType: Option[SqlColumnType]
+  ): (Boolean, Option[SqlTimestampFormat]) =
+    columnType match {
+      case Some(SqlColumnType.Json)              => (true, None)
+      case Some(SqlColumnType.Timestamp(format)) => (false, Some(format))
+      case Some(_)                               => (false, None)
+      case None                                  => (false, None)
     }
 
   private def isPreludeShape(shapeId: ShapeId): Boolean =
-    SqlCodegenShapeGraph.isPreludeShape(shapeId) && shapeId != SqlCodegenShapeGraph.UnitShapeId
+    SqlIrTypeNameResolver.isPreludeShape(shapeId) && shapeId != SqlCodegenShapeGraph.UnitShapeId
 
   private object SqlQueriesAdapter {
     def fromResolved(query: ResolvedSqlOperationQuery): SqlQueries =
