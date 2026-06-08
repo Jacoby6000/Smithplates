@@ -68,5 +68,4 @@ async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleB
 <% if (test.hasDeleteOperation) { %>
 <% include("fragments/tests/delete_lifecycle") %>
 <% } %>
-<% include("db/postgres/tests/transaction_commit") %>
-<% include("db/postgres/tests/transaction_rollback") %>
+<% include("db/postgres/tests/transaction_tests") %>

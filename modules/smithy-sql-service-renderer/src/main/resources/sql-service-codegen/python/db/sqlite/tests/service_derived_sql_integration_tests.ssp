@@ -47,5 +47,4 @@ async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleB
 <% if (test.hasDeleteOperation) { %>
 <% include("fragments/tests/delete_lifecycle") %>
 <% } %>
-<% include("db/sqlite/tests/transaction_commit") %>
-<% include("db/sqlite/tests/transaction_rollback") %>
+<% include("db/sqlite/tests/transaction_tests") %>
