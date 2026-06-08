@@ -5,3 +5,5 @@ target/
 .bloop
 .coursier-cache
 __pycache__
+.pre-commit-home
+.xdg-runtime
