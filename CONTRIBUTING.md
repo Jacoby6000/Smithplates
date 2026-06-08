@@ -2,6 +2,26 @@
 
 User-facing plugin docs live under [`docs/usage/`](docs/usage/). Deeper architecture notes live under [`docs/contributing/`](docs/contributing/). This guide focuses on **running tests** and **where to work** depending on your role.
 
+## Quick validate
+
+From the repository root, run linters and tests with Nix when available, otherwise Docker:
+
+```bash
+./validate                 # lint + test (default)
+./validate build           # lint and compile only
+./validate test            # tests only
+```
+
+On Windows (PowerShell):
+
+```powershell
+.\validate.ps1
+.\validate.ps1 build
+.\validate.ps1 test
+```
+
+Override backend selection with `SMITHYSTACHE_VALIDATE_BACKEND=nix` or `docker`.
+
 ## Linters and compilers
 
 Run Scala and template-language static checks through [`scripts/run-linters.sh`](scripts/run-linters.sh):
@@ -17,7 +37,7 @@ Run Scala and template-language static checks through [`scripts/run-linters.sh`]
 nix run .#run-linters
 ```
 
-CI runs `./scripts/run-linters.sh` before [`scripts/run-tests.sh`](scripts/run-tests.sh).
+CI runs [`./validate`](validate) with Nix (Linux), `./validate` without Nix (Linux, auto-selects Docker), and [`validate.ps1`](validate.ps1) (Windows, auto-selects Docker) via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ## Running tests
 
@@ -59,13 +79,16 @@ The dev shell provides **Java 11**, **sbtn**, **uv**, and the **docker** client.
 
 ### With Docker (no Nix on the host)
 
-Build and run tests inside a container that uses the same Nix flake:
+Force the Docker backend when Nix is unavailable:
 
 ```bash
-./scripts/docker-test.sh
+SMITHYSTACHE_VALIDATE_BACKEND=docker ./validate
+SMITHYSTACHE_VALIDATE_BACKEND=docker ./validate build
 ```
 
-This builds `smithystache-test:local` (override with `SMITHYSTACHE_TEST_IMAGE`), mounts `/var/run/docker.sock` for testcontainers, and runs `./scripts/run-tests.sh` inside the image.
+On Windows: `.\validate.ps1` (uses Docker when Nix is not installed).
+
+The Docker path builds `smithystache-test:local` (override with `SMITHYSTACHE_TEST_IMAGE`) when the Dockerfile or flake inputs change, bind-mounts the repository, and mounts `/var/run/docker.sock` for testcontainers during tests.
 
 ### Manual setup
 
@@ -74,12 +97,10 @@ If you prefer installing tools yourself, see [`docs/contributing/getting-started
 ### Lint before pushing
 
 ```bash
-./scripts/run-linters.sh
+./validate build
 ```
 
-Or with Nix: `nix develop . --accept-flake-config --command ./scripts/run-linters.sh`
-
-CI runs linters and tests in separate steps via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+Or run linters directly: `./scripts/run-linters.sh` / `nix run .#run-linters`
 
 ---
 

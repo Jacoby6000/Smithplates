@@ -70,6 +70,7 @@
           shellHook = ''
             export JAVA_HOME="${java}"
             echo "SmithyStache dev shell (Java 11, sbtn, uv, docker client)"
+            echo "  ./validate                    # lint + test (Nix or Docker)"
             echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"
             echo "  nix run .#run-linters         # linters via flake app"

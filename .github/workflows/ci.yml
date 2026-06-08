@@ -13,8 +13,8 @@ env:
   NIX_CONFIG: experimental-features = nix-command flakes
 
 jobs:
-  nix:
-    name: Nix lint and tests
+  validate-nix:
+    name: Validate (Nix, Linux)
     runs-on: ubuntu-latest
 
     steps:
@@ -25,18 +25,37 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v19
 
       - name: Lint and compile
-        run: nix develop . --accept-flake-config --command ./scripts/run-linters.sh
+        run: ./validate build
 
-      - name: Run all tests
-        run: nix develop . --accept-flake-config --command ./scripts/run-tests.sh
+      - name: Run tests
+        run: ./validate test
 
-  docker:
-    name: Docker test image
+  validate-docker:
+    name: Validate (Docker, Linux)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run tests in Docker image
-        run: ./scripts/docker-test.sh
+      - name: Lint and compile
+        run: ./validate build
+
+      - name: Run tests
+        run: ./validate test
+
+  validate-windows:
+    name: Validate (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint and compile
+        shell: pwsh
+        run: .\validate.ps1 build
+
+      - name: Run tests
+        shell: pwsh
+        run: .\validate.ps1 test

@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run SmithyStache linters and/or tests using Nix (preferred) or Docker.
+#
+#   ./validate              # lint + test (default)
+#   ./validate build        # lint and compile only
+#   ./validate test         # tests only
+#   ./validate lint,test    # explicit default
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+# shellcheck source=scripts/lib/validate-backend.sh
+source "${ROOT}/scripts/lib/validate-backend.sh"
+
+smithystache_validate_main "${1:-lint,test}"
