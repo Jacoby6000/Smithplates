@@ -18,11 +18,11 @@ object ScalateTemplateHelpers {
       "python"
     } else {
       normalized.split("/").toList match {
-        case "language-templates" :: language :: _ =>
+        case "templates" :: language :: _        =>
           language
-        case "custom-templates" :: language :: _   =>
+        case "custom-templates" :: language :: _ =>
           language
-        case _                                     =>
+        case _                                   =>
           throw new IllegalArgumentException(s"cannot infer codegen language from template root: $templateRoot")
       }
     }

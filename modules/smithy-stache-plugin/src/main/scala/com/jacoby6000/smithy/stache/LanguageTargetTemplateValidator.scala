@@ -14,7 +14,7 @@ object LanguageTargetTemplateValidator {
       case "python" =>
         "classpath:"
       case other    =>
-        s"classpath:language-templates/$other/src/db"
+        s"classpath:templates/$other/src/db"
     }
 
   def resolveTemplateDirectory(target: LanguageTarget, languageId: String): String =

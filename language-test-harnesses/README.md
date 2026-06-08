@@ -1,8 +1,8 @@
 # Language test harnesses
 
-Executable test runners for generated artifacts under [`language-templates/`](../language-templates/).
+Executable test runners for generated artifacts under [`templates/`](../templates/).
 
-Golden **render** comparisons stay in Scala (`sbtn smithySqlServiceRenderer/test`). Harnesses here **execute** generated integration tests (pytest) from `language-templates/<language>/expected-outputs/`.
+Golden **render** comparisons stay in Scala (`sbtn smithySqlServiceRenderer/test`). Harnesses here **execute** generated integration tests (pytest) from `templates/<language>/expected-outputs/`.
 
 ## Python
 

@@ -3,7 +3,7 @@ set -euo pipefail
 
 harness_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${harness_dir}/../.." && pwd)"
-expected_root="${repo_root}/language-templates/python/expected-outputs"
+expected_root="${repo_root}/templates/python/expected-outputs"
 basetemp="${repo_root}/target/language-test-harnesses/python/pytest-tmp"
 
 mkdir -p "${basetemp}"

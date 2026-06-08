@@ -164,9 +164,9 @@ lazy val smithySqlServiceRenderer = (project in file("modules/smithy-sql-service
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     Compile / unmanagedResourceDirectories +=
-      (ThisBuild / baseDirectory).value / "language-templates" / "python" / "src" / "db",
+      (ThisBuild / baseDirectory).value / "templates" / "python" / "src" / "db",
     Test / unmanagedResourceDirectories ++= Seq(
-      (ThisBuild / baseDirectory).value / "language-templates"
+      (ThisBuild / baseDirectory).value / "templates"
     )
   )
 

@@ -9,7 +9,7 @@ __pycache__
 .mypy_cache
 .pyright
 language-test-harnesses/python/.venv/
-language-templates/**/__pycache__/
-language-templates/**/.pytest_cache/
+templates/**/__pycache__/
+templates/**/.pytest_cache/
 .pre-commit-home
 .xdg-runtime

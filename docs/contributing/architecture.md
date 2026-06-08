@@ -68,7 +68,7 @@ flowchart TD
 | `smithy-stache` plugin | Orchestrates extraction and rendering | [`SmithyStacheBuildPlugin`](../../modules/smithy-stache-plugin/src/main/scala/com/jacoby6000/smithy/stache/SmithyStacheBuildPlugin.scala) |
 | SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlIrExtractor.scala) |
 | Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/SqlServiceExtractor.scala); `SqlServiceIr` |
-| SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`language-templates/`](../../language-templates/) |
+| SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
 | Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenRenderer.scala); `models.mustache` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums, and a `-- Queries` section | [`SqlSchemaDdlRenderer`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithy/stache/sql/shared/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.render`](../../modules/smithy-stache-plugin/src/main/scala/com/jacoby6000/smithy/stache/DialectRenderers.scala) composes DDL + query units in the plugin; `smithy-stache.sql.<dialect>.migrationLocation` |
 | Schema integration tests | Apply generated DDL to real databases | [`smithy-sql-postgres-renderer-it`](../../modules/smithy-sql-postgres-renderer-it/), [`smithy-sql-sqlite-renderer-it`](../../modules/smithy-sql-sqlite-renderer-it/) |
@@ -149,7 +149,7 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | Smithy (`smithy-build`, `smithy-model`, `smithy-utils`) | 1.71.0 | Build plugins and trait model |
 | Cats Core | 2.12.0 | `ValidatedNel` validation |
 | Cats Effect | 3.7.0 | Available on all modules |
-| Scalate | 1.10.1 | SSP templates under [`language-templates/`](../../language-templates/) |
+| Scalate | 1.10.1 | SSP templates under [`templates/`](../../templates/) |
 
 Synchronous extraction does not use `IO`.
 
@@ -157,4 +157,4 @@ Synchronous extraction does not use `IO`.
 
 - **sbtn** — always use the SBT thin client from this repository; never plain `sbt` or `coursier launch org.scala-sbt:sbt-launch:…`.
 - **Smithy models** — Smithy 2.0 IDL (`$version: "2.0"`).
-- **Python language test harness** — [`language-test-harnesses/python/`](../../language-test-harnesses/python/) runs ruff, mypy, and pytest against `language-templates/python/expected-outputs/` in place; requires `uv` on `PATH` (Docker for postgres variants).
+- **Python language test harness** — [`language-test-harnesses/python/`](../../language-test-harnesses/python/) runs ruff, mypy, and pytest against `templates/python/expected-outputs/` in place; requires `uv` on `PATH` (Docker for postgres variants).

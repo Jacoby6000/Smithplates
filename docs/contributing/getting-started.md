@@ -87,7 +87,7 @@ sbtn smithySqlPostgresRendererIt/test
 sbtn smithySqlSqliteRendererIt/test
 ```
 
-Python generated-code integration tests (pytest against `language-templates/python/expected-outputs/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:
+Python generated-code integration tests (pytest against `templates/python/expected-outputs/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:
 
 ```bash
 ./language-test-harnesses/python/run-tests.sh

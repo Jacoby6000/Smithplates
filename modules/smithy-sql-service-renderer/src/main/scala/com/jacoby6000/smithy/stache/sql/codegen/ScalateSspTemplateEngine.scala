@@ -136,11 +136,11 @@ object ScalateSspTemplateEngine {
     val normalized = normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
-      case "language-templates" :: language :: "src" :: "db" :: _ =>
-        s"language-templates/$language/src/db"
-      case _ if segments.length >= 2                              =>
+      case "templates" :: language :: "src" :: "db" :: _ =>
+        s"templates/$language/src/db"
+      case _ if segments.length >= 2                     =>
         segments.take(2).mkString("/")
-      case _                                                      =>
+      case _                                             =>
         normalized
     }
   }
