@@ -1,1 +1,9 @@
-<% for (bindParameter <- attrs("bindParameters").asInstanceOf[List[Map[String, Any]]]) { %><% if (bindParameter("only").asInstanceOf[Boolean]) { %>(<% render("partials/sql/bind_expression", Map("attrs" -> (attrs ++ bindParameter.asInstanceOf[Map[String, Any]]))) %>,)<% } %><% if (!bindParameter("only").asInstanceOf[Boolean]) { %><% if (bindParameter("first").asInstanceOf[Boolean]) { %>(<% } %><% render("partials/sql/bind_expression", Map("attrs" -> (attrs ++ bindParameter.asInstanceOf[Map[String, Any]]))) %><% if (!bindParameter("last").asInstanceOf[Boolean]) { %>, <% } %><% if (bindParameter("last").asInstanceOf[Boolean]) { %>)<% } %><% } %><% } %>
+<%
+  val bindParameters = attrs("bindParameters").asInstanceOf[List[Map[String, Any]]]
+  val renderedParams = bindParameters.map { bindParameter =>
+    capture {
+      render("partials/sql/bind_expression", bindParameter.asInstanceOf[Map[String, Any]])
+    }
+  }
+%>
+(${renderedParams.mkString(", ")}${if (bindParameters.length == 1) "," else ""})

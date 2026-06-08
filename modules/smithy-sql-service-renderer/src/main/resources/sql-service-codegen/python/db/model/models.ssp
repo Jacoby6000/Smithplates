@@ -8,7 +8,7 @@ from datetime import datetime
 <% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
 <% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>
 class ${unionVariantTypeName(union("name").asInstanceOf[String], member("name").asInstanceOf[String])}(TypedDict):
-    ${member("name")}: <% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) +%>
+    ${member("name")}: <% render("partials/types/type_name", Map("typeName" -> member("typeName"))) +%>
 <% } %>
 ${union("name")} = ${unionTypeAlias(union("name").asInstanceOf[String], union("members").asInstanceOf[List[Map[String, Any]]].map(_("name").asInstanceOf[String]))}
 

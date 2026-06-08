@@ -1,1 +1,1 @@
-<% render("partials/types/type_annotation", Map("attrs" -> attrs)) %>
+<% render("partials/types/type_annotation", Map("typeName" -> attrs("typeName"), "optional" -> attrs.get("optional").exists(isTruthy))) %>

@@ -1,1 +1,2 @@
-${pythonTypeName(attrs("typeName").toString)}
+<%@ val typeName: String %>
+${pythonTypeName(typeName)}

@@ -57,6 +57,28 @@ def transactionTypeName(dialectKey: String): String =
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
 
+def parameterAnnotationAttrs(parameter: Map[String, Any]): Map[String, Any] =
+  Map(
+    "typeName" -> parameter("typeName"),
+    "optional" -> parameter("optional")
+  )
+
+def resultFieldAssignmentAttrs(
+    resultField: Map[String, Any],
+    readMode: String,
+    rowVar: String = "row"
+): Map[String, Any] =
+  Map(
+    "fieldName"          -> resultField("fieldName"),
+    "typeName"           -> resultField("typeName"),
+    "isJson"             -> resultField("isJson"),
+    "readMode"           -> readMode,
+    "columnIndex"        -> resultField("columnIndex"),
+    "columnNameLiteral"  -> resultField.getOrElse("columnNameLiteral", "\"\""),
+    "rowVar"             -> rowVar,
+    "timestampFormat"    -> resultField.getOrElse("timestampFormat", null)
+  )
+
 def pythonTypeName(typeName: String): String =
   if (typeName.startsWith("List[")) {
     val inner = typeName.substring(5, typeName.length - 1)

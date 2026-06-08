@@ -1,1 +1,3 @@
-<% if (attrs.get("optional").exists(isTruthy)) { %>${pythonTypeName(attrs("typeName").toString)} | None<% } %><% if (!attrs.get("optional").exists(isTruthy)) { %>${pythonTypeName(attrs("typeName").toString)}<% } %>
+<%@ val typeName: String %>
+<%@ val optional: Boolean = false %>
+<% if (optional) { %>${pythonTypeName(typeName)} | None<% } else { %>${pythonTypeName(typeName)}<% } %>

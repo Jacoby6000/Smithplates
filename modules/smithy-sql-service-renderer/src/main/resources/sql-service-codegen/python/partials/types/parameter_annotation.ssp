@@ -1,1 +1,3 @@
-<% render("partials/types/type_annotation", Map("attrs" -> attrs)) %>
+<%@ val typeName: String %>
+<%@ val optional: Boolean = false %>
+<% render("partials/types/type_annotation", Map("typeName" -> typeName, "optional" -> optional)) %>

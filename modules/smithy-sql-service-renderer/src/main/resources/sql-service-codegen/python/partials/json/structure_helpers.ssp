@@ -12,5 +12,5 @@ def _read_${attrs("name")}(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[S
 <% } %>
     return ${attrs("name")}(
 <% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),
+        ${member("name")}=cast(<% render("partials/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
 <% } %>    )

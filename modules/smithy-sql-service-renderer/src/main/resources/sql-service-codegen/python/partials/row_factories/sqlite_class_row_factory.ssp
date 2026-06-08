@@ -1,3 +1,3 @@
 def ${rowFactoryName(attrs("name").asInstanceOf[String])}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${attrs("name")}:
     return ${attrs("name")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>        <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "index")))) %><% } %>    )
+<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>        <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>    )

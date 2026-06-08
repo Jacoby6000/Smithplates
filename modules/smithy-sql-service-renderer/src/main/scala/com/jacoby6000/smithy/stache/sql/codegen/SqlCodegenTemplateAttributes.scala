@@ -131,9 +131,7 @@ object SqlCodegenTemplateAttributes {
             bindPlaceholderStyle
           ),
           "tableName"            -> sql.tableName,
-          "bindParameters"       -> withBindParameterPositionFlags(
-            sql.bindParameters.map(bindParameterAttributes(dialectKey, _))
-          ),
+          "bindParameters"       -> sql.bindParameters.map(bindParameterAttributes(dialectKey, _)),
           "hasBindParameters"    -> sql.bindParameters.nonEmpty,
           "executionMode"        -> sql.executionMode,
           "isRowcountExecution"  -> (sql.executionMode == "rowcount"),
@@ -253,14 +251,4 @@ object SqlCodegenTemplateAttributes {
       item + ("last" -> (index == items.length - 1))
     }
 
-  private def withBindParameterPositionFlags(
-      items: List[Map[String, Any]]
-  ): List[Map[String, Any]] =
-    items.zipWithIndex.map { case (item, index) =>
-      item ++ Map(
-        "first" -> (index == 0),
-        "last"  -> (index == items.length - 1),
-        "only"  -> (items.length == 1)
-      )
-    }
 }

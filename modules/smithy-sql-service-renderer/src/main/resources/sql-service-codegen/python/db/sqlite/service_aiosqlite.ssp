@@ -19,7 +19,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
     async def ${operationMethodName(operation("name").asInstanceOf[String])}(
         self,
 <% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,
+        ${parameter("name")}: <% render("partials/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
 <% } %>
 <% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
     ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
@@ -37,7 +37,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
                 raise RuntimeError("INSERT RETURNING produced no row")
             <% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
             return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "col", "rowVar" -> "named_row")))) %><% } %>
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col", "named_row")) %><% } %>
             )
 <% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
 <% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
@@ -45,7 +45,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "index")))) %><% } %>
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
             )
 <% } %><% } %><% if (operation("isBooleanMutation").asInstanceOf[Boolean]) { %>
 <% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %><% if (operation("isRowcountExecution").asInstanceOf[Boolean]) { %>
@@ -66,7 +66,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
                 return None
             <% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
             return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "col", "rowVar" -> "named_row")))) %><% } %>
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col", "named_row")) %><% } %>
             )
 <% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
 <% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
@@ -74,7 +74,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
             if row is None:
                 return None
             return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "index")))) %><% } %>
+<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
             )
 <% } %><% } %><% } %>
         return await run(self._connection, transaction, execute)

@@ -1,1 +1,17 @@
-${attrs("fieldName")}=<% render("partials/sql/read_result_field", Map("attrs" -> attrs)) %>,
+<%@ val fieldName: String %>
+<%@ val typeName: String %>
+<%@ val isJson: Boolean = false %>
+<%@ val readMode: String %>
+<%@ val columnIndex: Int %>
+<%@ val columnNameLiteral: String = "" %>
+<%@ val rowVar: String = "row" %>
+<%@ val timestampFormat: Any = null %>
+${fieldName}=<% render("partials/sql/read_result_field", Map(
+  "typeName" -> typeName,
+  "isJson" -> isJson,
+  "readMode" -> readMode,
+  "columnIndex" -> columnIndex,
+  "columnNameLiteral" -> columnNameLiteral,
+  "rowVar" -> rowVar,
+  "timestampFormat" -> timestampFormat
+)) %>,
