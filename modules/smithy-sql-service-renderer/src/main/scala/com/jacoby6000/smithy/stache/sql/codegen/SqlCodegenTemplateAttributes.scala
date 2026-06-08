@@ -109,21 +109,14 @@ object SqlCodegenTemplateAttributes {
           "bindParameters"       -> Nil,
           "hasBindParameters"    -> false,
           "executionMode"        -> "",
-          "isRowcountExecution"  -> false,
           "outputKind"           -> "",
-          "isInsertScalar"       -> false,
-          "isInsertStructure"    -> false,
-          "isBooleanMutation"    -> false,
+          "sqlBodyKind"          -> "",
           "isSelectOne"          -> false,
-          "canUseClassRow"       -> false,
-          "usesDictRowFactory"   -> false,
           "returningColumnIndex" -> null,
           "resultFields"         -> Nil,
           "hasResultFields"      -> false
         )
       case Some(sql) =>
-        val canUseClassRow     = SqlCodegenSqlBindingMetadata.canUseClassRow(sql)
-        val usesDictRowFactory = SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)
         base ++ Map[String, Any](
           "queryKind"            -> sql.queryKind,
           "sqlStatement"         -> SqlBindPlaceholder.format(
@@ -134,14 +127,9 @@ object SqlCodegenTemplateAttributes {
           "bindParameters"       -> sql.bindParameters.map(bindParameterAttributes(dialectKey, _)),
           "hasBindParameters"    -> sql.bindParameters.nonEmpty,
           "executionMode"        -> sql.executionMode,
-          "isRowcountExecution"  -> (sql.executionMode == "rowcount"),
           "outputKind"           -> sql.outputKind,
-          "isInsertScalar"       -> (sql.queryKind == "insert" && sql.outputKind == "scalar"),
-          "isInsertStructure"    -> (sql.queryKind == "insert" && sql.outputKind == "structure"),
-          "isBooleanMutation"    -> (sql.outputKind == "boolean"),
+          "sqlBodyKind"          -> SqlCodegenSqlBodyKind.resolve(sql).getOrElse(""),
           "isSelectOne"          -> (sql.queryKind == "selectOne"),
-          "canUseClassRow"       -> canUseClassRow,
-          "usesDictRowFactory"   -> usesDictRowFactory,
           "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
           "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
           "hasResultFields"      -> sql.resultFields.nonEmpty

@@ -1,3 +1,3 @@
 #for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]])
-    ${member("name")}: <% render("partials/types/type_annotation", parameterAnnotationAttrs(member.asInstanceOf[Map[String, Any]])) +%>
+    ${member("name")}: <% render("fragments/types/type_annotation", parameterAnnotationAttrs(member.asInstanceOf[Map[String, Any]])) +%>
 #end

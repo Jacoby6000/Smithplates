@@ -51,7 +51,7 @@ object ScalateSspTemplateEngine {
   def renderServiceModuleBaseName(templateRoot: String, serviceName: String): String =
     renderClasspathPartial(
       templateRoot,
-      "partials/naming/service_module_base_name",
+      "fragments/naming/service_module_base_name",
       Map("serviceName" -> serviceName)
     ).strip()
 
@@ -90,7 +90,7 @@ object ScalateSspTemplateEngine {
 
   private def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
     val root               = templateRoot.map(normalizeTemplateRoot).getOrElse(normalizedTemplateRoot)
-    val namingPreamblePath = s"/$root/partials/naming/preamble.ssp"
+    val namingPreamblePath = s"/$root/fragments/naming/preamble.ssp"
     baseContextBindingPreamble + readClasspathTemplateOptional(namingPreamblePath).getOrElse("")
   }
 

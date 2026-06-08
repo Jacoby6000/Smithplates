@@ -8,7 +8,7 @@ from datetime import datetime
 <% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
 <% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>
 class ${unionVariantTypeName(union("name").asInstanceOf[String], member("name").asInstanceOf[String])}(TypedDict):
-    ${member("name")}: <% render("partials/types/type_name", Map("typeName" -> member("typeName"))) +%>
+    ${member("name")}: <% render("fragments/types/type_name", Map("typeName" -> member("typeName"))) +%>
 <% } %>
 ${union("name")} = ${unionTypeAlias(union("name").asInstanceOf[String], union("members").asInstanceOf[List[Map[String, Any]]].map(_("name").asInstanceOf[String]))}
 
@@ -16,7 +16,7 @@ ${union("name")} = ${unionTypeAlias(union("name").asInstanceOf[String], union("m
 <% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>@dataclass
 class ${model("name")}:
 <% if (model("hasMembers").asInstanceOf[Boolean]) { %>
-<% render("partials/models/member_lines", Map("attrs" -> (attrs ++ model.asInstanceOf[Map[String, Any]]))) +%><% } %>
+<% render("fragments/models/member_lines", Map("attrs" -> (attrs ++ model.asInstanceOf[Map[String, Any]]))) +%><% } %>
 <% if (!model("hasMembers").asInstanceOf[Boolean]) { %>
     pass
 <% } %>

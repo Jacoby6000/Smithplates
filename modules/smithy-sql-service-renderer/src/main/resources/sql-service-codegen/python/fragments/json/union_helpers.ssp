@@ -7,10 +7,10 @@ def _json_bind_${attrs("name")}(value: ${attrs("name")}) -> str:
 
 def _read_${attrs("name")}(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> ${attrs("name")}:
 <% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("partials/json/row_data_sqlite") %>
+<% include("fragments/json/row_data_sqlite") %>
 <% } %>
 <% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("partials/json/row_data_postgres") %>
+<% include("fragments/json/row_data_postgres") %>
 <% } %>
     present = [key for key in (${attrs("discriminatorKeys")}) if key in data]
     if len(present) != 1:

@@ -1,5 +1,5 @@
 def _read_${attrs("name")}_col(row: dict[str, object], column: str) -> ${attrs("name")}:
-<% include("partials/json/row_data_sqlite_col") %>
+<% include("fragments/json/row_data_sqlite_col") %>
     present = [key for key in (${attrs("discriminatorKeys")}) if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown ${attrs("name")} discriminator: {sorted(data.keys())}")

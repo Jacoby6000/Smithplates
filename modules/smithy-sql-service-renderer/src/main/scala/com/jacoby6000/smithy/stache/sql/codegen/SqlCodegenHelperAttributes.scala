@@ -118,7 +118,7 @@ object SqlCodegenHelperAttributes {
   ): List[String] = {
     val sqliteIncludes =
       if (usesSqliteNamedRowMapper) {
-        List("partials/row_mappers/sqlite_named_row")
+        List("fragments/row_mappers/sqlite_named_row")
       } else {
         Nil
       }
@@ -183,9 +183,9 @@ object SqlCodegenHelperAttributes {
   private def rowReaderPartialPath(reader: String): Option[String] =
     reader match {
       case "_read_bool" | "_read_bytes" | "_read_decimal" | "_read_float" | "_read_int" =>
-        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case "_read_datetime" | "_read_epoch_seconds" | "_read_str"                       =>
-        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case _                                                                            =>
         None
     }
@@ -193,11 +193,11 @@ object SqlCodegenHelperAttributes {
   private def colReaderPartialPath(reader: String): Option[String] =
     reader match {
       case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
-        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case "_read_datetime_col" | "_read_str_col"                                                           =>
-        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case "_read_epoch_seconds_col"                                                                        =>
-        Some("partials/row_readers/read_epoch_seconds_postgres_col")
+        Some("fragments/row_readers/read_epoch_seconds_postgres_col")
       case _                                                                                                =>
         None
     }
@@ -205,9 +205,9 @@ object SqlCodegenHelperAttributes {
   private def timestampBindPartialPath(bindHelper: String): Option[String] =
     bindHelper match {
       case "_timestamp_bind_datetime"      =>
-        Some("partials/timestamps/bind_datetime")
+        Some("fragments/timestamps/bind_datetime")
       case "_timestamp_bind_epoch_seconds" =>
-        Some("partials/timestamps/bind_epoch_seconds")
+        Some("fragments/timestamps/bind_epoch_seconds")
       case _                               =>
         None
     }

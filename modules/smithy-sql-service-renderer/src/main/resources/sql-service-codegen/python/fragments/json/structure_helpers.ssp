@@ -5,12 +5,12 @@ def _json_bind_${attrs("name")}(value: ${attrs("name")}) -> str:
 
 def _read_${attrs("name")}(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> ${attrs("name")}:
 <% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("partials/json/row_data_sqlite") %>
+<% include("fragments/json/row_data_sqlite") %>
 <% } %>
 <% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("partials/json/row_data_postgres") %>
+<% include("fragments/json/row_data_postgres") %>
 <% } %>
     return ${attrs("name")}(
 <% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${member("name")}=cast(<% render("partials/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
+        ${member("name")}=cast(<% render("fragments/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
 <% } %>    )

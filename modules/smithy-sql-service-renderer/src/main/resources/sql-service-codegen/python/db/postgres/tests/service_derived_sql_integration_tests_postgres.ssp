@@ -9,7 +9,7 @@ import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %><% if (attrs.get("extraImports").exists(isTruthy)) { %>${attrs("extraImports")}<% } %><% } %>
 from ${implementationModuleName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])} import ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}
-<% include("partials/helpers/model_imports") %>
+<% include("fragments/helpers/model_imports") %>
 
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %>SCHEMA_DDL = """${attrs("schemaDdl")}"""
 
@@ -63,10 +63,10 @@ async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleB
 <% } %>
 <% } %>
 <% if (attrs.get("hasUpdateOperation").exists(isTruthy)) { %>
-<% include("partials/tests/update_lifecycle") %>
+<% include("fragments/tests/update_lifecycle") %>
 <% } %>
 <% if (attrs.get("hasDeleteOperation").exists(isTruthy)) { %>
-<% include("partials/tests/delete_lifecycle") %>
+<% include("fragments/tests/delete_lifecycle") %>
 <% } %>
 <% include("db/postgres/tests/transaction_commit") %>
 <% include("db/postgres/tests/transaction_rollback") %>

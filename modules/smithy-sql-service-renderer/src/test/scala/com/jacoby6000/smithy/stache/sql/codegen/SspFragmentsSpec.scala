@@ -1,11 +1,11 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-class SspPartialsSpec extends munit.FunSuite {
-  test("row reader partial preserves internal newlines") {
+class SspFragmentsSpec extends munit.FunSuite {
+  test("row reader fragment preserves internal newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "partials/row_readers/read_str",
+        "fragments/row_readers/read_str",
         Map(
           "dialectKey"        -> "postgres",
           "isPostgresDialect" -> true,
@@ -17,11 +17,11 @@ class SspPartialsSpec extends munit.FunSuite {
     assert(output.contains("\n    value = row[index]"), s"expected indented body lines, got: $output")
   }
 
-  test("single-line import partial does not add blank lines") {
+  test("single-line import fragment does not add blank lines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "partials/helpers/imports",
+        "fragments/helpers/imports",
         Map(
           "needsRowReaderModuleImport" -> false,
           "needsCastImport"            -> true,
@@ -40,11 +40,11 @@ class SspPartialsSpec extends munit.FunSuite {
     )
   }
 
-  test("member lines partial preserves newlines") {
+  test("member lines fragment preserves newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "partials/models/member_lines",
+        "fragments/models/member_lines",
         Map(
           "members" -> List(
             Map(

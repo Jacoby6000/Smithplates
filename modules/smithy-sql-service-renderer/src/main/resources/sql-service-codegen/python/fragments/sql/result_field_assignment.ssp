@@ -6,7 +6,7 @@
 <%@ val columnNameLiteral: String = "" %>
 <%@ val rowVar: String = "row" %>
 <%@ val timestampFormat: Any = null %>
-${fieldName}=<% render("partials/sql/read_result_field", Map(
+${fieldName}=<% render("fragments/sql/read_result_field", Map(
   "typeName" -> typeName,
   "isJson" -> isJson,
   "readMode" -> readMode,

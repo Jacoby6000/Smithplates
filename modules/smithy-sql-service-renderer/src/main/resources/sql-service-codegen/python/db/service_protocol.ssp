@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-<% include("partials/helpers/model_imports") %>
+<% include("fragments/helpers/model_imports") %>
 
 T = TypeVar("T", contravariant=True)
 
@@ -12,8 +12,8 @@ class ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}(Protocol
 <% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %>    async def ${operationMethodName(operation("name").asInstanceOf[String])}(
         self,
 <% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${parameter("name")}: <% render("partials/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
+        ${parameter("name")}: <% render("fragments/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
 <% } %>
-<% render("partials/types/transaction_parameter_protocol", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>    ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
+<% render("fragments/types/transaction_parameter_protocol", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>    ) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
         ...
 <% } %>

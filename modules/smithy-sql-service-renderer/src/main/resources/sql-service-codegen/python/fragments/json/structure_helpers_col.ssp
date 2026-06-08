@@ -1,6 +1,6 @@
 def _read_${attrs("name")}_col(row: dict[str, object], column: str) -> ${attrs("name")}:
-<% include("partials/json/row_data_postgres_col") %>
+<% include("fragments/json/row_data_postgres_col") %>
     return ${attrs("name")}(
 <% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${member("name")}=cast(<% render("partials/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
+        ${member("name")}=cast(<% render("fragments/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
 <% } %>    )

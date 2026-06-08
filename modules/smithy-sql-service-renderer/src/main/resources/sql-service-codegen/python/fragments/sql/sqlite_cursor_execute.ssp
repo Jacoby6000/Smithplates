@@ -1,4 +1,4 @@
             cursor = await conn.execute(
                 """${attrs("sqlStatement")}""",
-                <% include("partials/sql/bind_tuple") %>,
+                <% include("fragments/sql/bind_tuple") %>,
             )

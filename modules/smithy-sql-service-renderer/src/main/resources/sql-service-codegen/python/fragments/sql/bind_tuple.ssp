@@ -2,7 +2,7 @@
   val bindParameters = attrs("bindParameters").asInstanceOf[List[Map[String, Any]]]
   val renderedParams = bindParameters.map { bindParameter =>
     capture {
-      render("partials/sql/bind_expression", bindParameter.asInstanceOf[Map[String, Any]])
+      render("fragments/sql/bind_expression", bindParameter.asInstanceOf[Map[String, Any]])
     }
   }
 %>

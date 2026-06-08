@@ -3,9 +3,9 @@ from __future__ import annotations
 
 from typing import override
 
-<% include("partials/helpers/imports") +%>import aiosqlite
+<% include("fragments/helpers/imports") +%>import aiosqlite
 from sqlite_transaction_run import run
-<% include("partials/helpers/model_imports") %>
+<% include("fragments/helpers/model_imports") %>
 from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_protocol import ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}
 
 
@@ -19,12 +19,12 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
     async def ${operationMethodName(operation("name").asInstanceOf[String])}(
         self,
 <% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${parameter("name")}: <% render("partials/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
+        ${parameter("name")}: <% render("fragments/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
 <% } %>
-<% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-    ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-        async def execute(conn: aiosqlite.Connection) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-<% render("partials/operations/sqlite_operation_body", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) +%>        return await run(self._connection, transaction, execute)
+<% render("fragments/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
+    ) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
+        async def execute(conn: aiosqlite.Connection) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
+<% render("fragments/operations/sqlite_operation_body", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) +%>        return await run(self._connection, transaction, execute)
 <% } %><% } %>
 
-<% include("partials/helpers/row_reader_helpers")  +%>
+<% include("fragments/helpers/row_reader_helpers")  +%>
