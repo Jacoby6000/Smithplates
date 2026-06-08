@@ -1,9 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithy.stache.sql.SqlIrTypeNameResolver
-import com.jacoby6000.smithy.stache.sql.SqlSchema
-import com.jacoby6000.smithy.stache.sql.SqlValidated
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithy.stache.sql.service.SqlOperation
@@ -23,32 +21,30 @@ object SqlServiceCodegenContextBuilder {
       queryRenderer: SqlQueryRenderer,
       bindPlaceholderStyle: SqlBindPlaceholder,
       settings: SqlServiceCodegenSettings
-  ): SqlValidated[SqlCodegenServiceContext] =
-    service.operations
-      .traverse(buildOperation(model, queries, _, queryRenderer))
-      .andThen { operations =>
-        val rootShapeIds =
-          service.operations
-            .flatMap { operation =>
-              val errorShapes =
-                SqlOperationQueryResolver.resolve(queries, operation.shapeId) match {
-                  case Some(_: ResolvedSqlOperationQuery.SelectOne) =>
-                    Nil
-                  case _                                            => operation.errorShapes
-                }
-              List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
+  ): SqlValidated[SqlCodegenServiceContext] = {
+    val rootShapeIds =
+      service.operations
+        .flatMap { operation =>
+          val errorShapes =
+            SqlOperationQueryResolver.resolve(queries, operation.shapeId) match {
+              case Some(_: ResolvedSqlOperationQuery.SelectOne) =>
+                Nil
+              case _                                            => operation.errorShapes
             }
-            .filterNot(_ == SqlCodegenShapeGraph.UnitShapeId)
-            .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
-            .distinct
+          List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
+        }
+        .filterNot(_ == SqlShapeGraph.UnitShapeId)
+        .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
+        .distinct
 
-        val tableShapeIds = schema.tables.map(_.shapeId)
+    val tableShapeIds = schema.tables.map(_.shapeId)
 
-        (
-          SqlShapeCodegenExtractor.collectStructures(model, rootShapeIds ++ tableShapeIds),
-          SqlShapeCodegenExtractor.collectUnions(model, rootShapeIds ++ tableShapeIds)
-        ).mapN { (models, unions) =>
-          val baseContext =
+    SqlShapeIrExtractor.extract(model, rootShapeIds ++ tableShapeIds).andThen { shapeIr =>
+      service.operations
+        .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
+        .map { operations =>
+          val (models, unions) = SqlShapeCodegenMapper.fromIr(shapeIr)
+          val baseContext      =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
               name = service.shapeId.getName,
@@ -74,10 +70,12 @@ object SqlServiceCodegenContextBuilder {
             integrationTest = SqlCodegenIntegrationTestBuilder.build(baseContext, schema, settings.schemaDdlRenderers)
           )
         }
-      }
+    }
+  }
 
   private def buildOperation(
       model: Model,
+      shapeIr: SqlShapeIr,
       queries: SqlQueries,
       operation: SqlOperation,
       queryRenderer: SqlQueryRenderer
@@ -90,7 +88,7 @@ object SqlServiceCodegenContextBuilder {
         case Some(query) if usesDerivedInput =>
           SqlOperationBindingBuilder.parametersFromQuery(operation, query)
         case _                               =>
-          buildInputParameters(model, operation)
+          buildInputParameters(shapeIr, operation)
       }
 
     val sqlBinding =
@@ -119,14 +117,14 @@ object SqlServiceCodegenContextBuilder {
         }
 
       val outputShapeId =
-        operation.outputShape.filter(_ != SqlCodegenShapeGraph.UnitShapeId)
+        operation.outputShape.filter(_ != SqlShapeGraph.UnitShapeId)
 
       val outputTypeName =
         outputShapeId.map(shapeId => SqlIrTypeNameResolver.resolveShapeTypeName(model, shapeId))
 
       val outputClassName =
         outputShapeId
-          .filterNot(SqlCodegenShapeGraph.isPreludeShape)
+          .filterNot(SqlIrTypeNameResolver.isPreludeShape)
           .map(SqlCodegenNaming.className)
 
       SqlCodegenOperation(
@@ -144,22 +142,25 @@ object SqlServiceCodegenContextBuilder {
   }
 
   private def buildInputParameters(
-      model: Model,
+      shapeIr: SqlShapeIr,
       operation: SqlOperation
   ): SqlValidated[List[SqlCodegenParameter]] =
-    if (operation.inputShape == SqlCodegenShapeGraph.UnitShapeId) {
+    if (operation.inputShape == SqlShapeGraph.UnitShapeId) {
       Nil.validNel
     } else {
-      SqlShapeCodegenExtractor.extractStructure(model, operation.inputShape).map { inputStructure =>
-        inputStructure.members.map { member =>
-          SqlCodegenParameter(
-            name = member.name,
-            typeName = member.typeName,
-            optional = member.optional,
-            isStructure = member.isStructure,
-            structureShapeId = member.structureShapeId
-          )
-        }
+      shapeIr.structure(operation.inputShape) match {
+        case None                 =>
+          InvalidCodegenShape(operation.inputShape, "expected a structure shape").invalidNel
+        case Some(inputStructure) =>
+          inputStructure.members.map { member =>
+            SqlCodegenParameter(
+              name = member.name,
+              typeName = member.typeName,
+              optional = member.optional,
+              isStructure = member.isStructure,
+              structureShapeId = member.structureShapeId
+            )
+          }.validNel
       }
     }
 }

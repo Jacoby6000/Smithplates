@@ -1,36 +1,23 @@
-package com.jacoby6000.smithy.stache.sql.codegen
+package com.jacoby6000.smithy.stache.sql
 
 import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ListShape
+import software.amazon.smithy.model.shapes.MapShape
 import software.amazon.smithy.model.shapes.MemberShape
+import software.amazon.smithy.model.shapes.Shape
 import software.amazon.smithy.model.shapes.ShapeId
+import software.amazon.smithy.model.shapes.ShapeVisitor
+import software.amazon.smithy.model.shapes.StructureShape
+import software.amazon.smithy.model.shapes.UnionShape
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
-object SqlCodegenShapeGraph {
+object SqlShapeGraph {
   val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
 
-  private val PreludeShapeIds: Set[ShapeId] =
-    Set(
-      UnitShapeId,
-      ShapeId.from("smithy.api#String"),
-      ShapeId.from("smithy.api#Integer"),
-      ShapeId.from("smithy.api#Long"),
-      ShapeId.from("smithy.api#Float"),
-      ShapeId.from("smithy.api#Double"),
-      ShapeId.from("smithy.api#BigDecimal"),
-      ShapeId.from("smithy.api#BigInteger"),
-      ShapeId.from("smithy.api#Boolean"),
-      ShapeId.from("smithy.api#Blob"),
-      ShapeId.from("smithy.api#Timestamp"),
-      ShapeId.from("smithy.api#Document")
-    )
-
-  def isPreludeShape(shapeId: ShapeId): Boolean =
-    PreludeShapeIds.contains(shapeId)
-
   def isUserDefinedStructure(model: Model, shapeId: ShapeId): Boolean =
-    if (isPreludeShape(shapeId)) {
+    if (SqlIrTypeNameResolver.isPreludeShape(shapeId)) {
       false
     } else {
       model.getShape(shapeId).toScala.exists(_.isStructureShape)
@@ -110,19 +97,23 @@ object SqlCodegenShapeGraph {
     collectedUnions.toList
   }
 
-  private def memberTargets(model: Model, member: MemberShape): List[ShapeId] = {
-    val targetShape = model.expectShape(member.getTarget)
-    targetShape match {
-      case shape if shape.isStructureShape =>
-        List(shape.toShapeId)
-      case shape if shape.isListShape      =>
-        List(shape.asListShape.get().getMember.getTarget)
-      case shape if shape.isMapShape       =>
-        List(shape.asMapShape.get().getValue.getTarget)
-      case shape if shape.isUnionShape     =>
-        shape.asUnionShape.get().getAllMembers.asScala.values.map(_.getTarget).toList
-      case _                               =>
-        Nil
-    }
+  private def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
+    model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
+
+  private object MemberTargetShapeIds extends ShapeVisitor.Default[List[ShapeId]] {
+    override protected def getDefault(shape: Shape): List[ShapeId] =
+      Nil
+
+    override def structureShape(shape: StructureShape): List[ShapeId] =
+      List(shape.getId)
+
+    override def listShape(shape: ListShape): List[ShapeId] =
+      List(shape.getMember.getTarget)
+
+    override def mapShape(shape: MapShape): List[ShapeId] =
+      List(shape.getValue.getTarget)
+
+    override def unionShape(shape: UnionShape): List[ShapeId] =
+      shape.getAllMembers.asScala.values.map(_.getTarget).toList
   }
 }

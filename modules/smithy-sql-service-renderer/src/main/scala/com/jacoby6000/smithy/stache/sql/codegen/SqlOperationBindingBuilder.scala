@@ -75,7 +75,7 @@ object SqlOperationBindingBuilder {
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val bindParameters = query.columns.map(column => columnToBindParameter(query.table, column))
-    val outputShapeId  = operation.outputShape.getOrElse(SqlCodegenShapeGraph.UnitShapeId)
+    val outputShapeId  = operation.outputShape.getOrElse(SqlShapeGraph.UnitShapeId)
 
     if (isPreludeShape(outputShapeId)) {
       SqlCodegenSqlBinding(
@@ -212,7 +212,7 @@ object SqlOperationBindingBuilder {
     }
 
   private def isPreludeShape(shapeId: ShapeId): Boolean =
-    SqlIrTypeNameResolver.isPreludeShape(shapeId) && shapeId != SqlCodegenShapeGraph.UnitShapeId
+    SqlIrTypeNameResolver.isPreludeShape(shapeId) && shapeId != SqlShapeGraph.UnitShapeId
 
   private object SqlQueriesAdapter {
     def fromResolved(query: ResolvedSqlOperationQuery): SqlQueries =
