@@ -25,6 +25,9 @@ object SqlCodegenHelperAttributes {
       }
     val usesSqliteNamedRowMapper =
       isSqliteDialect && operations.exists(op => op.sql.exists(SqlCodegenSqlBindingMetadata.usesDictRowFactory))
+    val helperIncludes           =
+      collectHelperIncludes(context.dialectKey, rowReaders, timestampBinds, usesSqliteNamedRowMapper)
+    val helperColIncludes        = collectHelperColIncludes(context.dialectKey, rowReadersCol)
 
     Map(
       "needsTransactionImports"        -> false,
@@ -33,6 +36,8 @@ object SqlCodegenHelperAttributes {
       "needsPostgresRowFactoryImports" -> (needsClassRow || needsDictRow),
       "sqliteClassRowFactories"        -> sqliteClassRowFactories,
       "usesSqliteNamedRowMapper"       -> usesSqliteNamedRowMapper,
+      "helperIncludes"                 -> helperIncludes,
+      "helperColIncludes"              -> helperColIncludes,
       "needsUuidTextLoader"            -> needsClassRow,
       "usesJson"                       -> usesJson,
       "needsDecimalImport"             -> (
@@ -57,24 +62,6 @@ object SqlCodegenHelperAttributes {
         (context.dialectKey == "postgres") &&
           (rowReaders.contains("_read_str") || rowReadersCol.contains("_read_str_col"))
       ),
-      "usesReadBool"                   -> rowReaders.contains("_read_bool"),
-      "usesReadBytes"                  -> rowReaders.contains("_read_bytes"),
-      "usesReadDatetime"               -> rowReaders.contains("_read_datetime"),
-      "usesReadDecimal"                -> rowReaders.contains("_read_decimal"),
-      "usesReadEpochSeconds"           -> rowReaders.contains("_read_epoch_seconds"),
-      "usesReadFloat"                  -> rowReaders.contains("_read_float"),
-      "usesReadInt"                    -> rowReaders.contains("_read_int"),
-      "usesReadStr"                    -> rowReaders.contains("_read_str"),
-      "usesTimestampBindDatetime"      -> timestampBinds.contains("_timestamp_bind_datetime"),
-      "usesTimestampBindEpochSeconds"  -> timestampBinds.contains("_timestamp_bind_epoch_seconds"),
-      "usesReadBoolCol"                -> rowReadersCol.contains("_read_bool_col"),
-      "usesReadBytesCol"               -> rowReadersCol.contains("_read_bytes_col"),
-      "usesReadDatetimeCol"            -> rowReadersCol.contains("_read_datetime_col"),
-      "usesReadDecimalCol"             -> rowReadersCol.contains("_read_decimal_col"),
-      "usesReadEpochSecondsCol"        -> rowReadersCol.contains("_read_epoch_seconds_col"),
-      "usesReadFloatCol"               -> rowReadersCol.contains("_read_float_col"),
-      "usesReadIntCol"                 -> rowReadersCol.contains("_read_int_col"),
-      "usesReadStrCol"                 -> rowReadersCol.contains("_read_str_col"),
       "jsonStructures"                 -> withLastFlag(
         context.models
           .filter(model => usedJsonTypes.contains(model.name))
@@ -123,6 +110,126 @@ object SqlCodegenHelperAttributes {
       )
     )
   }
+
+  private def collectHelperIncludes(
+      dialectKey: String,
+      rowReaders: Set[String],
+      timestampBinds: Set[String],
+      usesSqliteNamedRowMapper: Boolean
+  ): List[String] = {
+    val sqliteIncludes =
+      if (usesSqliteNamedRowMapper) {
+        List("partials/row_mappers/sqlite_named_row")
+      } else {
+        Nil
+      }
+    val readerIncludes =
+      rowReaderIncludeOrder.flatMap { reader =>
+        if (rowReaders.contains(reader)) {
+          rowReaderPartialPath(dialectKey, reader)
+        } else {
+          None
+        }
+      }
+    val bindIncludes   =
+      timestampBindIncludeOrder.flatMap { bindHelper =>
+        if (timestampBinds.contains(bindHelper)) {
+          timestampBindPartialPath(dialectKey, bindHelper)
+        } else {
+          None
+        }
+      }
+    sqliteIncludes ++ readerIncludes ++ bindIncludes
+  }
+
+  private def collectHelperColIncludes(dialectKey: String, rowReadersCol: Set[String]): List[String] =
+    colReaderIncludeOrder.flatMap { reader =>
+      if (rowReadersCol.contains(reader)) {
+        colReaderPartialPath(dialectKey, reader)
+      } else {
+        None
+      }
+    }
+
+  private val rowReaderIncludeOrder: List[String] =
+    List(
+      "_read_bool",
+      "_read_bytes",
+      "_read_datetime",
+      "_read_decimal",
+      "_read_epoch_seconds",
+      "_read_float",
+      "_read_int",
+      "_read_str"
+    )
+
+  private val timestampBindIncludeOrder: List[String] =
+    List(
+      "_timestamp_bind_datetime",
+      "_timestamp_bind_epoch_seconds"
+    )
+
+  private val colReaderIncludeOrder: List[String] =
+    List(
+      "_read_bool_col",
+      "_read_bytes_col",
+      "_read_datetime_col",
+      "_read_decimal_col",
+      "_read_epoch_seconds_col",
+      "_read_float_col",
+      "_read_int_col",
+      "_read_str_col"
+    )
+
+  private def rowReaderPartialPath(dialectKey: String, reader: String): Option[String] =
+    reader match {
+      case "_read_bool" | "_read_bytes" | "_read_decimal" | "_read_float" | "_read_int" =>
+        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+      case "_read_datetime" if dialectKey == "sqlite"                                   =>
+        Some("partials/row_readers/read_datetime_sqlite")
+      case "_read_datetime"                                                             =>
+        Some("partials/row_readers/read_datetime_postgres")
+      case "_read_epoch_seconds" if dialectKey == "sqlite"                              =>
+        Some("partials/row_readers/read_epoch_seconds_sqlite")
+      case "_read_epoch_seconds"                                                        =>
+        Some("partials/row_readers/read_epoch_seconds_postgres")
+      case "_read_str" if dialectKey == "postgres"                                      =>
+        Some("partials/row_readers/read_str_postgres")
+      case "_read_str"                                                                  =>
+        Some("partials/row_readers/read_str_sqlite")
+      case _                                                                            =>
+        None
+    }
+
+  private def colReaderPartialPath(dialectKey: String, reader: String): Option[String] =
+    reader match {
+      case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
+        Some(s"partials/row_readers/${reader.stripPrefix("_")}")
+      case "_read_datetime_col" if dialectKey == "sqlite"                                                   =>
+        Some("partials/row_readers/read_datetime_sqlite_col")
+      case "_read_datetime_col"                                                                             =>
+        Some("partials/row_readers/read_datetime_postgres_col")
+      case "_read_epoch_seconds_col"                                                                        =>
+        Some("partials/row_readers/read_epoch_seconds_postgres_col")
+      case "_read_str_col" if dialectKey == "sqlite"                                                        =>
+        Some("partials/row_readers/read_str_sqlite_col")
+      case "_read_str_col"                                                                                  =>
+        Some("partials/row_readers/read_str_postgres_col")
+      case _                                                                                                =>
+        None
+    }
+
+  private def timestampBindPartialPath(dialectKey: String, bindHelper: String): Option[String] =
+    bindHelper match {
+      case "_timestamp_bind_datetime"                                =>
+        Some("partials/timestamps/bind_datetime")
+      case "_timestamp_bind_epoch_seconds" if dialectKey == "sqlite" =>
+        Some("partials/timestamps/bind_epoch_seconds_sqlite")
+      case "_timestamp_bind_epoch_seconds"                           =>
+        Some("partials/timestamps/bind_epoch_seconds_postgres")
+      case _                                                         =>
+        None
+    }
 
   private def collectSqliteClassRowFactories(
       operations: List[SqlCodegenOperation]
