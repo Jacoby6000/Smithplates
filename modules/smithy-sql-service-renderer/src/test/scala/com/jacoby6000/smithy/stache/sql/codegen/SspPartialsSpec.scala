@@ -57,8 +57,7 @@ class SspPartialsSpec extends munit.FunSuite {
               "optional" -> false,
               "last"     -> true
             )
-          ),
-          "i4"      -> "    "
+          )
         )
       )
 

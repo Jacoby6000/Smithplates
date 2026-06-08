@@ -1,2 +1,2 @@
-${attrs("i8")}*,
-${attrs("i8")}transaction: ${attrs("transactionTypeName")} | None = None,
+        *,
+        transaction: ${attrs("transactionTypeName")} | None = None,

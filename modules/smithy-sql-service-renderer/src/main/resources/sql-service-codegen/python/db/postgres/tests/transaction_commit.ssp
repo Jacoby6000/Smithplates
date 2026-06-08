@@ -1,21 +1,18 @@
-${"\n"}@pytest.mark.integration
+
+@pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_transaction_commit(${attrs("serviceFixtureName")}: ${attrs("implementationClassName")}) -> None:
-${attrs("i4")}connection = ${attrs("serviceFixtureName")}._connection
-${attrs("i4")}async with connection.transaction() as tx:
-${attrs("i8")}entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=tx)
-${attrs("i8")}assert isinstance(entity_id, str)
-${attrs("i8")}assert entity_id
+    connection = ${attrs("serviceFixtureName")}._connection
+    async with connection.transaction() as tx:
+        entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=tx)
+        assert isinstance(entity_id, str)
+        assert entity_id
 
-${attrs("i8")}fetched = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")}, transaction=tx)
-${attrs("i8")}assert isinstance(fetched, ${attrs("selectOneOperation.outputClassName")})
-<% for (assertion <- attrs("transactionCommitInTxAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-${assertion("line")}
-<% } %>
-${"\n"}${attrs("i4")}fetched_after_commit = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
-${attrs("i4")}assert isinstance(fetched_after_commit, ${attrs("selectOneOperation.outputClassName")})
-<% for (assertion <- attrs("transactionCommitAfterAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-${assertion("line")}
-<% } %>
-${"\n"}
+        fetched = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")}, transaction=tx)
+        assert isinstance(fetched, ${attrs("selectOneOperation.outputClassName")})
+<% for (assertion <- attrs("transactionCommitInTxAssertions").asInstanceOf[List[Map[String, Any]]]) { %>        ${assertion("line")}${"\n"}<% } %>
+
+    fetched_after_commit = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+    assert isinstance(fetched_after_commit, ${attrs("selectOneOperation.outputClassName")})
+<% for (assertion <- attrs("transactionCommitAfterAssertions").asInstanceOf[List[Map[String, Any]]]) { %>    ${assertion("line")}${"\n"}<% } %>${"\n"}

@@ -1,1 +1,4 @@
-await cur.execute(${"\n"}${attrs("txI16")}"""${attrs("sqlStatement")}""",${"\n"}${attrs("txI16")}<% include("partials/sql/bind_tuple") %>,${"\n"}${attrs("txI12")})
+                await cur.execute(
+                    """${attrs("sqlStatement")}""",
+                    <% include("partials/sql/bind_tuple") %>,
+                )

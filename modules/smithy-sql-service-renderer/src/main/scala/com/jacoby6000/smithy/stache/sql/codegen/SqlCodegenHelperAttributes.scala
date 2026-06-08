@@ -145,9 +145,7 @@ object SqlCodegenHelperAttributes {
         Map(
           "className"    -> className,
           "factoryName"  -> s"_${className}_row_factory",
-          "resultFields" -> withLastFlag(resultFields),
-          "i4"           -> "    ",
-          "i8"           -> "        "
+          "resultFields" -> withLastFlag(resultFields)
         )
       }
       .toList
@@ -166,8 +164,6 @@ object SqlCodegenHelperAttributes {
       "name"      -> structure.name,
       "className" -> structure.name,
       "dictClose" -> " }",
-      "i4"        -> "    ",
-      "i8"        -> "        ",
       "members"   -> withLastFlag(
         structure.members.map { member =>
           Map(

@@ -1,2 +1,2 @@
-${attrs("i8")}*,
-${attrs("i8")}transaction: T | None = None,
+        *,
+        transaction: T | None = None,

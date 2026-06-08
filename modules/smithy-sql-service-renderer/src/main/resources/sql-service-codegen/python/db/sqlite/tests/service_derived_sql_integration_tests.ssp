@@ -9,9 +9,7 @@ import aiosqlite
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %><% if (attrs.get("extraImports").exists(isTruthy)) { %>${attrs("extraImports")}<% } %><% } %>
 from ${attrs("implementationModuleName")} import ${attrs("implementationClassName")}
 from ${attrs("serviceFileName")}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${model("className")},
-<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${union("className")},
-<% } %>)
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>    ${model("className")},${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>    ${union("className")},${"\n"}<% } %>)
 
 <% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %>SCHEMA_DDL = """${attrs("schemaDdl")}"""
 
@@ -37,9 +35,7 @@ async def test_derived_sql_methods_lifecycle(${attrs("serviceFixtureName")}: ${a
 
     fetched = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
     assert isinstance(fetched, ${attrs("selectOneOperation.outputClassName")})
-<% if (attrs.get("selectOneOperation").exists(isTruthy)) { val selectOneOperation = attrs("selectOneOperation").asInstanceOf[Map[String, Any]] %><% if (selectOneOperation.get("hasResultAssertions").exists(isTruthy)) { %><% for (assertion <- selectOneOperation("resultAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-${assertion("line")}
-<% } %><% } %><% } %>
+<% if (attrs.get("selectOneOperation").exists(isTruthy)) { val selectOneOperation = attrs("selectOneOperation").asInstanceOf[Map[String, Any]] %><% if (selectOneOperation.get("hasResultAssertions").exists(isTruthy)) { %><% for (assertion <- selectOneOperation("resultAssertions").asInstanceOf[List[Map[String, Any]]]) { %>    ${assertion("line")}${"\n"}<% } %><% } %><% } %>
 <% if (attrs.get("hasUpdateOperation").exists(isTruthy)) { %>
 <% include("partials/tests/update_lifecycle") %>
 <% } %>

@@ -21,9 +21,6 @@ object SqlCodegenTemplateAttributes {
         "isSqliteDialect"          -> (context.dialectKey == "sqlite"),
         "rowTypeName"              -> SqlCodegenDialectConfig.rowTypeName(context.dialectKey),
         "transactionTypeName"      -> SqlCodegenDialectConfig.transactionTypeName(context.dialectKey),
-        "i4"                       -> "    ",
-        "i8"                       -> "        ",
-        "i12"                      -> "            ",
         "models"                   -> withLastFlag(context.models.map(modelAttributes)),
         "unions"                   -> withLastFlag(context.unions.map(unionAttributes)),
         "hasUnions"                -> context.unions.nonEmpty,
@@ -98,10 +95,6 @@ object SqlCodegenTemplateAttributes {
   ): Map[String, Any] = {
     val base =
       Map(
-        "i4"               -> "    ",
-        "i8"               -> "        ",
-        "i12"              -> "            ",
-        "i16"              -> "                ",
         "name"             -> operation.name,
         "methodName"       -> operation.methodName,
         "operationShapeId" -> operation.shapeId.toString,
@@ -170,11 +163,7 @@ object SqlCodegenTemplateAttributes {
           ),
           "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
           "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
-          "hasResultFields"      -> sql.resultFields.nonEmpty,
-          "txI8"                 -> "            ",
-          "txI12"                -> "                ",
-          "txI16"                -> "                    ",
-          "txI20"                -> "                        "
+          "hasResultFields"      -> sql.resultFields.nonEmpty
         )
     }
   }
@@ -231,9 +220,6 @@ object SqlCodegenTemplateAttributes {
   ): Map[String, Any]                        =
     Map(
       "schemaDdl"                        -> integrationTest.schemaDdl,
-      "i4"                               -> "    ",
-      "i8"                               -> "        ",
-      "i12"                              -> "            ",
       "implementationModuleName"         -> integrationTest.implementationModuleName,
       "implementationClassName"          -> integrationTest.implementationClassName,
       "serviceFixtureName"               -> integrationTest.serviceFixtureName,
@@ -245,10 +231,10 @@ object SqlCodegenTemplateAttributes {
       "hasUpdateOperation"               -> integrationTest.updateOperation.isDefined,
       "hasDeleteOperation"               -> integrationTest.deleteOperation.isDefined,
       "transactionCommitInTxAssertions"  -> withLastFlag(
-        integrationTest.transactionCommitInTxAssertions.map(assertion => Map("line" -> s"        $assertion"))
+        integrationTest.transactionCommitInTxAssertions.map(assertion => Map("line" -> assertion))
       ),
       "transactionCommitAfterAssertions" -> withLastFlag(
-        integrationTest.transactionCommitAfterAssertions.map(assertion => Map("line" -> s"    $assertion"))
+        integrationTest.transactionCommitAfterAssertions.map(assertion => Map("line" -> assertion))
       )
     )
 
@@ -274,10 +260,10 @@ object SqlCodegenTemplateAttributes {
       "outputClassName"            -> operation.outputClassName.orNull,
       "hasOutputClassName"         -> operation.outputClassName.isDefined,
       "resultAssertions"           -> withLastFlag(
-        operation.resultAssertions.map(assertion => Map("line" -> s"    $assertion"))
+        operation.resultAssertions.map(assertion => Map("line" -> assertion))
       ),
       "updatedResultAssertions"    -> withLastFlag(
-        operation.updatedResultAssertions.map(assertion => Map("line" -> s"    $assertion"))
+        operation.updatedResultAssertions.map(assertion => Map("line" -> assertion))
       ),
       "hasResultAssertions"        -> operation.resultAssertions.nonEmpty,
       "hasUpdatedResultAssertions" -> operation.updatedResultAssertions.nonEmpty

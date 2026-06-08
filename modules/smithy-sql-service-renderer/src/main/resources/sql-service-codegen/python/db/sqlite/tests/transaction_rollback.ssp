@@ -2,12 +2,12 @@
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_transaction_rollback(${attrs("serviceFixtureName")}: ${attrs("implementationClassName")}) -> None:
-${attrs("i4")}connection = ${attrs("serviceFixtureName")}._connection
-${attrs("i4")}await connection.execute("BEGIN")
-${attrs("i4")}entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=connection)
-${attrs("i4")}assert isinstance(entity_id, str)
-${attrs("i4")}assert entity_id
-${attrs("i4")}await connection.rollback()
+    connection = ${attrs("serviceFixtureName")}._connection
+    await connection.execute("BEGIN")
+    entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=connection)
+    assert isinstance(entity_id, str)
+    assert entity_id
+    await connection.rollback()
 
-${attrs("i4")}missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
-${attrs("i4")}assert missing is None
+    missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+    assert missing is None
