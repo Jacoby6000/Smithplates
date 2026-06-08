@@ -2,138 +2,117 @@ package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.sql.*
 
-object SqlCodegenHelperAttributes {
-  def forService(context: SqlCodegenServiceContext): Map[String, Any] = {
-    val operations               = context.operations
-    val isPostgresDialect        = context.dialectKey == "postgres"
-    val isSqliteDialect          = context.dialectKey == "sqlite"
-    val rowReaders               = collectRowReaders(operations, context.dialectKey)
-    val rowReadersCol            = collectRowReadersCol(operations)
-    val timestampBinds           = collectTimestampBindHelpers(operations, context.dialectKey)
-    val usesJson                 = usesJsonSerialization(operations)
-    val usedJsonTypes            = collectUsedJsonTypeNames(operations)
-    val usedJsonTypesCol         = collectUsedJsonTypeNamesCol(operations)
-    val needsClassRow            =
-      isPostgresDialect && operations.exists(op => op.sql.exists(SqlCodegenSqlBindingMetadata.canUseClassRow))
-    val needsDictRow             =
-      isPostgresDialect && operations.exists(op => op.sql.exists(SqlCodegenSqlBindingMetadata.usesDictRowFactory))
-    val sqliteClassRowFactories  =
-      if (isSqliteDialect) {
-        collectSqliteClassRowFactories(operations)
-      } else {
-        Nil
-      }
-    val usesSqliteNamedRowMapper =
-      isSqliteDialect && operations.exists(op => op.sql.exists(SqlCodegenSqlBindingMetadata.usesDictRowFactory))
-    val helperIncludes           =
-      collectHelperIncludes(rowReaders, timestampBinds, usesSqliteNamedRowMapper)
-    val helperColIncludes        = collectHelperColIncludes(rowReadersCol)
+final case class ImportRequirements(
+    needsCastImport: Boolean,
+    needsJsonImport: Boolean,
+    needsDecimalImport: Boolean,
+    needsDatetimeImports: Boolean,
+    needsTimezoneImport: Boolean,
+    needsSqlite3Import: Boolean,
+    needsClassRowImport: Boolean,
+    needsDictRowImport: Boolean,
+    needsUuidTextLoader: Boolean,
+    needsUuidImport: Boolean
+)
 
-    Map(
-      "needsTransactionImports"        -> false,
-      "needsClassRowImport"            -> needsClassRow,
-      "needsDictRowImport"             -> needsDictRow,
-      "needsPostgresRowFactoryImports" -> (needsClassRow || needsDictRow),
-      "sqliteClassRowFactories"        -> sqliteClassRowFactories,
-      "usesSqliteNamedRowMapper"       -> usesSqliteNamedRowMapper,
-      "helperIncludes"                 -> helperIncludes,
-      "helperColIncludes"              -> helperColIncludes,
-      "needsUuidTextLoader"            -> needsClassRow,
-      "usesJson"                       -> usesJson,
-      "needsDecimalImport"             -> (
-        needsDecimalImport(context.dialectKey, rowReaders, timestampBinds) ||
-          rowReadersCol.contains("_read_decimal_col") ||
-          rowReadersCol.contains("_read_epoch_seconds_col")
-      ),
-      "needsDatetimeImports"           -> (
-        needsDatetimeImports(rowReaders, timestampBinds) ||
-          rowReadersCol.contains("_read_datetime_col") ||
-          rowReadersCol.contains("_read_epoch_seconds_col")
-      ),
-      "needsTimezoneImport"            -> (
-        (context.dialectKey == "sqlite") ||
-          rowReaders.contains("_read_epoch_seconds") ||
-          rowReadersCol.contains("_read_epoch_seconds_col") ||
-          timestampBinds.nonEmpty
-      ),
-      "needsRowReaderModuleImport"     -> (context.dialectKey == "sqlite"),
-      "needsCastImport"                -> (rowReaders.nonEmpty || rowReadersCol.nonEmpty || usesJson),
-      "needsUuidImport"                -> (
-        (context.dialectKey == "postgres") &&
-          (rowReaders.contains("_read_str") || rowReadersCol.contains("_read_str_col"))
-      ),
-      "jsonStructures"                 -> withLastFlag(
-        context.models
-          .filter(model => usedJsonTypes.contains(model.name))
-          .map(jsonStructureAttributes)
-      ),
-      "jsonUnions"                     -> withLastFlag(
-        context.unions
-          .filter(union => usedJsonTypes.contains(union.name))
-          .map(jsonUnionAttributes)
-      ),
-      "jsonUnionsColSqlite"            -> withLastFlag(
-        if (isSqliteDialect) {
-          context.unions
-            .filter(union => usedJsonTypesCol.contains(union.name))
-            .map(jsonUnionAttributes)
-        } else {
-          Nil
+object SqlCodegenHelperAttributes {
+  def usedJsonTypeNames(operations: List[TemplateOperationView]): Set[String] =
+    operations.flatMap { operation =>
+      operation.bindParameters.flatMap(bind =>
+        Option.when(bind.isJson && bind.jsonTypeName.nonEmpty)(bind.jsonTypeName)) ++
+        operation.resultFields.filter(_.isJson).map(_.typeName)
+    }.toSet
+
+  def usedJsonTypeNamesCol(operations: List[TemplateOperationView]): Set[String] =
+    operations
+      .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
+      .flatMap(_.resultFields.filter(_.isJson).map(_.typeName))
+      .toSet
+
+  def classRowFactories(operations: List[SqlCodegenOperation]): List[ClassRowFactorySpec] =
+    operations
+      .flatMap { operation =>
+        operation.sql.toList.filter(SqlCodegenSqlBindingMetadata.canUseClassRow).flatMap { sql =>
+          operation.outputShapeId.map(_.getName).map { outputShapeName =>
+            (outputShapeName, sql.resultFields)
+          }
         }
-      ),
-      "jsonStructuresColSqlite"        -> withLastFlag(
-        if (isSqliteDialect) {
-          context.models
-            .filter(model => usedJsonTypesCol.contains(model.name))
-            .map(jsonStructureAttributes)
-        } else {
-          Nil
+      }
+      .groupBy(_._1)
+      .values
+      .map(_.head)
+      .map { case (outputShapeName, resultFields) =>
+        ClassRowFactorySpec(outputShapeName, resultFields)
+      }
+      .toList
+
+  def rowReaders(operations: List[TemplateOperationView], dialectKey: String): Set[String] = {
+    val scalarReaders =
+      operations
+        .filter(_.sqlBodyKind == SqlCodegenSqlBodyKind.InsertScalar)
+        .map(_ => "_read_str")
+    val fieldReaders  =
+      operations.flatMap { operation =>
+        operation.sqlBodyKind match {
+          case SqlCodegenSqlBodyKind.InsertStructureDict | SqlCodegenSqlBodyKind.SelectOneDict =>
+            Nil
+          case SqlCodegenSqlBodyKind.SelectOneClassRow if dialectKey == "postgres"             =>
+            Nil
+          case SqlCodegenSqlBodyKind.InsertStructureIndex | SqlCodegenSqlBodyKind.SelectOneIndex |
+              SqlCodegenSqlBodyKind.SelectOneClassRow =>
+            operation.resultFields
+              .filterNot(_.isJson)
+              .flatMap(field => rowReaderForType(field.typeName, field.timestampFormat))
+          case _                                                                               =>
+            Nil
         }
-      ),
-      "jsonUnionsColPostgres"          -> withLastFlag(
-        if (isPostgresDialect) {
-          context.unions
-            .filter(union => usedJsonTypesCol.contains(union.name))
-            .map(jsonUnionAttributes)
-        } else {
-          Nil
-        }
-      ),
-      "jsonStructuresColPostgres"      -> withLastFlag(
-        if (isPostgresDialect) {
-          context.models
-            .filter(model => usedJsonTypesCol.contains(model.name))
-            .map(jsonStructureAttributes)
-        } else {
-          Nil
-        }
-      )
-    )
+      }
+    (scalarReaders ++ fieldReaders).toSet
   }
 
-  private def collectHelperIncludes(
-      rowReaders: Set[String],
-      timestampBinds: Set[String],
-      usesSqliteNamedRowMapper: Boolean
-  ): List[String] = {
-    val sqliteIncludes =
-      if (usesSqliteNamedRowMapper) {
+  def rowReadersCol(operations: List[TemplateOperationView]): Set[String] =
+    operations
+      .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
+      .flatMap(_.resultFields.filterNot(_.isJson).flatMap { field =>
+        rowReaderForType(field.typeName, field.timestampFormat).map(reader => s"${reader}_col")
+      })
+      .toSet
+
+  def timestampBinds(operations: List[TemplateOperationView], dialectKey: String): Set[String] =
+    operations
+      .flatMap(_.bindParameters)
+      .flatMap(bind =>
+        SqlCodegenNeutralTypeUsage.timestampBindHelper(
+          bind.typeName,
+          parseTimestampFormat(bind.timestampFormat),
+          dialectKey
+        ))
+      .toSet
+
+  def helperPartialPaths(ctx: ServiceTemplateView): List[String] = {
+    val rowReadersSet     = rowReaders(ctx.operations, ctx.dialectKey)
+    val timestampBindsSet = timestampBinds(ctx.operations, ctx.dialectKey)
+    val namedRowMapper    =
+      ctx.dialectKey == "sqlite" &&
+        ctx.operations.exists(operation => usesDictRowFactory(operation.sqlBodyKind))
+    val sqliteIncludes    =
+      if (namedRowMapper) {
         List("fragments/row_mappers/sqlite_named_row")
       } else {
         Nil
       }
-    val readerIncludes =
+    val readerIncludes    =
       rowReaderIncludeOrder.flatMap { reader =>
-        if (rowReaders.contains(reader)) {
-          rowReaderPartialPath(reader)
+        if (rowReadersSet.contains(reader)) {
+          rowReaderPartialPath(reader, ctx.dialectKey)
         } else {
           None
         }
       }
-    val bindIncludes   =
+    val bindIncludes      =
       timestampBindIncludeOrder.flatMap { bindHelper =>
-        if (timestampBinds.contains(bindHelper)) {
-          timestampBindPartialPath(bindHelper)
+        if (timestampBindsSet.contains(bindHelper)) {
+          timestampBindPartialPath(bindHelper, ctx.dialectKey)
         } else {
           None
         }
@@ -141,13 +120,86 @@ object SqlCodegenHelperAttributes {
     sqliteIncludes ++ readerIncludes ++ bindIncludes
   }
 
-  private def collectHelperColIncludes(rowReadersCol: Set[String]): List[String] =
+  def helperColPartialPaths(ctx: ServiceTemplateView): List[String] = {
+    val rowReadersColSet = rowReadersCol(ctx.operations)
     colReaderIncludeOrder.flatMap { reader =>
-      if (rowReadersCol.contains(reader)) {
-        colReaderPartialPath(reader)
+      if (rowReadersColSet.contains(reader)) {
+        colReaderPartialPath(reader, ctx.dialectKey)
       } else {
         None
       }
+    }
+  }
+
+  def importRequirements(ctx: ServiceTemplateView): ImportRequirements = {
+    val rowReadersSet     = rowReaders(ctx.operations, ctx.dialectKey)
+    val rowReadersColSet  = rowReadersCol(ctx.operations)
+    val timestampBindsSet = timestampBinds(ctx.operations, ctx.dialectKey)
+    val usesJson          = usedJsonTypeNames(ctx.operations).nonEmpty
+    val needsClassRow     =
+      ctx.dialectKey == "postgres" &&
+        ctx.operations.exists(_.sqlBodyKind == SqlCodegenSqlBodyKind.SelectOneClassRow)
+    val needsDictRow      =
+      ctx.dialectKey == "postgres" &&
+        ctx.operations.exists(operation => usesDictRowFactory(operation.sqlBodyKind))
+    ImportRequirements(
+      needsCastImport = rowReadersSet.nonEmpty || rowReadersColSet.nonEmpty || usesJson,
+      needsJsonImport = usesJson,
+      needsDecimalImport = needsDecimalImport(ctx.dialectKey, rowReadersSet, timestampBindsSet) ||
+        rowReadersColSet.contains("_read_decimal_col") ||
+        rowReadersColSet.contains("_read_epoch_seconds_col"),
+      needsDatetimeImports = needsDatetimeImports(rowReadersSet, timestampBindsSet) ||
+        rowReadersColSet.contains("_read_datetime_col") ||
+        rowReadersColSet.contains("_read_epoch_seconds_col"),
+      needsTimezoneImport = ctx.dialectKey == "sqlite" ||
+        rowReadersSet.contains("_read_epoch_seconds") ||
+        rowReadersColSet.contains("_read_epoch_seconds_col") ||
+        timestampBindsSet.nonEmpty,
+      needsSqlite3Import =
+        ctx.dialectKey == "sqlite" && (rowReadersSet.nonEmpty || rowReadersColSet.nonEmpty || usesJson),
+      needsClassRowImport = needsClassRow,
+      needsDictRowImport = needsDictRow,
+      needsUuidTextLoader = needsClassRow,
+      needsUuidImport = ctx.dialectKey == "postgres" &&
+        (rowReadersSet.contains("_read_str") || rowReadersColSet.contains("_read_str_col"))
+    )
+  }
+
+  def unionDiscriminatorKeys(union: TemplateUnionView): String =
+    union.members.map(member => s"\"${member.name}\"").mkString(", ")
+
+  def unionsUsedAsJson(ctx: ServiceTemplateView): List[TemplateUnionView] =
+    ctx.unions.filter(union => ctx.usedJsonTypeNames.contains(union.name))
+
+  def modelsUsedAsJson(ctx: ServiceTemplateView): List[TemplateModelView] =
+    ctx.models.filter(model => ctx.usedJsonTypeNames.contains(model.name))
+
+  def unionsUsedAsJsonCol(ctx: ServiceTemplateView): List[TemplateUnionView] =
+    ctx.unions.filter(union => ctx.usedJsonTypeNamesCol.contains(union.name))
+
+  def modelsUsedAsJsonCol(ctx: ServiceTemplateView): List[TemplateModelView] =
+    ctx.models.filter(model => ctx.usedJsonTypeNamesCol.contains(model.name))
+
+  final case class ClassRowFactorySpec(
+      name: String,
+      resultFields: List[SqlCodegenResultField]
+  )
+
+  private def usesDictRowFactory(sqlBodyKind: String): Boolean =
+    sqlBodyKind == SqlCodegenSqlBodyKind.InsertStructureDict ||
+      sqlBodyKind == SqlCodegenSqlBodyKind.SelectOneDict
+
+  private def rowReaderForType(typeName: String, timestampFormat: String): Option[String] =
+    SqlCodegenNeutralTypeUsage.rowReaderForType(
+      typeName,
+      parseTimestampFormat(timestampFormat)
+    )
+
+  private def parseTimestampFormat(timestampFormat: String): Option[SqlTimestampFormat] =
+    timestampFormat match {
+      case "DateTime"     => Some(SqlTimestampFormat.DateTime)
+      case "EpochSeconds" => Some(SqlTimestampFormat.EpochSeconds)
+      case _              => None
     }
 
   private val rowReaderIncludeOrder: List[String] =
@@ -180,102 +232,36 @@ object SqlCodegenHelperAttributes {
       "_read_str_col"
     )
 
-  private def rowReaderPartialPath(reader: String): Option[String] =
+  private def rowReaderPartialPath(reader: String, dialectKey: String): Option[String] =
     reader match {
       case "_read_bool" | "_read_bytes" | "_read_decimal" | "_read_float" | "_read_int" =>
         Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case "_read_datetime" | "_read_epoch_seconds" | "_read_str"                       =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
       case _                                                                            =>
         None
     }
 
-  private def colReaderPartialPath(reader: String): Option[String] =
+  private def colReaderPartialPath(reader: String, dialectKey: String): Option[String] =
     reader match {
       case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
         Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
       case "_read_datetime_col" | "_read_str_col"                                                           =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
+        Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
       case "_read_epoch_seconds_col"                                                                        =>
         Some("fragments/row_readers/read_epoch_seconds_postgres_col")
       case _                                                                                                =>
         None
     }
 
-  private def timestampBindPartialPath(bindHelper: String): Option[String] =
+  private def timestampBindPartialPath(bindHelper: String, dialectKey: String): Option[String] =
     bindHelper match {
       case "_timestamp_bind_datetime"      =>
         Some("fragments/timestamps/bind_datetime")
       case "_timestamp_bind_epoch_seconds" =>
-        Some("fragments/timestamps/bind_epoch_seconds")
+        Some(s"fragments/timestamps/bind_epoch_seconds_$dialectKey")
       case _                               =>
         None
-    }
-
-  private def collectSqliteClassRowFactories(
-      operations: List[SqlCodegenOperation]
-  ): List[Map[String, Any]] =
-    operations
-      .flatMap { operation =>
-        operation.sql.toList.filter(SqlCodegenSqlBindingMetadata.canUseClassRow).flatMap { sql =>
-          operation.outputShapeId.map(_.getName).map { outputShapeName =>
-            (
-              outputShapeName,
-              sql.resultFields.map(resultFieldAttributesForFactory)
-            )
-          }
-        }
-      }
-      .groupBy(_._1)
-      .values
-      .map(_.head)
-      .map { case (outputShapeName, resultFields) =>
-        Map(
-          "name"         -> outputShapeName,
-          "resultFields" -> withLastFlag(resultFields)
-        )
-      }
-      .toList
-
-  private def resultFieldAttributesForFactory(resultField: SqlCodegenResultField): Map[String, Any] =
-    Map(
-      "fieldName"       -> resultField.fieldName,
-      "columnIndex"     -> resultField.columnIndex,
-      "typeName"        -> resultField.typeName,
-      "isJson"          -> resultField.isJson,
-      "timestampFormat" -> timestampFormatName(resultField.timestampFormat)
-    )
-
-  private def jsonStructureAttributes(structure: SqlStructure): Map[String, Any] =
-    Map(
-      "name"      -> structure.name,
-      "dictClose" -> " }",
-      "members"   -> withLastFlag(
-        structure.members.map { member =>
-          Map(
-            "name"     -> member.name,
-            "typeName" -> member.typeName
-          )
-        }
-      )
-    )
-
-  private def jsonUnionAttributes(union: SqlUnion): Map[String, Any] =
-    Map(
-      "name"              -> union.name,
-      "discriminatorKeys" -> union.members.map(member => s"\"${member.name}\"").mkString(", "),
-      "members"           -> withLastFlag(union.members.map(unionMemberAttributes))
-    )
-
-  private def unionMemberAttributes(member: SqlUnionMember): Map[String, Any] =
-    Map(
-      "name"     -> member.name,
-      "typeName" -> member.typeName
-    )
-
-  private def withLastFlag(items: List[Map[String, Any]]): List[Map[String, Any]] =
-    items.zipWithIndex.map { case (item, index) =>
-      item + ("last" -> (index == items.length - 1))
     }
 
   private def needsDecimalImport(
@@ -296,80 +282,4 @@ object SqlCodegenHelperAttributes {
     readers.exists(_.startsWith("_read_datetime")) ||
       readers.contains("_read_epoch_seconds") ||
       timestampBinds.nonEmpty
-
-  private def collectTimestampBindHelpers(
-      operations: List[SqlCodegenOperation],
-      dialectKey: String
-  ): Set[String] =
-    operations
-      .flatMap(_.sql.toList)
-      .flatMap(_.bindParameters)
-      .flatMap(parameter =>
-        SqlCodegenNeutralTypeUsage.timestampBindHelper(parameter.typeName, parameter.timestampFormat, dialectKey))
-      .toSet
-
-  private def usesJsonSerialization(operations: List[SqlCodegenOperation]): Boolean =
-    operations.exists(_.sql.exists { sql =>
-      sql.bindParameters.exists(_.isJson) || sql.resultFields.exists(_.isJson)
-    })
-
-  private def collectUsedJsonTypeNames(operations: List[SqlCodegenOperation]): Set[String] =
-    operations
-      .flatMap(_.sql.toList)
-      .flatMap { sql =>
-        sql.bindParameters.flatMap(_.jsonTypeName) ++
-          sql.resultFields.filter(_.isJson).map(_.typeName)
-      }
-      .toSet
-
-  private def collectRowReaders(
-      operations: List[SqlCodegenOperation],
-      dialectKey: String
-  ): Set[String] = {
-    val scalarReaders =
-      operations.flatMap(_.sql.toList).flatMap { sql =>
-        if (sql.queryKind == "insert" && sql.outputKind == "scalar") {
-          List("_read_str")
-        } else {
-          Nil
-        }
-      }
-    val fieldReaders  =
-      operations.flatMap(_.sql.toList).flatMap { sql =>
-        if (SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)) {
-          Nil
-        } else if (SqlCodegenSqlBindingMetadata.canUseClassRow(sql) && dialectKey == "postgres") {
-          Nil
-        } else {
-          sql.resultFields
-            .filterNot(_.isJson)
-            .flatMap(field => SqlCodegenNeutralTypeUsage.rowReaderForType(field.typeName, field.timestampFormat))
-        }
-      }
-    (scalarReaders ++ fieldReaders).toSet
-  }
-
-  private def collectRowReadersCol(operations: List[SqlCodegenOperation]): Set[String] =
-    operations
-      .flatMap(_.sql.toList)
-      .filter(SqlCodegenSqlBindingMetadata.usesDictRowFactory)
-      .flatMap(_.resultFields.filterNot(_.isJson).flatMap { field =>
-        SqlCodegenNeutralTypeUsage
-          .rowReaderForType(field.typeName, field.timestampFormat)
-          .map(reader => s"${reader}_col")
-      })
-      .toSet
-
-  private def collectUsedJsonTypeNamesCol(operations: List[SqlCodegenOperation]): Set[String] =
-    operations
-      .flatMap(_.sql.toList)
-      .filter(SqlCodegenSqlBindingMetadata.usesDictRowFactory)
-      .flatMap(_.resultFields.filter(_.isJson).map(_.typeName))
-      .toSet
-
-  private def timestampFormatName(format: Option[SqlTimestampFormat]): Any =
-    format.map {
-      case SqlTimestampFormat.DateTime     => "DateTime"
-      case SqlTimestampFormat.EpochSeconds => "EpochSeconds"
-    }.orNull
 }

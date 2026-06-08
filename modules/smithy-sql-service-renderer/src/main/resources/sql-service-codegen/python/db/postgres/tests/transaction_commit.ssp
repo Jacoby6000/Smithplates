@@ -1,24 +1,26 @@
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
 
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
-    connection = ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}._connection
+async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
+    connection = ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}._connection
     async with connection.transaction() as tx:
-        entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")}, transaction=tx)
+        entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
         assert isinstance(entity_id, str)
         assert entity_id
 
-        fetched = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")}, transaction=tx)
-        assert isinstance(fetched, ${attrs("selectOneOperation.outputShapeName")})
-<% for (assertion <- attrs("transactionCommitInTxAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${assertion("line")}
+        fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments}, transaction=tx)
+        assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
+<% for (assertion <- test.transactionCommitInTxAssertions) { %>
+        ${assertion.line}
 <% } %>
 
-    fetched_after_commit = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
-    assert isinstance(fetched_after_commit, ${attrs("selectOneOperation.outputShapeName")})
-<% for (assertion <- attrs("transactionCommitAfterAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${assertion("line")}
+    fetched_after_commit = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    assert isinstance(fetched_after_commit, ${test.selectOneOperation.outputShapeName})
+<% for (assertion <- test.transactionCommitAfterAssertions) { %>
+    ${assertion.line}
 <% } %>
 
 

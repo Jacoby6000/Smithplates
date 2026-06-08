@@ -1,8 +1,9 @@
-from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${model("name")},
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+from ${serviceModuleBaseName(ctx.serviceName)}_models import (
+<% for (model <- ctx.models) { %>
+    ${model.name},
 <% } %>
-<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${union("name")},
+<% for (union <- ctx.unions) { %>
+    ${union.name},
 <% } %>
 )

@@ -1,3 +1,4 @@
-#for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]])
-    ${member("name")}: <% render("fragments/types/type_annotation", parameterAnnotationAttrs(member.asInstanceOf[Map[String, Any]])) +%>
+<%@ val members: List[com.jacoby6000.smithy.stache.sql.codegen.TemplateMemberView] %>
+#for (member <- members)
+    ${member.name}: <% render("fragments/types/type_annotation", Map("typeName" -> member.typeName, "optional" -> member.optional)) +%>
 #end

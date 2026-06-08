@@ -1,0 +1,11 @@
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithy.stache.sql.codegen.ImportRequirements = importRequirements(ctx) %>
+<% if (imports.needsClassRowImport) { %>from psycopg.rows import class_row
+<% } %><% if (imports.needsDictRowImport) { %>from psycopg.rows import dict_row
+<% } %><% if (imports.needsUuidTextLoader) { %>from psycopg.types.string import TextLoader
+<% } %><% if (imports.needsCastImport) { %>from typing import cast
+<% } %><% if (imports.needsUuidImport) { %>import uuid
+<% } %><% if (imports.needsJsonImport) { %>import json
+<% } %><% if (imports.needsDatetimeImports) { %>from datetime import datetime<% if (imports.needsTimezoneImport) { %>, timezone<% } +%>
+<% } %><% if (imports.needsDecimalImport) { %>from decimal import Decimal
+<% } %>

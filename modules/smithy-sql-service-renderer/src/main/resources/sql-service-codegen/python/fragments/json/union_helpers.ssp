@@ -1,18 +1,22 @@
-def _json_bind_${attrs("name")}(value: ${attrs("name")}) -> str:
-    present = [key for key in (${attrs("discriminatorKeys")}) if key in value]
+<%@ val union: com.jacoby6000.smithy.stache.sql.codegen.TemplateUnionView %>
+<%@ val dialectKey: String %>
+def _json_bind_${union.name}(value: ${union.name}) -> str:
+    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in value]
     if len(present) != 1:
-        raise ValueError("${attrs("name")} union value must contain exactly one member key")
+        raise ValueError("${union.name} union value must contain exactly one member key")
     return json.dumps(cast(object, value))
 
 
-def _read_${attrs("name")}(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> ${attrs("name")}:
-<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("fragments/json/row_data_sqlite") %>
-<% } %>
-<% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% include("fragments/json/row_data_postgres") %>
-<% } %>
-    present = [key for key in (${attrs("discriminatorKeys")}) if key in data]
+def _read_${union.name}(row: ${rowTypeName(dialectKey)}, index: int) -> ${union.name}:
+#match (dialectKey)
+#case ("sqlite")    data = cast(dict[str, object], json.loads(_read_str(row, index)))
+    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
     if len(present) != 1:
-        raise ValueError(f"unknown ${attrs("name")} discriminator: {sorted(data.keys())}")
-    return cast(${attrs("name")}, data)
+        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+    return cast(${union.name}, data)
+#case ("postgres")<% include("fragments/json/row_data_postgres") +%>
+    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+    return cast(${union.name}, data)
+#end

@@ -1,9 +1,18 @@
+<%@ val bindParameters: List[com.jacoby6000.smithy.stache.sql.codegen.TemplateBindParameterView] %>
 <%
-  val bindParameters = attrs("bindParameters").asInstanceOf[List[Map[String, Any]]]
   val renderedParams = bindParameters.map { bindParameter =>
     capture {
-      render("fragments/sql/bind_expression", bindParameter.asInstanceOf[Map[String, Any]])
+      render(
+        "fragments/sql/bind_expression",
+        Map(
+          "memberName"      -> bindParameter.memberName,
+          "typeName"        -> bindParameter.typeName,
+          "isJson"          -> bindParameter.isJson,
+          "jsonTypeName"    -> bindParameter.jsonTypeName,
+          "timestampFormat" -> (if (bindParameter.timestampFormat.isEmpty) null else bindParameter.timestampFormat),
+          "dialectKey"      -> bindParameter.dialectKey
+        )
+      )
     }
   }
-%>
-(${renderedParams.mkString(", ")}${if (bindParameters.length == 1) "," else ""})
+%>${"(" + renderedParams.mkString(", ") + (if (bindParameters.length == 1) "," else "") + ")"}

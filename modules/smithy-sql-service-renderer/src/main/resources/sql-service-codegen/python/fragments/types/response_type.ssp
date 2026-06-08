@@ -1,27 +1,19 @@
+<%@ val operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView %>
 <%
-def responseType(attrs: Map[String, Any]): String = {
-  val isSelectOne = attrs.get("isSelectOne").exists {
-    case value: Boolean => value
-    case _              => false
-  }
-  val hasOutput = attrs.get("hasOutput").exists {
-    case value: Boolean => value
-    case _              => false
-  }
-
-  if (isSelectOne) {
-    if (hasOutput) {
-      s"${pythonTypeName(attrs("outputTypeName").toString)} | None"
+def responseType(operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView): String = {
+  if (operation.isSelectOne) {
+    if (operation.hasOutput) {
+      s"${pythonTypeName(operation.outputTypeName)} | None"
     } else {
       "None"
     }
   } else {
     val responseTypes = scala.collection.mutable.ListBuffer.empty[String]
-    if (hasOutput) {
-      responseTypes += pythonTypeName(attrs("outputTypeName").toString)
+    if (operation.hasOutput) {
+      responseTypes += pythonTypeName(operation.outputTypeName)
     }
-    attrs("errors").asInstanceOf[List[Map[String, Any]]].foreach { error =>
-      responseTypes += error("name").toString
+    operation.errors.foreach { error =>
+      responseTypes += error.name
     }
     responseTypes.toList match {
       case Nil           => "None"
@@ -30,4 +22,4 @@ def responseType(attrs: Map[String, Any]): String = {
     }
   }
 }
-%>${responseType(attrs)}
+%>${responseType(operation)}

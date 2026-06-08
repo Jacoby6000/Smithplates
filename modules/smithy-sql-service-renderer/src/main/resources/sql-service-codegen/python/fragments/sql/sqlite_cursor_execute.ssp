@@ -1,4 +1,5 @@
+<%@ val operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView %>
             cursor = await conn.execute(
-                """${attrs("sqlStatement")}""",
-                <% include("fragments/sql/bind_tuple") %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )

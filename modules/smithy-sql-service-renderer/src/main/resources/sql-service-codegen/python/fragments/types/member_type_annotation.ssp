@@ -1,1 +1,3 @@
-<% render("fragments/types/type_annotation", Map("typeName" -> attrs("typeName"), "optional" -> attrs.get("optional").exists(isTruthy))) %>
+<%@ val typeName: String %>
+<%@ val optional: Boolean = false %>
+<% render("fragments/types/type_annotation", Map("typeName" -> typeName, "optional" -> optional)) %>

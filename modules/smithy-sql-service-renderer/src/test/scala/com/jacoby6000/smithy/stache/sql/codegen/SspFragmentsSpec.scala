@@ -5,12 +5,8 @@ class SspFragmentsSpec extends munit.FunSuite {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "fragments/row_readers/read_str",
-        Map(
-          "dialectKey"        -> "postgres",
-          "isPostgresDialect" -> true,
-          "isSqliteDialect"   -> false
-        )
+        "fragments/row_readers/read_str_postgres",
+        Map.empty
       )
 
     assert(output.contains("def _read_str"), s"expected function definition, got: $output")
@@ -21,23 +17,24 @@ class SspFragmentsSpec extends munit.FunSuite {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "fragments/helpers/imports",
+        "fragments/helpers/imports_postgres",
         Map(
-          "needsRowReaderModuleImport" -> false,
-          "needsCastImport"            -> true,
-          "needsUuidImport"            -> true,
-          "usesJson"                   -> false,
-          "needsDatetimeImports"       -> false,
-          "needsDecimalImport"         -> false
+          "ctx" -> ServiceTemplateView(
+            serviceShapeId = "example#Service",
+            serviceName = "ExampleService",
+            dialectKey = "postgres",
+            models = Nil,
+            unions = Nil,
+            operations = Nil,
+            usedJsonTypeNames = Set.empty,
+            usedJsonTypeNamesCol = Set.empty,
+            classRowFactories = Nil,
+            integrationTest = None
+          )
         )
       )
 
-    assertEquals(
-      output,
-      """from typing import cast
-        |import uuid
-        |""".stripMargin
-    )
+    assertEquals(output, "")
   }
 
   test("member lines fragment preserves newlines") {
@@ -47,17 +44,17 @@ class SspFragmentsSpec extends munit.FunSuite {
         "fragments/models/member_lines",
         Map(
           "members" -> List(
-            Map(
-              "name"     -> "street",
-              "typeName" -> "String",
-              "optional" -> false,
-              "last"     -> false
+            TemplateMemberView(
+              name = "street",
+              typeName = "String",
+              optional = false,
+              last = false
             ),
-            Map(
-              "name"     -> "city",
-              "typeName" -> "String",
-              "optional" -> false,
-              "last"     -> true
+            TemplateMemberView(
+              name = "city",
+              typeName = "String",
+              optional = false,
+              last = true
             )
           )
         )

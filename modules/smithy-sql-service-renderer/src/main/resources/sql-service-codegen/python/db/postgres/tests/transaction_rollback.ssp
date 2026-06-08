@@ -1,14 +1,16 @@
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
-    connection = ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}._connection
+async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
+    connection = ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}._connection
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")}, transaction=tx)
+            entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None
-    missing = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
+    missing = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert missing is None

@@ -1,19 +1,21 @@
-# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+# Generated from ${ctx.serviceShapeId} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-<% include("fragments/helpers/model_imports") %>
+<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
 
 T = TypeVar("T", contravariant=True)
 
 
-class ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}(Protocol[T]):
-<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %>    async def ${operationMethodName(operation("name").asInstanceOf[String])}(
+class ${serviceProtocolName(ctx.serviceName)}(Protocol[T]):
+<% for (operation <- ctx.operations) { %>    async def ${operationMethodName(operation.name)}(
         self,
-<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${parameter("name")}: <% render("fragments/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
+<% for (parameter <- operation.parameters) { %>
+        ${parameter.name}: <% render("fragments/types/parameter_annotation", Map("typeName" -> parameter.typeName, "optional" -> parameter.optional)) %>,
 <% } %>
-<% render("fragments/types/transaction_parameter_protocol", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>    ) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
+<% include("fragments/types/transaction_parameter_protocol") %>
+    ) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
         ...
 <% } %>

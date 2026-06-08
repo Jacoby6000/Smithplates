@@ -1,6 +1,0 @@
-def _read_epoch_seconds(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> datetime:
-<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-    return datetime.fromtimestamp(cast(float, row[index]), tz=timezone.utc)
-<% } else { %>
-    return datetime.fromtimestamp(float(cast(Decimal, row[index])), tz=timezone.utc)
-<% } %>

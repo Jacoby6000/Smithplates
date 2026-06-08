@@ -1,2 +1,3 @@
+<%@ val dialectKey: String %>
         *,
-        transaction: ${transactionTypeName(attrs("dialectKey").asInstanceOf[String])} | None = None,
+        transaction: ${transactionTypeName(dialectKey)} | None = None,

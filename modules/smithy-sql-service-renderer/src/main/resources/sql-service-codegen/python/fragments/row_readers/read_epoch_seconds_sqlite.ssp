@@ -1,0 +1,2 @@
+def _read_epoch_seconds(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
+    return datetime.fromtimestamp(cast(float, row[index]), tz=timezone.utc)

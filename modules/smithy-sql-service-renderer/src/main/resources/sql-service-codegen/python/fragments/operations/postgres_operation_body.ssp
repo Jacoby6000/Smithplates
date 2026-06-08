@@ -1,63 +1,64 @@
-#match (attrs("sqlBodyKind"))
+<%@ val operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView %>
+#match (operation.sqlBodyKind)
 #case ("insertScalar")            cur = await self._connection.execute(
-                """${attrs("sqlStatement")}""",
-                <% render("fragments/sql/bind_tuple", Map("attrs" -> attrs)) %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, ${attrs("returningColumnIndex")})
+            return _read_str(row, ${operation.returningColumnIndex})
 #case ("insertStructureDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row", "typeIgnoreComment" -> "  # type: ignore[misc]")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("attrs" -> attrs)) %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 row = await cur.fetchone()
                 if row is None:
                     raise RuntimeError("INSERT RETURNING produced no row")
-                return ${attrs("outputShapeName")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col")) %><% } %>
+                return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
                 )
 <% } %>
 #case ("insertStructureIndex")            cur = await self._connection.execute(
-                """${attrs("sqlStatement")}""",
-                <% render("fragments/sql/bind_tuple", Map("attrs" -> attrs)) %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${attrs("outputShapeName")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
 #case ("booleanMutationExists")            cur = await self._connection.execute(
-                """${attrs("sqlStatement")}""",
-                <% render("fragments/sql/bind_tuple", Map("attrs" -> attrs)) %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
             return row is not None
 #case ("booleanMutationRowcount")            cur = await self._connection.execute(
-                """${attrs("sqlStatement")}""",
-                <% render("fragments/sql/bind_tuple", Map("attrs" -> attrs)) %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             return cur.rowcount > 0
-#case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${attrs("outputShapeName")})")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("attrs" -> attrs)) %>
+#case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 return await cur.fetchone()
 <% } %>
 #case ("selectOneDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row", "typeIgnoreComment" -> "  # type: ignore[misc]")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("attrs" -> attrs)) %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 row = await cur.fetchone()
                 if row is None:
                     return None
-                return ${attrs("outputShapeName")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col")) %><% } %>
+                return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
                 )
 <% } %>
 #case ("selectOneIndex")            cur = await self._connection.execute(
-                """${attrs("sqlStatement")}""",
-                <% render("fragments/sql/bind_tuple", Map("attrs" -> attrs)) %>,
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${attrs("outputShapeName")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
 #end

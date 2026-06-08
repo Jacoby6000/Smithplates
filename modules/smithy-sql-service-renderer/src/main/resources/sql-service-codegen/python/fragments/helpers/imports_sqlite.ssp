@@ -1,0 +1,8 @@
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithy.stache.sql.codegen.ImportRequirements = importRequirements(ctx) %>
+<% if (imports.needsSqlite3Import) { %>import sqlite3
+<% } %><% if (imports.needsCastImport) { %>from typing import cast
+<% } %><% if (imports.needsJsonImport) { %>import json
+<% } %><% if (imports.needsDatetimeImports) { %>from datetime import datetime, timezone
+<% } %><% if (imports.needsDecimalImport) { %>from decimal import Decimal
+<% } %>

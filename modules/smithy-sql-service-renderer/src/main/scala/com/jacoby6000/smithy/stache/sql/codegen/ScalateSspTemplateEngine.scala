@@ -10,8 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 object ScalateSspTemplateEngine {
   private val compiledTemplateCache      = new ConcurrentHashMap[String, Template]()
   private val baseContextBindingPreamble =
-    """<%@ val attrs: Map[String, Any] %>
-<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithy.stache.sql.codegen.ScalateTemplateHelpers.isTruthy(value) %>
+    """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithy.stache.sql.codegen.ScalateTemplateHelpers.isTruthy(value) %>
 """
 
   def readClasspathResource(resourceClasspath: String): String = {
@@ -26,7 +25,7 @@ object ScalateSspTemplateEngine {
 
   def renderClasspathTemplate(
       templateClasspath: String,
-      attributes: Map[String, Any],
+      view: ServiceTemplateView,
       templateRoot: Option[String] = None
   ): String = {
     val normalizedTemplatePath = normalizeClasspathUri(templateClasspath)
@@ -44,7 +43,7 @@ object ScalateSspTemplateEngine {
         }
     )
     normalizeRenderedOutput(
-      engine.layout(templateUri, template, toObjectMap(Map("attrs" -> attributes)))
+      engine.layout(templateUri, template, toObjectMap(Map("ctx" -> view)))
     )
   }
 
@@ -71,7 +70,7 @@ object ScalateSspTemplateEngine {
         }
     )
     normalizeRenderedOutput(
-      engine.layout(partialUri, template, toObjectMap(Map("attrs" -> attributes)))
+      engine.layout(partialUri, template, toObjectMap(attributes))
     )
   }
 
@@ -175,24 +174,23 @@ object ScalateSspTemplateEngine {
   private def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
     attributes.map { case (key, value) =>
       key -> (value match {
-        case nested: Map[?, ?] @unchecked =>
+        case view: ServiceTemplateView                => view.asInstanceOf[Object]
+        case operation: TemplateOperationView         => operation.asInstanceOf[Object]
+        case parameter: TemplateParameterView         => parameter.asInstanceOf[Object]
+        case member: TemplateMemberView               => member.asInstanceOf[Object]
+        case resultField: TemplateResultFieldView     => resultField.asInstanceOf[Object]
+        case bindParameter: TemplateBindParameterView => bindParameter.asInstanceOf[Object]
+        case factory: TemplateClassRowFactoryView     => factory.asInstanceOf[Object]
+        case integrationTest: IntegrationTestView     => integrationTest.asInstanceOf[Object]
+        case requirements: ImportRequirements         => requirements.asInstanceOf[Object]
+        case nested: Map[?, ?] @unchecked             =>
           nested
             .asInstanceOf[Map[String, Any]]
             .map { case (nestedKey, nestedValue) => nestedKey -> nestedValue.asInstanceOf[Object] }
             .asInstanceOf[Object]
-        case items: List[?] @unchecked    =>
-          items
-            .map {
-              case item: Map[?, ?] @unchecked =>
-                item
-                  .asInstanceOf[Map[String, Any]]
-                  .map { case (itemKey, itemValue) => itemKey -> itemValue.asInstanceOf[Object] }
-                  .asInstanceOf[Object]
-              case other                      =>
-                other.asInstanceOf[Object]
-            }
-            .asInstanceOf[Object]
-        case other                        =>
+        case items: List[?] @unchecked                =>
+          items.map(_.asInstanceOf[Object]).asInstanceOf[Object]
+        case other                                    =>
           other.asInstanceOf[Object]
       })
     }

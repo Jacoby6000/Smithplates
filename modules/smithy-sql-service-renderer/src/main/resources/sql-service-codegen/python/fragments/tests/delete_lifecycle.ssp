@@ -1,6 +1,8 @@
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
 
-    deleted = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("deleteOperation.name").asInstanceOf[String])}(${attrs("deleteOperation.callArguments")})
+    deleted = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.deleteOperation.name)}(${test.deleteOperation.callArguments})
     assert deleted is True
 
-    missing = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
+    missing = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert missing is None

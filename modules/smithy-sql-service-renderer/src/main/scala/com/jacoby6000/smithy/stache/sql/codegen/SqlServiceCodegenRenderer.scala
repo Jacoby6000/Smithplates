@@ -51,8 +51,8 @@ object SqlServiceCodegenRenderer {
                     if (artifactConfig.bundledResource) {
                       ScalateSspTemplateEngine.readClasspathResource(templatePath)
                     } else {
-                      val attributes = SqlCodegenTemplateAttributes.forService(context)
-                      ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, attributes, Some(templateRoot))
+                      val view = SqlCodegenTemplateAttributes.forService(context)
+                      ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
                     }
                   val relativePath = resolveOutputPath(settings, artifactConfig, context)
                   List(

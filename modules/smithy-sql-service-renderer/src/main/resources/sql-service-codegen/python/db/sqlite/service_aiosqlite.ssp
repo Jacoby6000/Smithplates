@@ -1,30 +1,30 @@
-# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+# Generated from ${ctx.serviceShapeId} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 from typing import override
 
-<% include("fragments/helpers/imports") +%>import aiosqlite
+<% render("fragments/helpers/imports_sqlite", Map("ctx" -> ctx)) +%>import aiosqlite
 from sqlite_transaction_run import run
-<% include("fragments/helpers/model_imports") %>
-from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_protocol import ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}
+<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
+from ${serviceModuleBaseName(ctx.serviceName)}_protocol import ${serviceProtocolName(ctx.serviceName)}
 
 
-class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}(${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}[${transactionTypeName(attrs("dialectKey").asInstanceOf[String])}]):
+class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):
     def __init__(self, connection: aiosqlite.Connection) -> None:
         super().__init__()
         self._connection = connection
 
-<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %><% if (operation("hasSql").asInstanceOf[Boolean]) { %>
+<% for (operation <- ctx.operations) { %><% if (operation.hasSql) { %>
     @override
-    async def ${operationMethodName(operation("name").asInstanceOf[String])}(
+    async def ${operationMethodName(operation.name)}(
         self,
-<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${parameter("name")}: <% render("fragments/types/parameter_annotation", parameterAnnotationAttrs(parameter.asInstanceOf[Map[String, Any]])) %>,
+<% for (parameter <- operation.parameters) { %>
+        ${parameter.name}: <% render("fragments/types/parameter_annotation", Map("typeName" -> parameter.typeName, "optional" -> parameter.optional)) %>,
 <% } %>
-<% render("fragments/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-    ) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-        async def execute(conn: aiosqlite.Connection) -> <% render("fragments/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-<% render("fragments/operations/sqlite_operation_body", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) +%>        return await run(self._connection, transaction, execute)
+<% render("fragments/types/transaction_parameter_impl", Map("dialectKey" -> ctx.dialectKey)) %><%= "\n" %>    ) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
+        async def execute(conn: aiosqlite.Connection) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
+<% render("fragments/operations/sqlite_operation_body", Map("operation" -> operation)) +%>        return await run(self._connection, transaction, execute)
 <% } %><% } %>
 
-<% include("fragments/helpers/row_reader_helpers")  +%>
+<% include("fragments/helpers/row_reader_helpers") +%>

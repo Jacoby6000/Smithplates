@@ -1,23 +1,25 @@
-# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+# Generated from ${ctx.serviceShapeId} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-<% if (attrs.get("hasUnions").exists(isTruthy)) { %>from typing import TypedDict
+<% if (ctx.unions.nonEmpty) { %>from typing import TypedDict
 <% } %>
-<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
-<% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>
-class ${unionVariantTypeName(union("name").asInstanceOf[String], member("name").asInstanceOf[String])}(TypedDict):
-    ${member("name")}: <% render("fragments/types/type_name", Map("typeName" -> member("typeName"))) +%>
+<% for (union <- ctx.unions) { %>
+<% for (member <- union.members) { %>
+class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
+    ${member.name}: <% render("fragments/types/type_name", Map("typeName" -> member.typeName)) +%>
 <% } %>
-${union("name")} = ${unionTypeAlias(union("name").asInstanceOf[String], union("members").asInstanceOf[List[Map[String, Any]]].map(_("name").asInstanceOf[String]))}
+${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
 
 <% } %>
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>@dataclass
-class ${model("name")}:
-<% if (model("hasMembers").asInstanceOf[Boolean]) { %>
-<% render("fragments/models/member_lines", Map("attrs" -> (attrs ++ model.asInstanceOf[Map[String, Any]]))) +%><% } %>
-<% if (!model("hasMembers").asInstanceOf[Boolean]) { %>
+<% for (model <- ctx.models) { %>@dataclass
+class ${model.name}:
+<% if (model.hasMembers) { %>
+<% render("fragments/models/member_lines", Map("members" -> model.members)) +%><% } %>
+<% if (!model.hasMembers) { %>
     pass
 <% } %>
+
 <% } %>

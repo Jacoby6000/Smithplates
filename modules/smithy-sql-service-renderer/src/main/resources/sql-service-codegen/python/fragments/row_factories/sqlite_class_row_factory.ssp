@@ -1,3 +1,4 @@
-def ${rowFactoryName(attrs("name").asInstanceOf[String])}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${attrs("name")}:
-    return ${attrs("name")}(
-<% for (resultField <- attrs("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>        <% render("fragments/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>    )
+<%@ val factory: com.jacoby6000.smithy.stache.sql.codegen.TemplateClassRowFactoryView %>
+def ${rowFactoryName(factory.name)}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${factory.name}:
+    return ${factory.name}(
+<% for (resultField <- factory.resultFields) { %>        <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>    )

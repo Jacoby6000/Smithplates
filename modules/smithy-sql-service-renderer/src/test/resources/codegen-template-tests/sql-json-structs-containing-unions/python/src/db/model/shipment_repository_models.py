@@ -14,6 +14,7 @@ DeliveryState = DeliveryStatePending | DeliveryStateDelivered
 class PostalAddress:
     street: str
     city: str
+
 @dataclass
 class Shipment:
     id: str

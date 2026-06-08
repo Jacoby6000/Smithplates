@@ -1,1 +1,2 @@
-<%= serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]) %>
+<%@ val serviceName: String %>
+<%= serviceModuleBaseName(serviceName) %>

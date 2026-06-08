@@ -1,29 +1,22 @@
-<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
-<% for (sqliteClassRowFactory <- attrs("sqliteClassRowFactories").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/row_factories/sqlite_class_row_factory", Map("attrs" -> (attrs ++ sqliteClassRowFactory.asInstanceOf[Map[String, Any]]))) +%>
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<% for (classRowFactory <- ctx.classRowFactories) { %>
+<% render("fragments/row_factories/sqlite_class_row_factory", Map("factory" -> classRowFactory)) +%>
 <% } %>
+<% for (partial <- helperPartialPaths(ctx)) { %>
+<% render(partial, Map("dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
-<% for (partial <- attrs("helperIncludes").asInstanceOf[List[String]]) { %>
-<% include(partial) +%>
+<% for (union <- unionsUsedAsJson(ctx)) { %>
+<% render("fragments/json/union_helpers", Map("union" -> union, "dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
-<% for (jsonUnion <- attrs("jsonUnions").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/union_helpers", Map("attrs" -> (attrs ++ jsonUnion.asInstanceOf[Map[String, Any]]))) +%>
+<% for (model <- modelsUsedAsJson(ctx)) { %>
+<% render("fragments/json/structure_helpers", Map("model" -> model, "dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
-<% for (jsonStructure <- attrs("jsonStructures").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/structure_helpers", Map("attrs" -> (attrs ++ jsonStructure.asInstanceOf[Map[String, Any]]))) +%>
+<% for (partial <- helperColPartialPaths(ctx)) { %>
+<% render(partial, Map("dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
-<% for (partial <- attrs("helperColIncludes").asInstanceOf[List[String]]) { %>
-<% include(partial) +%>
+<% for (union <- unionsUsedAsJsonCol(ctx)) { %>
+<% render("fragments/json/union_helpers_col", Map("union" -> union, "dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
-<% for (jsonUnionColPostgres <- attrs("jsonUnionsColPostgres").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/union_helpers_col", Map("attrs" -> (attrs ++ jsonUnionColPostgres.asInstanceOf[Map[String, Any]]))) +%>
-<% } %>
-<% for (jsonStructureColPostgres <- attrs("jsonStructuresColPostgres").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/structure_helpers_col", Map("attrs" -> (attrs ++ jsonStructureColPostgres.asInstanceOf[Map[String, Any]]))) +%>
-<% } %>
-<% for (jsonUnionColSqlite <- attrs("jsonUnionsColSqlite").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/union_helpers_col_sqlite", Map("attrs" -> (attrs ++ jsonUnionColSqlite.asInstanceOf[Map[String, Any]]))) +%>
-<% } %>
-<% for (jsonStructureColSqlite <- attrs("jsonStructuresColSqlite").asInstanceOf[List[Map[String, Any]]]) { %>
-<% render("fragments/json/structure_helpers_col_sqlite", Map("attrs" -> (attrs ++ jsonStructureColSqlite.asInstanceOf[Map[String, Any]]))) +%>
+<% for (model <- modelsUsedAsJsonCol(ctx)) { %>
+<% render("fragments/json/structure_helpers_col", Map("model" -> model, "dialectKey" -> ctx.dialectKey)) +%>
 <% } %>

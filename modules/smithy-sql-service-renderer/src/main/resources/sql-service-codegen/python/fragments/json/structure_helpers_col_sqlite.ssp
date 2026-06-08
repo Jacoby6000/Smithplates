@@ -1,6 +1,0 @@
-def _read_${attrs("name")}_col(row: dict[str, object], column: str) -> ${attrs("name")}:
-<% include("fragments/json/row_data_sqlite_col") %>
-    return ${attrs("name")}(
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
-        ${member("name")}=cast(<% render("fragments/types/type_name", Map("typeName" -> member("typeName"))) %>, data["${member("name")}"]),
-<% } %>    )

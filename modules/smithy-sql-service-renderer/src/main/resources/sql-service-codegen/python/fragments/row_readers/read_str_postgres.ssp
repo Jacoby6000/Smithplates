@@ -1,0 +1,5 @@
+def _read_str(row: tuple[object, ...], index: int) -> str:
+    value = row[index]
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return cast(str, value)

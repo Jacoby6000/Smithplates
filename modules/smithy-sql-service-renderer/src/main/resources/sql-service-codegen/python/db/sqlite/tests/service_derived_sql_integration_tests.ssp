@@ -1,4 +1,6 @@
-# Generated from ${attrs("serviceShapeId")} by sql-service-codegen. Do not edit by hand.
+<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
+# Generated from ${ctx.serviceShapeId} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
@@ -6,20 +8,20 @@ from collections.abc import AsyncIterator
 import pytest
 import pytest_asyncio
 import aiosqlite
-<% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %><% if (attrs.get("extraImports").exists(isTruthy)) { %>${attrs("extraImports")}<% } %><% } %>
-from ${implementationModuleName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])} import ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}
-<% include("fragments/helpers/model_imports") %>
+<% if (test.extraImports != "") { %>${test.extraImports}<% } %>
+from ${implementationModuleName(ctx.serviceName, ctx.dialectKey)} import ${implementationClassName(ctx.serviceName, ctx.dialectKey)}
+<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
 
-<% if (attrs.get("hasIntegrationTest").exists(isTruthy)) { %>SCHEMA_DDL = """${attrs("schemaDdl")}"""
+SCHEMA_DDL = """${test.schemaDdl}"""
 
 
 @pytest_asyncio.fixture
-async def ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}() -> AsyncIterator[${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}]:
+async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> AsyncIterator[${implementationClassName(ctx.serviceName, ctx.dialectKey)}]:
     connection = await aiosqlite.connect(":memory:")
     await connection.executescript(SCHEMA_DDL)
     await connection.commit()
     try:
-        yield ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}(connection)
+        yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)
     finally:
         await connection.close()
 
@@ -27,26 +29,23 @@ async def ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInst
 @pytest.mark.integration
 @pytest.mark.sqlite
 @pytest.mark.asyncio
-async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
-    entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")})
+async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
+    entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
     assert isinstance(entity_id, str)
     assert entity_id
 
-    fetched = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
-    assert isinstance(fetched, ${attrs("selectOneOperation.outputShapeName")})
-<% if (attrs.get("selectOneOperation").exists(isTruthy)) { val selectOneOperation = attrs("selectOneOperation").asInstanceOf[Map[String, Any]] %>
-<% if (selectOneOperation.get("hasResultAssertions").exists(isTruthy)) { %>
-<% for (assertion <- selectOneOperation("resultAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
-    ${assertion("line")}
+    fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
+<% if (test.selectOneOperation.hasResultAssertions) { %>
+<% for (assertion <- test.selectOneOperation.resultAssertions) { %>
+    ${assertion.line}
 <% } %>
 <% } %>
-<% } %>
-<% if (attrs.get("hasUpdateOperation").exists(isTruthy)) { %>
+<% if (test.hasUpdateOperation) { %>
 <% include("fragments/tests/update_lifecycle") %>
 <% } %>
-<% if (attrs.get("hasDeleteOperation").exists(isTruthy)) { %>
+<% if (test.hasDeleteOperation) { %>
 <% include("fragments/tests/delete_lifecycle") %>
 <% } %>
 <% include("db/sqlite/tests/transaction_commit") %>
 <% include("db/sqlite/tests/transaction_rollback") %>
-<% } %>
