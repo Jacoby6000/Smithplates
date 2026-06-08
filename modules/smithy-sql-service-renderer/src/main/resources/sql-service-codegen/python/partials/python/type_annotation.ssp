@@ -1,1 +1,0 @@
-<% if (attrs.get("optional").exists(isTruthy)) { %><% render("partials/python/type_name", Map("attrs" -> attrs)) %> | None<% } %><% if (!attrs.get("optional").exists(isTruthy)) { %><% render("partials/python/type_name", Map("attrs" -> attrs)) %><% } %>

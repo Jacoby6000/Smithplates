@@ -6,4 +6,4 @@ def _json_bind_${attrs("className")}(value: ${attrs("className")}) -> str:
 def _read_${attrs("className")}(row: ${attrs("rowTypeName")}, index: int) -> ${attrs("className")}:
 <% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_sqlite") %><% } %><% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_postgres") %><% } %>
     return ${attrs("className")}(
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i8")}${member("name")}=cast(<% render("partials/python/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),${"\n"}<% } %>${attrs("i4")})
+<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i8")}${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),${"\n"}<% } %>${attrs("i4")})

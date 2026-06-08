@@ -1,1 +1,1 @@
-<% render("partials/python/type_annotation", Map("attrs" -> attrs)) %>
+<% render("partials/types/type_annotation", Map("attrs" -> attrs)) %>

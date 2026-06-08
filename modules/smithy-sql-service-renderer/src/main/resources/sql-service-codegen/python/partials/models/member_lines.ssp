@@ -1,1 +1,1 @@
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${member("name")}: <% render("partials/python/type_annotation", Map("attrs" -> (attrs ++ member.asInstanceOf[Map[String, Any]]))) %>${"\n"}<% } %>
+<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>${attrs("i4")}${member("name")}: <% render("partials/types/type_annotation", Map("attrs" -> (attrs ++ member.asInstanceOf[Map[String, Any]]))) %>${"\n"}<% } %>
