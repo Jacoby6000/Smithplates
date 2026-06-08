@@ -8,12 +8,12 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
   private val testCase =
     CodegenTemplateTestCase(
       name = "sample-case",
-      resourceBasePath = "codegen-template-tests/sample-case",
-      smithyModelId = "codegen-template-tests/sample-case/smithy/smithy-files.smithy",
+      resourceBasePath = "python/expected-outputs/sample-case",
+      smithyModelId = "python/expected-outputs/sample-case/smithy/smithy-files.smithy",
       smithyContent = "",
       expectedOutputsByVariant = Map(
         variant -> List(
-          CodegenTemplateExpectedFile("python/src/example.py", "expected\n")
+          CodegenTemplateExpectedFile("src/example.py", "expected\n")
         )
       )
     )
@@ -29,7 +29,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
       }
 
     assert(thrown.getMessage.contains("expected output file(s) were not generated"))
-    assert(thrown.getMessage.contains("Missing: python/src/example.py"))
+    assert(thrown.getMessage.contains("Missing: src/example.py"))
   }
 
   test("CodegenTemplateTestAssertions - reports unexpected generated files") {
@@ -39,14 +39,14 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
           testCase,
           variant,
           rendered = Map(
-            "python/src/example.py" -> "expected\n",
-            "python/src/extra.py"   -> "extra\n"
+            "src/example.py" -> "expected\n",
+            "src/extra.py"   -> "extra\n"
           )
         )
       }
 
     assert(thrown.getMessage.contains("unexpected output file(s) were generated"))
-    assert(thrown.getMessage.contains("Unexpected: python/src/extra.py"))
+    assert(thrown.getMessage.contains("Unexpected: src/extra.py"))
   }
 
   test("CodegenTemplateTestAssertions - reports content diff on mismatch") {
@@ -55,13 +55,13 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
           testCase,
           variant,
-          rendered = Map("python/src/example.py" -> "actual\n")
+          rendered = Map("src/example.py" -> "actual\n")
         )
       }
 
     assert(
       thrown.getMessage.contains(
-        "Content mismatch for codegen-template-tests/sample-case/python/src/example.py"
+        "Content mismatch for python/expected-outputs/sample-case/src/example.py"
       )
     )
     assert(thrown.getMessage.contains("| - expected"))

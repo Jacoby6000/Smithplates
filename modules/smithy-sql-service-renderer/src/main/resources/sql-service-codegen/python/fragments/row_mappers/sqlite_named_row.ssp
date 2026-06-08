@@ -1,6 +1,0 @@
-def _as_sqlite_named_row(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> dict[str, object]:
-    if type(row) is not tuple:
-        named = cast(sqlite3.Row, row)
-        return {key: cast(object, named[key]) for key in named.keys()}
-    description = cast(tuple[tuple[object, ...], ...], getattr(cursor, "description"))
-    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}

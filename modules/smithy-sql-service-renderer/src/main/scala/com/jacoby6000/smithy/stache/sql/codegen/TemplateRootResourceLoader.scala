@@ -32,7 +32,9 @@ final class TemplateRootResourceLoader(classLoader: ClassLoader, templateRoot: S
       } else {
         s"$stripped.ssp"
       }
-    if (withExtension.startsWith(s"$normalizedRoot/")) {
+    if (normalizedRoot.isEmpty) {
+      withExtension
+    } else if (withExtension.startsWith(s"$normalizedRoot/")) {
       withExtension
     } else {
       s"$normalizedRoot/$withExtension"

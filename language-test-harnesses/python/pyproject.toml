@@ -1,0 +1,45 @@
+[project]
+name = "smithy-stache-python-language-test-harness"
+version = "0.1.0"
+description = "Execute generated Python integration tests from language-templates expected-outputs"
+requires-python = ">=3.11"
+dependencies = [
+    "aiosqlite>=0.20",
+    "mypy>=1.13",
+    "psycopg[binary]>=3.2",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.9",
+    "testcontainers[postgres]>=4.9",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: derived SQL integration tests",
+    "sqlite: sqlite / aiosqlite backend",
+    "postgres: postgres / psycopg backend",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+extra_checks = true
+local_partial_types = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+mypy_path = "stubs"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["UP017"]
+
+[tool.ruff.lint.per-file-ignores]
+"**/sqlite_transaction_run.py" = ["UP047"]
+"**/psycopg_transaction_run.py" = ["UP047"]
+"**/test_*_derived_sql.py" = ["E501"]

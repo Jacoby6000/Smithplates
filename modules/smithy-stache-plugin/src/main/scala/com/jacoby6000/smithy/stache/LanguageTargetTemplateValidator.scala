@@ -10,7 +10,12 @@ object LanguageTargetTemplateValidator {
   val bundledLanguageIds: Set[String] = Set("python")
 
   def defaultTemplateDirectory(languageId: String): String =
-    s"classpath:sql-service-codegen/$languageId"
+    languageId match {
+      case "python" =>
+        "classpath:"
+      case other    =>
+        s"classpath:language-templates/$other/src/db"
+    }
 
   def resolveTemplateDirectory(target: LanguageTarget, languageId: String): String =
     target.templateDirectory.getOrElse(defaultTemplateDirectory(languageId))
@@ -76,6 +81,10 @@ object LanguageTargetTemplateValidator {
       } else {
         template
       }
-    s"/$baseDirectory/$normalizedTemplate"
+    if (baseDirectory.isEmpty) {
+      s"/$normalizedTemplate"
+    } else {
+      s"/$baseDirectory/$normalizedTemplate"
+    }
   }
 }

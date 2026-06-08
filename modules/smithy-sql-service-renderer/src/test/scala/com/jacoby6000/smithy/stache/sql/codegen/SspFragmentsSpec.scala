@@ -1,6 +1,8 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 class SspFragmentsSpec extends munit.FunSuite {
+  private val templateRoot = ""
+
   private def minimalServiceView: ServiceTemplateView =
     ServiceTemplateView(
       serviceShapeId = "example#WidgetRepository",
@@ -18,9 +20,9 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("top-level template render prepends generated file header") {
     val output =
       ScalateSspTemplateEngine.renderClasspathTemplate(
-        "classpath:sql-service-codegen/python/db/service_protocol.ssp",
+        "classpath:service_protocol.ssp",
         minimalServiceView,
-        Some("sql-service-codegen/python")
+        Some(templateRoot)
       )
 
     assert(
@@ -34,7 +36,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("partial render does not prepend generated file header") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        "sql-service-codegen/python",
+        templateRoot,
         "fragments/row_readers/read_str_postgres",
         Map.empty
       )
@@ -45,7 +47,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("row reader fragment preserves internal newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        "sql-service-codegen/python",
+        templateRoot,
         "fragments/row_readers/read_str_postgres",
         Map.empty
       )
@@ -57,7 +59,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("single-line import fragment does not add blank lines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        "sql-service-codegen/python",
+        templateRoot,
         "fragments/helpers/imports_postgres",
         Map(
           "ctx" -> ServiceTemplateView(
@@ -81,7 +83,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("member lines fragment preserves newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        "sql-service-codegen/python",
+        templateRoot,
         "fragments/models/member_lines",
         Map(
           "members" -> List(

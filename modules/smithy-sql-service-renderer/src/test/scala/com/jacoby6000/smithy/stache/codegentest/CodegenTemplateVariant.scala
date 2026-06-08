@@ -6,9 +6,9 @@ final case class CodegenTemplateVariant(
     serviceTypeId: String,
     implementationId: String
 ) extends Ordered[CodegenTemplateVariant] {
-  def srcOutputRootId: String = s"$languageId/src"
+  def srcOutputRootId: String = "src"
 
-  def testOutputRootId: String = s"$languageId/test"
+  def testOutputRootId: String = "test"
 
   def serviceTypeResourcePath: String = s"$srcOutputRootId/$serviceTypeId"
 

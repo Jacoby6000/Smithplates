@@ -34,7 +34,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
     assertEquals(settings.schemaDialectOutputs, Map("postgres" -> "db/postgres.sql"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
-    assertEquals(codegenSettings.templateDirectory, "classpath:sql-service-codegen/python")
+    assertEquals(codegenSettings.templateDirectory, "classpath:")
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))
@@ -80,7 +80,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         {
           "languageTargets": {
             "python": {
-              "templateDirectory": "classpath:custom-templates/python",
+              "templateDirectory": "classpath:custom-templates/python/src/db",
               "sourceOutputDir": "out/src",
               "testOutputDir": "out/test"
             }
@@ -91,7 +91,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
 
     val settings        = SmithyStacheSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
-    assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python")
+    assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python/src/db")
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.shared)
   }
 
@@ -195,7 +195,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
           },
           "languageTargets": {
             "python": {
-              "templateDirectory": "classpath:custom-templates/python",
+              "templateDirectory": "classpath:custom-templates/python/src/db",
               "sourceOutputDir": "src",
               "testOutputDir": "tests"
             }
@@ -205,7 +205,7 @@ class SmithyStacheSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val errors = SmithyStacheSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("db/postgres/service_psycopg.ssp")))
+    assert(errors.exists(_.message.contains("postgres/service_psycopg.ssp")))
   }
 }
 

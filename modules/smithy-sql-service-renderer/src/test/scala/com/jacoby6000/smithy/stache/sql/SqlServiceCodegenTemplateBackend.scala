@@ -48,7 +48,7 @@ object SqlServiceCodegenTemplateBackend {
                       case SqlServiceCodegenArtifactKind.Src  =>
                         s"${templateVariant.srcOutputRootId}/${artifact.relativePath}"
                       case SqlServiceCodegenArtifactKind.Test =>
-                        s"${templateVariant.languageId}/${artifact.relativePath}"
+                        artifact.relativePath
                     }
                   relativePath -> artifact.content
                 }.toMap
@@ -70,7 +70,7 @@ object SqlServiceCodegenTemplateBackend {
     apply(
       templateVariant = templateVariant,
       settings = SqlServiceCodegenSettings(
-        templateDirectory = s"classpath:sql-service-codegen/${templateVariant.languageId}",
+        templateDirectory = "classpath:",
         defaultDialectKey = dialectKey,
         enabledDialectKeys = List(dialectKey),
         queryRenderers = Map(dialectKey -> queryRenderer),

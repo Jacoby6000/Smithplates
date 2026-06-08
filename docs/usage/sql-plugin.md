@@ -63,7 +63,7 @@ service FooRepository {
 
 ## SQL database service codegen
 
-**SQL database service codegen** combines service IR, SQL IR-derived queries, and Mustache templates into target-language artifacts. Bundled Python templates live under `modules/smithy-sql-service-renderer/src/main/resources/sql-service-codegen/python/db/`. Configure `smithy-stache.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`language-templates/python/src/db/`](../../language-templates/python/src/db/). Configure `smithy-stache.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
 
 | Artifact | Pipeline stage |
 |----------|----------------|

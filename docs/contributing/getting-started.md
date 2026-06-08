@@ -7,7 +7,7 @@
 | [sbtn](https://www.scala-sbt.org/) | SBT thin client (`coursier install sbtn` or `cs install sbtn`) |
 | [Smithy CLI](https://smithy.io/2.0/guides/smithy-cli/cli.html) | Validate models and run `smithy build` in consumer projects (via Coursier) |
 | [Docker](https://www.docker.com/) | Required only for dialect integration tests |
-| [uv](https://docs.astral.sh/uv/) | Required only for `sql-service-codegen` Python renderer tests |
+| [uv](https://docs.astral.sh/uv/) | Required for Python language test harness (`language-test-harnesses/python/`) |
 | [pre-commit](https://pre-commit.com/) | Optional; installs git hooks for fmt/fix/compile |
 
 Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repository root.
@@ -69,8 +69,6 @@ If scalafmt or scalafix change files, stage the updates and commit again. After 
 
 ## Unit tests
 
-Requires [uv](https://docs.astral.sh/uv/) on `PATH` for Python codegen tests.
-
 ```bash
 sbtn smithySqlIr/test
 sbtn smithySqlServiceIr/test
@@ -87,6 +85,12 @@ Requires Docker:
 ```bash
 sbtn smithySqlPostgresRendererIt/test
 sbtn smithySqlSqliteRendererIt/test
+```
+
+Python generated-code integration tests (pytest against `language-templates/python/expected-outputs/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:
+
+```bash
+./language-test-harnesses/python/run-tests.sh
 ```
 
 See [Integration tests](integration-tests.md) for coverage and module layout.

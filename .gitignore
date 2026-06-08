@@ -5,5 +5,11 @@ target/
 .bloop
 .coursier-cache
 __pycache__
+.pytest_cache
+.mypy_cache
+.pyright
+language-test-harnesses/python/.venv/
+language-templates/**/__pycache__/
+language-templates/**/.pytest_cache/
 .pre-commit-home
 .xdg-runtime

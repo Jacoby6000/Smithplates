@@ -80,13 +80,13 @@ Map of language id → language target configuration (for example `python`). Con
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
-| `templateDirectory` | When language is not bundled | `classpath:sql-service-codegen/<languageId>` for bundled `python` only | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `fragments/` tree referenced from main templates via `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`. |
+| `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`language-templates/python/src/db/`](../../language-templates/python/src/db/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `fragments/` tree referenced from main templates via `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`. |
 | `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
 | `testOutputDir` | Yes | — | Base directory for generated test artifacts |
 
 When a language target is configured, bundled `db` service-type templates are selected automatically from enabled dialects. Users do not list individual `artifacts` entries.
 
-Example output layout for bundled templates under `sql-service-codegen/python/db/`:
+Example output layout for bundled templates (sources under `language-templates/python/src/db/`):
 
 - `sourceOutputDir/db/model/{{serviceFileName}}_models.py`
 - `sourceOutputDir/db/{{serviceFileName}}_protocol.py`

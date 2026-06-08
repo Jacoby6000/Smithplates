@@ -12,7 +12,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       .discover(getClass.getClassLoader, Set(SqlServiceCodegenTemplateBackend.pythonSqlite.variant))
       .find(_.name == testName)
       .map(testCase => SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent))
-      .getOrElse(fail(s"expected codegen-template-tests case '$testName'"))
+      .getOrElse(fail(s"expected language-templates golden case '$testName'"))
 
   test("ServiceCodegen - derives CRUD for @sqlJson struct and union columns") {
     val schema = SqlModelExtractor.extractOrThrow(loadTestCaseModel("sql-json-structs-containing-unions"))

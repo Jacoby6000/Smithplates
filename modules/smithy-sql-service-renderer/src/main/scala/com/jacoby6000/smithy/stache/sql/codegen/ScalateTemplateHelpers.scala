@@ -14,13 +14,18 @@ object ScalateTemplateHelpers {
   def languageFromTemplateRoot(templateRoot: String): String = {
     val normalized =
       templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
-    normalized
-      .split("/")
-      .toList
-      .lastOption
-      .getOrElse(
-        throw new IllegalArgumentException(s"cannot infer codegen language from template root: $templateRoot")
-      )
+    if (normalized.isEmpty) {
+      "python"
+    } else {
+      normalized.split("/").toList match {
+        case "language-templates" :: language :: _ =>
+          language
+        case "custom-templates" :: language :: _   =>
+          language
+        case _                                     =>
+          throw new IllegalArgumentException(s"cannot infer codegen language from template root: $templateRoot")
+      }
+    }
   }
 
   /** Mustache-style truthiness for SSP conditionals over template attribute values. */

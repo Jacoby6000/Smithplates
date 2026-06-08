@@ -1,0 +1,64 @@
+<%@ val operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView %>
+#match (operation.sqlBodyKind)
+#case ("insertScalar")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return _read_str(row, ${operation.returningColumnIndex})
+#case ("insertStructureDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row")) { %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("INSERT RETURNING produced no row")
+                return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
+                )
+<% } %>
+#case ("insertStructureIndex")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            )
+#case ("booleanMutationExists")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            return row is not None
+#case ("booleanMutationRowcount")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            return cur.rowcount > 0
+#case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+                return await cur.fetchone()
+<% } %>
+#case ("selectOneDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row")) { %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+                row = await cur.fetchone()
+                if row is None:
+                    return None
+                return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
+                )
+<% } %>
+#case ("selectOneIndex")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            if row is None:
+                return None
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            )
+#end

@@ -79,7 +79,7 @@ The `smithy-stache` plugin (`com.jacoby6000:smithy-stache-plugin`) is a Smithy b
 | **Schema and migrations** | Derived DML in DDL `-- Queries` section | Postgres, SQLite | SQL IR → dialect renderers; basic SELECT/INSERT/UPDATE/DELETE from derive traits |
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
 | **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
-| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + Mustache templates under `sql-service-codegen/` |
+| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + SSP templates under [`language-templates/`](language-templates/) |
 | **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + Mustache templates (migration engine planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2))) |
 
 

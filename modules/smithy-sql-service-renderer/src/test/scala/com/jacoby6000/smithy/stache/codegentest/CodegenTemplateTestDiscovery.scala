@@ -8,7 +8,7 @@ import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
 object CodegenTemplateTestDiscovery {
-  val ResourceRoot: String        = "codegen-template-tests"
+  val ResourceRoot: String        = "python/expected-outputs"
   val SmithyFileName: String      = "smithy-files.smithy"
   val UnsupportedFileName: String = "unsupported.md"
 

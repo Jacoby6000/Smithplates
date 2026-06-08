@@ -7,7 +7,7 @@ import java.nio.file.Files
 class CodegenTemplateTestDiscoverySpec extends FunSuite {
   private val sqliteVariant = CodegenTemplateVariant("python", "db", "sqlite")
 
-  test("CodegenTemplateTestDiscovery - discovers sql-service-codegen fixture cases") {
+  test("CodegenTemplateTestDiscovery - discovers language template fixture cases") {
     val cases =
       CodegenTemplateTestDiscovery.discover(getClass.getClassLoader, Set(sqliteVariant))
 
@@ -16,11 +16,11 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
   }
 
   test("CodegenTemplateTestDiscovery - unsupported.md suppresses expected files for a variant") {
-    val tempRoot = Files.createTempDirectory("codegen-template-tests")
+    val tempRoot = Files.createTempDirectory("language-template-expected-outputs")
     try {
       val caseDirectory    = tempRoot.resolve("sample-case")
       val smithyDirectory  = caseDirectory.resolve("smithy")
-      val variantDirectory = caseDirectory.resolve("python/src/db/sqlite")
+      val variantDirectory = caseDirectory.resolve("src/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(variantDirectory)
       Files.writeString(
@@ -35,7 +35,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         "Python backend does not implement this scenario yet."
       )
 
-      val resourceRoot = Files.createDirectory(tempRoot.resolve("codegen-template-tests"))
+      val resourceRoot = Files.createDirectories(tempRoot.resolve("python/expected-outputs"))
       Files.move(caseDirectory, resourceRoot.resolve("sample-case"))
       val classLoader  = new DirectoryClassLoader(tempRoot, getClass.getClassLoader)
       val testCase     =

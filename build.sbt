@@ -162,6 +162,11 @@ lazy val smithySqlServiceRenderer = (project in file("modules/smithy-sql-service
       catsCoreDependency,
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
       "org.scalameta" %% "munit" % munitVersion % Test
+    ),
+    Compile / unmanagedResourceDirectories +=
+      (ThisBuild / baseDirectory).value / "language-templates" / "python" / "src" / "db",
+    Test / unmanagedResourceDirectories ++= Seq(
+      (ThisBuild / baseDirectory).value / "language-templates"
     )
   )
 
