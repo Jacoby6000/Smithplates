@@ -8,8 +8,12 @@ Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTest
 |------|-----------|
 | `sql-derived-crud-auto-managed-columns` | `@sqlDeriveInsert` / `@sqlDeriveSelectOne` / `@sqlDeriveUpdate` / `@sqlDeriveDelete`, `@sqlAutoUuid`, `@sqlCreatedTimestamp`, `@sqlUpdatedTimestamp` |
 | `sql-json-structs-containing-unions` | `@sqlJson` columns backed by structures and unions, with derived CRUD and JSON bind/read helpers |
+| `sql-derive-insert-only` | `@sqlDeriveInsert` as the sole derived operation (no integration tests) |
+| `sql-derive-update-only` | `@sqlDeriveUpdate` as the sole derived operation (no integration tests) |
+| `sql-derive-delete-only` | `@sqlDeriveDelete` as the sole derived operation (no integration tests) |
+| `sql-derive-select-one-only` | `@sqlDeriveSelectOne` as the sole derived operation (no integration tests) |
 
-Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `test/db/sqlite/` (aiosqlite) and `test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `src/db/model/` and `src/db/`.
+Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `test/db/sqlite/` (aiosqlite) and `test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `src/db/model/` and `src/db/`. Single derived-operation cases generate src artifacts only — integration tests require both insert and select-one.
 
 [`SqlServiceCodegenTemplateTestSuite`](../../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/SqlServiceCodegenTemplateTestSuite.scala) golden-compares rendered output only. Execute generated integration tests with [`language-test-harnesses/python/run-tests.sh`](../../../language-test-harnesses/python/run-tests.sh).
 
