@@ -1,15 +1,21 @@
 # Language test harnesses
 
-Executable test runners for generated artifacts under [`templates/`](../templates/).
+Executable linters and test runners for generated artifacts under [`templates/`](../templates/).
 
-Golden **render** comparisons stay in Scala (`sbtn smithySqlServiceRenderer/test`). Harnesses here **execute** generated integration tests (pytest) from `templates/<language>/expected-outputs/`.
+Golden **render** comparisons stay in Scala (`sbtn smithySqlServiceRenderer/test`). Harnesses here **lint** and **execute** generated code from `templates/<language>/expected-outputs/`.
 
 ## Python
 
 ```bash
-./language-test-harnesses/python/run-tests.sh
+./language-test-harnesses/python/run-linters.sh   # ruff + mypy
+./language-test-harnesses/python/run-tests.sh     # pytest
 ```
 
-This loops over expected-outputs cases and, for each `test/db/<implementation>/` tree, runs **ruff**, **mypy**, and **pytest** with the matching `PYTHONPATH`. Pytest temp output goes under `target/language-test-harnesses/` (gitignored).
+Or from the repository root:
 
-Requires [uv](https://docs.astral.sh/uv/) on `PATH`; postgres variants require **Docker**.
+```bash
+./scripts/run-linters.sh templates
+./scripts/run-tests.sh templates
+```
+
+Requires [uv](https://docs.astral.sh/uv/) on `PATH`; postgres pytest variants require **Docker**.

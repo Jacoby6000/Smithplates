@@ -67,15 +67,25 @@ On each commit that touches `*.scala` or `*.sbt`, hooks run (via [`scripts/pre-c
 
 If scalafmt or scalafix change files, stage the updates and commit again. After editing files under [`docs/reusable-components/`](../reusable-components/), run `scripts/sync_reusable_components.py` and re-stage the updated Markdown files. Run all hooks manually with `pre-commit run --all-files`.
 
+## Linters
+
+Run Scala and template-language linters/compilers (see [CONTRIBUTING.md](../../CONTRIBUTING.md) for Nix and Docker options):
+
+```bash
+./scripts/run-linters.sh
+```
+
+Subcommands: `scala` (scalafmt, scalafix, compile), `templates` (Python ruff + mypy).
+
 ## Tests
 
-Run all Scala and Python template suites (see [CONTRIBUTING.md](../../CONTRIBUTING.md) for Nix and Docker options):
+Run test suites only (linters are separate):
 
 ```bash
 ./scripts/run-tests.sh
 ```
 
-Subcommands: `scala` (aggregated `sbtn test`), `templates` (Python harness only).
+Subcommands: `scala` (aggregated `sbtn test`), `templates` (Python pytest only).
 
 ## Unit tests
 

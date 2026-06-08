@@ -37,6 +37,19 @@
           exec ./scripts/run-tests.sh "$@"
         '';
 
+        runLintersScript = pkgs.writeShellScriptBin "smithystache-run-linters" ''
+          set -euo pipefail
+          if [ -f ./scripts/run-linters.sh ]; then
+            :
+          elif command -v git >/dev/null 2>&1 && git rev-parse --show-toplevel >/dev/null 2>&1; then
+            cd "$(git rev-parse --show-toplevel)"
+          else
+            echo "error: run from the SmithyStache repository root" >&2
+            exit 1
+          fi
+          exec ./scripts/run-linters.sh "$@"
+        '';
+
       in {
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [
@@ -57,9 +70,16 @@
           shellHook = ''
             export JAVA_HOME="${java}"
             echo "SmithyStache dev shell (Java 11, sbtn, uv, docker client)"
+            echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"
-            echo "  nix run .#run-tests           # same via flake app"
+            echo "  nix run .#run-linters         # linters via flake app"
+            echo "  nix run .#run-tests           # tests via flake app"
           '';
+        };
+
+        apps.run-linters = {
+          type = "app";
+          program = "${runLintersScript}/bin/smithystache-run-linters";
         };
 
         apps.run-tests = {
@@ -67,6 +87,7 @@
           program = "${runTestsScript}/bin/smithystache-run-tests";
         };
 
+        packages.run-linters = runLintersScript;
         packages.run-tests = runTestsScript;
       });
 }

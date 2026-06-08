@@ -25,13 +25,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v19
 
       - name: Lint and compile
-        run: |
-          nix develop . --accept-flake-config --command bash -c '
-            set -euo pipefail
-            sbtn scalafmtCheckAll
-            sbtn '"'"'scalafixAll --check'"'"'
-            sbtn compile
-          '
+        run: nix develop . --accept-flake-config --command ./scripts/run-linters.sh
 
       - name: Run all tests
         run: nix develop . --accept-flake-config --command ./scripts/run-tests.sh

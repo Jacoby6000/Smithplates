@@ -2,15 +2,32 @@
 
 User-facing plugin docs live under [`docs/usage/`](docs/usage/). Deeper architecture notes live under [`docs/contributing/`](docs/contributing/). This guide focuses on **running tests** and **where to work** depending on your role.
 
-## Running tests
+## Linters and compilers
 
-All Scala unit/integration tests and Python template harness checks run through [`scripts/run-tests.sh`](scripts/run-tests.sh):
+Run Scala and template-language static checks through [`scripts/run-linters.sh`](scripts/run-linters.sh):
 
 | Subcommand | Runs |
 |------------|------|
-| `all` (default) | Aggregated `sbtn test` plus Python template harness |
+| `all` (default) | Scala scalafmt/scalafix/compile plus every `language-test-harnesses/*/run-linters.sh` |
+| `scala` | `sbtn scalafmtCheckAll`, `sbtn scalafixAll --check`, `sbtn compile` |
+| `templates` | Per-language harness linters (Python: ruff check, ruff format --check, strict mypy) |
+
+```bash
+./scripts/run-linters.sh
+nix run .#run-linters
+```
+
+CI runs `./scripts/run-linters.sh` before [`scripts/run-tests.sh`](scripts/run-tests.sh).
+
+## Running tests
+
+[`scripts/run-tests.sh`](scripts/run-tests.sh) runs **tests only** (no linters):
+
+| Subcommand | Runs |
+|------------|------|
+| `all` (default) | Aggregated `sbtn test` plus Python template pytest suites |
 | `scala` | All SBT aggregated module tests (Docker required for `*RendererIt` and postgres harness variants) |
-| `templates` | Python ruff, mypy, and pytest against `templates/python/expected-outputs/` |
+| `templates` | Python pytest against `templates/python/expected-outputs/` |
 
 **Docker** must be installed and running for:
 
@@ -57,10 +74,12 @@ If you prefer installing tools yourself, see [`docs/contributing/getting-started
 ### Lint before pushing
 
 ```bash
-nix develop . --accept-flake-config --command bash -c 'sbtn scalafmtCheckAll && sbtn '"'"'scalafixAll --check'"'"' && sbtn compile'
+./scripts/run-linters.sh
 ```
 
-CI runs the same checks via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+Or with Nix: `nix develop . --accept-flake-config --command ./scripts/run-linters.sh`
+
+CI runs linters and tests in separate steps via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ---
 
@@ -112,7 +131,7 @@ Bundled Python DB templates live under [`templates/python/src/db/`](templates/py
 1. Edit SSP under `templates/python/src/db/` (and `fragments/`).
 2. Run `sbtn smithySqlServiceRenderer/test` — compares rendered output to golden files under `expected-outputs/`.
 3. Refresh goldens when output changes intentionally (see [`templates/python/expected-outputs/README.md`](templates/python/expected-outputs/README.md)).
-4. Run `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-tests.sh templates`) for ruff, strict mypy, and pytest.
+4. Run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
 
 Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `unmanagedResourceDirectories`).
 
@@ -121,7 +140,7 @@ Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `un
 1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
 2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
 3. Add golden cases under `templates/<language>/expected-outputs/<test-case>/`.
-4. Add a harness under `language-test-harnesses/<language>/` and extend [`scripts/run-tests.sh`](scripts/run-tests.sh) when execution validation is ready.
+4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
 5. Extend [`CodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/SqlServiceCodegenTemplateTestSuite.scala).
 
 Consumers can also point `smithy-stache.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).

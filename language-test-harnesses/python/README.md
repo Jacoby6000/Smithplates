@@ -1,25 +1,25 @@
 # Python language test harness
 
-Runs `@pytest.mark.integration` suites from [`templates/python/expected-outputs/`](../../templates/python/expected-outputs/).
+Lints and runs `@pytest.mark.integration` suites from [`templates/python/expected-outputs/`](../../templates/python/expected-outputs/).
 
-Each golden case has its own `PYTHONPATH` (`src/db/model`, `src/db`, `src/db/<implementation>`), so the default runner checks and tests each case/dialect separately:
+Each golden case has its own `PYTHONPATH` (`src/db/model`, `src/db`, `src/db/<implementation>`), so runners check each case/dialect separately.
+
+## Linters (`run-linters.sh`)
 
 1. **ruff check** — lint (import order, style; long lines in tests and bundled transaction helpers are ignored)
 2. **ruff format --check** — formatting
-3. **mypy** — strict typing (`--strict`, `extra_checks`; postgres variants pick up bundled `test/db/postgres/stubs/` from expected-outputs via `MYPYPATH`)
-4. **pytest** — `@pytest.mark.integration` suites
+3. **mypy** — strict typing (`--strict`, `extra_checks`; postgres variants pick up bundled `test/db/postgres/stubs/` via `MYPYPATH`)
 
-## Run
+```bash
+./language-test-harnesses/python/run-linters.sh
+```
+
+## Tests (`run-tests.sh`)
+
+4. **pytest** — `@pytest.mark.integration` suites (postgres requires **Docker**)
 
 ```bash
 ./language-test-harnesses/python/run-tests.sh
-```
-
-Equivalent to looping:
-
-```bash
-PYTHONPATH=<case>/src/db/model:<case>/src/db:<case>/src/db/sqlite \
-  uv run pytest -m "integration and sqlite" <case>/test/db/sqlite
 ```
 
 Pass custom pytest args (set `PYTHONPATH` yourself when targeting golden trees):
@@ -31,4 +31,4 @@ export PYTHONPATH=../../templates/python/expected-outputs/sql-derived-crud-auto-
 
 Cases with `src/db/<implementation>/unsupported.md` are skipped.
 
-Postgres variants require **Docker**.
+Shared iteration logic lives in [`lib/common.sh`](lib/common.sh).

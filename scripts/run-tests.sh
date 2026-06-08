@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run SmithyStache Scala and Python template test suites from the repository root.
+# Run SmithyStache test suites from the repository root (no linters).
 # Invoked directly:
 #   scripts/run-tests.sh [all|scala|templates]
 set -euo pipefail
@@ -21,7 +21,7 @@ run_scala_tests() {
 }
 
 run_template_tests() {
-  echo "==> Python template harness (uv required; Docker required for postgres variants)"
+  echo "==> Python template tests (uv required; Docker required for postgres variants)"
   ./language-test-harnesses/python/run-tests.sh
 }
 

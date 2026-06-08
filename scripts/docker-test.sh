@@ -12,6 +12,9 @@ cd "$ROOT"
 
 IMAGE="${SMITHYSTACHE_TEST_IMAGE:-smithystache-test:local}"
 
+echo "Building Docker test image (${IMAGE})..."
+echo "The first build can take several minutes while Nix downloads dependencies; later builds reuse cached layers and are much faster."
+
 docker build -t "$IMAGE" -f Dockerfile .
 
 docker run --rm \
