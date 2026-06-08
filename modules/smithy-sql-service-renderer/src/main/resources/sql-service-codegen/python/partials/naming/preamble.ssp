@@ -56,4 +56,26 @@ def transactionTypeName(dialectKey: String): String =
     case "postgres" => "psycopg.AsyncTransaction"
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
+
+def pythonTypeName(typeName: String): String =
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"list[${pythonTypeName(inner)}]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"dict[str, ${pythonTypeName(inner)}]"
+  } else {
+    typeName match {
+      case "String"                          => "str"
+      case "Integer" | "Long" | "BigInteger" => "int"
+      case "Float" | "Double"                => "float"
+      case "BigDecimal"                      => "Decimal"
+      case "Boolean"                         => "bool"
+      case "Blob"                            => "bytes"
+      case "Timestamp"                       => "datetime"
+      case "Document"                        => "Any"
+      case "Unit"                            => "None"
+      case other                             => other
+    }
+  }
 %>
