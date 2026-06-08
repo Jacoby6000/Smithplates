@@ -50,7 +50,11 @@ run_variant_checks() {
 
   export PYTHONPATH="${db_root}/model:${db_root}:${db_root}/${impl}"
   export PYTHONDONTWRITEBYTECODE=1
-  export MYPYPATH="${harness_dir}/stubs:${PYTHONPATH}"
+  mypy_path="${PYTHONPATH}"
+  if [[ -d "${test_dir}/stubs" ]]; then
+    mypy_path="${test_dir}/stubs:${mypy_path}"
+  fi
+  export MYPYPATH="${mypy_path}"
 
   echo "==> ${label} ruff check"
   uv run ruff check --config "${harness_dir}/pyproject.toml" "${python_files[@]}" || return 1

@@ -49,7 +49,9 @@ object SqlServiceCodegenDbArtifacts {
       transactionRunResource: String = "postgres/psycopg_transaction_run.py",
       transactionRunOutputFile: String = "db/postgres/psycopg_transaction_run.py",
       integrationTestTemplate: String = "postgres/tests/service_derived_sql_integration_tests_postgres.ssp",
-      integrationTestOutputFile: String = "db/postgres/test_{{serviceFileName}}_derived_sql.py"
+      integrationTestOutputFile: String = "db/postgres/test_{{serviceFileName}}_derived_sql.py",
+      testcontainersStubResource: String = "postgres/stubs/testcontainers/postgres.pyi",
+      testcontainersStubOutputFile: String = "db/postgres/stubs/testcontainers/postgres.pyi"
   ): List[SqlServiceCodegenArtifactConfig] =
     shared ++ List(
       SqlServiceCodegenArtifactConfig(
@@ -67,11 +69,20 @@ object SqlServiceCodegenDbArtifacts {
         kind = SqlServiceCodegenArtifactKind.Test,
         template = integrationTestTemplate,
         outputFile = integrationTestOutputFile
+      ),
+      SqlServiceCodegenArtifactConfig(
+        kind = SqlServiceCodegenArtifactKind.Test,
+        template = testcontainersStubResource,
+        outputFile = testcontainersStubOutputFile,
+        bundledResource = true
       )
     )
 
   def isIntegrationTestTemplate(template: String): Boolean =
     template.contains("service_derived_sql_integration_tests")
+
+  def isPostgresTestcontainersStub(template: String): Boolean =
+    template.contains("stubs/testcontainers")
 
   def dialectSpecific(dialectKey: String): List[SqlServiceCodegenArtifactConfig] =
     dialectKey match {

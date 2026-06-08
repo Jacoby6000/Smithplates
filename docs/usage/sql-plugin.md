@@ -71,6 +71,7 @@ service FooRepository {
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
 | `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Test suite implementations (derived queries + abstract suites + templates; migration engine planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2))) |
+| `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
 
 Layout for the bundled `db` service type:
 

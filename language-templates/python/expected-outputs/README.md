@@ -30,6 +30,9 @@ Each `@sqlService` case that defines derived insert + select-one operations gold
     <service-type>/           # e.g. db/
       <implementation>/       # e.g. sqlite/ or postgres/
         test_<service>_derived_sql.py
+        stubs/                # postgres only: mypy stubs for testcontainers (add to mypy_path)
+          testcontainers/
+            postgres.pyi
 ```
 
 Example: `sql-derived-crud-auto-managed-columns/src/db/model/widget_repository_models.py` (shared src) and `test/db/sqlite/test_widget_repository_derived_sql.py` (generated test).

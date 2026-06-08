@@ -109,7 +109,7 @@ object CodegenTemplateTestDiscovery {
         implementationRootPath
       )
     val implementationTestFiles =
-      listFilesDirectlyInDirectoryRelativeToCaseRoot(
+      listFilesRelativeToCaseRoot(
         classLoader,
         caseRootPath,
         implementationTestOutputPath

@@ -41,7 +41,8 @@ object SqlServiceCodegenRenderer {
             SqlServiceCodegenContextBuilder
               .build(model, schema, serviceIr.queries, service, queryRenderer, bindPlaceholderStyle, settings)
               .map { context =>
-                if (SqlServiceCodegenDbArtifacts.isIntegrationTestTemplate(artifactConfig.template) &&
+                if ((SqlServiceCodegenDbArtifacts.isIntegrationTestTemplate(artifactConfig.template) ||
+                    SqlServiceCodegenDbArtifacts.isPostgresTestcontainersStub(artifactConfig.template)) &&
                   context.integrationTest.isEmpty) {
                   Nil
                 } else {

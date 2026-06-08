@@ -6,7 +6,7 @@ Each golden case has its own `PYTHONPATH` (`src/db/model`, `src/db`, `src/db/<im
 
 1. **ruff check** — lint (import order, style; long lines in tests and bundled transaction helpers are ignored)
 2. **ruff format --check** — formatting
-3. **mypy** — strict typing (`--strict`, `extra_checks`, typed `testcontainers` stubs under `stubs/`)
+3. **mypy** — strict typing (`--strict`, `extra_checks`; postgres variants pick up bundled `test/db/postgres/stubs/` from expected-outputs via `MYPYPATH`)
 4. **pytest** — `@pytest.mark.integration` suites
 
 ## Run
