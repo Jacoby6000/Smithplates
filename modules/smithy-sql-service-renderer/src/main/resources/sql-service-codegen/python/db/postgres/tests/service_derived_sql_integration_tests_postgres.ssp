@@ -1,6 +1,5 @@
 <%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
 <%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
-# Generated from ${ctx.serviceShapeId} by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator

@@ -42,9 +42,29 @@ object ScalateSspTemplateEngine {
           engine.load(templateUri)
         }
     )
-    normalizeRenderedOutput(
-      engine.layout(templateUri, template, toObjectMap(Map("ctx" -> view)))
-    )
+    val renderedBody           =
+      normalizeRenderedOutput(
+        engine.layout(templateUri, template, toObjectMap(Map("ctx" -> view)))
+      )
+    prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
+  }
+
+  private def prependGeneratedFileHeader(
+      view: ServiceTemplateView,
+      templateRoot: String,
+      renderedBody: String
+  ): String = {
+    val trimmedBody = renderedBody.stripTrailing()
+    if (trimmedBody.isEmpty) {
+      trimmedBody
+    } else {
+      val header =
+        ScalateTemplateHelpers.generatedFileHeader(
+          view.serviceShapeId,
+          ScalateTemplateHelpers.languageFromTemplateRoot(templateRoot)
+        )
+      s"$header\n$trimmedBody\n"
+    }
   }
 
   def renderServiceModuleBaseName(templateRoot: String, serviceName: String): String =
