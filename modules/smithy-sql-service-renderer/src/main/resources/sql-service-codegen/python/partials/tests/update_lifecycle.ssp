@@ -1,7 +1,13 @@
 
-    updated = await ${attrs("serviceFixtureName")}.${attrs("updateOperation.methodName")}(${attrs("updateOperation.callArguments")})
+    updated = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("updateOperation.name").asInstanceOf[String])}(${attrs("updateOperation.callArguments")})
     assert updated is True
 
-    fetched_after_update = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
-    assert isinstance(fetched_after_update, ${attrs("selectOneOperation.outputClassName")})
-<% if (attrs.get("selectOneOperation").exists(isTruthy)) { val selectOneOperation = attrs("selectOneOperation").asInstanceOf[Map[String, Any]] %><% if (selectOneOperation.get("hasUpdatedResultAssertions").exists(isTruthy)) { %><% for (assertion <- selectOneOperation("updatedResultAssertions").asInstanceOf[List[Map[String, Any]]]) { %>    ${assertion("line")}${"\n"}<% } %><% } %><% } %>
+    fetched_after_update = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
+    assert isinstance(fetched_after_update, ${attrs("selectOneOperation.outputShapeName")})
+<% if (attrs.get("selectOneOperation").exists(isTruthy)) { val selectOneOperation = attrs("selectOneOperation").asInstanceOf[Map[String, Any]] %>
+<% if (selectOneOperation.get("hasUpdatedResultAssertions").exists(isTruthy)) { %>
+<% for (assertion <- selectOneOperation("updatedResultAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${assertion("line")}
+<% } %>
+<% } %>
+<% } %>

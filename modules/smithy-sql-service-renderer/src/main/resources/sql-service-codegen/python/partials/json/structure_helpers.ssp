@@ -1,9 +1,16 @@
-def _json_bind_${attrs("className")}(value: ${attrs("className")}) -> str:
+def _json_bind_${attrs("name")}(value: ${attrs("name")}) -> str:
     payload = { <% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>"${member("name")}": cast(object, getattr(value, "${member("name")}"))<% if (!member("last").asInstanceOf[Boolean]) { %>, <% } %><% } %>${attrs("dictClose")}
     return json.dumps(payload)
 
 
-def _read_${attrs("className")}(row: ${attrs("rowTypeName")}, index: int) -> ${attrs("className")}:
-<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_sqlite") %><% } %><% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %><% include("partials/json/row_data_postgres") %><% } %>
-    return ${attrs("className")}(
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>        ${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),${"\n"}<% } %>    )
+def _read_${attrs("name")}(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> ${attrs("name")}:
+<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
+<% include("partials/json/row_data_sqlite") %>
+<% } %>
+<% if (!attrs.get("isSqliteDialect").exists(isTruthy)) { %>
+<% include("partials/json/row_data_postgres") %>
+<% } %>
+    return ${attrs("name")}(
+<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
+        ${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),
+<% } %>    )

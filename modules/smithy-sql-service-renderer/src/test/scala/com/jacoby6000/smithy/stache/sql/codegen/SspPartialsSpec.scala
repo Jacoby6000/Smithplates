@@ -7,7 +7,7 @@ class SspPartialsSpec extends munit.FunSuite {
         "sql-service-codegen/python",
         "partials/row_readers/read_str_postgres",
         Map(
-          "rowTypeName" -> "tuple[Any, ...]"
+          "dialectKey" -> "postgres"
         )
       )
 

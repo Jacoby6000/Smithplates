@@ -1,0 +1,59 @@
+<%
+def snakeCase(name: String): String =
+  name
+    .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
+    .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+    .toLowerCase
+
+def unionVariantTypeName(unionName: String, memberName: String): String =
+  s"$unionName${memberName.capitalize}"
+
+def unionTypeAlias(unionName: String, memberNames: Seq[String]): String =
+  memberNames.map(memberName => unionVariantTypeName(unionName, memberName)).mkString(" | ")
+
+def operationMethodName(operationName: String): String =
+  snakeCase(operationName)
+
+def serviceModuleBaseName(serviceName: String): String =
+  snakeCase(serviceName)
+
+def serviceProtocolName(serviceName: String): String =
+  s"${serviceName}ServiceProtocol"
+
+def implementationClassName(serviceName: String, dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => s"${serviceName}AiosqliteService"
+    case "postgres" => s"${serviceName}PsycopgService"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
+def implementationModuleName(serviceName: String, dialectKey: String): String =
+  s"${serviceModuleBaseName(serviceName)}${implementationModuleSuffix(dialectKey)}"
+
+def implementationModuleSuffix(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "_aiosqlite"
+    case "postgres" => "_psycopg"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
+def rowFactoryName(className: String): String =
+  s"_${className}_row_factory"
+
+def serviceFixtureName(serviceModuleBaseName: String): String =
+  s"${serviceModuleBaseName}_service"
+
+def rowTypeName(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "tuple[object, ...] | sqlite3.Row"
+    case "postgres" => "tuple[object, ...]"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
+def transactionTypeName(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "aiosqlite.Connection"
+    case "postgres" => "psycopg.AsyncTransaction"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+%>

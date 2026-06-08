@@ -8,8 +8,8 @@ import java.io.PrintStream
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
-  private val compiledTemplateCache  = new ConcurrentHashMap[String, Template]()
-  private val contextBindingPreamble =
+  private val compiledTemplateCache      = new ConcurrentHashMap[String, Template]()
+  private val baseContextBindingPreamble =
     """<%@ val attrs: Map[String, Any] %>
 <% def isTruthy(value: Any): Boolean = com.jacoby6000.smithy.stache.sql.codegen.ScalateTemplateHelpers.isTruthy(value) %>
 """
@@ -35,7 +35,7 @@ object ScalateSspTemplateEngine {
         .map(normalizeTemplateRoot)
         .getOrElse(inferTemplateRoot(normalizedTemplatePath))
     val templateUri            = templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
-    val engine                 = templateEngine(resolvedTemplateRoot)
+    val engine                 = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template               = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$templateUri",
       _ =>
@@ -48,6 +48,13 @@ object ScalateSspTemplateEngine {
     )
   }
 
+  def renderServiceModuleBaseName(templateRoot: String, serviceName: String): String =
+    renderClasspathPartial(
+      templateRoot,
+      "partials/naming/service_module_base_name",
+      Map("serviceName" -> serviceName)
+    ).strip()
+
   def renderClasspathPartial(
       templateRoot: String,
       partialReference: String,
@@ -55,7 +62,7 @@ object ScalateSspTemplateEngine {
   ): String = {
     val resolvedTemplateRoot = normalizeTemplateRoot(templateRoot)
     val partialUri           = partialUriRelativeToRoot(partialReference)
-    val engine               = templateEngine(resolvedTemplateRoot)
+    val engine               = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template             = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$partialUri",
       _ =>
@@ -68,15 +75,32 @@ object ScalateSspTemplateEngine {
     )
   }
 
-  private def templateEngine(templateRoot: String): TemplateEngine = {
+  private def templateEngine(normalizedTemplateRoot: String, templateRoot: Option[String]): TemplateEngine = {
     val created = new TemplateEngine
     created.allowCaching = true
     created.allowReload = false
     created.escapeMarkup = false
-    created.resourceLoader =
-      new PreambleTemplateRootResourceLoader(getClass.getClassLoader, templateRoot, contextBindingPreamble)
+    created.resourceLoader = new PreambleTemplateRootResourceLoader(
+      getClass.getClassLoader,
+      normalizedTemplateRoot,
+      contextBindingPreamble(normalizedTemplateRoot, templateRoot)
+    )
     created
   }
+
+  private def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
+    val root               = templateRoot.map(normalizeTemplateRoot).getOrElse(normalizedTemplateRoot)
+    val namingPreamblePath = s"/$root/partials/naming/preamble.ssp"
+    baseContextBindingPreamble + readClasspathTemplateOptional(namingPreamblePath).getOrElse("")
+  }
+
+  private def readClasspathTemplateOptional(resourcePath: String): Option[String] =
+    Option(getClass.getResourceAsStream(normalizeResourcePath(resourcePath))).map { stream =>
+      try
+        scala.io.Source.fromInputStream(stream, "UTF-8").mkString
+      finally
+        stream.close()
+    }
 
   private def normalizeClasspathUri(templateClasspath: String): String =
     templateClasspath.stripPrefix("classpath:")

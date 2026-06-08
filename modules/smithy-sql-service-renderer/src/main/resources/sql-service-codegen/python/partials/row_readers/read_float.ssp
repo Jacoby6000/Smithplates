@@ -1,2 +1,2 @@
-def _read_float(row: ${attrs("rowTypeName")}, index: int) -> float:
+def _read_float(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> float:
     return cast(float, row[index])

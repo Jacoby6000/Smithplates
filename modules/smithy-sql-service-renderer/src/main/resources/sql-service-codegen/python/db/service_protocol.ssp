@@ -3,14 +3,24 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from ${attrs("serviceFileName")}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>    ${model("className")},${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>    ${union("className")},${"\n"}<% } %>)
+from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${model("name")},
+<% } %>
+<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${union("name")},
+<% } %>
+)
 
 T = TypeVar("T", contravariant=True)
 
 
-class ${attrs("serviceClassName")}ServiceProtocol(Protocol[T]):
-<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %>    async def ${operation("methodName")}(
+class ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}(Protocol[T]):
+<% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %>    async def ${operationMethodName(operation("name").asInstanceOf[String])}(
         self,
-<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>        ${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,${"\n"}<% } %><% render("partials/types/transaction_parameter_protocol", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>    ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-        ...${"\n"}<% } %>
+<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
+        ${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,
+<% } %>
+<% render("partials/types/transaction_parameter_protocol", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>    ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
+        ...
+<% } %>

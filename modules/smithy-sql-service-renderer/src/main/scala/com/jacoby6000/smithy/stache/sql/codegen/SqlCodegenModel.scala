@@ -1,26 +1,10 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithy.stache.sql.query.SqlParameterizedStatement
 import com.jacoby6000.smithy.stache.sql.query.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
-
-final case class SqlCodegenStructure(
-    shapeId: ShapeId,
-    name: String,
-    namespace: String,
-    members: List[SqlCodegenMember]
-)
-
-final case class SqlCodegenMember(
-    name: String,
-    typeName: String,
-    optional: Boolean,
-    isStructure: Boolean,
-    structureShapeId: Option[ShapeId],
-    isUnion: Boolean = false
-)
 
 final case class SqlCodegenParameter(
     name: String,
@@ -32,18 +16,15 @@ final case class SqlCodegenParameter(
 
 final case class SqlCodegenErrorType(
     shapeId: ShapeId,
-    name: String,
-    className: String
+    name: String
 )
 
 final case class SqlCodegenOperation(
     shapeId: ShapeId,
     name: String,
-    methodName: String,
     parameters: List[SqlCodegenParameter],
     outputShapeId: Option[ShapeId],
     outputTypeName: Option[String],
-    outputClassName: Option[String],
     errors: List[SqlCodegenErrorType],
     sql: Option[SqlCodegenSqlBinding] = None
 )
@@ -76,42 +57,23 @@ final case class SqlCodegenSqlBinding(
     resultFields: List[SqlCodegenResultField]
 )
 
-final case class SqlCodegenUnionMember(
-    name: String,
-    variantClassName: String,
-    typeName: String
-)
-
-final case class SqlCodegenUnion(
-    shapeId: ShapeId,
-    name: String,
-    namespace: String,
-    members: List[SqlCodegenUnionMember]
-)
-
 final case class SqlCodegenServiceContext(
     shapeId: ShapeId,
     name: String,
     namespace: String,
-    fileName: String,
     version: String,
     dialectKey: String,
     queryRenderer: SqlQueryRenderer,
     bindPlaceholderStyle: SqlBindPlaceholder,
-    implementationClassName: String,
-    implementationModuleName: String,
     hasSqlOperations: Boolean,
-    models: List[SqlCodegenStructure],
-    unions: List[SqlCodegenUnion],
+    models: List[SqlStructure],
+    unions: List[SqlUnion],
     operations: List[SqlCodegenOperation],
     integrationTest: Option[SqlCodegenIntegrationTestContext] = None
 )
 
 final case class SqlCodegenIntegrationTestContext(
     schemaDdl: String,
-    serviceFixtureName: String,
-    implementationClassName: String,
-    implementationModuleName: String,
     insertOperation: SqlCodegenIntegrationTestOperation,
     selectOneOperation: SqlCodegenIntegrationTestOperation,
     updateOperation: Option[SqlCodegenIntegrationTestOperation],
@@ -122,10 +84,10 @@ final case class SqlCodegenIntegrationTestContext(
 )
 
 final case class SqlCodegenIntegrationTestOperation(
-    methodName: String,
+    name: String,
     callArguments: String,
     updatedCallArguments: Option[String],
-    outputClassName: Option[String],
+    outputShapeId: Option[ShapeId],
     resultAssertions: List[String],
     updatedResultAssertions: List[String]
 )

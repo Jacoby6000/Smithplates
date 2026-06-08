@@ -1,14 +1,14 @@
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_rollback(${attrs("serviceFixtureName")}: ${attrs("implementationClassName")}) -> None:
-    connection = ${attrs("serviceFixtureName")}._connection
+async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
+    connection = ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}._connection
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=tx)
+            entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")}, transaction=tx)
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None
-    missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+    missing = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
     assert missing is None

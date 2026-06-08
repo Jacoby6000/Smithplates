@@ -1,34 +1,28 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.query.SqlBindPlaceholder
 
 object SqlCodegenTemplateAttributes {
   def forService(context: SqlCodegenServiceContext): Map[String, Any] = {
     val baseAttributes =
       Map(
-        "serviceName"              -> context.name,
-        "serviceClassName"         -> context.name,
-        "serviceFileName"          -> context.fileName,
-        "serviceNamespace"         -> context.namespace,
-        "serviceShapeId"           -> context.shapeId.toString,
-        "serviceVersion"           -> context.version,
-        "implementationClassName"  -> context.implementationClassName,
-        "implementationModuleName" -> context.implementationModuleName,
-        "hasSqlOperations"         -> context.hasSqlOperations,
-        "dialectKey"               -> context.dialectKey,
-        "isPostgresDialect"        -> (context.dialectKey == "postgres"),
-        "isSqliteDialect"          -> (context.dialectKey == "sqlite"),
-        "rowTypeName"              -> SqlCodegenDialectConfig.rowTypeName(context.dialectKey),
-        "transactionTypeName"      -> SqlCodegenDialectConfig.transactionTypeName(context.dialectKey),
-        "models"                   -> withLastFlag(context.models.map(modelAttributes)),
-        "unions"                   -> withLastFlag(context.unions.map(unionAttributes)),
-        "hasUnions"                -> context.unions.nonEmpty,
-        "operations"               -> withLastFlag(
+        "serviceName"        -> context.name,
+        "serviceNamespace"   -> context.namespace,
+        "serviceShapeId"     -> context.shapeId.toString,
+        "serviceVersion"     -> context.version,
+        "hasSqlOperations"   -> context.hasSqlOperations,
+        "dialectKey"         -> context.dialectKey,
+        "isPostgresDialect"  -> (context.dialectKey == "postgres"),
+        "isSqliteDialect"    -> (context.dialectKey == "sqlite"),
+        "models"             -> withLastFlag(context.models.map(modelAttributes)),
+        "unions"             -> withLastFlag(context.unions.map(unionAttributes)),
+        "hasUnions"          -> context.unions.nonEmpty,
+        "operations"         -> withLastFlag(
           context.operations.map(operationAttributes(context.bindPlaceholderStyle, context.dialectKey, _))
         ),
-        "hasIntegrationTest"       -> context.integrationTest.isDefined,
-        "integrationTest"          -> context.integrationTest.map(integrationTestAttributes).orNull
+        "hasIntegrationTest" -> context.integrationTest.isDefined,
+        "integrationTest"    -> context.integrationTest.map(integrationTestAttributes).orNull
       ) ++ SqlCodegenHelperAttributes.forService(context)
 
     context.integrationTest match {
@@ -39,21 +33,22 @@ object SqlCodegenTemplateAttributes {
     }
   }
 
-  def renderOutputPath(pattern: String, context: SqlCodegenServiceContext): String =
+  def renderOutputPath(pattern: String, context: SqlCodegenServiceContext, templateRoot: String): String =
     pattern
       .replace("{{serviceName}}", context.name)
       .replace("{{serviceClassName}}", context.name)
-      .replace("{{serviceFileName}}", context.fileName)
+      .replace(
+        "{{serviceFileName}}",
+        ScalateSspTemplateEngine.renderServiceModuleBaseName(templateRoot, context.name)
+      )
       .replace("{{serviceNamespace}}", context.namespace)
       .replace("{{serviceShapeId}}", context.shapeId.toString)
       .replace("{{serviceVersion}}", context.version)
-      .replace("{{implementationClassName}}", context.implementationClassName)
 
-  private def modelAttributes(model: SqlCodegenStructure): Map[String, Any] = {
+  private def modelAttributes(model: SqlStructure): Map[String, Any] = {
     val members       = withLastFlag(model.members.map(memberAttributes))
     Map(
       "name"       -> model.name,
-      "className"  -> model.name,
       "shapeId"    -> model.shapeId.toString,
       "namespace"  -> model.namespace,
       "members"    -> members,
@@ -61,31 +56,28 @@ object SqlCodegenTemplateAttributes {
     )
   }
 
-  private def unionAttributes(union: SqlCodegenUnion): Map[String, Any] =
+  private def unionAttributes(union: SqlUnion): Map[String, Any] =
     Map(
-      "name"           -> union.name,
-      "className"      -> union.name,
-      "shapeId"        -> union.shapeId.toString,
-      "namespace"      -> union.namespace,
-      "members"        -> withLastFlag(union.members.map(unionMemberAttributes)),
-      "unionTypeAlias" -> union.members.map(_.variantClassName).mkString(" | ")
+      "name"      -> union.name,
+      "shapeId"   -> union.shapeId.toString,
+      "namespace" -> union.namespace,
+      "members"   -> withLastFlag(union.members.map(unionMemberAttributes))
     )
 
-  private def unionMemberAttributes(member: SqlCodegenUnionMember): Map[String, Any] =
+  private def unionMemberAttributes(member: SqlUnionMember): Map[String, Any] =
     Map(
-      "name"             -> member.name,
-      "variantClassName" -> member.variantClassName,
-      "typeName"         -> member.typeName
+      "name"     -> member.name,
+      "typeName" -> member.typeName
     )
 
-  private def memberAttributes(member: SqlCodegenMember): Map[String, Any] =
+  private def memberAttributes(member: SqlStructureMember): Map[String, Any] =
     Map(
       "name"               -> member.name,
       "typeName"           -> member.typeName,
       "optional"           -> member.optional,
       "required"           -> !member.optional,
       "isStructure"        -> member.isStructure,
-      "structureClassName" -> member.structureShapeId.map(_.getName).orNull
+      "structureShapeName" -> member.structureShapeId.map(_.getName).orNull
     )
 
   private def operationAttributes(
@@ -96,12 +88,11 @@ object SqlCodegenTemplateAttributes {
     val base =
       Map(
         "name"             -> operation.name,
-        "methodName"       -> operation.methodName,
         "operationShapeId" -> operation.shapeId.toString,
         "parameters"       -> withLastFlag(operation.parameters.map(parameterAttributes)),
         "hasParameters"    -> operation.parameters.nonEmpty,
         "hasOutput"        -> operation.outputTypeName.isDefined,
-        "outputClassName"  -> operation.outputClassName.orNull,
+        "outputShapeName"  -> operation.outputShapeId.map(_.getName).orNull,
         "outputTypeName"   -> operation.outputTypeName.orNull,
         "errors"           -> withLastFlag(operation.errors.map(errorAttributes)),
         "hasErrors"        -> operation.errors.nonEmpty,
@@ -126,7 +117,6 @@ object SqlCodegenTemplateAttributes {
           "isSelectOne"          -> false,
           "canUseClassRow"       -> false,
           "usesDictRowFactory"   -> false,
-          "classRowFactoryName"  -> "",
           "returningColumnIndex" -> null,
           "resultFields"         -> Nil,
           "hasResultFields"      -> false
@@ -154,13 +144,6 @@ object SqlCodegenTemplateAttributes {
           "isSelectOne"          -> (sql.queryKind == "selectOne"),
           "canUseClassRow"       -> canUseClassRow,
           "usesDictRowFactory"   -> usesDictRowFactory,
-          "classRowFactoryName"  -> (
-            if (canUseClassRow && dialectKey == "sqlite") {
-              s"_${operation.outputClassName.getOrElse("")}_row_factory"
-            } else {
-              ""
-            }
-          ),
           "returningColumnIndex" -> sql.returningColumnIndex.map(_.asInstanceOf[Any]).orNull,
           "resultFields"         -> withLastFlag(sql.resultFields.map(resultFieldAttributes)),
           "hasResultFields"      -> sql.resultFields.nonEmpty
@@ -175,7 +158,7 @@ object SqlCodegenTemplateAttributes {
       "optional"           -> parameter.optional,
       "required"           -> !parameter.optional,
       "isStructure"        -> parameter.isStructure,
-      "structureClassName" -> parameter.structureShapeId.map(_.getName).orNull
+      "structureShapeName" -> parameter.structureShapeId.map(_.getName).orNull
     )
 
   private def bindParameterAttributes(
@@ -210,9 +193,8 @@ object SqlCodegenTemplateAttributes {
 
   private def errorAttributes(error: SqlCodegenErrorType): Map[String, Any] =
     Map(
-      "name"      -> error.name,
-      "className" -> error.className,
-      "shapeId"   -> error.shapeId.toString
+      "name"    -> error.name,
+      "shapeId" -> error.shapeId.toString
     )
 
   private def integrationTestAttributes(
@@ -220,9 +202,6 @@ object SqlCodegenTemplateAttributes {
   ): Map[String, Any]                        =
     Map(
       "schemaDdl"                        -> integrationTest.schemaDdl,
-      "implementationModuleName"         -> integrationTest.implementationModuleName,
-      "implementationClassName"          -> integrationTest.implementationClassName,
-      "serviceFixtureName"               -> integrationTest.serviceFixtureName,
       "extraImports"                     -> integrationTest.extraImports.mkString("", "\n", "\n"),
       "insertOperation"                  -> integrationOperationAttributes(integrationTest.insertOperation),
       "selectOneOperation"               -> integrationOperationAttributes(integrationTest.selectOneOperation),
@@ -253,12 +232,12 @@ object SqlCodegenTemplateAttributes {
 
   private def integrationOperationAttributes(
       operation: SqlCodegenIntegrationTestOperation
-  ): Map[String, Any]                 =
+  ): Map[String, Any]                       =
     Map(
-      "methodName"                 -> operation.methodName,
+      "name"                       -> operation.name,
       "callArguments"              -> operation.callArguments,
-      "outputClassName"            -> operation.outputClassName.orNull,
-      "hasOutputClassName"         -> operation.outputClassName.isDefined,
+      "outputShapeName"            -> operation.outputShapeId.map(_.getName).orNull,
+      "hasOutputShapeName"         -> operation.outputShapeId.isDefined,
       "resultAssertions"           -> withLastFlag(
         operation.resultAssertions.map(assertion => Map("line" -> assertion))
       ),

@@ -1,13 +1,13 @@
 @pytest.mark.integration
 @pytest.mark.sqlite
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_rollback(${attrs("serviceFixtureName")}: ${attrs("implementationClassName")}) -> None:
-    connection = ${attrs("serviceFixtureName")}._connection
+async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
+    connection = ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}._connection
     await connection.execute("BEGIN")
-    entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=connection)
+    entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")}, transaction=connection)
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()
 
-    missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+    missing = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
     assert missing is None

@@ -75,7 +75,11 @@ object SqlServiceCodegenRenderer {
       context: SqlCodegenServiceContext
   ): String = {
     val renderedOutputFile =
-      SqlCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, context)
+      SqlCodegenTemplateAttributes.renderOutputPath(
+        artifactConfig.outputFile,
+        context,
+        settings.templateDirectory.stripPrefix("classpath:")
+      )
     val prefixedOutputFile =
       artifactConfig.kind match {
         case SqlServiceCodegenArtifactKind.Src  =>

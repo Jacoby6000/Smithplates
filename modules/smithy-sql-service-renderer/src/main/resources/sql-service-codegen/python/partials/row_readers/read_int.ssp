@@ -1,2 +1,2 @@
-def _read_int(row: ${attrs("rowTypeName")}, index: int) -> int:
+def _read_int(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> int:
     return cast(int, row[index])

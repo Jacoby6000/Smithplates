@@ -1,6 +1,6 @@
 
-    deleted = await ${attrs("serviceFixtureName")}.${attrs("deleteOperation.methodName")}(${attrs("deleteOperation.callArguments")})
+    deleted = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("deleteOperation.name").asInstanceOf[String])}(${attrs("deleteOperation.callArguments")})
     assert deleted is True
 
-    missing = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
+    missing = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
     assert missing is None

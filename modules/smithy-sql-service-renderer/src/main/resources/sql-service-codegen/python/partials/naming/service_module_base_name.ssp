@@ -1,0 +1,1 @@
+<%= serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]) %>

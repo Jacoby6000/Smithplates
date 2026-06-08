@@ -44,7 +44,7 @@ def responseType(attrs: Map[String, Any]): String = {
       responseTypes += pythonTypeName(attrs("outputTypeName").toString)
     }
     attrs("errors").asInstanceOf[List[Map[String, Any]]].foreach { error =>
-      responseTypes += error("className").toString
+      responseTypes += error("name").toString
     }
     responseTypes.toList match {
       case Nil           => "None"

@@ -43,26 +43,18 @@ object SqlServiceCodegenContextBuilder {
       service.operations
         .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
         .map { operations =>
-          val (models, unions) = SqlShapeCodegenMapper.fromIr(shapeIr)
-          val baseContext      =
+          val baseContext =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
               name = service.shapeId.getName,
               namespace = service.shapeId.getNamespace,
-              fileName = SqlCodegenNaming.serviceFileName(service.shapeId.getName),
               version = service.version,
               dialectKey = queryRenderer.key,
               queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
-              implementationClassName =
-                SqlCodegenDialectConfig.implementationClassName(service.shapeId.getName, queryRenderer.key),
-              implementationModuleName = SqlCodegenDialectConfig.implementationModuleName(
-                SqlCodegenNaming.serviceFileName(service.shapeId.getName),
-                queryRenderer.key
-              ),
               hasSqlOperations = operations.exists(_.sql.isDefined),
-              models = models.sortBy(_.shapeId.toString),
-              unions = unions.sortBy(_.shapeId.toString),
+              models = shapeIr.structures.sortBy(_.shapeId.toString),
+              unions = shapeIr.unions.sortBy(_.shapeId.toString),
               operations = operations
             )
 
@@ -110,8 +102,7 @@ object SqlServiceCodegenContextBuilder {
           operation.errorShapes.map { errorShapeId =>
             SqlCodegenErrorType(
               shapeId = errorShapeId,
-              name = errorShapeId.getName,
-              className = SqlCodegenNaming.className(errorShapeId)
+              name = errorShapeId.getName
             )
           }
         }
@@ -122,19 +113,12 @@ object SqlServiceCodegenContextBuilder {
       val outputTypeName =
         outputShapeId.map(shapeId => SqlIrTypeNameResolver.resolveShapeTypeName(model, shapeId))
 
-      val outputClassName =
-        outputShapeId
-          .filterNot(SqlIrTypeNameResolver.isPreludeShape)
-          .map(SqlCodegenNaming.className)
-
       SqlCodegenOperation(
         shapeId = operation.shapeId,
         name = operation.name,
-        methodName = SqlCodegenNaming.methodName(operation.name),
         parameters = resolvedParameters,
         outputShapeId = outputShapeId,
         outputTypeName = outputTypeName,
-        outputClassName = outputClassName,
         errors = errors,
         sql = resolvedSql
       )

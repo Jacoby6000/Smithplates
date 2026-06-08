@@ -1,2 +1,2 @@
         *,
-        transaction: ${attrs("transactionTypeName")} | None = None,
+        transaction: ${transactionTypeName(attrs("dialectKey").asInstanceOf[String])} | None = None,

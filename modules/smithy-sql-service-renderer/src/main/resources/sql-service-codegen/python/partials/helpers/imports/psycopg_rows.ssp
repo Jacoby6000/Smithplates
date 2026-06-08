@@ -1,1 +1,0 @@
-<% if (attrs.get("needsClassRowImport").exists(isTruthy)) { %>from psycopg.rows import class_row${"\n"}<% } %><% if (attrs.get("needsDictRowImport").exists(isTruthy)) { %>from psycopg.rows import dict_row${"\n"}<% } %>

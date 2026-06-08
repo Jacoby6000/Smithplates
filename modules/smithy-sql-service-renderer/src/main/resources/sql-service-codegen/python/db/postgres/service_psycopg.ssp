@@ -3,14 +3,20 @@ from __future__ import annotations
 
 from typing import override
 
-<% include("partials/helpers/imports") %>import psycopg
+<% include("partials/helpers/imports") +%>import psycopg
 from psycopg_transaction_run import run
-from ${attrs("serviceFileName")}_models import (
-<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>    ${model("className")},${"\n"}<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>    ${union("className")},${"\n"}<% } %>)
-from ${attrs("serviceFileName")}_protocol import ${attrs("serviceClassName")}ServiceProtocol
+from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_models import (
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${model("name")},
+<% } %>
+<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${union("name")},
+<% } %>
+)
+from ${serviceModuleBaseName(attrs("serviceName").asInstanceOf[String])}_protocol import ${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}
 
 
-class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServiceProtocol[${attrs("transactionTypeName")}]):
+class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}(${serviceProtocolName(attrs("serviceName").asInstanceOf[String])}[${transactionTypeName(attrs("dialectKey").asInstanceOf[String])}]):
     def __init__(self, connection: psycopg.AsyncConnection) -> None:
         super().__init__()
         self._connection = connection
@@ -20,9 +26,12 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
 
 <% for (operation <- attrs("operations").asInstanceOf[List[Map[String, Any]]]) { %><% if (operation("hasSql").asInstanceOf[Boolean]) { %>
     @override
-    async def ${operation("methodName")}(
+    async def ${operationMethodName(operation("name").asInstanceOf[String])}(
         self,
-<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>        ${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,${"\n"}<% } %><% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
+<% for (parameter <- operation("parameters").asInstanceOf[List[Map[String, Any]]]) { %>
+        ${parameter("name")}: <% render("partials/types/parameter_annotation", Map("attrs" -> (attrs ++ parameter.asInstanceOf[Map[String, Any]]))) %>,
+<% } %>
+<% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
     ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
         async def execute() -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
 <% if (operation("isInsertScalar").asInstanceOf[Boolean]) { %>
@@ -40,7 +49,7 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
                 row = await cur.fetchone()
                 if row is None:
                     raise RuntimeError("INSERT RETURNING produced no row")
-                return ${operation("outputClassName")}(
+                return ${operation("outputShapeName")}(
 <% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                    <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "col")))) %><% } %>
                 )
 <% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
@@ -51,7 +60,7 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation("outputClassName")}(
+            return ${operation("outputShapeName")}(
 <% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "index")))) %><% } %>
             )
 <% } %><% } %><% if (operation("isBooleanMutation").asInstanceOf[Boolean]) { %><% if (!operation("isRowcountExecution").asInstanceOf[Boolean]) { %>
@@ -68,7 +77,7 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
             )
             return cur.rowcount > 0
 <% } %><% } %><% if (operation("isSelectOne").asInstanceOf[Boolean]) { %><% if (operation("canUseClassRow").asInstanceOf[Boolean]) { %>
-            async with self._connection.cursor(row_factory=class_row(${operation("outputClassName")})) as cur:
+            async with self._connection.cursor(row_factory=class_row(${operation("outputShapeName")})) as cur:
 <% render("partials/sql/postgres_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
                 return await cur.fetchone()
 <% } %><% if (!operation("canUseClassRow").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
@@ -77,7 +86,7 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
                 row = await cur.fetchone()
                 if row is None:
                     return None
-                return ${operation("outputClassName")}(
+                return ${operation("outputShapeName")}(
 <% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                    <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "col")))) %><% } %>
                 )
 <% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
@@ -88,10 +97,10 @@ class ${attrs("implementationClassName")}(${attrs("serviceClassName")}ServicePro
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${operation("outputClassName")}(
+            return ${operation("outputShapeName")}(
 <% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]] ++ resultField.asInstanceOf[Map[String, Any]] ++ Map("readMode" -> "index")))) %><% } %>
             )
 <% } %><% } %><% } %>
         return await run(self._connection, transaction, execute)
 <% } %><% } %>
-<% include("partials/helpers/row_reader_helpers") %>
+<% include("partials/helpers/row_reader_helpers")  +%>

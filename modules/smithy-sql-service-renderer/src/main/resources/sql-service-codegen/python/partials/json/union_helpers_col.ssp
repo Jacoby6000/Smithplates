@@ -1,6 +1,6 @@
-def _read_${attrs("className")}_col(row: dict[str, object], column: str) -> ${attrs("className")}:
+def _read_${attrs("name")}_col(row: dict[str, object], column: str) -> ${attrs("name")}:
 <% include("partials/json/row_data_postgres_col") %>
     present = [key for key in (${attrs("discriminatorKeys")}) if key in data]
     if len(present) != 1:
-        raise ValueError(f"unknown ${attrs("className")} discriminator: {sorted(data.keys())}")
-    return cast(${attrs("className")}, data)
+        raise ValueError(f"unknown ${attrs("name")} discriminator: {sorted(data.keys())}")
+    return cast(${attrs("name")}, data)

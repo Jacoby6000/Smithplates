@@ -4,7 +4,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 <% if (attrs.get("hasUnions").exists(isTruthy)) { %>from typing import TypedDict
-<% } %><% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %><% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>class ${member("variantClassName")}(TypedDict):
-    ${member("name")}: <% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>${"\n"}<% } %>${union("className")} = ${union("unionTypeAlias")}${"\n"}${"\n"}<% } %><% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>@dataclass
-class ${model("className")}:
-<% if (model("hasMembers").asInstanceOf[Boolean]) { %><% render("partials/models/member_lines", Map("attrs" -> (attrs ++ model.asInstanceOf[Map[String, Any]]))) %><% } %><% if (!model("hasMembers").asInstanceOf[Boolean]) { %>    pass${"\n"}<% } %><% } %>
+<% } %>
+<% for (union <- attrs("unions").asInstanceOf[List[Map[String, Any]]]) { %>
+<% for (member <- union("members").asInstanceOf[List[Map[String, Any]]]) { %>
+class ${unionVariantTypeName(union("name").asInstanceOf[String], member("name").asInstanceOf[String])}(TypedDict):
+    ${member("name")}: <% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) +%>
+<% } %>
+${union("name")} = ${unionTypeAlias(union("name").asInstanceOf[String], union("members").asInstanceOf[List[Map[String, Any]]].map(_("name").asInstanceOf[String]))}
+
+<% } %>
+<% for (model <- attrs("models").asInstanceOf[List[Map[String, Any]]]) { %>@dataclass
+class ${model("name")}:
+<% if (model("hasMembers").asInstanceOf[Boolean]) { %>
+<% render("partials/models/member_lines", Map("attrs" -> (attrs ++ model.asInstanceOf[Map[String, Any]]))) +%><% } %>
+<% if (!model("hasMembers").asInstanceOf[Boolean]) { %>
+    pass
+<% } %>
+<% } %>

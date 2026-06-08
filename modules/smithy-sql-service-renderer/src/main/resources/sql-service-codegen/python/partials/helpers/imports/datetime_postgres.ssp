@@ -1,1 +1,0 @@
-from datetime import datetime<% if (attrs.get("needsTimezoneImport").exists(isTruthy)) { %>, timezone<% } %>

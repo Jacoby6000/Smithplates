@@ -1,6 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.SqlTimestampFormat
+import com.jacoby6000.smithy.stache.sql.*
 
 object SqlCodegenHelperAttributes {
   def forService(context: SqlCodegenServiceContext): Map[String, Any] = {
@@ -51,10 +51,10 @@ object SqlCodegenHelperAttributes {
           rowReadersCol.contains("_read_epoch_seconds_col") ||
           timestampBinds.nonEmpty
       ),
-      "needsRowReaderModuleImport"     -> SqlCodegenDialectConfig.rowReaderModuleImport(context.dialectKey).isDefined,
+      "needsRowReaderModuleImport"     -> (context.dialectKey == "sqlite"),
       "needsCastImport"                -> (rowReaders.nonEmpty || rowReadersCol.nonEmpty || usesJson),
       "needsUuidImport"                -> (
-        SqlCodegenDialectConfig.usesUuidRowConversion(context.dialectKey) &&
+        (context.dialectKey == "postgres") &&
           (rowReaders.contains("_read_str") || rowReadersCol.contains("_read_str_col"))
       ),
       "usesReadBool"                   -> rowReaders.contains("_read_bool"),
@@ -130,9 +130,9 @@ object SqlCodegenHelperAttributes {
     operations
       .flatMap { operation =>
         operation.sql.toList.filter(SqlCodegenSqlBindingMetadata.canUseClassRow).flatMap { sql =>
-          operation.outputClassName.map { className =>
+          operation.outputShapeId.map(_.getName).map { outputShapeName =>
             (
-              className,
+              outputShapeName,
               sql.resultFields.map(resultFieldAttributesForFactory)
             )
           }
@@ -141,10 +141,9 @@ object SqlCodegenHelperAttributes {
       .groupBy(_._1)
       .values
       .map(_.head)
-      .map { case (className, resultFields) =>
+      .map { case (outputShapeName, resultFields) =>
         Map(
-          "className"    -> className,
-          "factoryName"  -> s"_${className}_row_factory",
+          "name"         -> outputShapeName,
           "resultFields" -> withLastFlag(resultFields)
         )
       }
@@ -159,10 +158,9 @@ object SqlCodegenHelperAttributes {
       "timestampFormat" -> timestampFormatName(resultField.timestampFormat)
     )
 
-  private def jsonStructureAttributes(structure: SqlCodegenStructure): Map[String, Any] =
+  private def jsonStructureAttributes(structure: SqlStructure): Map[String, Any] =
     Map(
       "name"      -> structure.name,
-      "className" -> structure.name,
       "dictClose" -> " }",
       "members"   -> withLastFlag(
         structure.members.map { member =>
@@ -174,19 +172,17 @@ object SqlCodegenHelperAttributes {
       )
     )
 
-  private def jsonUnionAttributes(union: SqlCodegenUnion): Map[String, Any] =
+  private def jsonUnionAttributes(union: SqlUnion): Map[String, Any] =
     Map(
       "name"              -> union.name,
-      "className"         -> union.name,
       "discriminatorKeys" -> union.members.map(member => s"\"${member.name}\"").mkString(", "),
       "members"           -> withLastFlag(union.members.map(unionMemberAttributes))
     )
 
-  private def unionMemberAttributes(member: SqlCodegenUnionMember): Map[String, Any] =
+  private def unionMemberAttributes(member: SqlUnionMember): Map[String, Any] =
     Map(
-      "name"             -> member.name,
-      "variantClassName" -> member.variantClassName,
-      "typeName"         -> member.typeName
+      "name"     -> member.name,
+      "typeName" -> member.typeName
     )
 
   private def withLastFlag(items: List[Map[String, Any]]): List[Map[String, Any]] =

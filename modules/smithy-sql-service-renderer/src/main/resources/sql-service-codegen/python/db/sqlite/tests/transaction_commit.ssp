@@ -2,22 +2,28 @@
 @pytest.mark.integration
 @pytest.mark.sqlite
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_commit(${attrs("serviceFixtureName")}: ${attrs("implementationClassName")}) -> None:
-    connection = ${attrs("serviceFixtureName")}._connection
+async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}: ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs("dialectKey").asInstanceOf[String])}) -> None:
+    connection = ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await ${attrs("serviceFixtureName")}.${attrs("insertOperation.methodName")}(${attrs("insertOperation.callArguments")}, transaction=connection)
+        entity_id = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("insertOperation.name").asInstanceOf[String])}(${attrs("insertOperation.callArguments")}, transaction=connection)
         assert isinstance(entity_id, str)
         assert entity_id
 
-        fetched = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")}, transaction=connection)
-        assert isinstance(fetched, ${attrs("selectOneOperation.outputClassName")})
-<% for (assertion <- attrs("transactionCommitInTxAssertions").asInstanceOf[List[Map[String, Any]]]) { %>        ${assertion("line")}${"\n"}<% } %>
+        fetched = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")}, transaction=connection)
+        assert isinstance(fetched, ${attrs("selectOneOperation.outputShapeName")})
+<% for (assertion <- attrs("transactionCommitInTxAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
+        ${assertion("line")}
+<% } %>
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
-    fetched_after_commit = await ${attrs("serviceFixtureName")}.${attrs("selectOneOperation.methodName")}(${attrs("selectOneOperation.callArguments")})
-    assert isinstance(fetched_after_commit, ${attrs("selectOneOperation.outputClassName")})
-<% for (assertion <- attrs("transactionCommitAfterAssertions").asInstanceOf[List[Map[String, Any]]]) { %>    ${assertion("line")}${"\n"}<% } %>${"\n"}
+    fetched_after_commit = await ${serviceFixtureName(serviceModuleBaseName(attrs("serviceName").asInstanceOf[String]))}.${operationMethodName(attrs("selectOneOperation.name").asInstanceOf[String])}(${attrs("selectOneOperation.callArguments")})
+    assert isinstance(fetched_after_commit, ${attrs("selectOneOperation.outputShapeName")})
+<% for (assertion <- attrs("transactionCommitAfterAssertions").asInstanceOf[List[Map[String, Any]]]) { %>
+    ${assertion("line")}
+<% } %>
+
+

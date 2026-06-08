@@ -1,6 +1,6 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
-import com.jacoby6000.smithy.stache.sql.SqlSchema
+import com.jacoby6000.smithy.stache.sql.*
 import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
@@ -31,13 +31,9 @@ object SqlCodegenIntegrationTestBuilder {
 
     (insertOperation, selectOneOperation) match {
       case (Some(insert), Some(selectOne)) =>
-        val serviceFixtureName = s"${context.fileName}_service"
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = schemaDdl(schema, sqlOperations, context.dialectKey, schemaDdlRenderers),
-            serviceFixtureName = serviceFixtureName,
-            implementationClassName = context.implementationClassName,
-            implementationModuleName = context.implementationModuleName,
             insertOperation = insert,
             selectOneOperation = selectOne,
             updateOperation = updateOperation,
@@ -78,10 +74,10 @@ object SqlCodegenIntegrationTestBuilder {
   ): Option[SqlCodegenIntegrationTestOperation] =
     Some(
       SqlCodegenIntegrationTestOperation(
-        methodName = operation.methodName,
+        name = operation.name,
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial),
         updatedCallArguments = None,
-        outputClassName = operation.outputClassName,
+        outputShapeId = operation.outputShapeId,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -105,10 +101,10 @@ object SqlCodegenIntegrationTestBuilder {
 
     Some(
       SqlCodegenIntegrationTestOperation(
-        methodName = operation.methodName,
+        name = operation.name,
         callArguments = "id=entity_id",
         updatedCallArguments = None,
-        outputClassName = operation.outputClassName,
+        outputShapeId = operation.outputShapeId,
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial),
         updatedResultAssertions =
           resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated)
@@ -122,7 +118,7 @@ object SqlCodegenIntegrationTestBuilder {
   ): Option[SqlCodegenIntegrationTestOperation] =
     Some(
       SqlCodegenIntegrationTestOperation(
-        methodName = operation.methodName,
+        name = operation.name,
         callArguments = {
           val valueParameters = operation.parameters.filterNot(_.name == "id")
           if (valueParameters.nonEmpty) {
@@ -132,7 +128,7 @@ object SqlCodegenIntegrationTestBuilder {
           }
         },
         updatedCallArguments = None,
-        outputClassName = operation.outputClassName,
+        outputShapeId = operation.outputShapeId,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -141,10 +137,10 @@ object SqlCodegenIntegrationTestBuilder {
   private def buildDeleteOperation(operation: SqlCodegenOperation): Option[SqlCodegenIntegrationTestOperation] =
     Some(
       SqlCodegenIntegrationTestOperation(
-        methodName = operation.methodName,
+        name = operation.name,
         callArguments = "id=entity_id",
         updatedCallArguments = None,
-        outputClassName = operation.outputClassName,
+        outputShapeId = operation.outputShapeId,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -202,7 +198,7 @@ object SqlCodegenIntegrationTestBuilder {
   private def structureMembers(
       context: SqlCodegenServiceContext,
       parameter: SqlCodegenParameter
-  ): List[SqlCodegenMember] =
+  ): List[SqlStructureMember] =
     parameter.structureShapeId
       .flatMap(shapeId => context.models.find(_.shapeId == shapeId))
       .map(_.members)
@@ -239,7 +235,7 @@ object SqlCodegenIntegrationTestBuilder {
 
   private def sampleMemberExpression(
       context: SqlCodegenServiceContext,
-      member: SqlCodegenMember,
+      member: SqlStructureMember,
       variant: SampleVariant
   ): String =
     sampleLiteral(context, member.typeName, variant, member.name)

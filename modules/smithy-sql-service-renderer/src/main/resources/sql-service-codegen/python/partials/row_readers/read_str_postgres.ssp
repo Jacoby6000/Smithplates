@@ -1,4 +1,4 @@
-def _read_str(row: ${attrs("rowTypeName")}, index: int) -> str:
+def _read_str(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)

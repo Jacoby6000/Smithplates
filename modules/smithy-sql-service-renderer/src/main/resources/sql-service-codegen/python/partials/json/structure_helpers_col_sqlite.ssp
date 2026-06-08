@@ -1,4 +1,6 @@
-def _read_${attrs("className")}_col(row: dict[str, object], column: str) -> ${attrs("className")}:
+def _read_${attrs("name")}_col(row: dict[str, object], column: str) -> ${attrs("name")}:
 <% include("partials/json/row_data_sqlite_col") %>
-    return ${attrs("className")}(
-<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>        ${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),${"\n"}<% } %>    )
+    return ${attrs("name")}(
+<% for (member <- attrs("members").asInstanceOf[List[Map[String, Any]]]) { %>
+        ${member("name")}=cast(<% render("partials/types/type_name", Map("attrs" -> member.asInstanceOf[Map[String, Any]])) %>, data["${member("name")}"]),
+<% } %>    )

@@ -1,2 +1,2 @@
-def _read_bool(row: ${attrs("rowTypeName")}, index: int) -> bool:
+def _read_bool(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> bool:
     return cast(bool, row[index])
