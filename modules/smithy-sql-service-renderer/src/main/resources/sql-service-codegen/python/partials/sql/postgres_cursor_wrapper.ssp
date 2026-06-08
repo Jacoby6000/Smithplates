@@ -1,0 +1,5 @@
+<%@ val rowFactoryExpr: String %>
+<%@ val typeIgnoreComment: String = "" %>
+<%@ var body: String %>
+            async with self._connection.cursor(row_factory=${rowFactoryExpr}) as cur:${typeIgnoreComment}
+${unescape(body)}

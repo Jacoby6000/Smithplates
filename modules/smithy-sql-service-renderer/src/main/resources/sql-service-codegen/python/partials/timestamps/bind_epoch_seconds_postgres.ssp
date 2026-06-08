@@ -1,6 +1,0 @@
-def _timestamp_bind_epoch_seconds(value: datetime) -> Decimal:
-    if value.tzinfo is None:
-        normalized = value.replace(tzinfo=timezone.utc)
-    else:
-        normalized = value.astimezone(timezone.utc)
-    return Decimal(str(round(normalized.timestamp(), 3)))

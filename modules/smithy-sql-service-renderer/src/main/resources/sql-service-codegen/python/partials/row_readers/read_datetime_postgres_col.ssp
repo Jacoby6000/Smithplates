@@ -1,2 +1,0 @@
-def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
-    return cast(datetime, row[column])

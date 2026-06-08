@@ -1,5 +1,9 @@
 def _read_str_col(row: dict[str, object], column: str) -> str:
+<% if (attrs.get("isPostgresDialect").exists(isTruthy)) { %>
     value = row[column]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)
+<% } else { %>
+    return cast(str, row[column])
+<% } %>

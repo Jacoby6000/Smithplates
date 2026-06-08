@@ -1,0 +1,10 @@
+def _timestamp_bind_epoch_seconds(value: datetime) -> <% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>float<% } else { %>Decimal<% } %>:
+    if value.tzinfo is None:
+        normalized = value.replace(tzinfo=timezone.utc)
+    else:
+        normalized = value.astimezone(timezone.utc)
+<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
+    return normalized.timestamp()
+<% } else { %>
+    return Decimal(str(round(normalized.timestamp(), 3)))
+<% } %>

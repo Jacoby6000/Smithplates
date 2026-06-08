@@ -1,5 +1,9 @@
 def _read_str(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> str:
+<% if (attrs.get("isPostgresDialect").exists(isTruthy)) { %>
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)
+<% } else { %>
+    return cast(str, row[index])
+<% } %>

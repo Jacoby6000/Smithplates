@@ -24,60 +24,7 @@ class ${implementationClassName(attrs("serviceName").asInstanceOf[String], attrs
 <% render("partials/types/transaction_parameter_impl", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
     ) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
         async def execute(conn: aiosqlite.Connection) -> <% render("partials/types/response_type", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>:
-<% if (operation("isInsertScalar").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, ${operation("returningColumnIndex")})
-<% } %><% if (operation("isInsertStructure").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            <% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col", "named_row")) %><% } %>
-            )
-<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
-            )
-<% } %><% } %><% if (operation("isBooleanMutation").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %><% if (operation("isRowcountExecution").asInstanceOf[Boolean]) { %>
-            return cursor.rowcount > 0
-<% } %><% if (!operation("isRowcountExecution").asInstanceOf[Boolean]) { %>
-            row = await cursor.fetchone()
-            return row is not None
-<% } %><% } %><% if (operation("isSelectOne").asInstanceOf[Boolean]) { %><% if (operation("canUseClassRow").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            return ${rowFactoryName(operation("outputShapeName").asInstanceOf[String])}(cursor, row)
-<% } %><% if (!operation("canUseClassRow").asInstanceOf[Boolean]) { %><% if (operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            <% render("partials/sql/sqlite_named_row_mapper", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "col", "named_row")) %><% } %>
-            )
-<% } %><% if (!operation("usesDictRowFactory").asInstanceOf[Boolean]) { %>
-<% render("partials/sql/sqlite_cursor_execute", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) %>
-            row = await cursor.fetchone()
-            if row is None:
-                return None
-            return ${operation("outputShapeName")}(
-<% for (resultField <- operation("resultFields").asInstanceOf[List[Map[String, Any]]]) { %>                <% render("partials/sql/result_field_assignment", resultFieldAssignmentAttrs(resultField.asInstanceOf[Map[String, Any]], "index")) %><% } %>
-            )
-<% } %><% } %><% } %>
-        return await run(self._connection, transaction, execute)
+<% render("partials/operations/sqlite_operation_body", Map("attrs" -> (attrs ++ operation.asInstanceOf[Map[String, Any]]))) +%>        return await run(self._connection, transaction, execute)
 <% } %><% } %>
 
 <% include("partials/helpers/row_reader_helpers")  +%>

@@ -1,2 +1,0 @@
-def _read_datetime(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> datetime:
-    return cast(datetime, row[index])

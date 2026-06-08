@@ -1,4 +1,5 @@
 def _read_datetime(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}, index: int) -> datetime:
+<% if (attrs.get("isSqliteDialect").exists(isTruthy)) { %>
     value = cast(str, row[index])
     if value.endswith("Z"):
         normalized = value[:-1] + "+00:00"
@@ -10,3 +11,6 @@ def _read_datetime(row: ${rowTypeName(attrs("dialectKey").asInstanceOf[String])}
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+<% } else { %>
+    return cast(datetime, row[index])
+<% } %>

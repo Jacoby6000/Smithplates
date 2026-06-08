@@ -5,9 +5,11 @@ class SspPartialsSpec extends munit.FunSuite {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
         "sql-service-codegen/python",
-        "partials/row_readers/read_str_postgres",
+        "partials/row_readers/read_str",
         Map(
-          "dialectKey" -> "postgres"
+          "dialectKey"        -> "postgres",
+          "isPostgresDialect" -> true,
+          "isSqliteDialect"   -> false
         )
       )
 
