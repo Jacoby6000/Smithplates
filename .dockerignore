@@ -1,0 +1,16 @@
+.git
+.github
+target/
+.bloop
+.bsp
+.metals
+.sbt
+.coursier-cache
+.pre-commit-home
+.xdg-runtime
+result
+.direnv
+language-test-harnesses/python/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
