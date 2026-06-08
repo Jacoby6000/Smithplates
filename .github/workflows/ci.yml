@@ -9,49 +9,40 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NIX_CONFIG: experimental-features = nix-command flakes
+
 jobs:
-  scala:
-    name: Scala build, lint, and test
+  nix:
+    name: Nix lint and tests
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 11
-          cache: sbt
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v19
 
-      - name: Setup sbtn and sbt
-        uses: coursier/setup-action@v1
-        with:
-          apps: sbtn sbt
-
-      - name: Compile
-        run: sbtn compile
-
-      - name: scalafix
-        run: sbtn 'scalafixAll --check'
-
-      - name: Compile
-        run: sbtn compile
-
-      - name: Unit tests (IR and renderers)
+      - name: Lint and compile
         run: |
-          sbtn smithySqlIr/test
-          sbtn smithySqlServiceIr/test
-          sbtn smithySqlPostgresRenderer/test
-          sbtn smithySqlSqliteRenderer/test
-          sbtn smithySqlServiceRenderer/test
+          nix develop . --accept-flake-config --command bash -c '
+            set -euo pipefail
+            sbtn scalafmtCheckAll
+            sbtn '"'"'scalafixAll --check'"'"'
+            sbtn compile
+          '
 
-      - name: Unit tests (plugin)
-        run: sbtn smithyStachePlugin/test
+      - name: Run all tests
+        run: nix develop . --accept-flake-config --command ./scripts/run-tests.sh
 
-      - name: Integration tests (Postgres)
-        run: sbtn smithySqlPostgresRendererIt/test
+  docker:
+    name: Docker test image
+    runs-on: ubuntu-latest
 
-      - name: Integration tests (SQLite)
-        run: sbtn smithySqlSqliteRendererIt/test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run tests in Docker image
+        run: ./scripts/docker-test.sh
