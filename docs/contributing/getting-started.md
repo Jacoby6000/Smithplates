@@ -69,7 +69,7 @@ If scalafmt or scalafix change files, stage the updates and commit again. After 
 
 ## Tests
 
-Run all Scala and Python template suites:
+Run all Scala and Python template suites (see [CONTRIBUTING.md](../../CONTRIBUTING.md) for Nix and Docker options):
 
 ```bash
 ./scripts/run-tests.sh

@@ -104,7 +104,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 
 **Usage:** [Integration](docs/usage/integration.md) · [SQL plugin](docs/usage/sql-plugin.md)
 
-**Contributing:** [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Integration tests](docs/contributing/integration-tests.md)
+**Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Integration tests](docs/contributing/integration-tests.md)
 
 Conventions: [`AGENTS.md`](AGENTS.md)
 
