@@ -10,7 +10,21 @@ From the repository root, run linters and tests with Nix when available, otherwi
 ./validate                 # lint + test (default)
 ./validate build           # lint and compile only
 ./validate test            # tests only
+./validate lint --target python/db/sqlite
+./validate test --target plugin
+./validate lint,test --target python/db/postgres
 ```
+
+Optional `--target` scopes lint and test to a subset:
+
+| Target | Lint | Test |
+|--------|------|------|
+| *(default)* | Scala + all template harnesses | `sbtn test` + all pytest |
+| `plugin` | Scala only | `sbtn test` excluding template golden suite |
+| `python` | All Python service types | Template golden tests + all pytest |
+| `python/db` | `db` service type | Golden tests + pytest for `db` |
+| `python/db/sqlite` | Shared `db` + sqlite | Golden tests (sqlite variants) + pytest sqlite |
+| `python/db/postgres` | Shared `db` + postgres | Golden tests (postgres variants) + pytest postgres |
 
 On Windows (PowerShell):
 
@@ -18,6 +32,8 @@ On Windows (PowerShell):
 .\validate.ps1
 .\validate.ps1 build
 .\validate.ps1 test
+.\validate.ps1 lint -Target python/db/sqlite
+.\validate.ps1 test -Target plugin
 ```
 
 ## Linters and compilers
@@ -45,7 +61,8 @@ CI runs [`./validate`](validate) with Nix (Linux), `./validate` without Nix (Lin
 |------------|------|
 | `all` (default) | Aggregated `sbtn test` plus Python template pytest suites |
 | `scala` | All SBT aggregated module tests (Docker required for `*RendererIt` and postgres harness variants) |
-| `templates` | Python pytest against `templates/python/expected-outputs/` |
+| `plugin` | All SBT tests except `SqlServiceCodegenTemplateTestSuite` |
+| `templates` | Scala template golden tests plus Python pytest under `templates/python/tests/` |
 
 **Docker** must be installed and running for:
 

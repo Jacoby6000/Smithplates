@@ -80,25 +80,96 @@ run_python_linters() {
   fi
 }
 
+discover_python_service_types() {
+  local -a service_types=()
+  local case_dir service_type_dir service_type
+
+  shopt -s nullglob
+  for case_dir in "${TESTS_ROOT}"/*/; do
+    for service_type_dir in "${case_dir}expected/src"/*/; do
+      service_type="$(basename "${service_type_dir}")"
+      local seen=0
+      if [[ ${#service_types[@]} -gt 0 ]]; then
+        local existing
+        for existing in "${service_types[@]}"; do
+          if [[ "${existing}" == "${service_type}" ]]; then
+            seen=1
+            break
+          fi
+        done
+      fi
+      if [[ ${seen} -eq 0 ]]; then
+        service_types+=("${service_type}")
+      fi
+    done
+  done
+
+  if [[ ${#service_types[@]} -eq 0 ]]; then
+    return 0
+  fi
+
+  printf '%s\n' "${service_types[@]}" | sort -u
+}
+
+resolve_python_service_types() {
+  local service_type_filter="${SMITHYSTACHE_PYTHON_SERVICE_TYPE:-all}"
+  local -a service_types=()
+
+  if [[ "${service_type_filter}" == "all" ]]; then
+    mapfile -t service_types < <(discover_python_service_types)
+  else
+    service_types=("${service_type_filter}")
+  fi
+
+  if [[ ${#service_types[@]} -eq 0 ]]; then
+    echo "error: no Python service types discovered under ${TESTS_ROOT}" >&2
+    return 1
+  fi
+
+  printf '%s\n' "${service_types[@]}"
+}
+
+resolve_python_impls() {
+  local impl_filter="${SMITHYSTACHE_PYTHON_IMPL:-all}"
+  case "${impl_filter}" in
+    all) printf '%s\n' sqlite postgres ;;
+    sqlite|postgres) printf '%s\n' "${impl_filter}" ;;
+    *)
+      echo "error: unknown Python impl filter: ${impl_filter}" >&2
+      return 2
+      ;;
+  esac
+}
+
 foreach_python_variant() {
   local callback="$1"
   local failures=0
+  local -a service_types=()
+  local -a impls=()
+
+  mapfile -t service_types < <(resolve_python_service_types) || return $?
+  mapfile -t impls < <(resolve_python_impls) || return $?
 
   shopt -s nullglob
   for case_dir in "${TESTS_ROOT}"/*/; do
     local case_name
     case_name="$(basename "${case_dir}")"
-    local db_root="${case_dir}expected/src/db"
 
-    for impl in sqlite postgres; do
-      local test_dir="${case_dir}expected/test/db/${impl}"
-      if ! variant_has_derived_sql_tests "${db_root}" "${impl}" "${test_dir}"; then
-        continue
-      fi
+    local service_type
+    for service_type in "${service_types[@]}"; do
+      local db_root="${case_dir}expected/src/${service_type}"
 
-      if ! "${callback}" "${case_name}" "${impl}" "${db_root}" "${test_dir}"; then
-        failures=$((failures + 1))
-      fi
+      local impl
+      for impl in "${impls[@]}"; do
+        local test_dir="${case_dir}expected/test/${service_type}/${impl}"
+        if ! variant_has_derived_sql_tests "${db_root}" "${impl}" "${test_dir}"; then
+          continue
+        fi
+
+        if ! "${callback}" "${case_name}" "${impl}" "${db_root}" "${test_dir}"; then
+          failures=$((failures + 1))
+        fi
+      done
     done
   done
 

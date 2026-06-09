@@ -1,3 +1,37 @@
+function Invoke-SmithplatesValidateRunLintForTarget {
+  $target = if ($env:SMITHYSTACHE_VALIDATE_TARGET) { $env:SMITHYSTACHE_VALIDATE_TARGET } else { 'all' }
+  switch ($target) {
+    'all' { & ./scripts/run-linters.sh all; break }
+    'plugin' { & ./scripts/run-linters.sh scala; break }
+    { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
+      & ./scripts/run-linters.sh templates
+      break
+    }
+    default {
+      Write-Error "unknown validate target for lint: $target"
+      exit 2
+    }
+  }
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
+function Invoke-SmithplatesValidateRunTestForTarget {
+  $target = if ($env:SMITHYSTACHE_VALIDATE_TARGET) { $env:SMITHYSTACHE_VALIDATE_TARGET } else { 'all' }
+  switch ($target) {
+    'all' { & ./scripts/run-tests.sh all; break }
+    'plugin' { & ./scripts/run-tests.sh plugin; break }
+    { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
+      & ./scripts/run-tests.sh templates
+      break
+    }
+    default {
+      Write-Error "unknown validate target for test: $target"
+      exit 2
+    }
+  }
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
 function Invoke-SmithplatesValidateActions {
   param(
     [Parameter(Mandatory = $true)]
@@ -11,14 +45,8 @@ function Invoke-SmithplatesValidateActions {
 
   foreach ($action in $Actions) {
     switch ($action) {
-      'lint' {
-        & ./scripts/run-linters.sh all
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      }
-      'test' {
-        & ./scripts/run-tests.sh all
-        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      }
+      'lint' { Invoke-SmithplatesValidateRunLintForTarget }
+      'test' { Invoke-SmithplatesValidateRunTestForTarget }
       default {
         Write-Error "unknown validate action: $action"
         exit 2

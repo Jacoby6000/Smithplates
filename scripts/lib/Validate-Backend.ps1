@@ -1,6 +1,6 @@
 function Get-SmithplatesValidateUsage {
   @'
-usage: .\validate.ps1 [lint,test|build|test|...]
+usage: .\validate.ps1 [lint,test|build|test|...] [-Target TARGET]
 
 Actions (comma-separated):
   build, lint   linters and compile (Scala + template harnesses)
@@ -8,9 +8,11 @@ Actions (comma-separated):
 
 Default: lint,test
 
+Optional -Target scopes lint/test to plugin, python, python/db, or a dialect path.
 Uses Nix when available (preferred), otherwise Docker. Override with $env:SMITHYSTACHE_VALIDATE_BACKEND = "nix" or "docker".
 When multiple actions are requested, Nix/Docker is entered once for the full run.
 '@
+  Write-Host (Get-SmithplatesValidateTargetUsage)
 }
 
 function Get-SmithplatesDockerImageInputHash {
@@ -83,6 +85,15 @@ function Invoke-SmithplatesDockerRun {
 
   $image = Ensure-SmithplatesDockerImage -Root $Root
   $dockerArgs = @('run', '--rm')
+  if ($env:SMITHYSTACHE_VALIDATE_TARGET) {
+    $dockerArgs += @('-e', "SMITHYSTACHE_VALIDATE_TARGET=$($env:SMITHYSTACHE_VALIDATE_TARGET)")
+  }
+  if ($env:SMITHYSTACHE_PYTHON_SERVICE_TYPE) {
+    $dockerArgs += @('-e', "SMITHYSTACHE_PYTHON_SERVICE_TYPE=$($env:SMITHYSTACHE_PYTHON_SERVICE_TYPE)")
+  }
+  if ($env:SMITHYSTACHE_PYTHON_IMPL) {
+    $dockerArgs += @('-e', "SMITHYSTACHE_PYTHON_IMPL=$($env:SMITHYSTACHE_PYTHON_IMPL)")
+  }
   if ($MountDockerSocket) {
     if ($IsWindows -or $env:OS -match 'Windows') {
       $dockerArgs += @('-v', '//var/run/docker.sock:/var/run/docker.sock')
@@ -105,9 +116,15 @@ function Test-SmithplatesInNixShell {
 }
 
 function Test-SmithplatesValidateActionsNeedDockerSocket {
-  param([Parameter(Mandatory = $true)][string[]]$Actions)
+  param(
+    [Parameter(Mandatory = $true)][string[]]$Actions,
+    [string]$Target = 'all'
+  )
 
-  return $Actions -contains 'test'
+  if ($Actions -notcontains 'test') {
+    return $false
+  }
+  return Test-SmithplatesValidateTargetNeedsPostgresDocker -Target $Target
 }
 
 function Get-SmithplatesValidateBackend {
@@ -143,8 +160,12 @@ function Invoke-SmithplatesValidateActionsWithBackend {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [Parameter(Mandatory = $true)][string]$Backend,
-    [Parameter(Mandatory = $true)][string[]]$Actions
+    [Parameter(Mandatory = $true)][string[]]$Actions,
+    [string]$Target = 'all'
   )
+
+  $env:SMITHYSTACHE_VALIDATE_TARGET = $Target
+  Set-SmithplatesPythonTargetEnv -Target $Target
 
   switch ($Backend) {
     'nix' {
@@ -158,7 +179,7 @@ function Invoke-SmithplatesValidateActionsWithBackend {
     }
     'docker' {
       $command = @('./scripts/run-validate-actions.sh') + $Actions
-      if (Test-SmithplatesValidateActionsNeedDockerSocket -Actions $Actions) {
+      if (Test-SmithplatesValidateActionsNeedDockerSocket -Actions $Actions -Target $Target) {
         Invoke-SmithplatesDockerRun -Root $Root -MountDockerSocket -Command $command
       } else {
         Invoke-SmithplatesDockerRun -Root $Root -Command $command
@@ -193,11 +214,16 @@ function Normalize-SmithplatesValidateAction {
 function Invoke-SmithplatesValidate {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
-    [string]$ActionSpec = 'lint,test'
+    [string]$ActionSpec = 'lint,test',
+    [string]$Target = 'all'
   )
 
+  $normalizedTarget = Normalize-SmithplatesValidateTarget -Target $Target
+  $env:SMITHYSTACHE_VALIDATE_TARGET = $normalizedTarget
+  Set-SmithplatesPythonTargetEnv -Target $normalizedTarget
+
   $backend = Get-SmithplatesValidateBackend -Root $Root
-  Write-Host "==> validate ($ActionSpec) via $backend"
+  Write-Host "==> validate ($ActionSpec, target=$normalizedTarget) via $backend"
 
   $seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
   $actions = [System.Collections.Generic.List[string]]::new()
@@ -216,5 +242,5 @@ function Invoke-SmithplatesValidate {
     exit 2
   }
 
-  Invoke-SmithplatesValidateActionsWithBackend -Root $Root -Backend $backend -Actions $actions.ToArray()
+  Invoke-SmithplatesValidateActionsWithBackend -Root $Root -Backend $backend -Actions $actions.ToArray() -Target $normalizedTarget
 }

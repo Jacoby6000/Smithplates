@@ -9,6 +9,7 @@ $ErrorActionPreference = 'Stop'
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $Root
 
+. (Join-Path $Root 'scripts/lib/Validate-Target.ps1')
 . (Join-Path $Root 'scripts/lib/Validate-Actions.ps1')
 
 Invoke-SmithplatesValidateActions -Actions $Action

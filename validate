@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Run Smithplates linters and/or tests using Nix (preferred) or Docker.
 #
-#   ./validate              # lint + test (default)
-#   ./validate build        # lint and compile only
-#   ./validate test         # tests only
-#   ./validate lint,test    # explicit default
+#   ./validate                              # lint + test (default)
+#   ./validate build                        # lint and compile only
+#   ./validate test                         # tests only
+#   ./validate lint,test                    # explicit default
+#   ./validate lint --target python/db/sqlite
+#   ./validate --target plugin test
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,4 +15,4 @@ cd "$ROOT"
 # shellcheck source=scripts/lib/validate-backend.sh
 source "${ROOT}/scripts/lib/validate-backend.sh"
 
-smithystache_validate_main "${1:-lint,test}"
+smithystache_validate_main "$@"

@@ -120,9 +120,9 @@ object CodegenTemplateTestDiscovery {
         implementationTestOutputPath
       )
     val migrationFiles          =
-      listFilesRelativeToExpectedRoot(
+      listDialectMigrationFiles(
         expectedRoot,
-        expectedRoot.resolve("db")
+        variant.implementationId
       )
 
     (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
@@ -139,6 +139,23 @@ object CodegenTemplateTestDiscovery {
       false
     } else {
       GoldenFileSuffixes.exists(suffix => fileName.endsWith(suffix))
+    }
+  }
+
+  private def listDialectMigrationFiles(
+      expectedRoot: Path,
+      implementationId: String
+  ): List[CodegenTemplateExpectedFile] = {
+    val migrationPath = expectedRoot.resolve("db").resolve(s"$implementationId.sql")
+    if (!isGoldenExpectedFile(migrationPath)) {
+      Nil
+    } else {
+      List(
+        CodegenTemplateExpectedFile(
+          relativePath = expectedRoot.relativize(migrationPath).toString.replace('\\', '/'),
+          content = Files.readString(migrationPath, StandardCharsets.UTF_8)
+        )
+      )
     }
   }
 

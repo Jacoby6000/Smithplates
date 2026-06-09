@@ -1,9 +1,12 @@
 # Backend selection and validate actions for validate / validate.ps1.
 # Requires ROOT (repository root) and set -euo pipefail in the caller.
 
+# shellcheck source=scripts/lib/validate-target.sh
+source "${ROOT}/scripts/lib/validate-target.sh"
+
 smithystache_validate_usage() {
   cat <<'EOF' >&2
-usage: ./validate [lint,test|build|test|...]
+usage: ./validate [lint,test|build|test|...] [--target TARGET]
 
 Actions (comma-separated):
   build, lint   linters and compile (Scala + template harnesses)
@@ -11,9 +14,11 @@ Actions (comma-separated):
 
 Default: lint,test
 
+Optional --target scopes lint/test to plugin, python, python/db, or a dialect path.
 Uses Nix when available (preferred), otherwise Docker. Override with SMITHYSTACHE_VALIDATE_BACKEND=nix|docker.
 When multiple actions are requested, Nix/Docker is entered once for the full run.
 EOF
+  smithystache_validate_target_usage
 }
 
 smithystache_validate_in_nix_shell() {
@@ -21,9 +26,10 @@ smithystache_validate_in_nix_shell() {
 }
 
 smithystache_validate_actions_need_docker_socket() {
+  local target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
   local action
   for action in "$@"; do
-    if [[ "${action}" == "test" ]]; then
+    if [[ "${action}" == "test" ]] && smithystache_validate_target_needs_postgres_docker "${target}"; then
       return 0
     fi
   done
@@ -56,6 +62,19 @@ smithystache_validate_detect_backend() {
   echo none
 }
 
+smithystache_validate_docker_env_args() {
+  local -a env_args=(
+    -e "SMITHYSTACHE_VALIDATE_TARGET=${SMITHYSTACHE_VALIDATE_TARGET:-all}"
+  )
+  if [[ -n "${SMITHYSTACHE_PYTHON_SERVICE_TYPE:-}" ]]; then
+    env_args+=(-e "SMITHYSTACHE_PYTHON_SERVICE_TYPE=${SMITHYSTACHE_PYTHON_SERVICE_TYPE}")
+  fi
+  if [[ -n "${SMITHYSTACHE_PYTHON_IMPL:-}" ]]; then
+    env_args+=(-e "SMITHYSTACHE_PYTHON_IMPL=${SMITHYSTACHE_PYTHON_IMPL}")
+  fi
+  printf '%s\0' "${env_args[@]}"
+}
+
 smithystache_validate_run_actions_with_backend() {
   local backend="$1"
   shift
@@ -67,20 +86,36 @@ smithystache_validate_run_actions_with_backend() {
         source "${ROOT}/scripts/lib/validate-actions.sh"
         smithystache_validate_run_actions "$@"
       else
-        nix develop "${ROOT}" --accept-flake-config --command ./scripts/run-validate-actions.sh "$@"
+        nix develop "${ROOT}" --accept-flake-config --command env \
+          SMITHYSTACHE_VALIDATE_TARGET="${SMITHYSTACHE_VALIDATE_TARGET:-all}" \
+          ${SMITHYSTACHE_PYTHON_SERVICE_TYPE:+SMITHYSTACHE_PYTHON_SERVICE_TYPE="${SMITHYSTACHE_PYTHON_SERVICE_TYPE}"} \
+          ${SMITHYSTACHE_PYTHON_IMPL:+SMITHYSTACHE_PYTHON_IMPL="${SMITHYSTACHE_PYTHON_IMPL}"} \
+          ./scripts/run-validate-actions.sh "$@"
       fi
       ;;
     docker)
       # shellcheck source=scripts/lib/docker-image.sh
       source "${ROOT}/scripts/lib/docker-image.sh"
       smithystache_ensure_docker_image
+      local -a docker_env_args=()
+      docker_env_args+=(-e "SMITHYSTACHE_VALIDATE_TARGET=${SMITHYSTACHE_VALIDATE_TARGET:-all}")
+      if [[ -n "${SMITHYSTACHE_PYTHON_SERVICE_TYPE:-}" ]]; then
+        docker_env_args+=(-e "SMITHYSTACHE_PYTHON_SERVICE_TYPE=${SMITHYSTACHE_PYTHON_SERVICE_TYPE}")
+      fi
+      if [[ -n "${SMITHYSTACHE_PYTHON_IMPL:-}" ]]; then
+        docker_env_args+=(-e "SMITHYSTACHE_PYTHON_IMPL=${SMITHYSTACHE_PYTHON_IMPL}")
+      fi
       if smithystache_validate_actions_need_docker_socket "$@"; then
         smithystache_docker_run \
+          "${docker_env_args[@]}" \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -- \
           ./scripts/run-validate-actions.sh "$@"
       else
-        smithystache_docker_run -- ./scripts/run-validate-actions.sh "$@"
+        smithystache_docker_run \
+          "${docker_env_args[@]}" \
+          -- \
+          ./scripts/run-validate-actions.sh "$@"
       fi
       ;;
     *)
@@ -106,12 +141,46 @@ smithystache_validate_normalize_action() {
   esac
 }
 
+smithystache_validate_parse_args() {
+  VALIDATE_ACTION_SPEC="lint,test"
+  local target="all"
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target)
+        if [[ $# -lt 2 ]]; then
+          echo "error: --target requires a value" >&2
+          smithystache_validate_usage
+          return 2
+        fi
+        target="$2"
+        shift 2
+        ;;
+      --target=*)
+        target="${1#--target=}"
+        shift
+        ;;
+      *)
+        VALIDATE_ACTION_SPEC="$1"
+        shift
+        ;;
+    esac
+  done
+
+  target="$(smithystache_validate_normalize_target "${target}")" || return $?
+  export SMITHYSTACHE_VALIDATE_TARGET="${target}"
+  smithystache_validate_apply_python_target_env "${target}"
+}
+
 smithystache_validate_main() {
-  local spec="${1:-lint,test}"
+  smithystache_validate_parse_args "$@" || return $?
+  local spec="${VALIDATE_ACTION_SPEC}"
+
   local backend
   backend="$(smithystache_validate_detect_backend)" || return $?
 
-  echo "==> validate (${spec}) via ${backend}"
+  local target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
+  echo "==> validate (${spec}, target=${target}) via ${backend}"
 
   local -a seen=()
   local -a actions=()

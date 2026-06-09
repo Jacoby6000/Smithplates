@@ -43,7 +43,8 @@ run_all() {
   run_template_linters
 }
 
-case "${1:-all}" in
+mode="${1:-all}"
+case "${mode}" in
   scala) run_scala_linters ;;
   templates) run_template_linters ;;
   all) run_all ;;
