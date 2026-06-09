@@ -15,6 +15,8 @@ class SspFragmentsSpec extends munit.FunSuite {
       usedJsonTypeNames = Set.empty,
       usedJsonTypeNamesCol = Set.empty,
       classRowFactories = Nil,
+      protocolTableModelImportBlock = "",
+      serviceLocalImportBlock = "",
       integrationTest = None
     )
 
@@ -74,6 +76,8 @@ class SspFragmentsSpec extends munit.FunSuite {
             usedJsonTypeNames = Set.empty,
             usedJsonTypeNamesCol = Set.empty,
             classRowFactories = Nil,
+            protocolTableModelImportBlock = "",
+            serviceLocalImportBlock = "",
             integrationTest = None
           )
         )

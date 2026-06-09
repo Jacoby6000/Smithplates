@@ -104,25 +104,30 @@ object SqlServiceCodegenRenderer {
   private def queryRendererForArtifact(
       artifactConfig: SqlServiceCodegenArtifactConfig,
       settings: SqlServiceCodegenSettings
-  ): SqlQueryRenderer =
-    if (artifactConfig.template.contains("/sqlite/")) {
-      settings.queryRenderers.getOrElse(
-        "sqlite",
-        throw new IllegalStateException("sqlite query renderer is required for sqlite codegen artifacts")
-      )
-    } else if (artifactConfig.template.contains("/postgres/")) {
-      settings.queryRenderers.getOrElse(
-        "postgres",
-        throw new IllegalStateException("postgres query renderer is required for postgres codegen artifacts")
-      )
+  ): SqlQueryRenderer = {
+    val dialectKey = dialectKeyForArtifact(artifactConfig, settings)
+    settings.queryRenderers.getOrElse(
+      dialectKey,
+      throw new IllegalStateException(s"query renderer for dialect '$dialectKey' is required")
+    )
+  }
+
+  private def dialectKeyForArtifact(
+      artifactConfig: SqlServiceCodegenArtifactConfig,
+      settings: SqlServiceCodegenSettings
+  ): String = {
+    val paths = List(artifactConfig.template, artifactConfig.outputFile)
+    if (paths.exists(artifactPathRefersToDialect(_, "sqlite"))) {
+      "sqlite"
+    } else if (paths.exists(artifactPathRefersToDialect(_, "postgres"))) {
+      "postgres"
     } else {
-      settings.queryRenderers.getOrElse(
-        settings.defaultDialectKey,
-        throw new IllegalStateException(
-          s"query renderer for default dialect '${settings.defaultDialectKey}' is required"
-        )
-      )
+      settings.defaultDialectKey
     }
+  }
+
+  private def artifactPathRefersToDialect(path: String, dialectKey: String): Boolean =
+    path.startsWith(s"$dialectKey/") || path.contains(s"/$dialectKey/")
 
   private def normalizeDirectory(directory: String): String =
     directory.stripSuffix("/").stripSuffix("\\")

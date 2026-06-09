@@ -122,6 +122,8 @@ object TemplateIntegrationTestOperationView {
 final case class IntegrationTestView(
     schemaDdl: String,
     extraImports: String,
+    testImports: String,
+    localImportBlock: String,
     insertOperation: TemplateIntegrationTestOperationView,
     selectOneOperation: TemplateIntegrationTestOperationView,
     updateOperation: TemplateIntegrationTestOperationView,
@@ -143,6 +145,8 @@ final case class ServiceTemplateView(
     usedJsonTypeNames: Set[String],
     usedJsonTypeNamesCol: Set[String],
     classRowFactories: List[TemplateClassRowFactoryView],
+    protocolTableModelImportBlock: String,
+    serviceLocalImportBlock: String,
     integrationTest: Option[IntegrationTestView]
 )
 
@@ -170,6 +174,8 @@ object SqlCodegenTemplateViews {
       } else {
         Nil
       },
+      protocolTableModelImportBlock = SqlCodegenPythonImports.protocolTableModelImportBlock(context),
+      serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
       integrationTest = context.integrationTest.map(integrationTestView)
     )
   }
@@ -184,6 +190,8 @@ object SqlCodegenTemplateViews {
       } else {
         ""
       },
+      testImports = integrationTest.testImports,
+      localImportBlock = integrationTest.localImportBlock,
       insertOperation = integrationOperationView(integrationTest.insertOperation),
       selectOneOperation = integrationOperationView(integrationTest.selectOneOperation),
       updateOperation = integrationTest.updateOperation

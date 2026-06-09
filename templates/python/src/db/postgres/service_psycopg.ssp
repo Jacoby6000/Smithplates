@@ -2,11 +2,11 @@
 <%@ val imports: com.jacoby6000.smithplates.sql.codegen.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations
 
-from typing import override
+<% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override
 
-<% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>import psycopg
-from psycopg_transaction_run import run
-<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
+import psycopg
+<% if (ctx.serviceLocalImportBlock != "") { %>
+${ctx.serviceLocalImportBlock}<% } %>
 
 
 class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):

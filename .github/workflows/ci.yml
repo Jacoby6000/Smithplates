@@ -24,11 +24,8 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v19
 
-      - name: Lint and compile
-        run: ./validate build
-
-      - name: Run tests
-        run: ./validate test
+      - name: Validate
+        run: ./validate
 
   validate-docker:
     name: Validate (Docker, Linux)
@@ -38,11 +35,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Lint and compile
-        run: ./validate build
-
-      - name: Run tests
-        run: ./validate test
+      - name: Validate
+        run: ./validate
 
   validate-windows:
     name: Validate (Windows)
@@ -52,10 +46,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Lint and compile
+      - name: Validate
         shell: pwsh
-        run: .\validate.ps1 build
-
-      - name: Run tests
-        shell: pwsh
-        run: .\validate.ps1 test
+        run: .\validate.ps1

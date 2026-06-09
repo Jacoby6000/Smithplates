@@ -33,6 +33,7 @@ object SqlCodegenIntegrationTestBuilder {
 
     (insertOperation, selectOneOperation) match {
       case (Some(insert), Some(selectOne)) =>
+        val testImports = collectTestImports(context, insert, selectOne, updateOperation)
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = schemaDdl(schema, sqlOperations, queries, context.dialectKey, schemaDdlRenderers),
@@ -43,7 +44,13 @@ object SqlCodegenIntegrationTestBuilder {
             transactionCommitInTxAssertions = selectOne.resultAssertions,
             transactionCommitAfterAssertions =
               remapAssertionTarget(selectOne.resultAssertions, "fetched", "fetched_after_commit"),
-            extraImports = collectExtraImports(context)
+            extraImports = collectExtraImports(insert, selectOne, updateOperation),
+            testImports = testImports,
+            localImportBlock = SqlCodegenPythonImports.integrationTestLocalImportBlock(
+              context.name,
+              context.dialectKey,
+              testImports
+            )
           )
         )
       case _                               =>
@@ -286,13 +293,88 @@ object SqlCodegenIntegrationTestBuilder {
     }
   }
 
-  private def collectExtraImports(context: SqlCodegenServiceContext): List[String] = {
-    val needsDatetime =
-      context.operations.exists(_.parameters.exists(_.typeName == "Timestamp")) ||
-        context.models.exists(_.members.exists(_.typeName == "Timestamp")) ||
-        context.unions.exists(_.members.exists(_.typeName == "Timestamp"))
+  private def collectTestImports(
+      context: SqlCodegenServiceContext,
+      insertOperation: SqlCodegenIntegrationTestOperation,
+      selectOneOperation: SqlCodegenIntegrationTestOperation,
+      updateOperation: Option[SqlCodegenIntegrationTestOperation]
+  ): String = {
+    val serviceModuleBase    =
+      ScalateSspTemplateEngine.renderServiceModuleBaseName("python/src/db", context.name)
+    val callText             =
+      List(
+        Some(insertOperation.callArguments),
+        updateOperation.map(_.callArguments),
+        updateOperation.flatMap(_.updatedCallArguments)
+      ).flatten.mkString(" ")
+    val operationResultNames =
+      context.models
+        .filter(_.namespace == SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+        .map(_.name)
+        .toSet
+    val tableModelNames      =
+      context.models
+        .filter(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+        .map(_.name)
+        .toSet
+    val unionNames           = context.unions.map(_.name).toSet
 
-    if (needsDatetime) {
+    val modelImportNames    = scala.collection.mutable.LinkedHashSet.empty[String]
+    val protocolImportNames = scala.collection.mutable.LinkedHashSet.empty[String]
+
+    def assignImportName(name: String): Unit =
+      if (operationResultNames.contains(name)) {
+        protocolImportNames += name
+      } else if (tableModelNames.contains(name) || unionNames.contains(name)) {
+        modelImportNames += name
+      }
+
+    selectOneOperation.outputShapeId.foreach(shapeId => assignImportName(shapeId.getName))
+    tableModelNames.foreach { name =>
+      if (callText.contains(name)) {
+        modelImportNames += name
+      }
+    }
+    unionNames.foreach { name =>
+      if (callText.contains(name)) {
+        modelImportNames += name
+      }
+    }
+
+    val importBlocks = List.newBuilder[String]
+    if (modelImportNames.nonEmpty) {
+      importBlocks += s"from ${serviceModuleBase}_models import ("
+      importBlocks ++= modelImportNames.toList.sorted.map(name => s"    $name,")
+      importBlocks += ")"
+    }
+    if (protocolImportNames.nonEmpty) {
+      importBlocks += s"from ${serviceModuleBase}_protocol import ("
+      importBlocks ++= protocolImportNames.toList.sorted.map(name => s"    $name,")
+      importBlocks += ")"
+    }
+
+    val blocks = importBlocks.result()
+    if (blocks.isEmpty) {
+      ""
+    } else {
+      blocks.mkString("", "\n", "\n")
+    }
+  }
+
+  private def collectExtraImports(
+      insertOperation: SqlCodegenIntegrationTestOperation,
+      selectOneOperation: SqlCodegenIntegrationTestOperation,
+      updateOperation: Option[SqlCodegenIntegrationTestOperation]
+  ): List[String] = {
+    val generatedText =
+      List(
+        insertOperation.callArguments,
+        updateOperation.map(_.callArguments).getOrElse(""),
+        selectOneOperation.resultAssertions.mkString("\n"),
+        selectOneOperation.updatedResultAssertions.mkString("\n")
+      ).mkString("\n")
+
+    if (generatedText.contains("datetime")) {
       List("from datetime import datetime, timezone")
     } else {
       Nil

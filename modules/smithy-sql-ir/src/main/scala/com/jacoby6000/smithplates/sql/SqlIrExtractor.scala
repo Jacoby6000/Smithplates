@@ -162,8 +162,7 @@ object SqlIrExtractor {
   ): Either[SqlSchemaError, SqlColumn] = {
     val columnName     = member.sqlColumnName(memberName)
     val autoGeneration = member.autoGeneration
-    columnTypeConverter
-      .fromSmithyMember(model, member)
+    columnTypeForMember(model, member)
       .map { columnType =>
         SqlColumn(
           name = columnName,
@@ -174,6 +173,38 @@ object SqlIrExtractor {
       }
       .leftMap(_.toSchemaError(columnName, tableName))
   }
+
+  private def columnTypeForMember(
+      model: Model,
+      member: MemberShape
+  ): Either[UnsupportedColumnType, SqlColumnType] =
+    member.sqlForeignKey match {
+      case Some(foreignKeyTrait) =>
+        referencedMemberColumnType(model, foreignKeyTrait).getOrElse(
+          columnTypeConverter.fromSmithyMember(model, member)
+        )
+      case None                  =>
+        columnTypeConverter.fromSmithyMember(model, member)
+    }
+
+  private def referencedMemberColumnType(
+      model: Model,
+      foreignKeyTrait: com.jacoby6000.smithplates.sql.traits.SqlForeignKeyTrait
+  ): Option[Either[UnsupportedColumnType, SqlColumnType]] =
+    parseShapeId(foreignKeyTrait.getReferences).toOption.flatMap { targetId =>
+      lookupSqlTableStructure(model, targetId).flatMap { targetStructure =>
+        val referencesColumn = SqlShared.trimmedNonEmpty(foreignKeyTrait.getColumn.toScala) match {
+          case Some(column) => Some(column)
+          case None         => solePrimaryKeyColumnName(targetStructure).toOption
+        }
+        referencesColumn.flatMap { columnName =>
+          targetStructure.getAllMembers.asScala.collectFirst {
+            case (memberName, tableMember) if tableMember.sqlColumnName(memberName) == columnName =>
+              columnTypeConverter.fromSmithyMember(model, tableMember)
+          }
+        }
+      }
+    }
 
   private def parseForeignKeyReference(
       model: Model,

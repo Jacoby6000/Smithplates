@@ -1,0 +1,17 @@
+# Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass
+class Category:
+    id: str
+    name: str | None
+
+
+@dataclass
+class Widget:
+    id: str
+    title: str | None
+    category_id: str | None

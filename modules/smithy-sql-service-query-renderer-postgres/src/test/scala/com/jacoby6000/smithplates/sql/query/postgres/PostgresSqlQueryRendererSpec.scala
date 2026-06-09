@@ -142,7 +142,9 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
 
     assertEquals(
       queryStatement(schema.queries, renderer, "example#GetWidget"),
-      "SELECT id, foo, bar, created_at, updated_at FROM widgets WHERE id = $1;"
+      """SELECT widgets.id, widgets.foo, widgets.bar, widgets.created_at, widgets.updated_at
+        |FROM widgets
+        |WHERE id = $1;""".stripMargin
     )
   }
   test("Postgres - renders structure-based update SET and WHERE columns") {

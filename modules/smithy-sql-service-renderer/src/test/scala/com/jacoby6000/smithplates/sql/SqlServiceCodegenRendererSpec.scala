@@ -2,14 +2,22 @@ package com.jacoby6000.smithplates.sql.codegen
 
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestDiscovery
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
+import com.jacoby6000.smithplates.sql.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.query.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
+import com.jacoby6000.smithplates.sql.sqlite.SqliteRenderer
+
+import java.nio.file.Paths
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
+  private lazy val repoRoot =
+    Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
+
   private def loadTestCaseModel(testName: String) =
     CodegenTemplateTestDiscovery
-      .discover(getClass.getClassLoader, Set(SqlServiceCodegenTemplateBackend.pythonSqlite.variant))
+      .discover(repoRoot, "python", Set(SqlServiceCodegenTemplateBackend.pythonSqlite.variant))
       .find(_.name == testName)
       .map(testCase => SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent))
       .getOrElse(fail(s"expected templates golden case '$testName'"))
@@ -55,5 +63,45 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       SqlServiceCodegenRenderer.resolveOutputPath(settings, integrationTestArtifact, context),
       "test/db/sqlite/test_widget_repository_derived_sql.py"
     )
+  }
+
+  test("ServiceCodegen - uses postgres query renderer for postgres service artifacts when both dialects are enabled") {
+    val model    = loadTestCaseModel("sql-derive-select-one-only")
+    val schema   = SqlModelExtractor.extractOrThrow(model)
+    val settings =
+      SqlServiceCodegenSettings(
+        templateDirectory = "classpath:",
+        defaultDialectKey = "sqlite",
+        enabledDialectKeys = List("sqlite", "postgres"),
+        queryRenderers = Map(
+          "sqlite"   -> new SqliteSqlQueryRenderer(
+            migrationBindPlaceholder = SqlBindPlaceholder("?"),
+            codegenBindPlaceholder = SqlBindPlaceholder("?")
+          ),
+          "postgres" -> new PostgresSqlQueryRenderer(
+            migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+            codegenBindPlaceholder = SqlBindPlaceholder("%s")
+          )
+        ),
+        schemaDdlRenderers = Map(
+          "sqlite"   -> SqliteRenderer,
+          "postgres" -> PostgresRenderer
+        ),
+        artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
+      )
+
+    val rendered =
+      SqlServiceCodegenRenderer
+        .render(model, schema.schema, schema.serviceIr, settings)
+        .fold(errors => fail(errors.toList.mkString("; ")), identity)
+
+    val postgresService =
+      rendered
+        .find(_.relativePath.endsWith("/bookmark_repository_psycopg.py"))
+        .getOrElse(fail("expected postgres service artifact"))
+
+    assert(clue(postgresService.content).contains("class BookmarkRepositoryPsycopgService"))
+    assert(clue(postgresService.content).contains("WHERE id = %s"))
+    assert(!clue(postgresService.content).contains("AiosqliteService"))
   }
 }

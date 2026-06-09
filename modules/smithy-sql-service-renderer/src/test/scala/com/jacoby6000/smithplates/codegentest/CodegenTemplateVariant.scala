@@ -16,6 +16,8 @@ final case class CodegenTemplateVariant(
 
   def testOutputResourcePath: String = s"$testOutputRootId/$serviceTypeId/$implementationId"
 
+  def unsupportedFilePath: String = s"expected/$resourcePath/unsupported.md"
+
   override def compare(that: CodegenTemplateVariant): Int =
     resourcePath.compare(that.resourcePath)
 }

@@ -3,7 +3,13 @@
 * User documentation lives under [`docs/usage/`](docs/usage/). Contributor documentation lives under [`docs/contributing/`](docs/contributing/). Update the relevant tree when behavior or integration steps change.
 * **Scala 3.3.6** with strict compiler options (`-Werror`, `-Wunused:all`, `-Wvalue-discard`, `-deprecation`, `-feature`, `-unchecked`, `-no-indent`). Use **`{ }` brace syntax** only — do not use `:`/`end` optional-brace blocks or significant-indent `then`/`do` forms.
 * **Cats Core 2.12.0** and **Cats Effect 3.7.0** on `smithplatesTestkit` and dialect IT modules (`smithySqlPostgresRendererIt`, `smithySqlSqliteRendererIt`). Use **`ValidatedNel[SqlSchemaError, *]`** (`SqlValidated`) with `mapN` / `traverse` for Smithy model and plugin-config validation; convert to exceptions only at the Smithy build plugin boundary (`SmithplatesBuildPlugin`). Do not use `for` on `Validated` (fail-fast). Synchronous extraction does not use `IO`.
-* **Always use `sbtn`** (SBT thin client) from this repository root; never run plain `sbt` or `coursier launch org.scala-sbt:sbt-launch:…`. Examples: `sbtn smithplatesPlugin/test`, `sbtn smithySqlIr/test`, `sbtn publishM2`, `sbtn scalafmtCheckAll`, `sbtn 'scalafixAll --check'`.
+* **Always use `sbtn`** (SBT thin client) from this repository root; never run plain `sbt` or `coursier launch org.scala-sbt:sbt-launch:…`. Examples: `sbtn smithplatesPlugin/test`, `sbtn smithySqlIr/test`, `sbtn publishM2`, `sbtn scalafmtCheckAll`, `sbtn 'scalafixAll --check'`. **`sbtn` is experimental** — the background daemon can hang (especially after `reload`, long test runs, or interrupted commands). If `sbtn` stops responding, find and kill stale processes, then retry:
+  ```bash
+  ps aux | rg -i 'sbtn|sbt-launch'
+  pkill -f 'sbtn-x86_64-pc-linux' || true
+  pkill -f 'sbt-launch\.jar' || true
+  ```
+  Prefer single commands over chained `sbtn 'reload; …'` when possible. Use `sbtn --client shutdown` only when the client still responds.
 * CI (`.github/workflows/ci.yml`) runs on push/PR to `main`: [`./validate`](validate) with Nix installed (Linux), without Nix (Linux Docker auto-detect), and [`validate.ps1`](validate.ps1) on Windows (Docker auto-detect). Requires **Docker** on the runner for testcontainers-backed tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 * Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.

@@ -1,11 +1,12 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithplates.sql.codegen.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations
 
-from typing import override
+<% render("fragments/helpers/imports_sqlite", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override
 
-<% render("fragments/helpers/imports_sqlite", Map("ctx" -> ctx)) +%>import aiosqlite
-from sqlite_transaction_run import run
-<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
+import aiosqlite
+<% if (ctx.serviceLocalImportBlock != "") { %>
+${ctx.serviceLocalImportBlock}<% } %>
 
 
 class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):

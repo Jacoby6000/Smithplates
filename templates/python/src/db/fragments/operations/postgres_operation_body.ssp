@@ -1,7 +1,7 @@
 <%@ val operation: com.jacoby6000.smithplates.sql.codegen.TemplateOperationView %>
 #match (operation.sqlBodyKind)
 #case ("insertScalar")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
@@ -18,7 +18,7 @@
                 )
 <% } %>
 #case ("insertStructureIndex")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
@@ -28,13 +28,13 @@
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
 #case ("booleanMutationExists")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
             return row is not None
 #case ("booleanMutationRowcount")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             return cur.rowcount > 0
@@ -52,7 +52,7 @@
                 )
 <% } %>
 #case ("selectOneIndex")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
@@ -62,7 +62,7 @@
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
 #case ("selectOneJoinedFlat")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
@@ -78,7 +78,7 @@
                 ),
 <% } %><% } %>            )
 #case ("selectOneJoinedAggregate")            cur = await self._connection.execute(
-                """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             rows = await cur.fetchall()

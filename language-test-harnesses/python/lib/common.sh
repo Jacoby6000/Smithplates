@@ -5,7 +5,7 @@
 _harness_lib_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HARNESS_DIR="$(cd "${_harness_lib_dir}/.." && pwd)"
 REPO_ROOT="$(cd "${HARNESS_DIR}/../.." && pwd)"
-EXPECTED_ROOT="${REPO_ROOT}/templates/python/expected-outputs"
+TESTS_ROOT="${REPO_ROOT}/templates/python/tests"
 PYPROJECT="${HARNESS_DIR}/pyproject.toml"
 
 ensure_uv_env() {
@@ -50,7 +50,13 @@ variant_has_derived_sql_tests() {
 
   [[ -d "${test_dir}" ]] || return 1
   [[ -f "${unsupported}" ]] && return 1
-  compgen -G "${test_dir}/test_*_derived_sql.py" >/dev/null
+  local derived_sql_test
+  for derived_sql_test in "${test_dir}"/test_*_derived_sql.py; do
+    if [[ -e "${derived_sql_test}" ]]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 run_python_linters() {
@@ -59,13 +65,19 @@ run_python_linters() {
   local -a python_files=("$@")
 
   echo "==> ${label} ruff check"
-  uv run ruff check --config "${PYPROJECT}" "${python_files[@]}"
+  if ! uv run ruff check --config "${PYPROJECT}" "${python_files[@]}"; then
+    return 1
+  fi
 
   echo "==> ${label} ruff format --check"
-  uv run ruff format --check --config "${PYPROJECT}" "${python_files[@]}"
+  if ! uv run ruff format --check --config "${PYPROJECT}" "${python_files[@]}"; then
+    return 1
+  fi
 
   echo "==> ${label} mypy"
-  uv run mypy --strict --config-file "${PYPROJECT}" "${python_files[@]}"
+  if ! uv run mypy --strict --config-file "${PYPROJECT}" "${python_files[@]}"; then
+    return 1
+  fi
 }
 
 foreach_python_variant() {
@@ -73,13 +85,13 @@ foreach_python_variant() {
   local failures=0
 
   shopt -s nullglob
-  for case_dir in "${EXPECTED_ROOT}"/*/; do
+  for case_dir in "${TESTS_ROOT}"/*/; do
     local case_name
     case_name="$(basename "${case_dir}")"
-    local db_root="${case_dir}src/db"
+    local db_root="${case_dir}expected/src/db"
 
     for impl in sqlite postgres; do
-      local test_dir="${case_dir}test/db/${impl}"
+      local test_dir="${case_dir}expected/test/db/${impl}"
       if ! variant_has_derived_sql_tests "${db_root}" "${impl}" "${test_dir}"; then
         continue
       fi

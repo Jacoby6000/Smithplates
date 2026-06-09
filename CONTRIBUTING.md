@@ -20,8 +20,6 @@ On Windows (PowerShell):
 .\validate.ps1 test
 ```
 
-Override backend selection with `SMITHYSTACHE_VALIDATE_BACKEND=nix` or `docker`.
-
 ## Linters and compilers
 
 Run Scala and template-language static checks through [`scripts/run-linters.sh`](scripts/run-linters.sh):
@@ -79,11 +77,11 @@ The dev shell provides **Java 11**, **sbtn**, **uv**, and the **docker** client.
 
 ### With Docker (no Nix on the host)
 
-Force the Docker backend when Nix is unavailable:
+When Nix is not installed, `./validate` auto-detects a running Docker daemon and uses the same commands as above:
 
 ```bash
-SMITHYSTACHE_VALIDATE_BACKEND=docker ./validate
-SMITHYSTACHE_VALIDATE_BACKEND=docker ./validate build
+./validate
+./validate build
 ```
 
 On Windows: `.\validate.ps1` (uses Docker when Nix is not installed).

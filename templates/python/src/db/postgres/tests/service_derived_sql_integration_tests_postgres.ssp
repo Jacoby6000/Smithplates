@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
+<% if (test.extraImports != "") { %>${test.extraImports}<% } %>
 
 import psycopg
 import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
-<% if (test.extraImports != "") { %>${test.extraImports}<% } %>
-from ${implementationModuleName(ctx.serviceName, ctx.dialectKey)} import ${implementationClassName(ctx.serviceName, ctx.dialectKey)}
-<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
+<% if (test.localImportBlock != "") { %>
+${test.localImportBlock}<% } %>
 
 SCHEMA_DDL = """${test.schemaDdl}"""
 

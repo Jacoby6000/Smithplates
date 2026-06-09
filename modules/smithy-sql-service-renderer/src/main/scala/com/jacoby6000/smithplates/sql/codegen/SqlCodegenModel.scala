@@ -95,7 +95,9 @@ final case class SqlCodegenIntegrationTestContext(
     deleteOperation: Option[SqlCodegenIntegrationTestOperation],
     transactionCommitInTxAssertions: List[String],
     transactionCommitAfterAssertions: List[String],
-    extraImports: List[String]
+    extraImports: List[String],
+    testImports: String,
+    localImportBlock: String
 )
 
 final case class SqlCodegenIntegrationTestOperation(

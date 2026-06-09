@@ -1,143 +1,162 @@
 package com.jacoby6000.smithplates.codegentest
 
-import java.io.InputStream
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import scala.jdk.CollectionConverters.*
 
 object CodegenTemplateTestDiscovery {
-  val ResourceRoot: String        = "python/expected-outputs"
-  val SmithyFileName: String      = "smithy-files.smithy"
-  val UnsupportedFileName: String = "unsupported.md"
+  val TestsDirectoryName: String    = "tests"
+  val ExpectedDirectoryName: String = "expected"
+  val SmithyDirectoryName: String   = "smithy"
+  val SmithyBuildFileName: String   = "smithy-build.json"
+  val SmithyFileName: String        = "smithy-files.smithy"
+  val UnsupportedFileName: String   = "unsupported.md"
 
-  def discover(classLoader: ClassLoader, variants: Set[CodegenTemplateVariant]): List[CodegenTemplateTestCase] = {
-    val rootDirectory = classpathDirectory(classLoader, ResourceRoot)
-    if (!Files.isDirectory(rootDirectory)) {
+  def discover(
+      repoRoot: Path,
+      languageId: String,
+      variants: Set[CodegenTemplateVariant]
+  ): List[CodegenTemplateTestCase] = {
+    val testsRoot = repoRoot.resolve("templates").resolve(languageId).resolve(TestsDirectoryName)
+    if (!Files.isDirectory(testsRoot)) {
       return Nil
     }
 
     Files
-      .list(rootDirectory)
+      .list(testsRoot)
       .iterator()
       .asScala
       .filter(Files.isDirectory(_))
       .map(_.getFileName.toString)
+      .filterNot(_ == ExpectedDirectoryName)
       .toList
       .sorted
-      .map(testName => loadTestCase(classLoader, testName, variants))
+      .map(testName => loadTestCase(testsRoot.resolve(testName), testName, variants))
   }
 
   def isVariantUnsupported(
-      testCaseBasePath: String,
-      variant: CodegenTemplateVariant,
-      classLoader: ClassLoader
+      testCase: CodegenTemplateTestCase,
+      variant: CodegenTemplateVariant
   ): Boolean =
-    classpathResourceExists(classLoader, s"$testCaseBasePath/${variant.resourcePath}/$UnsupportedFileName")
+    Files.isRegularFile(testCase.caseDirectory.resolve(variant.unsupportedFilePath))
 
   def warnMissingVariantExpectations(
       testCase: CodegenTemplateTestCase,
-      variant: CodegenTemplateVariant,
-      classLoader: ClassLoader
+      variant: CodegenTemplateVariant
   ): Unit = {
-    if (isVariantUnsupported(testCase.resourceBasePath, variant, classLoader)) {
+    if (isVariantUnsupported(testCase, variant)) {
       return
     }
 
     val hasExpectedOutputs = testCase.expectedOutputsByVariant.get(variant).exists(_.nonEmpty)
     if (!hasExpectedOutputs) {
       Console.err.println(
-        s"WARNING: Test case '${testCase.name}' has no expected output data for variant ${variant.resourcePath} under ${testCase.resourceBasePath}"
+        s"WARNING: Test case '${testCase.name}' has no expected output data for variant ${variant.resourcePath} under ${testCase.caseDirectory}"
       )
     }
   }
 
   private def loadTestCase(
-      classLoader: ClassLoader,
+      caseDirectory: Path,
       testName: String,
       variants: Set[CodegenTemplateVariant]
   ): CodegenTemplateTestCase = {
-    val basePath           = s"$ResourceRoot/$testName"
-    val smithyResourcePath = s"$basePath/smithy/$SmithyFileName"
-    val smithyContent      = readClasspathResource(classLoader, smithyResourcePath)
+    val smithyPath    = caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName)
+    val smithyContent = Files.readString(smithyPath, StandardCharsets.UTF_8)
 
     val expectedOutputsByVariant =
       variants.toList.sorted.map { variant =>
-        variant -> listExpectedFiles(classLoader, basePath, variant)
+        variant -> listExpectedFiles(caseDirectory, variant)
       }.toMap
 
     CodegenTemplateTestCase(
       name = testName,
-      resourceBasePath = basePath,
-      smithyModelId = smithyResourcePath,
+      caseDirectory = caseDirectory,
+      smithyModelId = s"$testName/$SmithyDirectoryName/$SmithyFileName",
       smithyContent = smithyContent,
       expectedOutputsByVariant = expectedOutputsByVariant
     )
   }
 
   private def listExpectedFiles(
-      classLoader: ClassLoader,
-      testCaseBasePath: String,
+      caseDirectory: Path,
       variant: CodegenTemplateVariant
   ): List[CodegenTemplateExpectedFile] = {
-    if (isVariantUnsupported(testCaseBasePath, variant, classLoader)) {
+    val testCase = CodegenTemplateTestCase(
+      name = caseDirectory.getFileName.toString,
+      caseDirectory = caseDirectory,
+      smithyModelId = "",
+      smithyContent = "",
+      expectedOutputsByVariant = Map.empty
+    )
+    if (isVariantUnsupported(testCase, variant)) {
       return Nil
     }
 
-    val caseRootPath                 = testCaseBasePath
-    val serviceTypeRootPath          = s"$testCaseBasePath/${variant.serviceTypeResourcePath}"
-    val implementationRootPath       = s"$testCaseBasePath/${variant.resourcePath}"
-    val implementationTestOutputPath = s"$testCaseBasePath/${variant.testOutputResourcePath}"
+    val expectedRoot                 = caseDirectory.resolve(ExpectedDirectoryName)
+    val serviceTypeRootPath          = expectedRoot.resolve(variant.serviceTypeResourcePath)
+    val implementationRootPath       = expectedRoot.resolve(variant.resourcePath)
+    val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
 
     val sharedModelFiles        =
-      listFilesRelativeToCaseRoot(
-        classLoader,
-        caseRootPath,
-        s"$serviceTypeRootPath/model"
+      listFilesRelativeToExpectedRoot(
+        expectedRoot,
+        serviceTypeRootPath.resolve("model")
       )
     val sharedServiceTypeFiles  =
-      listFilesDirectlyInDirectoryRelativeToCaseRoot(
-        classLoader,
-        caseRootPath,
+      listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+        expectedRoot,
         serviceTypeRootPath
       )
     val implementationFiles     =
-      listFilesDirectlyInDirectoryRelativeToCaseRoot(
-        classLoader,
-        caseRootPath,
+      listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+        expectedRoot,
         implementationRootPath
       )
     val implementationTestFiles =
-      listFilesRelativeToCaseRoot(
-        classLoader,
-        caseRootPath,
+      listFilesRelativeToExpectedRoot(
+        expectedRoot,
         implementationTestOutputPath
       )
+    val migrationFiles          =
+      listFilesRelativeToExpectedRoot(
+        expectedRoot,
+        expectedRoot.resolve("db")
+      )
 
-    (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles)
+    (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
       .sortBy(_.relativePath)
   }
 
-  private def listFilesRelativeToCaseRoot(
-      classLoader: ClassLoader,
-      caseRootPath: String,
-      directoryPath: String
+  private val GoldenFileSuffixes: Set[String] = Set(".py", ".sql", ".pyi")
+
+  private def isGoldenExpectedFile(path: Path): Boolean = {
+    val fileName = path.getFileName.toString
+    if (fileName == UnsupportedFileName) {
+      false
+    } else if (!Files.isRegularFile(path) || Files.size(path) == 0L) {
+      false
+    } else {
+      GoldenFileSuffixes.exists(suffix => fileName.endsWith(suffix))
+    }
+  }
+
+  private def listFilesRelativeToExpectedRoot(
+      expectedRoot: Path,
+      directoryPath: Path
   ): List[CodegenTemplateExpectedFile] =
-    if (!classpathResourceExists(classLoader, directoryPath)) {
+    if (!Files.isDirectory(directoryPath)) {
       Nil
     } else {
-      val caseRoot  = classpathDirectory(classLoader, caseRootPath)
-      val directory = classpathDirectory(classLoader, directoryPath)
       Files
-        .walk(directory)
+        .walk(directoryPath)
         .iterator()
         .asScala
-        .filter(Files.isRegularFile(_))
-        .filter(path => path.getFileName.toString != UnsupportedFileName)
+        .filter(isGoldenExpectedFile)
         .map { path =>
           val relativePath =
-            caseRoot.relativize(path).toString.replace('\\', '/')
+            expectedRoot.relativize(path).toString.replace('\\', '/')
           CodegenTemplateExpectedFile(
             relativePath = relativePath,
             content = Files.readString(path, StandardCharsets.UTF_8)
@@ -146,25 +165,21 @@ object CodegenTemplateTestDiscovery {
         .toList
     }
 
-  private def listFilesDirectlyInDirectoryRelativeToCaseRoot(
-      classLoader: ClassLoader,
-      caseRootPath: String,
-      directoryPath: String
+  private def listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+      expectedRoot: Path,
+      directoryPath: Path
   ): List[CodegenTemplateExpectedFile] =
-    if (!classpathResourceExists(classLoader, directoryPath)) {
+    if (!Files.isDirectory(directoryPath)) {
       Nil
     } else {
-      val caseRoot  = classpathDirectory(classLoader, caseRootPath)
-      val directory = classpathDirectory(classLoader, directoryPath)
       Files
-        .list(directory)
+        .list(directoryPath)
         .iterator()
         .asScala
-        .filter(Files.isRegularFile(_))
-        .filter(path => path.getFileName.toString != UnsupportedFileName)
+        .filter(isGoldenExpectedFile)
         .map { path =>
           val relativePath =
-            caseRoot.relativize(path).toString.replace('\\', '/')
+            expectedRoot.relativize(path).toString.replace('\\', '/')
           CodegenTemplateExpectedFile(
             relativePath = relativePath,
             content = Files.readString(path, StandardCharsets.UTF_8)
@@ -172,27 +187,4 @@ object CodegenTemplateTestDiscovery {
         }
         .toList
     }
-
-  private def classpathDirectory(classLoader: ClassLoader, resourcePath: String): Path = {
-    val url = classLoader.getResource(resourcePath)
-    if (url == null) {
-      throw new IllegalStateException(s"Resource directory not found on classpath: $resourcePath")
-    }
-    Paths.get(url.toURI)
-  }
-
-  private def classpathResourceExists(classLoader: ClassLoader, resourcePath: String): Boolean =
-    Option(classLoader.getResource(resourcePath)).isDefined
-
-  private def readClasspathResource(classLoader: ClassLoader, path: String): String = {
-    val stream =
-      Option(classLoader.getResourceAsStream(path)).getOrElse {
-        throw new IllegalStateException(s"Resource not found on classpath: $path")
-      }
-    try readStream(stream)
-    finally stream.close()
-  }
-
-  private def readStream(stream: InputStream): String =
-    new String(stream.readAllBytes(), StandardCharsets.UTF_8)
 }

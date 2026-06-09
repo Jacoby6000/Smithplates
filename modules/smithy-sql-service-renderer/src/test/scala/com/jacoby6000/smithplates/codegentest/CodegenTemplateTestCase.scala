@@ -1,8 +1,10 @@
 package com.jacoby6000.smithplates.codegentest
 
+import java.nio.file.Path
+
 final case class CodegenTemplateTestCase(
     name: String,
-    resourceBasePath: String,
+    caseDirectory: Path,
     smithyModelId: String,
     smithyContent: String,
     expectedOutputsByVariant: Map[CodegenTemplateVariant, List[CodegenTemplateExpectedFile]]

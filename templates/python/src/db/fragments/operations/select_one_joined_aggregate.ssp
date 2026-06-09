@@ -1,5 +1,5 @@
 <%@ val operation: com.jacoby6000.smithplates.sql.codegen.TemplateOperationView %>
-<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            rows = await cursor.fetchall()
+<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            rows = list(await cursor.fetchall())
             if not rows:
                 return None
             row = rows[0]

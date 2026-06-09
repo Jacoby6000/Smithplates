@@ -156,11 +156,12 @@ private[service] object SqlDeriveSelectOneExtractor {
                         }
                       val selectColumns  =
                         buildSelectColumns(primaryContext, primaryColumns, nestedResults)
+                      val adjustedJoins  = adjustJoinTypesForNestedResults(joins, nestedResults)
                       SqlSelectOneQuery(
                         shapeId = operationShape,
                         table = table,
                         tableAlias = Some(primaryContext.referenceAlias),
-                        joins = joins,
+                        joins = adjustedJoins,
                         selectColumns = primaryColumns,
                         projectedColumns = selectColumns,
                         whereColumns = whereColumns,
@@ -308,6 +309,18 @@ private[service] object SqlDeriveSelectOneExtractor {
       )
     }
   }
+
+  private def adjustJoinTypesForNestedResults(
+      joins: List[SqlSelectJoin],
+      nestedResults: List[SqlSelectOneNestedResult]
+  ): List[SqlSelectJoin] =
+    joins.zip(nestedResults).map { case (join, nestedResult) =>
+      nestedResult.cardinality match {
+        case SqlSelectOneNestedCardinality.Collection if join.joinType == SqlJoinType.Inner =>
+          join.copy(joinType = SqlJoinType.Left)
+        case _                                                                              => join
+      }
+    }
 
   private def buildSelectColumns(
       primaryContext: TableContext,

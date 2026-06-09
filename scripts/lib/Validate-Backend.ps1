@@ -9,6 +9,7 @@ Actions (comma-separated):
 Default: lint,test
 
 Uses Nix when available (preferred), otherwise Docker. Override with $env:SMITHYSTACHE_VALIDATE_BACKEND = "nix" or "docker".
+When multiple actions are requested, Nix/Docker is entered once for the full run.
 '@
 }
 
@@ -99,6 +100,16 @@ function Invoke-SmithplatesDockerRun {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
+function Test-SmithplatesInNixShell {
+  return -not [string]::IsNullOrEmpty($env:IN_NIX_SHELL)
+}
+
+function Test-SmithplatesValidateActionsNeedDockerSocket {
+  param([Parameter(Mandatory = $true)][string[]]$Actions)
+
+  return $Actions -contains 'test'
+}
+
 function Get-SmithplatesValidateBackend {
   param([Parameter(Mandatory = $true)][string]$Root)
 
@@ -128,18 +139,30 @@ function Get-SmithplatesValidateBackend {
   return 'none'
 }
 
-function Invoke-SmithplatesValidateLint {
+function Invoke-SmithplatesValidateActionsWithBackend {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
-    [Parameter(Mandatory = $true)][string]$Backend
+    [Parameter(Mandatory = $true)][string]$Backend,
+    [Parameter(Mandatory = $true)][string[]]$Actions
   )
 
   switch ($Backend) {
     'nix' {
-      & nix develop $Root --accept-flake-config --command ./scripts/run-linters.sh all
+      if (Test-SmithplatesInNixShell) {
+        . (Join-Path $Root 'scripts/lib/Validate-Actions.ps1')
+        Invoke-SmithplatesValidateActions -Actions $Actions
+      } else {
+        $validateActionArgs = @('./scripts/run-validate-actions.ps1') + $Actions
+        & nix develop $Root --accept-flake-config --command pwsh -NoProfile -File @validateActionArgs
+      }
     }
     'docker' {
-      Invoke-SmithplatesDockerRun -Root $Root -Command @('./scripts/run-linters.sh', 'all')
+      $command = @('./scripts/run-validate-actions.sh') + $Actions
+      if (Test-SmithplatesValidateActionsNeedDockerSocket -Actions $Actions) {
+        Invoke-SmithplatesDockerRun -Root $Root -MountDockerSocket -Command $command
+      } else {
+        Invoke-SmithplatesDockerRun -Root $Root -Command $command
+      }
     }
     default {
       Write-Error @'
@@ -150,32 +173,6 @@ Need Nix (flakes) or a running Docker daemon to validate.
       exit 1
     }
   }
-  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-}
-
-function Invoke-SmithplatesValidateTest {
-  param(
-    [Parameter(Mandatory = $true)][string]$Root,
-    [Parameter(Mandatory = $true)][string]$Backend
-  )
-
-  switch ($Backend) {
-    'nix' {
-      & nix develop $Root --accept-flake-config --command ./scripts/run-tests.sh all
-    }
-    'docker' {
-      Invoke-SmithplatesDockerRun -Root $Root -MountDockerSocket -Command @('./scripts/run-tests.sh', 'all')
-    }
-    default {
-      Write-Error @'
-Need Nix (flakes) or a running Docker daemon to validate.
-  Nix: https://nixos.org/download/
-  Docker: https://docs.docker.com/get-docker/
-'@
-      exit 1
-    }
-  }
-  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
 function Normalize-SmithplatesValidateAction {
@@ -219,10 +216,5 @@ function Invoke-SmithplatesValidate {
     exit 2
   }
 
-  foreach ($action in $actions) {
-    switch ($action) {
-      'lint' { Invoke-SmithplatesValidateLint -Root $Root -Backend $backend }
-      'test' { Invoke-SmithplatesValidateTest -Root $Root -Backend $backend }
-    }
-  }
+  Invoke-SmithplatesValidateActionsWithBackend -Root $Root -Backend $backend -Actions $actions.ToArray()
 }

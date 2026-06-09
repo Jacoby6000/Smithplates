@@ -1,5 +1,5 @@
 <%@ val operation: com.jacoby6000.smithplates.sql.codegen.TemplateOperationView %>
                 await cur.execute(
-                    """${operation.sqlStatement}""",
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                     <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
                 )

@@ -1,9 +1,10 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
+<%@ val needsDatetimeImport: Boolean = ctx.models.exists(_.members.exists(_.typeName == "Timestamp")) || ctx.unions.exists(_.members.exists(_.typeName == "Timestamp")) %>
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
-<% if (ctx.unions.nonEmpty) { %>from typing import TypedDict
+<% if (needsDatetimeImport) { %>from datetime import datetime
+<% } %><% if (ctx.unions.nonEmpty) { %>from typing import TypedDict
 
 
 <% } else if (ctx.models.nonEmpty) { %>

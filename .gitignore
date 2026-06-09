@@ -11,6 +11,7 @@ __pycache__
 language-test-harnesses/python/.venv/
 templates/**/__pycache__/
 templates/**/.pytest_cache/
+templates/**/tests/**/out/
 .pre-commit-home
 .xdg-runtime
 result

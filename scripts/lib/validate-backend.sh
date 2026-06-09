@@ -12,7 +12,22 @@ Actions (comma-separated):
 Default: lint,test
 
 Uses Nix when available (preferred), otherwise Docker. Override with SMITHYSTACHE_VALIDATE_BACKEND=nix|docker.
+When multiple actions are requested, Nix/Docker is entered once for the full run.
 EOF
+}
+
+smithystache_validate_in_nix_shell() {
+  [[ -n "${IN_NIX_SHELL:-}" ]]
+}
+
+smithystache_validate_actions_need_docker_socket() {
+  local action
+  for action in "$@"; do
+    if [[ "${action}" == "test" ]]; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 smithystache_validate_detect_backend() {
@@ -41,41 +56,32 @@ smithystache_validate_detect_backend() {
   echo none
 }
 
-smithystache_validate_run_lint() {
+smithystache_validate_run_actions_with_backend() {
   local backend="$1"
-  case "${backend}" in
-    nix)
-      nix develop "${ROOT}" --accept-flake-config --command ./scripts/run-linters.sh all
-      ;;
-    docker)
-      # shellcheck source=scripts/lib/docker-image.sh
-      source "${ROOT}/scripts/lib/docker-image.sh"
-      smithystache_ensure_docker_image
-      smithystache_docker_run -- ./scripts/run-linters.sh all
-      ;;
-    *)
-      echo "error: need Nix (flakes) or a running Docker daemon to validate" >&2
-      echo "  Nix: https://nixos.org/download/" >&2
-      echo "  Docker: https://docs.docker.com/get-docker/" >&2
-      return 1
-      ;;
-  esac
-}
+  shift
 
-smithystache_validate_run_test() {
-  local backend="$1"
   case "${backend}" in
     nix)
-      nix develop "${ROOT}" --accept-flake-config --command ./scripts/run-tests.sh all
+      if smithystache_validate_in_nix_shell; then
+        # shellcheck source=scripts/lib/validate-actions.sh
+        source "${ROOT}/scripts/lib/validate-actions.sh"
+        smithystache_validate_run_actions "$@"
+      else
+        nix develop "${ROOT}" --accept-flake-config --command ./scripts/run-validate-actions.sh "$@"
+      fi
       ;;
     docker)
       # shellcheck source=scripts/lib/docker-image.sh
       source "${ROOT}/scripts/lib/docker-image.sh"
       smithystache_ensure_docker_image
-      smithystache_docker_run \
-        -v /var/run/docker.sock:/var/run/docker.sock \
-        -- \
-        ./scripts/run-tests.sh all
+      if smithystache_validate_actions_need_docker_socket "$@"; then
+        smithystache_docker_run \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -- \
+          ./scripts/run-validate-actions.sh "$@"
+      else
+        smithystache_docker_run -- ./scripts/run-validate-actions.sh "$@"
+      fi
       ;;
     *)
       echo "error: need Nix (flakes) or a running Docker daemon to validate" >&2
@@ -136,11 +142,5 @@ smithystache_validate_main() {
     return 2
   fi
 
-  local action
-  for action in "${actions[@]}"; do
-    case "${action}" in
-      lint) smithystache_validate_run_lint "${backend}" ;;
-      test) smithystache_validate_run_test "${backend}" ;;
-    esac
-  done
+  smithystache_validate_run_actions_with_backend "${backend}" "${actions[@]}"
 }

@@ -3,24 +3,68 @@ package com.jacoby6000.smithplates.codegentest
 import munit.FunSuite
 
 import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 class CodegenTemplateTestDiscoverySpec extends FunSuite {
   private val sqliteVariant = CodegenTemplateVariant("python", "db", "sqlite")
 
+  private lazy val repoRoot: Path =
+    Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
+
   test("CodegenTemplateTestDiscovery - discovers language template fixture cases") {
     val cases =
-      CodegenTemplateTestDiscovery.discover(getClass.getClassLoader, Set(sqliteVariant))
+      CodegenTemplateTestDiscovery.discover(repoRoot, "python", Set(sqliteVariant))
 
-    assertEquals(cases.map(_.name), List("sql-derived-crud-auto-managed-columns", "sql-json-structs-containing-unions"))
+    assertEquals(cases.size, 12)
     assert(cases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
   }
 
-  test("CodegenTemplateTestDiscovery - unsupported.md suppresses expected files for a variant") {
-    val tempRoot = Files.createTempDirectory("language-template-expected-outputs")
+  test("CodegenTemplateTestDiscovery - ignores empty and non-golden junk files under expected/") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
-      val caseDirectory    = tempRoot.resolve("sample-case")
+      val testsRoot        = tempRoot.resolve("templates/python/tests")
+      val caseDirectory    = testsRoot.resolve("sample-case")
       val smithyDirectory  = caseDirectory.resolve("smithy")
-      val variantDirectory = caseDirectory.resolve("src/db/sqlite")
+      val expectedRoot     = caseDirectory.resolve("expected")
+      val variantDirectory = expectedRoot.resolve("src/db/sqlite")
+      Files.createDirectories(smithyDirectory)
+      Files.createDirectories(variantDirectory)
+      Files.writeString(
+        smithyDirectory.resolve("smithy-files.smithy"),
+        """$version: "2.0"
+          |namespace example
+          |structure Placeholder {}
+          |""".stripMargin
+      )
+      Files.writeString(
+        variantDirectory.resolve("sample_repository_aiosqlite.py"),
+        "# valid golden file\n"
+      )
+      Files.writeString(variantDirectory.resolve("sample_repository_aiosql"), "")
+      Files.writeString(variantDirectory.resolve("junk-fragment"), "partial write")
+
+      val testCase =
+        CodegenTemplateTestDiscovery
+          .discover(tempRoot, "python", Set(sqliteVariant))
+          .headOption
+          .getOrElse(fail("expected discovered test case"))
+
+      assertEquals(
+        testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath),
+        List("src/db/sqlite/sample_repository_aiosqlite.py")
+      )
+    } finally deleteRecursively(tempRoot)
+  }
+
+  test("CodegenTemplateTestDiscovery - unsupported.md suppresses expected files for a variant") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot        = tempRoot.resolve("templates/python/tests")
+      val caseDirectory    = testsRoot.resolve("sample-case")
+      val smithyDirectory  = caseDirectory.resolve("smithy")
+      val expectedRoot     = caseDirectory.resolve("expected")
+      val variantDirectory = expectedRoot.resolve("src/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(variantDirectory)
       Files.writeString(
@@ -35,49 +79,20 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         "Python backend does not implement this scenario yet."
       )
 
-      val resourceRoot = Files.createDirectories(tempRoot.resolve("python/expected-outputs"))
-      Files.move(caseDirectory, resourceRoot.resolve("sample-case"))
-      val classLoader  = new DirectoryClassLoader(tempRoot, getClass.getClassLoader)
-      val testCase     =
+      val testCase =
         CodegenTemplateTestDiscovery
-          .discover(classLoader, Set(sqliteVariant))
+          .discover(tempRoot, "python", Set(sqliteVariant))
           .headOption
           .getOrElse(fail("expected discovered test case"))
 
       assertEquals(testCase.name, "sample-case")
       assertEquals(testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil), Nil)
-      assert(
-        CodegenTemplateTestDiscovery.isVariantUnsupported(
-          testCase.resourceBasePath,
-          sqliteVariant,
-          classLoader
-        )
-      )
+      assert(CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, sqliteVariant))
     } finally deleteRecursively(tempRoot)
   }
 
-  private def deleteRecursively(path: java.nio.file.Path): Unit =
+  private def deleteRecursively(path: Path): Unit =
     if (Files.exists(path)) {
-      Files.walk(path).sorted(java.util.Comparator.reverseOrder[java.nio.file.Path]()).forEach(Files.delete)
+      Files.walk(path).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(Files.delete(_))
     }
-}
-
-final private class DirectoryClassLoader(root: java.nio.file.Path, parent: ClassLoader) extends ClassLoader(parent) {
-  override def getResource(name: String): java.net.URL = {
-    val path = root.resolve(name)
-    if (Files.exists(path)) {
-      path.toUri.toURL
-    } else {
-      null
-    }
-  }
-
-  override def getResourceAsStream(name: String): java.io.InputStream = {
-    val path = root.resolve(name)
-    if (Files.isRegularFile(path)) {
-      Files.newInputStream(path)
-    } else {
-      null
-    }
-  }
 }

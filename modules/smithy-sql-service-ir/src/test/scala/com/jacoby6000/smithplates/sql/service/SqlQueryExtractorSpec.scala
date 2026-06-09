@@ -783,6 +783,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     val selectOne = schema.queries.selectOnes.head
     assertEquals(selectOne.nestedResults.map(_.memberName), List("order_lines"))
     assertEquals(selectOne.nestedResults.head.cardinality.toString, "Collection")
+    assertEquals(selectOne.joins.head.joinType, SqlJoinType.Left)
   }
 
   test("DeriveSelectOne - transitive joins resolve through prior joined tables") {
