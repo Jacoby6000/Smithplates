@@ -137,12 +137,15 @@ private[service] object SqlDeriveSelectOneExtractor {
                   joinContexts
                     .zip(joinSpecs)
                     .zip(joins)
-                    .traverse { case ((joinContext, _), join) =>
+                    .zipWithIndex
+                    .traverse { case (((joinContext, _), _), index) =>
+                      val leftContexts =
+                        joinContexts.take(index).reverse :+ primaryContext
                       resolveNestedResult(
                         model,
                         schema,
                         operationShape,
-                        primaryContext,
+                        leftContexts,
                         joinContext
                       )
                     }
@@ -173,53 +176,63 @@ private[service] object SqlDeriveSelectOneExtractor {
       model: Model,
       schema: SqlSchema,
       operationShape: ShapeId,
-      primaryContext: TableContext,
+      leftContexts: List[TableContext],
       joinContext: TableContext
-  ): SqlValidated[SqlSelectOneNestedResult] = {
-    val foreignKeys =
-      findForeignKeys(
-        primaryContext.table,
-        primaryContext.structure,
-        joinContext.table,
-        joinContext.structure
-      )
-
-    foreignKeys match {
-      case Nil           =>
+  ): SqlValidated[SqlSelectOneNestedResult] =
+    leftContexts.foldLeft[Option[SqlValidated[SqlSelectOneNestedResult]]](None) {
+      case (resolved @ Some(_), _) =>
+        resolved
+      case (None, leftContext)     =>
+        findForeignKeys(
+          leftContext.table,
+          leftContext.structure,
+          joinContext.table,
+          joinContext.structure
+        ) match {
+          case Nil           => None
+          case single :: Nil =>
+            Some(
+              resolveNestedResultFromForeignKey(
+                model,
+                schema,
+                operationShape,
+                leftContext,
+                joinContext,
+                single
+              )
+            )
+          case _             =>
+            Some(
+              SqlValidated.invalid(
+                AmbiguousJoinForeignKey(
+                  operationShape,
+                  "sqlDeriveSelectOne",
+                  leftContext.table.name,
+                  joinContext.table.name
+                )
+              )
+            )
+        }
+    } match {
+      case Some(result) => result
+      case None         =>
+        val primaryTableName =
+          leftContexts.lastOption.map(_.table.name).getOrElse(joinContext.table.name)
         SqlValidated.invalid(
           MissingJoinForeignKey(
             operationShape,
             "sqlDeriveSelectOne",
-            primaryContext.table.name,
-            joinContext.table.name
-          )
-        )
-      case single :: Nil =>
-        resolveNestedResultFromForeignKey(
-          model,
-          schema,
-          operationShape,
-          primaryContext,
-          joinContext,
-          single
-        )
-      case _             =>
-        SqlValidated.invalid(
-          AmbiguousJoinForeignKey(
-            operationShape,
-            "sqlDeriveSelectOne",
-            primaryContext.table.name,
+            primaryTableName,
             joinContext.table.name
           )
         )
     }
-  }
 
   private def resolveNestedResultFromForeignKey(
       model: Model,
       schema: SqlSchema,
       operationShape: ShapeId,
-      primaryContext: TableContext,
+      sourceContext: TableContext,
       joinContext: TableContext,
       foreignKey: ResolvedForeignKey
   ): SqlValidated[SqlSelectOneNestedResult] = {
@@ -229,7 +242,7 @@ private[service] object SqlDeriveSelectOneExtractor {
       }
 
     if (foreignKey.sourceTable.name == joinContext.table.name &&
-      foreignKey.targetTable.name == primaryContext.table.name) {
+      foreignKey.targetTable.name == sourceContext.table.name) {
       val optional = false
       SqlValidated.valid(
         SqlSelectOneNestedResult(
@@ -242,9 +255,9 @@ private[service] object SqlDeriveSelectOneExtractor {
           columns = joinColumns
         )
       )
-    } else if (foreignKey.sourceTable.name == primaryContext.table.name &&
+    } else if (foreignKey.sourceTable.name == sourceContext.table.name &&
       foreignKey.targetTable.name == joinContext.table.name) {
-      primaryContext.structure.getAllMembers.asScala
+      sourceContext.structure.getAllMembers.asScala
         .collectFirst {
           case (memberName, member) if member.sqlColumnName(memberName) == foreignKey.sourceColumn =>
             (memberName, member)
@@ -253,13 +266,13 @@ private[service] object SqlDeriveSelectOneExtractor {
           SqlValidated.invalid(
             InvalidDeriveSelectOne(
               operationShape,
-              s"join '${joinContext.tableRef}' is missing foreign key column '${foreignKey.sourceColumn}' on '${primaryContext.tableRef}'"
+              s"join '${joinContext.tableRef}' is missing foreign key column '${foreignKey.sourceColumn}' on '${sourceContext.tableRef}'"
             )
           )
         case Some(fkMember) =>
           val relationship      =
             schema.relationships.find { relationship =>
-              relationship.sourceTable == primaryContext.shapeId &&
+              relationship.sourceTable == sourceContext.shapeId &&
               relationship.targetTable == joinContext.shapeId &&
               relationship.sourceColumn == foreignKey.sourceColumn
             }
@@ -290,7 +303,7 @@ private[service] object SqlDeriveSelectOneExtractor {
       SqlValidated.invalid(
         InvalidDeriveSelectOne(
           operationShape,
-          s"join '${joinContext.tableRef}' has an unsupported foreign key orientation relative to '${primaryContext.tableRef}'"
+          s"join '${joinContext.tableRef}' has an unsupported foreign key orientation relative to '${sourceContext.tableRef}'"
         )
       )
     }

@@ -151,7 +151,7 @@ Bundled Python DB templates live under [`templates/python/src/db/`](templates/py
 
 1. Edit SSP under `templates/python/src/db/` (and `fragments/`).
 2. Run `sbtn smithySqlServiceRenderer/test` — compares rendered output to golden files under `expected-outputs/`.
-3. Refresh goldens when output changes intentionally (see [`templates/python/expected-outputs/README.md`](templates/python/expected-outputs/README.md)).
+3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/expected-outputs/README.md`](templates/python/expected-outputs/README.md)).
 4. Run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
 
 Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `unmanagedResourceDirectories`).

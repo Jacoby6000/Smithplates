@@ -15,10 +15,3 @@ class Widget:
     id: str
     title: str | None
     category_id: str
-
-@dataclass
-class GetWidgetResult:
-    id: str
-    title: str
-    category_id: str
-    category: Category

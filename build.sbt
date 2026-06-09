@@ -11,6 +11,10 @@ val smithyVersion = "1.71.0"
 val munitVersion = "1.0.2"
 val scalateVersion = "1.10.1"
 
+lazy val generateGoldenTemplatesFor = inputKey[Unit](
+  "Generate golden template expected outputs. Usage: generateGoldenTemplatesFor <language> <case-name> [<case-name> ...]"
+)
+
 def catsCoreDependency: ModuleID =
   "org.typelevel" %% "cats-core" % catsCoreVersion
 
@@ -179,7 +183,8 @@ lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
     smithySqlServiceQueryRenderer,
     smithySqlServiceQueryRendererPostgres,
     smithySqlServiceQueryRendererSqlite,
-    smithySqlServiceRenderer
+    smithySqlServiceRenderer,
+    smithySqlServiceRenderer % "test->test"
   )
   .settings(
     strictScala3Settings,
@@ -194,7 +199,22 @@ lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     Compile / packageDoc / publishArtifact := false,
-    publishM2Configuration := publishM2Configuration.value.withOverwrite(true)
+    publishM2Configuration := publishM2Configuration.value.withOverwrite(true),
+    Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "templates",
+    generateGoldenTemplatesFor := {
+      import sbt.internal.util.complete.DefaultParsers.*
+      Def.inputTaskDyn {
+        val args = spaceDelimited("<arg> *").parsed
+        if (args.isEmpty) {
+          throw new IllegalArgumentException(
+            "Usage: generateGoldenTemplatesFor <language> <case-name> [<case-name> ...]"
+          )
+        }
+        (Test / runMain).toTask(
+          s" com.jacoby6000.smithy.stache.generators.SmithyStacheGenerators golden-templates ${args.mkString(" ")}"
+        )
+      }.evaluated
+    }
   )
 
 lazy val smithyStacheTestkit = (project in file("modules/smithy-stache-testkit"))
@@ -252,7 +272,8 @@ lazy val root = (project in file("."))
     strictScala3Settings,
     withCatsEffect,
     Compile / sources := Nil,
-    Compile / resources := Nil
+    Compile / resources := Nil,
+    generateGoldenTemplatesFor := (smithyStachePlugin / generateGoldenTemplatesFor).evaluated
   )
   .aggregate(
     smithySqlIr,

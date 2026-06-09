@@ -137,6 +137,7 @@ final case class ServiceTemplateView(
     serviceName: String,
     dialectKey: String,
     models: List[TemplateModelView],
+    operationResultModels: List[TemplateModelView],
     unions: List[TemplateUnionView],
     operations: List[TemplateOperationView],
     usedJsonTypeNames: Set[String],
@@ -147,14 +148,17 @@ final case class ServiceTemplateView(
 
 object SqlCodegenTemplateViews {
   def buildServiceView(context: SqlCodegenServiceContext): ServiceTemplateView = {
-    val operations = withLastFlag(
+    val operations                           = withLastFlag(
       context.operations.map(operationView(context.bindPlaceholderStyle, context.dialectKey, _))
     )((operation, last) => operation.copy(last = last))
+    val (tableModels, operationResultModels) =
+      context.models.partition(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
     ServiceTemplateView(
       serviceShapeId = context.shapeId.toString,
       serviceName = context.name,
       dialectKey = context.dialectKey,
-      models = context.models.map(modelView),
+      models = tableModels.map(modelView),
+      operationResultModels = operationResultModels.map(modelView),
       unions = context.unions.map(unionView),
       operations = operations,
       usedJsonTypeNames = SqlCodegenHelperAttributes.usedJsonTypeNames(operations),

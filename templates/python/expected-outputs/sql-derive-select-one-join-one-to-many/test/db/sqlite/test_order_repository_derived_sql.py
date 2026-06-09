@@ -10,7 +10,10 @@ from order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from order_repository_models import (
     Order,
     OrderLine,
+)
+from order_repository_protocol import (
     GetOrderResult,
+    OrderRepositoryServiceProtocol,
 )
 
 SCHEMA_DDL = """-- example#Order

@@ -10,9 +10,11 @@ from psycopg_transaction_run import run
 from widget_repository_models import (
     Category,
     Widget,
-    GetWidgetResult,
 )
-from widget_repository_protocol import WidgetRepositoryServiceProtocol
+from widget_repository_protocol import (
+    GetWidgetResult,
+    WidgetRepositoryServiceProtocol,
+)
 
 
 class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol[psycopg.AsyncTransaction]):

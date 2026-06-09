@@ -10,9 +10,11 @@ from sqlite_transaction_run import run
 from order_repository_models import (
     Order,
     OrderLine,
-    GetOrderResult,
 )
-from order_repository_protocol import OrderRepositoryServiceProtocol
+from order_repository_protocol import (
+    GetOrderResult,
+    OrderRepositoryServiceProtocol,
+)
 
 
 class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.Connection]):

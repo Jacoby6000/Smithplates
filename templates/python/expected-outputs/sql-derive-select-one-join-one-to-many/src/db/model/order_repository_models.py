@@ -15,9 +15,3 @@ class OrderLine:
     id: str
     order_id: str | None
     sku: str | None
-
-@dataclass
-class GetOrderResult:
-    id: str
-    label: str
-    order_lines: list[OrderLine]

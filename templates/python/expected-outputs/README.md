@@ -16,6 +16,8 @@ Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTest
 | `sql-derive-select-one-join-many-to-one-optional` | Optional FK join → optional nested `category: Category | None` on `GetWidgetResult` |
 | `sql-derive-select-one-join-one-to-many` | `@sqlDeriveSelectOne` with a child-table join; nested `order_lines: list[OrderLine]` on `GetOrderResult` (includes insert + integration tests) |
 | `sql-derive-select-one-join-one-to-one` | `@sqlDeriveSelectOne` with `@sqlUniqueIndex` FK join; nested singular `bar: Bar` on `GetProfileResult` |
+| `sql-derive-select-one-join-transitive` | Widget → Category → Department; second join ON clause uses Category FK to Department |
+| `sql-derive-select-one-join-transitive-reverse` | Department → Category → Widget; nested `categories` and `widgets` collections |
 
 Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `test/db/sqlite/` (aiosqlite) and `test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `src/db/model/` and `src/db/`. Single derived-operation cases generate src artifacts only — integration tests require both insert and select-one.
 
@@ -48,7 +50,15 @@ Example: `sql-derived-crud-auto-managed-columns/src/db/model/widget_repository_m
 ## Adding a case
 
 1. Create `<test-name>/smithy/smithy-files.smithy` with a complete Smithy 2.0 file (`$version`, `namespace`, shapes).
-2. Run codegen locally and copy src outputs into `<test-name>/src/db/model/` + `<test-name>/src/db/` + `<test-name>/src/db/<implementation>/`. Copy test outputs into `<test-name>/test/db/<implementation>/` for SQLite and psycopg. Include all four standard artifacts when the service has derived insert + select-one operations.
+2. Run codegen and write expected outputs from the repo root:
+
+   ```bash
+   sbtn 'generateGoldenTemplatesFor python <test-name> [<test-name> ...]'
+   ```
+
+   Example: `sbtn 'generateGoldenTemplatesFor python sql-derive-select-one-join-many-to-one sql-derive-select-one-join-transitive'`
+
+   The task renders sqlite and postgres variants into `<test-name>/src/db/...` and `<test-name>/test/db/...` when applicable.
 3. If a variant cannot implement the scenario yet, add `unsupported.md` under `<test-name>/src/db/<implementation>/` explaining why. That suppresses the missing-expectations warning and skips generated-output assertions for that variant.
 
 ## Warnings

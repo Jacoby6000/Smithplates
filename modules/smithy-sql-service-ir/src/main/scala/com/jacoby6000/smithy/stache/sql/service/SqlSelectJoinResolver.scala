@@ -30,33 +30,103 @@ private[service] object SqlSelectJoinResolver {
       primaryReferenceAlias: String,
       joinReferenceAlias: String
   ): SqlValidated[Option[SqlJoinCondition]] =
+    resolveJoinCondition(
+      queryShape,
+      primaryTable,
+      primaryStructure,
+      joinTable,
+      joinStructure,
+      joinType,
+      primaryReferenceAlias,
+      joinReferenceAlias,
+      "sqlDeriveSelect"
+    )
+
+  def resolveJoinCondition(
+      queryShape: ShapeId,
+      leftTable: SqlTable,
+      leftStructure: StructureShape,
+      joinTable: SqlTable,
+      joinStructure: StructureShape,
+      joinType: SqlJoinType,
+      leftReferenceAlias: String,
+      joinReferenceAlias: String,
+      deriveTrait: String
+  ): SqlValidated[Option[SqlJoinCondition]] =
     if (joinType == SqlJoinType.Cross) {
       None.validNel
     } else {
-      findForeignKeys(primaryTable, primaryStructure, joinTable, joinStructure) match {
+      findForeignKeys(leftTable, leftStructure, joinTable, joinStructure) match {
         case Nil           =>
           SqlValidated.invalid(
-            MissingJoinForeignKey(queryShape, "sqlDeriveSelect", primaryTable.name, joinTable.name)
+            MissingJoinForeignKey(queryShape, deriveTrait, leftTable.name, joinTable.name)
           )
         case single :: Nil =>
-          val (leftTableAlias, leftColumn, rightTableAlias, rightColumn) =
-            if (single.sourceTable.name == primaryTable.name) {
-              (primaryReferenceAlias, single.sourceColumn, joinReferenceAlias, single.targetColumn)
-            } else {
-              (primaryReferenceAlias, single.targetColumn, joinReferenceAlias, single.sourceColumn)
-            }
-          Some(
-            SqlJoinCondition(
-              left = SqlQualifiedColumn(leftTableAlias, leftColumn),
-              right = SqlQualifiedColumn(rightTableAlias, rightColumn)
-            )
-          ).validNel
+          buildJoinCondition(single, leftTable, leftReferenceAlias, joinReferenceAlias).some.validNel
         case _             =>
           SqlValidated.invalid(
-            AmbiguousJoinForeignKey(queryShape, "sqlDeriveSelect", primaryTable.name, joinTable.name)
+            AmbiguousJoinForeignKey(queryShape, deriveTrait, leftTable.name, joinTable.name)
           )
       }
     }
+
+  def resolveTransitiveJoinCondition(
+      queryShape: ShapeId,
+      leftContexts: List[(SqlTable, StructureShape, String)],
+      joinTable: SqlTable,
+      joinStructure: StructureShape,
+      joinType: SqlJoinType,
+      joinReferenceAlias: String,
+      deriveTrait: String
+  ): SqlValidated[Option[SqlJoinCondition]] =
+    if (joinType == SqlJoinType.Cross) {
+      None.validNel
+    } else {
+      leftContexts.foldLeft[Option[SqlValidated[Option[SqlJoinCondition]]]](None) {
+        case (resolved @ Some(_), _)                                =>
+          resolved
+        case (None, (leftTable, leftStructure, leftReferenceAlias)) =>
+          findForeignKeys(leftTable, leftStructure, joinTable, joinStructure) match {
+            case Nil           => None
+            case single :: Nil =>
+              Some(
+                buildJoinCondition(single, leftTable, leftReferenceAlias, joinReferenceAlias).some.validNel
+              )
+            case _             =>
+              Some(
+                SqlValidated.invalid(
+                  AmbiguousJoinForeignKey(queryShape, deriveTrait, leftTable.name, joinTable.name)
+                )
+              )
+          }
+      } match {
+        case Some(result) => result
+        case None         =>
+          val primaryTableName =
+            leftContexts.lastOption.map(_._1.name).getOrElse(joinTable.name)
+          SqlValidated.invalid(
+            MissingJoinForeignKey(queryShape, deriveTrait, primaryTableName, joinTable.name)
+          )
+      }
+    }
+
+  private def buildJoinCondition(
+      foreignKey: ResolvedForeignKey,
+      leftTable: SqlTable,
+      leftReferenceAlias: String,
+      joinReferenceAlias: String
+  ): SqlJoinCondition = {
+    val (leftTableAlias, leftColumn, rightTableAlias, rightColumn) =
+      if (foreignKey.sourceTable.name == leftTable.name) {
+        (leftReferenceAlias, foreignKey.sourceColumn, joinReferenceAlias, foreignKey.targetColumn)
+      } else {
+        (leftReferenceAlias, foreignKey.targetColumn, joinReferenceAlias, foreignKey.sourceColumn)
+      }
+    SqlJoinCondition(
+      left = SqlQualifiedColumn(leftTableAlias, leftColumn),
+      right = SqlQualifiedColumn(rightTableAlias, rightColumn)
+    )
+  }
 
   def findForeignKeys(
       primaryTable: SqlTable,

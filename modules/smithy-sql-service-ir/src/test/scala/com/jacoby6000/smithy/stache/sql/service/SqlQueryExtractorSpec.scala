@@ -785,6 +785,162 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(selectOne.nestedResults.head.cardinality.toString, "Collection")
   }
 
+  test("DeriveSelectOne - transitive joins resolve through prior joined tables") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use stache.codegen.sql#DerivedStruct
+        |use stache.codegen.sql#sqlAutoUuid
+        |use stache.codegen.sql#sqlDeriveSelectOne
+        |use stache.codegen.sql#sqlForeignKey
+        |use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |use smithy.api#required
+        |
+        |@sqlTable(name: "departments")
+        |structure Department {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlTable(name: "categories")
+        |structure Category {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |    @sqlForeignKey(references: "example#Department")
+        |    @required
+        |    department_id: String
+        |}
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    title: String
+        |    @sqlForeignKey(references: "example#Category")
+        |    @required
+        |    category_id: String
+        |}
+        |
+        |@sqlDeriveSelectOne(
+        |    targetTable: "example#Widget",
+        |    joins: [
+        |        { table: "example#Category", tableAlias: "c" },
+        |        { table: "example#Department", tableAlias: "d" }
+        |    ]
+        |)
+        |operation GetWidget {
+        |    input: DerivedStruct
+        |    output: DerivedStruct
+        |}
+        |""".stripMargin
+    )
+
+    val schema    = SqlModelExtractor.extractOrThrow(model)
+    val selectOne = schema.queries.selectOnes.head
+    assertEquals(selectOne.joins.size, 2)
+    assertEquals(selectOne.nestedResults.map(_.memberName), List("category", "department"))
+    assertEquals(selectOne.nestedResults.map(_.optional), List(false, false))
+    assertEquals(
+      selectOne.joins(1).on.map(_.left.columnName),
+      Some("department_id")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.left.tableAlias),
+      Some("c")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.right.columnName),
+      Some("id")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.right.tableAlias),
+      Some("d")
+    )
+  }
+
+  test("DeriveSelectOne - reverse transitive joins resolve from department to widgets") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use stache.codegen.sql#DerivedStruct
+        |use stache.codegen.sql#sqlAutoUuid
+        |use stache.codegen.sql#sqlDeriveSelectOne
+        |use stache.codegen.sql#sqlForeignKey
+        |use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "departments")
+        |structure Department {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlTable(name: "categories")
+        |structure Category {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |    @sqlForeignKey(references: "example#Department")
+        |    department_id: String
+        |}
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    title: String
+        |    @sqlForeignKey(references: "example#Category")
+        |    category_id: String
+        |}
+        |
+        |@sqlDeriveSelectOne(
+        |    targetTable: "example#Department",
+        |    joins: [
+        |        { table: "example#Category", tableAlias: "c" },
+        |        { table: "example#Widget", tableAlias: "w" }
+        |    ]
+        |)
+        |operation GetDepartment {
+        |    input: DerivedStruct
+        |    output: DerivedStruct
+        |}
+        |""".stripMargin
+    )
+
+    val schema    = SqlModelExtractor.extractOrThrow(model)
+    val selectOne = schema.queries.selectOnes.head
+    assertEquals(selectOne.joins.size, 2)
+    assertEquals(selectOne.nestedResults.map(_.memberName), List("categories", "widgets"))
+    assertEquals(
+      selectOne.nestedResults.map(_.cardinality.toString),
+      List("Collection", "Collection")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.left.tableAlias),
+      Some("c")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.left.columnName),
+      Some("id")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.right.tableAlias),
+      Some("w")
+    )
+    assertEquals(
+      selectOne.joins(1).on.map(_.right.columnName),
+      Some("category_id")
+    )
+  }
+
   test("DeriveSelectOne - fails when joins are declared but output is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(

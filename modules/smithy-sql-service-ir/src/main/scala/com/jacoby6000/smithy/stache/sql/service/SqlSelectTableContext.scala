@@ -83,23 +83,26 @@ private[service] object SqlSelectTableContext {
       joinContexts: List[TableContext],
       joinSpecs: java.util.List[SqlSelectJoinValue],
       queryKind: InvalidQueryTableReference.Kind = InvalidQueryTableReference.Kind.DeriveSelect
-  ): SqlValidated[List[SqlSelectJoin]] =
-    joinContexts.zip(joinSpecs.asScala.toList).traverse { case (joinContext, joinSpec) =>
+  ): SqlValidated[List[SqlSelectJoin]] = {
+    val deriveTrait = deriveTraitName(queryKind)
+    joinContexts.zip(joinSpecs.asScala.toList).zipWithIndex.traverse { case ((joinContext, joinSpec), index) =>
       SqlJoinType.fromString(joinSpec.getType) match {
         case None           =>
           SqlValidated.invalid(InvalidJoinType(queryShape, joinSpec.getType))
         case Some(joinType) =>
+          val leftContexts =
+            (joinContexts.take(index).reverse :+ primaryContext).map { leftContext =>
+              (leftContext.table, leftContext.structure, leftContext.referenceAlias)
+            }
           SqlSelectJoinResolver
-            .resolveJoinCondition(
-              model,
+            .resolveTransitiveJoinCondition(
               queryShape,
-              primaryContext.table,
-              primaryContext.structure,
+              leftContexts,
               joinContext.table,
               joinContext.structure,
               joinType,
-              primaryContext.referenceAlias,
-              joinContext.referenceAlias
+              joinContext.referenceAlias,
+              deriveTrait
             )
             .map(on =>
               SqlSelectJoin(
@@ -109,6 +112,14 @@ private[service] object SqlSelectTableContext {
                 on
               ))
       }
+    }
+  }
+
+  private def deriveTraitName(queryKind: InvalidQueryTableReference.Kind): String =
+    queryKind match {
+      case InvalidQueryTableReference.Kind.DeriveSelectOne => "sqlDeriveSelectOne"
+      case InvalidQueryTableReference.Kind.DeriveSelect    => "sqlDeriveSelect"
+      case _                                               => "sqlDeriveSelect"
     }
 
   def validateUniqueAliases(

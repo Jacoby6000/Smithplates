@@ -73,7 +73,8 @@ target table is modeled as a list member (one-to-many). A target-table foreign k
 at a joined table is modeled as a singular nested member (many-to-one or one-to-one); required
 when the foreign key member is required.
 Generated SQL selects every column from the target table and joined tables and filters by
-primary key.
+primary key. Each join after the first resolves its ON clause from the nearest prior joined
+table when no direct @sqlForeignKey exists on the target table.
 """)
 @trait(selector: "operation")
 structure sqlDeriveSelectOne {

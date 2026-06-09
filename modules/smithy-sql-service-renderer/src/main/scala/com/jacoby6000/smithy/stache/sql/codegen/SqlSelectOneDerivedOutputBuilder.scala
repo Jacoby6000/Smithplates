@@ -5,6 +5,8 @@ import com.jacoby6000.smithy.stache.sql.service.*
 import software.amazon.smithy.model.shapes.ShapeId
 
 object SqlSelectOneDerivedOutputBuilder {
+  val DerivedNamespace: String = "generated.selectOne"
+
   final case class DerivedOutput(
       typeName: String,
       structure: SqlStructure,
@@ -51,7 +53,7 @@ object SqlSelectOneDerivedOutputBuilder {
       SqlStructure(
         shapeId = ShapeId.from(s"generated.selectOne#$typeName"),
         name = typeName,
-        namespace = "generated.selectOne",
+        namespace = DerivedNamespace,
         members = primaryMembers ++ nestedMembers
       )
     val primaryFields  =

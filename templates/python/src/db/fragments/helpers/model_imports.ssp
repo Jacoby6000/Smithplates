@@ -1,9 +1,11 @@
 <%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
-from ${serviceModuleBaseName(ctx.serviceName)}_models import (
-<% for (model <- ctx.models) { %>
+<% render("fragments/helpers/table_model_imports", Map("ctx" -> ctx)) %><% if (ctx.operationResultModels.nonEmpty) { %>
+from ${serviceModuleBaseName(ctx.serviceName)}_protocol import (
+<% for (model <- ctx.operationResultModels) { %>
     ${model.name},
 <% } %>
-<% for (union <- ctx.unions) { %>
-    ${union.name},
-<% } %>
+    ${serviceProtocolName(ctx.serviceName)},
 )
+<% } else { %>
+from ${serviceModuleBaseName(ctx.serviceName)}_protocol import ${serviceProtocolName(ctx.serviceName)}
+<% } %>

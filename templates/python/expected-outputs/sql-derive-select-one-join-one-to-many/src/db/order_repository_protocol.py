@@ -2,12 +2,18 @@
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
+from dataclasses import dataclass
 
 from order_repository_models import (
     Order,
     OrderLine,
-    GetOrderResult,
 )
+
+@dataclass
+class GetOrderResult:
+    id: str
+    label: str
+    order_lines: list[OrderLine]
 
 T = TypeVar("T", contravariant=True)
 

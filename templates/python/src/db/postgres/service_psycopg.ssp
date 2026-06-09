@@ -7,7 +7,6 @@ from typing import override
 <% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>import psycopg
 from psycopg_transaction_run import run
 <% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
-from ${serviceModuleBaseName(ctx.serviceName)}_protocol import ${serviceProtocolName(ctx.serviceName)}
 
 
 class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):

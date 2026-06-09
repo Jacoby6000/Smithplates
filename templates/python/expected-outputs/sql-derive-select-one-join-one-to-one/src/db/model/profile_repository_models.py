@@ -15,10 +15,3 @@ class Profile:
     id: str
     display_name: str | None
     bar_id: str
-
-@dataclass
-class GetProfileResult:
-    id: str
-    display_name: str
-    bar_id: str
-    bar: Bar

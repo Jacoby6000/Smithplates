@@ -10,9 +10,11 @@ from psycopg_transaction_run import run
 from profile_repository_models import (
     Bar,
     Profile,
-    GetProfileResult,
 )
-from profile_repository_protocol import ProfileRepositoryServiceProtocol
+from profile_repository_protocol import (
+    GetProfileResult,
+    ProfileRepositoryServiceProtocol,
+)
 
 
 class ProfileRepositoryPsycopgService(ProfileRepositoryServiceProtocol[psycopg.AsyncTransaction]):

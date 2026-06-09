@@ -2,12 +2,19 @@
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
+from dataclasses import dataclass
 
 from profile_repository_models import (
     Bar,
     Profile,
-    GetProfileResult,
 )
+
+@dataclass
+class GetProfileResult:
+    id: str
+    display_name: str
+    bar_id: str
+    bar: Bar
 
 T = TypeVar("T", contravariant=True)
 

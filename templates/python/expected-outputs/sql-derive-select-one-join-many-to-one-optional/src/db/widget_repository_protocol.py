@@ -2,12 +2,19 @@
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
+from dataclasses import dataclass
 
 from widget_repository_models import (
     Category,
     Widget,
-    GetWidgetResult,
 )
+
+@dataclass
+class GetWidgetResult:
+    id: str
+    title: str
+    category_id: str
+    category: Category | None
 
 T = TypeVar("T", contravariant=True)
 

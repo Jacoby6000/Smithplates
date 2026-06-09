@@ -2,9 +2,14 @@
 from __future__ import annotations
 
 from typing import Protocol, TypeVar
+<% if (ctx.operationResultModels.nonEmpty) { %>
+from dataclasses import dataclass
+<% } %>
 
-<% render("fragments/helpers/model_imports", Map("ctx" -> ctx)) %>
+<% render("fragments/helpers/table_model_imports", Map("ctx" -> ctx)) %>
+<% if (ctx.operationResultModels.nonEmpty) { %>
 
+<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } %>
 T = TypeVar("T", contravariant=True)
 
 

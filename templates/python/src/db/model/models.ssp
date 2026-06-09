@@ -16,12 +16,4 @@ class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
 <% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
 
 
-<% } %><% for (model <- ctx.models) { %>@dataclass
-class ${model.name}:
-<% if (model.hasMembers) { %>
-<% render("fragments/models/member_lines", Map("members" -> model.members)) +%><% } %>
-<% if (!model.hasMembers) { %>
-    pass
-<% } %>
-
-<% } %>
+<% } %><% render("fragments/models/dataclass_definitions", Map("models" -> ctx.models)) %>

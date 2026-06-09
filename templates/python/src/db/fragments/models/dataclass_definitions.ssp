@@ -1,0 +1,10 @@
+<%@ val models: List[com.jacoby6000.smithy.stache.sql.codegen.TemplateModelView] %>
+<% for (model <- models) { %>@dataclass
+class ${model.name}:
+<% if (model.hasMembers) { %>
+<% render("fragments/models/member_lines", Map("members" -> model.members)) +%><% } %>
+<% if (!model.hasMembers) { %>
+    pass
+<% } %>
+
+<% } %>
