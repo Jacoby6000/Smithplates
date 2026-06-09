@@ -1,4 +1,4 @@
-# Run SmithyStache linters and/or tests using Nix (preferred) or Docker.
+# Run Smithplates linters and/or tests using Nix (preferred) or Docker.
 #
 #   .\validate.ps1              # lint + test (default)
 #   .\validate.ps1 build        # lint and compile only
@@ -15,4 +15,4 @@ Set-Location -LiteralPath $Root
 
 . (Join-Path $Root 'scripts/lib/Validate-Backend.ps1')
 
-Invoke-SmithyStacheValidate -Root $Root -ActionSpec $Action
+Invoke-SmithplatesValidate -Root $Root -ActionSpec $Action

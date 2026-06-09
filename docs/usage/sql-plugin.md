@@ -1,8 +1,8 @@
 # SQL plugin
 
-Maven coordinate: `com.jacoby6000:smithy-stache-plugin:0.1.0`
+Maven coordinate: `com.jacoby6000:smithplates-plugin:0.1.0`
 
-Smithy build plugin (`smithy-stache`) and trait namespace for relational schema and repository codegen from Smithy models.
+Smithy build plugin (`smithplates`) and trait namespace for relational schema and repository codegen from Smithy models.
 
 ## Codegen pipeline
 
@@ -10,19 +10,19 @@ The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smi
 
 | Path | `smithy-build.json` config | Generated artifacts |
 |------|---------------------------|---------------------|
-| **Schema and migrations** | `smithy-stache.sql.<dialect>` with `enable: true` | Dialect-specific DDL (`.sql` migration files today; per-language migration engines planned in [#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
-| **SQL database service codegen** | `smithy-stache.sql.languageTargets` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
+| **Schema and migrations** | `smithplates.sql.<dialect>` with `enable: true` | Dialect-specific DDL (`.sql` migration files today; per-language migration engines planned in [#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
+| **SQL database service codegen** | `smithplates.sql.languageTargets` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping.
 
-## `smithy-stache` SQL outputs
+## `smithplates` SQL outputs
 
 | Config | Output |
 |--------|--------|
 | Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files (SQL IR → dialect DDL): `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
 | `languageTargets` | Mustache-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
 
-Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/stache.codegen.sql.smithy` (`smithy-sql-ir`) and query/service traits at `META-INF/smithy/stache.codegen.sql.service.smithy` (`smithy-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithy.stache.sql.traits` (`smithy-sql-ir`) and query/service traits under `com.jacoby6000.smithy.stache.sql.service.traits` (`smithy-sql-service-ir`).
+Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithy-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithy-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithy-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithy-sql-service-ir`).
 
 ## Modeling conventions
 
@@ -34,10 +34,10 @@ Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/
 ### Quick example
 
 ```smithy
-use stache.codegen.sql#DerivedStruct
-use stache.codegen.sql#sqlForeignKey
-use stache.codegen.sql#sqlPrimaryKey
-use stache.codegen.sql#sqlTable
+use smithplates.codegen.sql#DerivedStruct
+use smithplates.codegen.sql#sqlForeignKey
+use smithplates.codegen.sql#sqlPrimaryKey
+use smithplates.codegen.sql#sqlTable
 
 @sqlTable(name: "foos")
 structure Foo {
@@ -63,14 +63,14 @@ service FooRepository {
 
 ## SQL database service codegen
 
-**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/). Configure `smithy-stache.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/). Configure `smithplates.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
 
 | Artifact | Pipeline stage |
 |----------|----------------|
 | `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
-| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Test suite implementations (derived queries + abstract suites + templates; migration engine planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2))) |
+| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Test suite implementations (derived queries + abstract suites + templates; migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
 | `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
 
 Layout for the bundled `db` service type:
@@ -111,8 +111,8 @@ Generated `test_*_derived_sql.py` integration tests exercise this: `test_derived
 
 Trait tables, Smithy examples, template context fields, SPI entries, and Python validation test setup:
 
-→ [`modules/smithy-stache-plugin/README.md`](../../modules/smithy-stache-plugin/README.md)
+→ [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md)
 
 ## Configuration
 
-See [Integration](integration.md) for the `smithy-stache` plugin example and [`sql-plugin/README.md`](../../sql-plugin/README.md) for trait and template details.
+See [Integration](integration.md) for the `smithplates` plugin example and [`sql-plugin/README.md`](../../sql-plugin/README.md) for trait and template details.

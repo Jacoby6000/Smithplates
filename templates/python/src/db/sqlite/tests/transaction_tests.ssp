@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithy.stache.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithplates.sql.codegen.IntegrationTestView = ctx.integrationTest.get %>
 
 @pytest.mark.integration
 @pytest.mark.sqlite

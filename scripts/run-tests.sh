@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run SmithyStache test suites from the repository root (no linters).
+# Run Smithplates test suites from the repository root (no linters).
 # Invoked directly:
 #   scripts/run-tests.sh [all|scala|templates]
 set -euo pipefail

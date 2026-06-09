@@ -1,5 +1,5 @@
 [project]
-name = "smithy-stache-python-language-test-harness"
+name = "smithplates-python-language-test-harness"
 version = "0.1.0"
 description = "Execute generated Python integration tests from templates expected-outputs"
 requires-python = ">=3.11"

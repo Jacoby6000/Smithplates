@@ -1,6 +1,6 @@
 # Contributing
 
-Guides for **developing** SmithyStache itself.
+Guides for **developing** Smithplates itself.
 
 | Document | Topic |
 |----------|-------|

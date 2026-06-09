@@ -1,4 +1,4 @@
-<%@ val factory: com.jacoby6000.smithy.stache.sql.codegen.TemplateClassRowFactoryView %>
+<%@ val factory: com.jacoby6000.smithplates.sql.codegen.TemplateClassRowFactoryView %>
 def ${rowFactoryName(factory.name)}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${factory.name}:
     return ${factory.name}(
 <% for (resultField <- factory.resultFields) { %>        <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>    )

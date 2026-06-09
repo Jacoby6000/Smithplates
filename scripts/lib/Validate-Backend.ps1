@@ -1,4 +1,4 @@
-function Get-SmithyStacheValidateUsage {
+function Get-SmithplatesValidateUsage {
   @'
 usage: .\validate.ps1 [lint,test|build|test|...]
 
@@ -12,7 +12,7 @@ Uses Nix when available (preferred), otherwise Docker. Override with $env:SMITHY
 '@
 }
 
-function Get-SmithyStacheDockerImageInputHash {
+function Get-SmithplatesDockerImageInputHash {
   param([Parameter(Mandatory = $true)][string]$Root)
 
   $hashes =
@@ -34,21 +34,21 @@ function Get-SmithyStacheDockerImageInputHash {
   }
 }
 
-function Test-SmithyStacheDockerImageExists {
+function Test-SmithplatesDockerImageExists {
   param([Parameter(Mandatory = $true)][string]$Image)
 
   & docker image inspect $Image 2>$null | Out-Null
   return ($LASTEXITCODE -eq 0)
 }
 
-function Ensure-SmithyStacheDockerImage {
+function Ensure-SmithplatesDockerImage {
   param([Parameter(Mandatory = $true)][string]$Root)
 
   $image = if ($env:SMITHYSTACHE_TEST_IMAGE) { $env:SMITHYSTACHE_TEST_IMAGE } else { 'smithystache-test:local' }
   $cacheDir = Join-Path $Root 'target/docker-test'
   $hashFile = Join-Path $cacheDir 'image-input.hash'
-  $currentHash = Get-SmithyStacheDockerImageInputHash -Root $Root
-  $needsBuild = -not (Test-SmithyStacheDockerImageExists -Image $image)
+  $currentHash = Get-SmithplatesDockerImageInputHash -Root $Root
+  $needsBuild = -not (Test-SmithplatesDockerImageExists -Image $image)
 
   if (-not $needsBuild -and (Test-Path -LiteralPath $hashFile)) {
     $storedHash = (Get-Content -LiteralPath $hashFile -Raw).Trim()
@@ -73,14 +73,14 @@ function Ensure-SmithyStacheDockerImage {
   return $image
 }
 
-function Invoke-SmithyStacheDockerRun {
+function Invoke-SmithplatesDockerRun {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [Parameter(Mandatory = $true)][string[]]$Command,
     [switch]$MountDockerSocket
   )
 
-  $image = Ensure-SmithyStacheDockerImage -Root $Root
+  $image = Ensure-SmithplatesDockerImage -Root $Root
   $dockerArgs = @('run', '--rm')
   if ($MountDockerSocket) {
     if ($IsWindows -or $env:OS -match 'Windows') {
@@ -99,7 +99,7 @@ function Invoke-SmithyStacheDockerRun {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-function Get-SmithyStacheValidateBackend {
+function Get-SmithplatesValidateBackend {
   param([Parameter(Mandatory = $true)][string]$Root)
 
   if ($env:SMITHYSTACHE_VALIDATE_BACKEND) {
@@ -128,7 +128,7 @@ function Get-SmithyStacheValidateBackend {
   return 'none'
 }
 
-function Invoke-SmithyStacheValidateLint {
+function Invoke-SmithplatesValidateLint {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [Parameter(Mandatory = $true)][string]$Backend
@@ -139,7 +139,7 @@ function Invoke-SmithyStacheValidateLint {
       & nix develop $Root --accept-flake-config --command ./scripts/run-linters.sh all
     }
     'docker' {
-      Invoke-SmithyStacheDockerRun -Root $Root -Command @('./scripts/run-linters.sh', 'all')
+      Invoke-SmithplatesDockerRun -Root $Root -Command @('./scripts/run-linters.sh', 'all')
     }
     default {
       Write-Error @'
@@ -153,7 +153,7 @@ Need Nix (flakes) or a running Docker daemon to validate.
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-function Invoke-SmithyStacheValidateTest {
+function Invoke-SmithplatesValidateTest {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [Parameter(Mandatory = $true)][string]$Backend
@@ -164,7 +164,7 @@ function Invoke-SmithyStacheValidateTest {
       & nix develop $Root --accept-flake-config --command ./scripts/run-tests.sh all
     }
     'docker' {
-      Invoke-SmithyStacheDockerRun -Root $Root -MountDockerSocket -Command @('./scripts/run-tests.sh', 'all')
+      Invoke-SmithplatesDockerRun -Root $Root -MountDockerSocket -Command @('./scripts/run-tests.sh', 'all')
     }
     default {
       Write-Error @'
@@ -178,7 +178,7 @@ Need Nix (flakes) or a running Docker daemon to validate.
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
-function Normalize-SmithyStacheValidateAction {
+function Normalize-SmithplatesValidateAction {
   param([Parameter(Mandatory = $true)][string]$Action)
 
   switch ($Action.ToLowerInvariant()) {
@@ -187,19 +187,19 @@ function Normalize-SmithyStacheValidateAction {
     'test' { return 'test' }
     default {
       Write-Error "unknown validate action: $Action"
-      Write-Host (Get-SmithyStacheValidateUsage)
+      Write-Host (Get-SmithplatesValidateUsage)
       exit 2
     }
   }
 }
 
-function Invoke-SmithyStacheValidate {
+function Invoke-SmithplatesValidate {
   param(
     [Parameter(Mandatory = $true)][string]$Root,
     [string]$ActionSpec = 'lint,test'
   )
 
-  $backend = Get-SmithyStacheValidateBackend -Root $Root
+  $backend = Get-SmithplatesValidateBackend -Root $Root
   Write-Host "==> validate ($ActionSpec) via $backend"
 
   $seen = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -208,21 +208,21 @@ function Invoke-SmithyStacheValidate {
   foreach ($part in ($ActionSpec -split ',')) {
     $trimmed = $part.Trim()
     if ([string]::IsNullOrWhiteSpace($trimmed)) { continue }
-    $normalized = Normalize-SmithyStacheValidateAction -Action $trimmed
+    $normalized = Normalize-SmithplatesValidateAction -Action $trimmed
     if ($seen.Add($normalized)) {
       [void]$actions.Add($normalized)
     }
   }
 
   if ($actions.Count -eq 0) {
-    Write-Host (Get-SmithyStacheValidateUsage)
+    Write-Host (Get-SmithplatesValidateUsage)
     exit 2
   }
 
   foreach ($action in $actions) {
     switch ($action) {
-      'lint' { Invoke-SmithyStacheValidateLint -Root $Root -Backend $backend }
-      'test' { Invoke-SmithyStacheValidateTest -Root $Root -Backend $backend }
+      'lint' { Invoke-SmithplatesValidateLint -Root $Root -Backend $backend }
+      'test' { Invoke-SmithplatesValidateTest -Root $Root -Backend $backend }
     }
   }
 }

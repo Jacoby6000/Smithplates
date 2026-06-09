@@ -1,6 +1,6 @@
 flowchart TD
     SM["Smithy model"]
-    SSP["smithy-stache-plugin"]
+    SSP["smithplates-plugin"]
 
     SM --> SSP
 
@@ -11,7 +11,7 @@ flowchart TD
         SQLIR --> DDL["Dialect-specific DDL"]
         SQLIR --> SchemaIT["Target language database schema integration tests"]
         
-        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/SmithyStache/issues/2))"]
+        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
         DDL   -.-> Migration
         SQLIR -.-> Migration
     end

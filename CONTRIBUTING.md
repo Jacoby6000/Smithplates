@@ -1,4 +1,4 @@
-# Contributing to SmithyStache
+# Contributing to Smithplates
 
 User-facing plugin docs live under [`docs/usage/`](docs/usage/). Deeper architecture notes live under [`docs/contributing/`](docs/contributing/). This guide focuses on **running tests** and **where to work** depending on your role.
 
@@ -115,7 +115,7 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 | Query rendering | `modules/smithy-sql-service-query-renderer*` | `sbtn smithySqlServiceQueryRenderer/test`, … |
 | DDL rendering | `modules/smithy-sql-*-renderer/` | `sbtn smithySqlPostgresRenderer/test`, … |
 | SSP rendering engine | `modules/smithy-sql-service-renderer/` | `sbtn smithySqlServiceRenderer/test` |
-| Published plugin | `modules/smithy-stache-plugin/` | `sbtn smithyStachePlugin/test` |
+| Published plugin | `modules/smithplates-plugin/` | `sbtn smithplatesPlugin/test` |
 | Dialect IT | `modules/smithy-sql-*-renderer-it/` | `sbtn smithySqlPostgresRendererIt/test`, … |
 
 **Conventions:** see [`AGENTS.md`](AGENTS.md) (Scala 3.3.6, strict options, `sbtn`, functional validation with `ValidatedNel`). Pre-commit hooks (`scripts/pre-commit-scala.sh`) run scalafmt, scalafix, and compile on staged Scala/SBT changes.
@@ -158,13 +158,13 @@ Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `un
 
 ### Adding a new language
 
-1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithy/stache/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
+1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
 2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
 3. Add golden cases under `templates/<language>/expected-outputs/<test-case>/`.
 4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
-5. Extend [`CodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/SqlServiceCodegenTemplateTestSuite.scala).
+5. Extend [`CodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/SqlServiceCodegenTemplateTestSuite.scala).
 
-Consumers can also point `smithy-stache.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
+Consumers can also point `smithplates.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
 
 ### Postgres mypy stubs
 

@@ -1,14 +1,14 @@
 $version: "2.0"
 namespace example
 
-use stache.codegen.sql#sqlAutoUuid
-use stache.codegen.sql#sqlDeriveInsert
-use stache.codegen.sql#sqlDeriveSelectOne
-use stache.codegen.sql#sqlForeignKey
-use stache.codegen.sql#sqlPrimaryKey
-use stache.codegen.sql#sqlTable
-use stache.codegen.sql#DerivedStruct
-use stache.codegen.sql#sqlService
+use smithplates.codegen.sql#sqlAutoUuid
+use smithplates.codegen.sql#sqlDeriveInsert
+use smithplates.codegen.sql#sqlDeriveSelectOne
+use smithplates.codegen.sql#sqlForeignKey
+use smithplates.codegen.sql#sqlPrimaryKey
+use smithplates.codegen.sql#sqlTable
+use smithplates.codegen.sql#DerivedStruct
+use smithplates.codegen.sql#sqlService
 
 @sqlTable(name: "orders")
 structure Order {

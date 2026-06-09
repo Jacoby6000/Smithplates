@@ -1,4 +1,4 @@
-<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
 from __future__ import annotations
 
 from dataclasses import dataclass

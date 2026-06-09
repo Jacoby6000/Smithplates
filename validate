@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run SmithyStache linters and/or tests using Nix (preferred) or Docker.
+# Run Smithplates linters and/or tests using Nix (preferred) or Docker.
 #
 #   ./validate              # lint + test (default)
 #   ./validate build        # lint and compile only

@@ -174,7 +174,7 @@ lazy val smithySqlServiceRenderer = (project in file("modules/smithy-sql-service
     )
   )
 
-lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
+lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   .dependsOn(
     smithySqlIr,
     smithySqlServiceIr,
@@ -188,7 +188,7 @@ lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
   )
   .settings(
     strictScala3Settings,
-    name := "smithy-stache-plugin",
+    name := "smithplates-plugin",
     organization := "com.jacoby6000",
     version := "0.1.0",
     crossPaths := false,
@@ -211,25 +211,25 @@ lazy val smithyStachePlugin = (project in file("modules/smithy-stache-plugin"))
           )
         }
         (Test / runMain).toTask(
-          s" com.jacoby6000.smithy.stache.generators.SmithyStacheGenerators golden-templates ${args.mkString(" ")}"
+          s" com.jacoby6000.smithplates.generators.SmithplatesGenerators golden-templates ${args.mkString(" ")}"
         )
       }.evaluated
     }
   )
 
-lazy val smithyStacheTestkit = (project in file("modules/smithy-stache-testkit"))
+lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
   .dependsOn(smithySqlIr, smithySqlServiceIr)
   .settings(
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
-    name := "smithy-stache-testkit",
+    name := "smithplates-testkit",
     organization := "com.jacoby6000",
     version := "0.1.0"
   )
 
 lazy val smithySqlPostgresRendererIt = (project in file("modules/smithy-sql-postgres-renderer-it"))
-  .dependsOn(smithySqlPostgresRenderer, smithyStacheTestkit)
+  .dependsOn(smithySqlPostgresRenderer, smithplatesTestkit)
   .settings(
     strictScala3Settings,
     withCatsEffect,
@@ -249,7 +249,7 @@ lazy val smithySqlPostgresRendererIt = (project in file("modules/smithy-sql-post
   )
 
 lazy val smithySqlSqliteRendererIt = (project in file("modules/smithy-sql-sqlite-renderer-it"))
-  .dependsOn(smithySqlSqliteRenderer, smithyStacheTestkit)
+  .dependsOn(smithySqlSqliteRenderer, smithplatesTestkit)
   .settings(
     strictScala3Settings,
     withCatsEffect,
@@ -273,7 +273,7 @@ lazy val root = (project in file("."))
     withCatsEffect,
     Compile / sources := Nil,
     Compile / resources := Nil,
-    generateGoldenTemplatesFor := (smithyStachePlugin / generateGoldenTemplatesFor).evaluated
+    generateGoldenTemplatesFor := (smithplatesPlugin / generateGoldenTemplatesFor).evaluated
   )
   .aggregate(
     smithySqlIr,
@@ -284,8 +284,8 @@ lazy val root = (project in file("."))
     smithySqlServiceQueryRendererPostgres,
     smithySqlServiceQueryRendererSqlite,
     smithySqlServiceRenderer,
-    smithyStachePlugin,
-    smithyStacheTestkit,
+    smithplatesPlugin,
+    smithplatesTestkit,
     smithySqlPostgresRendererIt,
     smithySqlSqliteRendererIt
   )

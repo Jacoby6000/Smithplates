@@ -10,13 +10,13 @@
 | [uv](https://docs.astral.sh/uv/) | Required for Python language test harness (`language-test-harnesses/python/`) |
 | [pre-commit](https://pre-commit.com/) | Optional; installs git hooks for fmt/fix/compile |
 
-Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repository root.
+Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository root.
 
 ## Modules
 
 | SBT project | Directory | Maven coordinate | Role |
 |-------------|-----------|------------------|------|
-| `smithyStachePlugin` | [`modules/smithy-stache-plugin/`](../../modules/smithy-stache-plugin/) | `com.jacoby6000:smithy-stache-plugin:0.1.0` | Published `smithy-stache` build plugin (orchestration only) |
+| `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin:0.1.0` | Published `smithplates` build plugin (orchestration only) |
 | `smithySqlIr` | [`modules/smithy-sql-ir/`](../../modules/smithy-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
 | `smithySqlServiceIr` | [`modules/smithy-sql-service-ir/`](../../modules/smithy-sql-service-ir/) | — | Query/service IR, extractors |
 | `smithySqlServiceQueryRenderer` | [`modules/smithy-sql-service-query-renderer/`](../../modules/smithy-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, dialect-neutral query rendering |
@@ -25,7 +25,7 @@ Assume `sbtn` is already on `PATH`. Run commands from the SmithyStache repositor
 | `smithySqlPostgresRenderer` | [`modules/smithy-sql-postgres-renderer/`](../../modules/smithy-sql-postgres-renderer/) | — | Postgres DDL renderer |
 | `smithySqlSqliteRenderer` | [`modules/smithy-sql-sqlite-renderer/`](../../modules/smithy-sql-sqlite-renderer/) | — | SQLite DDL renderer |
 | `smithySqlServiceRenderer` | [`modules/smithy-sql-service-renderer/`](../../modules/smithy-sql-service-renderer/) | — | Mustache service codegen (Python templates) |
-| `smithyStacheTestkit` | [`modules/smithy-stache-testkit/`](../../modules/smithy-stache-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
+| `smithplatesTestkit` | [`modules/smithplates-testkit/`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
 | `smithySqlPostgresRendererIt` | [`modules/smithy-sql-postgres-renderer-it/`](../../modules/smithy-sql-postgres-renderer-it/) | — | Postgres renderer integration tests |
 | `smithySqlSqliteRendererIt` | [`modules/smithy-sql-sqlite-renderer-it/`](../../modules/smithy-sql-sqlite-renderer-it/) | — | SQLite renderer integration tests |
 
@@ -37,7 +37,7 @@ Publish plugin JARs to the local Maven repository (`~/.m2`) before running `smit
 sbtn publishM2
 ```
 
-Consumer `smithy-build.json` files reference `com.jacoby6000:smithy-stache-plugin`. Version numbers must match [`build.sbt`](../../build.sbt).
+Consumer `smithy-build.json` files reference `com.jacoby6000:smithplates-plugin`. Version numbers must match [`build.sbt`](../../build.sbt).
 
 ## Lint and format
 
@@ -95,7 +95,7 @@ sbtn smithySqlServiceIr/test
 sbtn smithySqlPostgresRenderer/test
 sbtn smithySqlSqliteRenderer/test
 sbtn smithySqlServiceRenderer/test
-sbtn smithyStachePlugin/test
+sbtn smithplatesPlugin/test
 ```
 
 ## Integration tests
@@ -117,7 +117,7 @@ See [Integration tests](integration-tests.md) for coverage and module layout.
 
 ## Typical workflow
 
-1. Change plugin sources in SmithyStache.
+1. Change plugin sources in Smithplates.
 2. Run `sbtn publishM2`.
 3. Run `smithy build` in the consumer Smithy project (models and `smithy-build.json` live in that repo).
 4. Run unit tests on affected modules and, when SQL rendering changes, dialect IT modules.

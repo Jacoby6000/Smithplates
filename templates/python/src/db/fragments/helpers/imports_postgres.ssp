@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
-<%@ val imports: com.jacoby6000.smithy.stache.sql.codegen.ImportRequirements = importRequirements(ctx) %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithplates.sql.codegen.ImportRequirements = importRequirements(ctx) %>
 <% if (imports.needsClassRowImport) { %>from psycopg.rows import class_row
 <% } %><% if (imports.needsDictRowImport) { %>from psycopg.rows import dict_row
 <% } %><% if (imports.needsUuidTextLoader) { %>from psycopg.types.string import TextLoader

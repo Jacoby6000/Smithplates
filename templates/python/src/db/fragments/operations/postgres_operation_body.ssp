@@ -1,4 +1,4 @@
-<%@ val operation: com.jacoby6000.smithy.stache.sql.codegen.TemplateOperationView %>
+<%@ val operation: com.jacoby6000.smithplates.sql.codegen.TemplateOperationView %>
 #match (operation.sqlBodyKind)
 #case ("insertScalar")            cur = await self._connection.execute(
                 """${operation.sqlStatement}""",

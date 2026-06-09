@@ -1,6 +1,6 @@
 # Usage
 
-Guides for **consuming** SmithyStache plugins in your Smithy project.
+Guides for **consuming** Smithplates plugins in your Smithy project.
 
 | Document | Topic |
 |----------|-------|
@@ -9,4 +9,4 @@ Guides for **consuming** SmithyStache plugins in your Smithy project.
 
 Trait tables, Mustache template context, and SPI details:
 
-→ [`modules/smithy-stache-plugin/README.md`](../../modules/smithy-stache-plugin/README.md)
+→ [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md)

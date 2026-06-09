@@ -1,4 +1,4 @@
-<%@ val model: com.jacoby6000.smithy.stache.sql.codegen.TemplateModelView %>
+<%@ val model: com.jacoby6000.smithplates.sql.codegen.TemplateModelView %>
 <%@ val dialectKey: String %>
 def _read_${model.name}_col(row: dict[str, object], column: str) -> ${model.name}:
 #match (dialectKey)

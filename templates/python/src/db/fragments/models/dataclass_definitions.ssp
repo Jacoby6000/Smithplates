@@ -1,4 +1,4 @@
-<%@ val models: List[com.jacoby6000.smithy.stache.sql.codegen.TemplateModelView] %>
+<%@ val models: List[com.jacoby6000.smithplates.sql.codegen.TemplateModelView] %>
 <% for (model <- models) { %>@dataclass
 class ${model.name}:
 <% if (model.hasMembers) { %>

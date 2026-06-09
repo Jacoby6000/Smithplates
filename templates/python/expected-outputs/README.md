@@ -1,6 +1,6 @@
 # Python codegen golden tests
 
-Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTestSuite`](../../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/SqlServiceCodegenTemplateTestSuite.scala). Name cases after the behavior under test (kebab-case), not fixture entities — for example `sql-json-structs-containing-unions`, not `shipment-json-crud`.
+Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTestSuite`](../../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/SqlServiceCodegenTemplateTestSuite.scala). Name cases after the behavior under test (kebab-case), not fixture entities — for example `sql-json-structs-containing-unions`, not `shipment-json-crud`.
 
 ## Current cases
 
@@ -21,7 +21,7 @@ Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTest
 
 Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `test/db/sqlite/` (aiosqlite) and `test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `src/db/model/` and `src/db/`. Single derived-operation cases generate src artifacts only — integration tests require both insert and select-one.
 
-[`SqlServiceCodegenTemplateTestSuite`](../../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithy/stache/sql/SqlServiceCodegenTemplateTestSuite.scala) golden-compares rendered output only. Execute generated integration tests with [`language-test-harnesses/python/run-tests.sh`](../../../language-test-harnesses/python/run-tests.sh).
+[`SqlServiceCodegenTemplateTestSuite`](../../../modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/SqlServiceCodegenTemplateTestSuite.scala) golden-compares rendered output only. Execute generated integration tests with [`language-test-harnesses/python/run-tests.sh`](../../../language-test-harnesses/python/run-tests.sh).
 
 ## Layout
 

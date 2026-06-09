@@ -1,0 +1,114 @@
+package com.jacoby6000.smithplates.sql.codegen
+
+import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.query.SqlParameterizedStatement
+import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
+import software.amazon.smithy.model.shapes.ShapeId
+
+final case class SqlCodegenParameter(
+    name: String,
+    typeName: String,
+    optional: Boolean,
+    isStructure: Boolean,
+    structureShapeId: Option[ShapeId]
+)
+
+final case class SqlCodegenErrorType(
+    shapeId: ShapeId,
+    name: String
+)
+
+final case class SqlCodegenOperation(
+    shapeId: ShapeId,
+    name: String,
+    parameters: List[SqlCodegenParameter],
+    outputShapeId: Option[ShapeId],
+    outputTypeName: Option[String],
+    errors: List[SqlCodegenErrorType],
+    sql: Option[SqlCodegenSqlBinding] = None
+)
+
+final case class SqlCodegenBindParameter(
+    memberName: String,
+    typeName: String,
+    isJson: Boolean = false,
+    jsonTypeName: Option[String] = None,
+    timestampFormat: Option[SqlTimestampFormat] = None
+)
+
+final case class SqlCodegenResultField(
+    fieldName: String,
+    columnName: String,
+    columnIndex: Int,
+    typeName: String,
+    isJson: Boolean = false,
+    timestampFormat: Option[SqlTimestampFormat] = None
+)
+
+final case class SqlCodegenSelectOneNestedBinding(
+    memberName: String,
+    shapeName: String,
+    cardinality: com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality,
+    optional: Boolean,
+    fields: List[SqlCodegenResultField]
+)
+
+final case class SqlCodegenSelectOneOutputBinding(
+    primaryFields: List[SqlCodegenResultField],
+    nestedBindings: List[SqlCodegenSelectOneNestedBinding],
+    hasCollectionJoin: Boolean
+)
+
+final case class SqlCodegenSqlBinding(
+    queryKind: String,
+    sqlStatement: SqlParameterizedStatement,
+    tableName: String,
+    bindParameters: List[SqlCodegenBindParameter],
+    executionMode: String,
+    outputKind: String,
+    returningColumnIndex: Option[Int],
+    resultFields: List[SqlCodegenResultField],
+    selectOneOutput: Option[SqlCodegenSelectOneOutputBinding] = None
+)
+
+final case class SqlCodegenServiceContext(
+    shapeId: ShapeId,
+    name: String,
+    namespace: String,
+    version: String,
+    dialectKey: String,
+    queryRenderer: SqlQueryRenderer,
+    bindPlaceholderStyle: SqlBindPlaceholder,
+    hasSqlOperations: Boolean,
+    models: List[SqlStructure],
+    unions: List[SqlUnion],
+    operations: List[SqlCodegenOperation],
+    integrationTest: Option[SqlCodegenIntegrationTestContext] = None
+)
+
+final case class SqlCodegenIntegrationTestContext(
+    schemaDdl: String,
+    insertOperation: SqlCodegenIntegrationTestOperation,
+    selectOneOperation: SqlCodegenIntegrationTestOperation,
+    updateOperation: Option[SqlCodegenIntegrationTestOperation],
+    deleteOperation: Option[SqlCodegenIntegrationTestOperation],
+    transactionCommitInTxAssertions: List[String],
+    transactionCommitAfterAssertions: List[String],
+    extraImports: List[String]
+)
+
+final case class SqlCodegenIntegrationTestOperation(
+    name: String,
+    callArguments: String,
+    updatedCallArguments: Option[String],
+    outputShapeId: Option[ShapeId],
+    resultAssertions: List[String],
+    updatedResultAssertions: List[String]
+)
+
+final case class SqlCodegenArtifact(
+    relativePath: String,
+    content: String,
+    kind: SqlServiceCodegenArtifactKind
+)

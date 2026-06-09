@@ -1,4 +1,4 @@
-<%@ val bindParameters: List[com.jacoby6000.smithy.stache.sql.codegen.TemplateBindParameterView] %>
+<%@ val bindParameters: List[com.jacoby6000.smithplates.sql.codegen.TemplateBindParameterView] %>
 <%
   val renderedParams = bindParameters.map { bindParameter =>
     capture {

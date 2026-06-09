@@ -1,5 +1,5 @@
 {
-  description = "SmithyStache development and test environment";
+  description = "Smithplates development and test environment";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
@@ -31,7 +31,7 @@
           elif command -v git >/dev/null 2>&1 && git rev-parse --show-toplevel >/dev/null 2>&1; then
             cd "$(git rev-parse --show-toplevel)"
           else
-            echo "error: run from the SmithyStache repository root" >&2
+            echo "error: run from the Smithplates repository root" >&2
             exit 1
           fi
           exec ./scripts/run-tests.sh "$@"
@@ -44,7 +44,7 @@
           elif command -v git >/dev/null 2>&1 && git rev-parse --show-toplevel >/dev/null 2>&1; then
             cd "$(git rev-parse --show-toplevel)"
           else
-            echo "error: run from the SmithyStache repository root" >&2
+            echo "error: run from the Smithplates repository root" >&2
             exit 1
           fi
           exec ./scripts/run-linters.sh "$@"
@@ -69,7 +69,7 @@
 
           shellHook = ''
             export JAVA_HOME="${java}"
-            echo "SmithyStache dev shell (Java 11, sbtn, uv, docker client)"
+            echo "Smithplates dev shell (Java 11, sbtn, uv, docker client)"
             echo "  ./validate                    # lint + test (Nix or Docker)"
             echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"

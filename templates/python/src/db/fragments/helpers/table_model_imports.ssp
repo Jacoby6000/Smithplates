@@ -1,4 +1,4 @@
-<%@ val ctx: com.jacoby6000.smithy.stache.sql.codegen.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
 from ${serviceModuleBaseName(ctx.serviceName)}_models import (
 <% for (model <- ctx.models) { %>
     ${model.name},

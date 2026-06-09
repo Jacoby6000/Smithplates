@@ -1,4 +1,4 @@
-# SmithyStache
+# Smithplates
 
 Pulling the AI Slop Machine lever to non-deterministicly generate deterministic code-generators. 
 
@@ -6,13 +6,13 @@ This project was inspired by OpenAPI Generator and some of my work at Disney. Ou
 
 ## Architecture
 
-The `smithy-stache` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Mustache templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
+The `smithplates` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Mustache templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
 flowchart TD
     SM["Smithy model"]
-    SSP["smithy-stache-plugin"]
+    SSP["smithplates-plugin"]
 
     SM --> SSP
 
@@ -23,7 +23,7 @@ flowchart TD
         SQLIR --> DDL["Dialect-specific DDL"]
         SQLIR --> SchemaIT["Target language database schema integration tests"]
         
-        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/SmithyStache/issues/2))"]
+        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
         DDL   -.-> Migration
         SQLIR -.-> Migration
     end
@@ -71,16 +71,16 @@ higher quality output than the AI would output on its own.
 
 ## What works today
 
-The `smithy-stache` plugin (`com.jacoby6000:smithy-stache-plugin`) is a Smithy build plugin. From a given Smithy specification it emits artifacts along two paths (see [Architecture](#architecture)):
+The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build plugin. From a given Smithy specification it emits artifacts along two paths (see [Architecture](#architecture)):
 
 | Path | Output | Supported today | Mechanism |
 |------|--------|-----------------|-----------|
 | **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite | SQL IR → dialect renderers |
 | **Schema and migrations** | Derived DML in DDL `-- Queries` section | Postgres, SQLite | SQL IR → dialect renderers; basic SELECT/INSERT/UPDATE/DELETE from derive traits |
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
-| **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2)) |
+| **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
 | **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
-| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + Mustache templates (migration engine planned ([#2](https://github.com/Jacoby6000/SmithyStache/issues/2))) |
+| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + Mustache templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
@@ -100,7 +100,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 | Audience | Index |
 |----------|-------|
 | **Users** (consume plugins in your Smithy project) | [`docs/usage/`](docs/usage/) |
-| **Contributors** (develop SmithyStache) | [`docs/contributing/`](docs/contributing/) |
+| **Contributors** (develop Smithplates) | [`docs/contributing/`](docs/contributing/) |
 
 **Usage:** [Integration](docs/usage/integration.md) · [SQL plugin](docs/usage/sql-plugin.md)
 
@@ -114,7 +114,7 @@ Requires [sbtn](https://www.scala-sbt.org/) on `PATH` (`coursier install sbtn`).
 
 ```bash
 sbtn publishM2
-sbtn smithyStachePlugin/test
+sbtn smithplatesPlugin/test
 ```
 
 Pre-commit hooks (optional; `pre-commit install`):

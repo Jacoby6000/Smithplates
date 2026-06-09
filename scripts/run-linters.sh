@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run SmithyStache linters and compilers from the repository root.
+# Run Smithplates linters and compilers from the repository root.
 # Invoked directly:
 #   scripts/run-linters.sh [all|scala|templates]
 set -euo pipefail
