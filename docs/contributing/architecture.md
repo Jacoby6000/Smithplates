@@ -137,8 +137,8 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | `com.jacoby6000.smithplates.sql.query` | `SqlQueryRenderer`, `SqlParameterizedStatement`, `SqlRenderedQuery`, `SqlQueryRenderOutput` |
 | `com.jacoby6000.smithplates.sql.query.postgres` / `.sqlite` | Dialect `SqlQueryRenderer` implementations |
 | `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer`, `DDLStatement`, DDL rendering, FK ordering |
-| `com.jacoby6000.smithplates.sql.sqlite` | SQLite column types and `CHECK` constraints |
-| `com.jacoby6000.smithplates.sql.postgres` | Postgres column types |
+| `com.jacoby6000.smithplates.sql.ddl.sqlite` | SQLite column types and `CHECK` constraints |
+| `com.jacoby6000.smithplates.sql.ddl.postgres` | Postgres column types |
 | `com.jacoby6000.smithplates.sql.codegen` | Mustache orchestration for `@sqlService` codegen |
 | `com.jacoby6000.smithplates.sql.codegen.python` | Python type names, bind/read expressions, template attributes |
 

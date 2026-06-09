@@ -96,13 +96,13 @@ private[sql] object SmithySqlTraitAccess {
     def sqlUpdatedTimestamp: Boolean =
       SmithySqlTraitLookup.traitPresent(member, classOf[SqlUpdatedTimestampTrait])
 
-    def autoGeneration: Option[SqlAutoGeneration] =
+    def autoGeneration: Option[model.SqlAutoGeneration] =
       if (member.sqlAutoUuid) {
-        Some(SqlAutoUuid)
+        Some(model.SqlAutoUuid)
       } else if (member.sqlCreatedTimestamp) {
-        Some(SqlCreatedTimestamp)
+        Some(model.SqlCreatedTimestamp)
       } else if (member.sqlUpdatedTimestamp) {
-        Some(SqlUpdatedTimestamp)
+        Some(model.SqlUpdatedTimestamp)
       } else {
         None
       }

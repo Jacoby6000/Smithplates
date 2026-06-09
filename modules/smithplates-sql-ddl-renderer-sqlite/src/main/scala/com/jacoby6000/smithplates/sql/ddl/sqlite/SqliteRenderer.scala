@@ -1,7 +1,7 @@
-package com.jacoby6000.smithplates.sql.sqlite
+package com.jacoby6000.smithplates.sql.ddl.sqlite
 
 import com.jacoby6000.smithplates.sql.*
-import com.jacoby6000.smithplates.sql.shared.DDLStatement
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 

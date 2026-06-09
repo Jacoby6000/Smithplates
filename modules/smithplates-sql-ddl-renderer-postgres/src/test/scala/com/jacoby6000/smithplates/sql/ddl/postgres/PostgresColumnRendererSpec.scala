@@ -1,6 +1,7 @@
-package com.jacoby6000.smithplates.sql.postgres
+package com.jacoby6000.smithplates.sql.ddl.postgres
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 

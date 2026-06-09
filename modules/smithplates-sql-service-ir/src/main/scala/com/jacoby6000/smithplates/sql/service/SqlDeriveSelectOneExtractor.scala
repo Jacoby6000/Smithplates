@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql.service
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.service.SqlSelectJoinResolver.ResolvedForeignKey
 import com.jacoby6000.smithplates.sql.service.SqlSelectTableContext.TableContext
 import com.jacoby6000.smithplates.sql.service.traits.SqlDeriveSelectOneTrait

@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlOperation

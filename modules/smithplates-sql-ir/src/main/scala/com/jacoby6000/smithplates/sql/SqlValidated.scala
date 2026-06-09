@@ -4,6 +4,8 @@ import cats.data.NonEmptyList
 import cats.data.Validated
 import cats.data.ValidatedNel
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.sql.model.InvalidMemberColumnType
+import com.jacoby6000.smithplates.sql.model.SqlSchemaError
 
 type SqlValidated[+A] = ValidatedNel[SqlSchemaError, A]
 

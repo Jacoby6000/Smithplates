@@ -1,7 +1,7 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql
 
-import com.jacoby6000.smithplates.sql.SqlSchema
-import com.jacoby6000.smithplates.sql.SqlTable
+import com.jacoby6000.smithplates.sql.model.SqlSchema
+import com.jacoby6000.smithplates.sql.model.SqlTable
 
 import scala.collection.mutable
 

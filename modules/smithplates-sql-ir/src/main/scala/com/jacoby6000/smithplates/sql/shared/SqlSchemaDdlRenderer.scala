@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.shared
 
-import com.jacoby6000.smithplates.sql.SqlSchema
+import com.jacoby6000.smithplates.sql.model.DDLStatement
+import com.jacoby6000.smithplates.sql.model.SqlSchema
 
 /** Renders dialect-specific DDL from validated schema IR. */
 trait SqlSchemaDdlRenderer {

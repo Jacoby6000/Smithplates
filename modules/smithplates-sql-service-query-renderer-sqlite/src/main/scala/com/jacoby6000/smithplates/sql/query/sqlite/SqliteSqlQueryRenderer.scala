@@ -1,7 +1,7 @@
 package com.jacoby6000.smithplates.sql.query.sqlite
 
-import com.jacoby6000.smithplates.sql.SqlColumnType
-import com.jacoby6000.smithplates.sql.SqlTimestampFormat
+import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
 import com.jacoby6000.smithplates.sql.query.*
 import com.jacoby6000.smithplates.sql.service.SqlQueries
 

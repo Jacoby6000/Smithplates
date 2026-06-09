@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.service
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 
 class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   private def baseTableModel: String =

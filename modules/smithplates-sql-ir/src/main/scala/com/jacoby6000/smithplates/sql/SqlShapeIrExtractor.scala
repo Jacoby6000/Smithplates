@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.ShapeId
@@ -68,7 +69,7 @@ object SqlShapeIrExtractor {
     val isSqlTable         = structure.sqlTable.isDefined
     val orderedMemberNames =
       if (isSqlTable) {
-        com.jacoby6000.smithplates.sql.shared.SqlTableMemberOrdering
+        SqlTableMemberOrdering
           .orderedMembers(structure)
           .map { case (memberName, _) => memberName }
       } else {

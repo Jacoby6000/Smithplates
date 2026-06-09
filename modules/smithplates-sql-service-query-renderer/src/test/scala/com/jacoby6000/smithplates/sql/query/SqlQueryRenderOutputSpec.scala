@@ -1,7 +1,7 @@
 package com.jacoby6000.smithplates.sql.query
 
 import com.jacoby6000.smithplates.sql.*
-import com.jacoby6000.smithplates.sql.shared.DDLStatement
+import com.jacoby6000.smithplates.sql.model.*
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 

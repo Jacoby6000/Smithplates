@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.service
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 
 class SqlQueryExtractorSpec extends munit.FunSuite {
   test("DeriveInsert - derives input columns from table and returns id when output matches primary key type") {

@@ -1,6 +1,6 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql
 
-import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.DuplicateSqlColumnIndex
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.StructureShape
 

@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql
+package com.jacoby6000.smithplates.sql.model
 
 /** Resolved Smithy `@timestampFormat` storage semantics for SQL columns. */
 sealed trait SqlTimestampFormat

@@ -1,7 +1,8 @@
 package com.jacoby6000.smithplates
 
-import com.jacoby6000.smithplates.sql.SqlSchema
-import com.jacoby6000.smithplates.sql.postgres.PostgresRenderer
+import com.jacoby6000.smithplates.sql.ddl.postgres.PostgresRenderer
+import com.jacoby6000.smithplates.sql.ddl.sqlite.SqliteRenderer
+import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.query.SqlQueryRenderOutput
 import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
@@ -9,7 +10,6 @@ import com.jacoby6000.smithplates.sql.query.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
 import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
-import com.jacoby6000.smithplates.sql.sqlite.SqliteRenderer
 
 object DialectRenderers {
   def queryRendererForKey(key: String): SqlQueryRenderer =

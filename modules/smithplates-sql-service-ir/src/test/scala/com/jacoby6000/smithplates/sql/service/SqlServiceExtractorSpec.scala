@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.service
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 
 class SqlServiceExtractorSpec extends munit.FunSuite {

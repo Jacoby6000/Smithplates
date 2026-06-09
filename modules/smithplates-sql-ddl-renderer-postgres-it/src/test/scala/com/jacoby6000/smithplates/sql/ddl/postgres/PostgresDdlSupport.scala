@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.postgres
+package com.jacoby6000.smithplates.sql.ddl.postgres
 
 import java.sql.Connection
 

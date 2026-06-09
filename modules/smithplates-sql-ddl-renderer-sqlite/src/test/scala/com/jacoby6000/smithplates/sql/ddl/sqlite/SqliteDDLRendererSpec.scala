@@ -1,12 +1,13 @@
-package com.jacoby6000.smithplates.sql.postgres
+package com.jacoby6000.smithplates.sql.ddl.sqlite
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
-final class PostgresDDLRendererSpec extends FunSuite {
-  test("Enum Type - renders CREATE TYPE for string enums before tables") {
+final class SqliteDDLRendererSpec extends FunSuite {
+  test("Enum Type - renders CHECK constraints for string enum columns") {
     val model = SqlTestModelBuilder.assemble(
       """use smithplates.codegen.sql#sqlPrimaryKey
         |use smithplates.codegen.sql#sqlTable
@@ -24,30 +25,17 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |}""".stripMargin
     )
 
-    val schema     = SqlIrExtractor.extractOrThrow(model)
-    val statements = PostgresRenderer.renderSchemaDdlStatements(schema)
-    val enumDdl    =
-      statements
-        .find(_.shapeId == ShapeId.from("example#Direction"))
-        .map(_.statement)
-        .getOrElse(fail("CREATE TYPE for example#Direction was not rendered"))
+    val schema = SqlIrExtractor.extractOrThrow(model)
+    val ddl    = SqlShared.formatDdlStatements(SqliteRenderer.renderSchemaDdlStatements(schema))
 
-    assertEquals(enumDdl, "CREATE TYPE example_direction AS ENUM ('NORTH', 'SOUTH');")
-
-    val routeDdl =
-      statements
-        .find(_.shapeId == ShapeId.from("example#Route"))
-        .map(_.statement)
-        .getOrElse(fail("CREATE TABLE for example#Route was not rendered"))
-
-    assert(routeDdl.contains("direction example_direction"))
+    assert(ddl.contains("direction TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"))
   }
 
   test("Create Table - renders example schema DDL") {
-    val schema   = SqlSchemaExampleFixtures.exampleSchema
-    val postgres = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
+    val schema = SqlSchemaExampleFixtures.exampleSchema
+    val sqlite = SqlShared.formatDdlStatements(SqliteRenderer.renderSchemaDdlStatements(schema))
 
-    val expectedPostgresDdl =
+    val expectedSqliteDdl =
       """-- smithplates.codegen.sql.example#Bar
         |CREATE TABLE bars (
         |    id TEXT NOT NULL,
@@ -60,10 +48,10 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |CREATE TABLE foos (
         |    id TEXT NOT NULL,
         |    bar_id TEXT,
-        |    name VARCHAR(128),
+        |    name TEXT CHECK(length(name) <= 128),
         |    size_bytes BIGINT,
-        |    payload JSONB,
-        |    created_at TIMESTAMP,
+        |    payload TEXT,
+        |    created_at TEXT,
         |
         |    PRIMARY KEY (id),
         |    FOREIGN KEY (bar_id) REFERENCES bars (id)
@@ -72,7 +60,7 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |-- smithplates.codegen.sql.example#Foo
         |CREATE INDEX idx_foos_created_at ON foos (created_at);""".stripMargin
 
-    assertEquals(postgres, expectedPostgresDdl)
+    assertEquals(sqlite, expectedSqliteDdl)
   }
 
   test("Create Table - emits CREATE TABLE statements in dependency order") {
@@ -102,13 +90,13 @@ final class PostgresDDLRendererSpec extends FunSuite {
       )
     )
 
-    val ddl = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
+    val ddl = SqlShared.formatDdlStatements(SqliteRenderer.renderSchemaDdlStatements(schema))
     assert(ddl.indexOf("CREATE TABLE aaa_parent") < ddl.indexOf("CREATE TABLE zzz_child"))
   }
 
   test("Create Table - fails to render when schema has no tables") {
     val thrown = intercept[IllegalStateException] {
-      SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(SqlSchema(tables = Nil)))
+      SqlShared.formatDdlStatements(SqliteRenderer.renderSchemaDdlStatements(SqlSchema(tables = Nil)))
     }
     assertEquals(thrown.getMessage, NoSqlTables.message)
   }

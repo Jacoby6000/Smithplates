@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.testkit
 
-import com.jacoby6000.smithplates.sql.SqlSchema
+import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import software.amazon.smithy.model.Model
 

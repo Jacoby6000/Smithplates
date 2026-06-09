@@ -1,7 +1,5 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql
 
-import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
-import com.jacoby6000.smithplates.sql.SqlTestModelLoader
 import munit.FunSuite
 
 class SqlTableMemberOrderingSpec extends FunSuite {

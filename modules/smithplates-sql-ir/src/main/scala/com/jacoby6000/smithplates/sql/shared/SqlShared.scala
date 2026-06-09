@@ -1,9 +1,11 @@
 package com.jacoby6000.smithplates.sql.shared
 
-import com.jacoby6000.smithplates.sql.NoSqlTables
-import com.jacoby6000.smithplates.sql.SqlColumn
-import com.jacoby6000.smithplates.sql.SqlColumnType
-import com.jacoby6000.smithplates.sql.SqlSchema
+import com.jacoby6000.smithplates.sql.SqlTableTree
+import com.jacoby6000.smithplates.sql.model.DDLStatement
+import com.jacoby6000.smithplates.sql.model.NoSqlTables
+import com.jacoby6000.smithplates.sql.model.SqlColumn
+import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlSchema
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */

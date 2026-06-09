@@ -14,7 +14,7 @@
 * Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:
-  * `smithplates-sql-ir` — schema ADTs, table extraction (`SqlIrExtractor`), shared DDL primitives
+  * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`), shared DDL primitives; `SqlTableTree` / `SqlTableMemberOrdering` live in `sql`
   * `smithplates-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors
   * `smithplates-sql-service-query-renderer` — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering
   * `smithplates-sql-service-query-renderer-postgres` / `smithplates-sql-service-query-renderer-sqlite` — dialect `SqlQueryRenderer` implementations

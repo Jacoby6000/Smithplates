@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql
 
 import cats.data.Validated
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
@@ -45,9 +46,9 @@ object SqlIrExtractor {
     }
 
   private def extractTable(structure: StructureShape, model: Model): SqlValidated[SqlTable] = {
-    val members = com.jacoby6000.smithplates.sql.shared.SqlTableMemberOrdering.orderedMembers(structure)
+    val members = SqlTableMemberOrdering.orderedMembers(structure)
 
-    com.jacoby6000.smithplates.sql.shared.SqlTableMemberOrdering.validate(structure).andThen { _ =>
+    SqlTableMemberOrdering.validate(structure).andThen { _ =>
       extractIndexes(structure, members).andThen { indexes =>
         requireTableName(structure).andThen { tableName =>
           (

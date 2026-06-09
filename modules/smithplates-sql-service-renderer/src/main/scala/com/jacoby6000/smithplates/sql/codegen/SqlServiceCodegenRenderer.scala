@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.sql.codegen
 
 import cats.syntax.all.*
-import com.jacoby6000.smithplates.sql.SqlSchema
 import com.jacoby6000.smithplates.sql.SqlValidated
+import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
 import software.amazon.smithy.model.Model

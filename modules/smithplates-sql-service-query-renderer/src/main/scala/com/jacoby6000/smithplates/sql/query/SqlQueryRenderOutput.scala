@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.sql.query
 
-import com.jacoby6000.smithplates.sql.shared.DDLStatement
+import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.shapes.ShapeId
 

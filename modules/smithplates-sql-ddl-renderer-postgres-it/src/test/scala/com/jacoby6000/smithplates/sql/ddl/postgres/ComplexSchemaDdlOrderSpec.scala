@@ -1,7 +1,7 @@
-package com.jacoby6000.smithplates.sql.postgres
+package com.jacoby6000.smithplates.sql.ddl.postgres
 
-import com.jacoby6000.smithplates.sql.shared.DDLStatement
-import com.jacoby6000.smithplates.sql.shared.SqlTableTree
+import com.jacoby6000.smithplates.sql.SqlTableTree
+import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.testkit.SqlDdlSupport
 import com.jacoby6000.smithplates.testkit.SqlIntegrationSchemas
 import munit.FunSuite

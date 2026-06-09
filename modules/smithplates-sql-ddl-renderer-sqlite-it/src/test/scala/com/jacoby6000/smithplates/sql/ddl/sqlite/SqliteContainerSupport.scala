@@ -1,8 +1,8 @@
-package com.jacoby6000.smithplates.sql.sqlite
+package com.jacoby6000.smithplates.sql.ddl.sqlite
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.GenericContainer.DockerImage
-import com.jacoby6000.smithplates.sql.shared.DDLStatement
+import com.jacoby6000.smithplates.sql.model.DDLStatement
 
 object SqliteContainerSupport {
   private val dbDirectory = "/tmp/sql-plugin-it"

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.codegen
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 
 final case class ImportRequirements(
     needsCastImport: Boolean,

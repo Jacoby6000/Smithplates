@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.sql.query
 
 import cats.data.NonEmptyList
-import com.jacoby6000.smithplates.sql.SqlColumnType
-import com.jacoby6000.smithplates.sql.SqlUpdatedTimestamp
+import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlUpdatedTimestamp
 import com.jacoby6000.smithplates.sql.service.SqlDeleteQuery
 import com.jacoby6000.smithplates.sql.service.SqlInsertQuery
 import com.jacoby6000.smithplates.sql.service.SqlJoinType

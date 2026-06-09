@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql.service
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.OperationShape
@@ -34,7 +35,7 @@ private[service] object SqlTableMemberCatalog {
   }
 
   def membersFor(structure: StructureShape): List[TableMemberInfo] =
-    com.jacoby6000.smithplates.sql.shared.SqlTableMemberOrdering
+    SqlTableMemberOrdering
       .orderedMembers(structure)
       .map { case (memberName, member) =>
         TableMemberInfo(

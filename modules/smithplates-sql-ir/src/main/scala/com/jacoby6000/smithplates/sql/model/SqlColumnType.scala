@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql
+package com.jacoby6000.smithplates.sql.model
 
 import software.amazon.smithy.model.shapes.ShapeId
 

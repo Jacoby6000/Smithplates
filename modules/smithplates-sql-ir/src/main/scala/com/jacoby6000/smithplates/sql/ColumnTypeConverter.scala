@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql
 
+import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape

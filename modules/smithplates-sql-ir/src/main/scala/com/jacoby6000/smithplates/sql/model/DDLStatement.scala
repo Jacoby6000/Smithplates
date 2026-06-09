@@ -1,8 +1,4 @@
-package com.jacoby6000.smithplates.sql.shared
-
-import com.jacoby6000.smithplates.sql.SqlColumnType
-import com.jacoby6000.smithplates.sql.SqlIndex
-import com.jacoby6000.smithplates.sql.SqlTable
+package com.jacoby6000.smithplates.sql.model
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** One executable DDL statement produced by dialect schema rendering. */

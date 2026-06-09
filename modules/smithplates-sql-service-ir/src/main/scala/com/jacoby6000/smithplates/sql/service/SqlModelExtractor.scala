@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql.service
 
 import cats.data.Validated
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 
 /** Combined SQL and service IR extraction result for plugin orchestration and tests. */

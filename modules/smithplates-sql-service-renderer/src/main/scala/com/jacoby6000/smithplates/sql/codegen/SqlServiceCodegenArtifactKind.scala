@@ -1,7 +1,7 @@
 package com.jacoby6000.smithplates.sql.codegen
 
-import com.jacoby6000.smithplates.sql.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.SqlValidated
+import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 
 enum SqlServiceCodegenArtifactKind {
   case Src

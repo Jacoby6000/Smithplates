@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.sql.codegen
 
-import com.jacoby6000.smithplates.sql.SqlTimestampFormat
+import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
 
 object SqlCodegenNeutralTypeUsage {
   def rowReaderForType(typeName: String, timestampFormat: Option[SqlTimestampFormat]): Option[String] =
