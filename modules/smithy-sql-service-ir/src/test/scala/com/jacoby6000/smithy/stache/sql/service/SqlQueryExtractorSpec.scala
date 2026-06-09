@@ -643,6 +643,196 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
+  test("DeriveSelectOne - joins many-to-one table as singular nested result") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use stache.codegen.sql#DerivedStruct
+        |use stache.codegen.sql#sqlAutoUuid
+        |use stache.codegen.sql#sqlDeriveSelectOne
+        |use stache.codegen.sql#sqlForeignKey
+        |use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "categories")
+        |structure Category {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    @sqlForeignKey(references: "example#Category")
+        |    @required
+        |    category_id: String
+        |    title: String
+        |}
+        |
+        |@sqlDeriveSelectOne(
+        |    targetTable: "example#Widget",
+        |    joins: [{ table: "example#Category", tableAlias: "c" }]
+        |)
+        |operation GetWidget {
+        |    input: DerivedStruct
+        |    output: DerivedStruct
+        |}
+        |""".stripMargin
+    )
+
+    val schema    = SqlModelExtractor.extractOrThrow(model)
+    val selectOne = schema.queries.selectOnes.head
+    assertEquals(selectOne.joins.size, 1)
+    assertEquals(selectOne.nestedResults.map(_.memberName), List("category"))
+    assertEquals(selectOne.nestedResults.head.cardinality.toString, "Singular")
+    assertEquals(selectOne.nestedResults.head.optional, false)
+    assertEquals(
+      selectOne.nestedResults.head.columns.map(_.memberName),
+      List("id", "name")
+    )
+  }
+
+  test("DeriveSelectOne - optional FK yields optional singular nested member") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use stache.codegen.sql#DerivedStruct
+        |use stache.codegen.sql#sqlAutoUuid
+        |use stache.codegen.sql#sqlDeriveSelectOne
+        |use stache.codegen.sql#sqlForeignKey
+        |use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "categories")
+        |structure Category {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    title: String
+        |    @sqlForeignKey(references: "example#Category")
+        |    category_id: String
+        |}
+        |
+        |@sqlDeriveSelectOne(
+        |    targetTable: "example#Widget",
+        |    joins: [{ table: "example#Category", type: "left", tableAlias: "c" }]
+        |)
+        |operation GetWidget {
+        |    input: DerivedStruct
+        |    output: DerivedStruct
+        |}
+        |""".stripMargin
+    )
+
+    val schema    = SqlModelExtractor.extractOrThrow(model)
+    val selectOne = schema.queries.selectOnes.head
+    assertEquals(selectOne.nestedResults.head.optional, true)
+    assertEquals(selectOne.joins.head.joinType, SqlJoinType.Left)
+  }
+
+  test("DeriveSelectOne - joins one-to-many table as collection nested result") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use stache.codegen.sql#DerivedStruct
+        |use stache.codegen.sql#sqlAutoUuid
+        |use stache.codegen.sql#sqlDeriveSelectOne
+        |use stache.codegen.sql#sqlForeignKey
+        |use stache.codegen.sql#sqlPrimaryKey
+        |use stache.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "orders")
+        |structure Order {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    label: String
+        |}
+        |
+        |@sqlTable(name: "order_lines")
+        |structure OrderLine {
+        |    @sqlPrimaryKey
+        |    @sqlAutoUuid
+        |    id: String
+        |    @sqlForeignKey(references: "example#Order")
+        |    order_id: String
+        |    sku: String
+        |}
+        |
+        |@sqlDeriveSelectOne(
+        |    targetTable: "example#Order",
+        |    joins: [{ table: "example#OrderLine", tableAlias: "ol" }]
+        |)
+        |operation GetOrder {
+        |    input: DerivedStruct
+        |    output: DerivedStruct
+        |}
+        |""".stripMargin
+    )
+
+    val schema    = SqlModelExtractor.extractOrThrow(model)
+    val selectOne = schema.queries.selectOnes.head
+    assertEquals(selectOne.nestedResults.map(_.memberName), List("order_lines"))
+    assertEquals(selectOne.nestedResults.head.cardinality.toString, "Collection")
+  }
+
+  test("DeriveSelectOne - fails when joins are declared but output is not DerivedStruct") {
+    val result = SqlModelExtractor.extract(
+      SqlTestModelBuilder.assemble(
+        """
+          |use stache.codegen.sql#DerivedStruct
+          |use stache.codegen.sql#sqlAutoUuid
+          |use stache.codegen.sql#sqlDeriveSelectOne
+          |use stache.codegen.sql#sqlForeignKey
+          |use stache.codegen.sql#sqlPrimaryKey
+          |use stache.codegen.sql#sqlTable
+          |
+          |@sqlTable(name: "categories")
+          |structure Category {
+          |    @sqlPrimaryKey
+          |    @sqlAutoUuid
+          |    id: String
+          |}
+          |
+          |@sqlTable(name: "widgets")
+          |structure Widget {
+          |    @sqlPrimaryKey
+          |    @sqlAutoUuid
+          |    id: String
+          |    @sqlForeignKey(references: "example#Category")
+          |    category_id: String
+          |}
+          |
+          |@sqlDeriveSelectOne(
+          |    targetTable: "example#Widget",
+          |    joins: [{ table: "example#Category" }]
+          |)
+          |operation GetWidget {
+          |    input: DerivedStruct
+          |    output: Widget
+          |}
+          |""".stripMargin
+      )
+    )
+
+    assert(result.isInvalid)
+    assert(
+      result.swap.toOption.get.exists {
+        case InvalidDeriveSelectOne(_, reason) if reason.contains("DerivedStruct") => true
+        case _                                                                     => false
+      }
+    )
+  }
+
   test("DeriveSelectOne - fails when input is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(

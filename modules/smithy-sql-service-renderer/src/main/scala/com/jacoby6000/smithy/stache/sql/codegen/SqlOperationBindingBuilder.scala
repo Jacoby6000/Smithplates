@@ -63,7 +63,7 @@ object SqlOperationBindingBuilder {
           case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
             buildDeleteBinding(deleteQuery, statement).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
-            buildSelectOneBinding(selectOneQuery, statement).validNel
+            buildSelectOneBinding(selectOneQuery, statement, operation.name).validNel
           case ResolvedSqlOperationQuery.Select(_)                 =>
             InvalidPluginConfig("unreachable select branch").invalidNel
         }
@@ -139,23 +139,38 @@ object SqlOperationBindingBuilder {
 
   private def buildSelectOneBinding(
       query: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneQuery,
-      statement: SqlParameterizedStatement
-  ): SqlCodegenSqlBinding = {
-    val resultFields =
-      query.selectColumns.zipWithIndex.map { case (column, index) =>
-        columnToResultField(query.table, column, index)
-      }
-    SqlCodegenSqlBinding(
-      queryKind = "selectOne",
-      sqlStatement = statement,
-      tableName = query.table.name,
-      bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
-      executionMode = "fetchone",
-      outputKind = "structure",
-      returningColumnIndex = None,
-      resultFields = resultFields
-    )
-  }
+      statement: SqlParameterizedStatement,
+      operationName: String
+  ): SqlCodegenSqlBinding =
+    if (query.hasNestedResults) {
+      val derived = SqlSelectOneDerivedOutputBuilder.build(operationName, query)
+      SqlCodegenSqlBinding(
+        queryKind = "selectOne",
+        sqlStatement = statement,
+        tableName = query.table.name,
+        bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
+        executionMode = if (derived.binding.hasCollectionJoin) "fetchall" else "fetchone",
+        outputKind = "structure",
+        returningColumnIndex = None,
+        resultFields = derived.binding.primaryFields,
+        selectOneOutput = Some(derived.binding)
+      )
+    } else {
+      val resultFields =
+        query.selectColumns.zipWithIndex.map { case (column, index) =>
+          columnToResultField(query.table, column, index)
+        }
+      SqlCodegenSqlBinding(
+        queryKind = "selectOne",
+        sqlStatement = statement,
+        tableName = query.table.name,
+        bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
+        executionMode = "fetchone",
+        outputKind = "structure",
+        returningColumnIndex = None,
+        resultFields = resultFields
+      )
+    }
 
   private def parametersForColumns(columns: List[SqlQueryColumn]): SqlValidated[List[SqlCodegenParameter]] =
     columns.map(queryColumnToParameter).validNel

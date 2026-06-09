@@ -1,0 +1,29 @@
+# Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from typing import Protocol, TypeVar
+
+from order_repository_models import (
+    Order,
+    OrderLine,
+    GetOrderResult,
+)
+
+T = TypeVar("T", contravariant=True)
+
+
+class OrderRepositoryServiceProtocol(Protocol[T]):
+    async def create_order(
+        self,
+        label: str,
+        *,
+        transaction: T | None = None,
+    ) -> str:
+        ...
+    async def get_order(
+        self,
+        id: str,
+        *,
+        transaction: T | None = None,
+    ) -> GetOrderResult | None:
+        ...

@@ -46,6 +46,20 @@ final case class SqlCodegenResultField(
     timestampFormat: Option[SqlTimestampFormat] = None
 )
 
+final case class SqlCodegenSelectOneNestedBinding(
+    memberName: String,
+    shapeName: String,
+    cardinality: com.jacoby6000.smithy.stache.sql.service.SqlSelectOneNestedCardinality,
+    optional: Boolean,
+    fields: List[SqlCodegenResultField]
+)
+
+final case class SqlCodegenSelectOneOutputBinding(
+    primaryFields: List[SqlCodegenResultField],
+    nestedBindings: List[SqlCodegenSelectOneNestedBinding],
+    hasCollectionJoin: Boolean
+)
+
 final case class SqlCodegenSqlBinding(
     queryKind: String,
     sqlStatement: SqlParameterizedStatement,
@@ -54,7 +68,8 @@ final case class SqlCodegenSqlBinding(
     executionMode: String,
     outputKind: String,
     returningColumnIndex: Option[Int],
-    resultFields: List[SqlCodegenResultField]
+    resultFields: List[SqlCodegenResultField],
+    selectOneOutput: Option[SqlCodegenSelectOneOutputBinding] = None
 )
 
 final case class SqlCodegenServiceContext(

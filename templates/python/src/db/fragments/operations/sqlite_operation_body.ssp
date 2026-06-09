@@ -35,4 +35,6 @@
             return ${operation.outputShapeName}(
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
+#case ("selectOneJoinedFlat")<% include("fragments/operations/select_one_joined_flat") %>
+#case ("selectOneJoinedAggregate")<% include("fragments/operations/select_one_joined_aggregate") %>
 #end

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithy.stache.sql.codegen
 
 import com.jacoby6000.smithy.stache.sql.*
+import com.jacoby6000.smithy.stache.sql.service.SqlQueries
 import com.jacoby6000.smithy.stache.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithy.stache.sql.shared.SqlShared
 
@@ -13,6 +14,7 @@ object SqlCodegenIntegrationTestBuilder {
   def build(
       context: SqlCodegenServiceContext,
       schema: SqlSchema,
+      queries: SqlQueries,
       schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
   ): Option[SqlCodegenIntegrationTestContext] = {
     val sqlOperations = context.operations.filter(_.sql.isDefined)
@@ -33,7 +35,7 @@ object SqlCodegenIntegrationTestBuilder {
       case (Some(insert), Some(selectOne)) =>
         Some(
           SqlCodegenIntegrationTestContext(
-            schemaDdl = schemaDdl(schema, sqlOperations, context.dialectKey, schemaDdlRenderers),
+            schemaDdl = schemaDdl(schema, sqlOperations, queries, context.dialectKey, schemaDdlRenderers),
             insertOperation = insert,
             selectOneOperation = selectOne,
             updateOperation = updateOperation,
@@ -52,15 +54,23 @@ object SqlCodegenIntegrationTestBuilder {
   private def schemaDdl(
       schema: SqlSchema,
       sqlOperations: List[SqlCodegenOperation],
+      queries: SqlQueries,
       dialectKey: String,
       schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
   ): String = {
-    val tableNames     = sqlOperations.flatMap(_.sql.map(_.tableName)).toSet
-    val filteredSchema =
+    val operationShapeIds = sqlOperations.map(_.shapeId).toSet
+    val primaryTableNames = sqlOperations.flatMap(_.sql.map(_.tableName)).toSet
+    val joinedTableNames  =
+      queries.selectOnes
+        .filter(query => operationShapeIds.contains(query.shapeId))
+        .flatMap(_.nestedResults.map(_.table.name))
+        .toSet
+    val tableNames        = primaryTableNames ++ joinedTableNames
+    val filteredSchema    =
       schema.copy(
         tables = schema.tables.filter(table => tableNames.contains(table.name))
       )
-    val ddlRenderer    =
+    val ddlRenderer       =
       schemaDdlRenderers.getOrElse(
         dialectKey,
         throw new IllegalStateException(s"schema DDL renderer for dialect '$dialectKey' is required")

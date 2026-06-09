@@ -11,6 +11,9 @@ object SqlCodegenSqlBodyKind {
   val SelectOneDict: String           = "selectOneDict"
   val SelectOneIndex: String          = "selectOneIndex"
 
+  val SelectOneJoinedFlat: String      = "selectOneJoinedFlat"
+  val SelectOneJoinedAggregate: String = "selectOneJoinedAggregate"
+
   def resolve(sql: SqlCodegenSqlBinding): Option[String] =
     if (sql.queryKind == "insert" && sql.outputKind == "scalar") {
       Some(InsertScalar)
@@ -25,6 +28,12 @@ object SqlCodegenSqlBodyKind {
         Some(BooleanMutationRowcount)
       } else {
         Some(BooleanMutationExists)
+      }
+    } else if (sql.queryKind == "selectOne" && sql.selectOneOutput.isDefined) {
+      if (sql.selectOneOutput.exists(_.hasCollectionJoin)) {
+        Some(SelectOneJoinedAggregate)
+      } else {
+        Some(SelectOneJoinedFlat)
       }
     } else if (sql.queryKind == "selectOne") {
       if (SqlCodegenSqlBindingMetadata.canUseClassRow(sql)) {

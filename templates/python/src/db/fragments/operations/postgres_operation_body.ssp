@@ -61,4 +61,49 @@
             return ${operation.outputShapeName}(
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
             )
+#case ("selectOneJoinedFlat")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            if row is None:
+                return None
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+                ),
+<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+                ),
+<% } %><% } %>            )
+#case ("selectOneJoinedAggregate")            cur = await self._connection.execute(
+                """${operation.sqlStatement}""",
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            rows = await cur.fetchall()
+            if not rows:
+                return None
+            row = rows[0]
+<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            ${nested.memberName}: list[${nested.shapeName}] = []
+<% } %>
+<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            for joined_row in rows:
+                if joined_row[${nested.fields.head.columnIndex}] is not None:
+                    ${nested.memberName}.append(
+                        ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "joined_row")) %><% } %>
+                        )
+                    )
+<% } %>
+            return ${operation.outputShapeName}(
+<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+                ),
+<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+                ),
+<% } %><% } %>
+<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                ${nested.memberName}=${nested.memberName},
+<% } %>            )
 #end

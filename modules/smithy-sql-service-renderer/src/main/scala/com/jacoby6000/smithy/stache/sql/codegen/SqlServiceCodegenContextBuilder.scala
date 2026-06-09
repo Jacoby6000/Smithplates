@@ -43,7 +43,8 @@ object SqlServiceCodegenContextBuilder {
       service.operations
         .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
         .map { operations =>
-          val baseContext =
+          val (resolvedOperations, derivedModels) = applySelectOneDerivedOutputs(operations, queries)
+          val baseContext                         =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
               name = service.shapeId.getName,
@@ -52,17 +53,49 @@ object SqlServiceCodegenContextBuilder {
               dialectKey = queryRenderer.key,
               queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
-              hasSqlOperations = operations.exists(_.sql.isDefined),
-              models = shapeIr.structures.sortBy(_.shapeId.toString),
+              hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
+              models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
               unions = shapeIr.unions.sortBy(_.shapeId.toString),
-              operations = operations
+              operations = resolvedOperations
             )
 
           baseContext.copy(
-            integrationTest = SqlCodegenIntegrationTestBuilder.build(baseContext, schema, settings.schemaDdlRenderers)
+            integrationTest =
+              SqlCodegenIntegrationTestBuilder.build(baseContext, schema, queries, settings.schemaDdlRenderers)
           )
         }
     }
+  }
+
+  private def applySelectOneDerivedOutputs(
+      operations: List[SqlCodegenOperation],
+      queries: SqlQueries
+  ): (List[SqlCodegenOperation], List[SqlStructure]) = {
+    val derivedByOperation =
+      operations.flatMap { operation =>
+        SqlOperationQueryResolver.resolve(queries, operation.shapeId).flatMap {
+          case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) if selectOneQuery.hasNestedResults =>
+            val derived = SqlSelectOneDerivedOutputBuilder.build(operation.name, selectOneQuery)
+            Some(operation.shapeId -> derived)
+          case _                                                                                      =>
+            None
+        }
+      }.toMap
+
+    val resolvedOperations =
+      operations.map { operation =>
+        derivedByOperation.get(operation.shapeId) match {
+          case Some(derived) =>
+            operation.copy(
+              outputShapeId = Some(derived.structure.shapeId),
+              outputTypeName = Some(derived.typeName)
+            )
+          case None          =>
+            operation
+        }
+      }
+
+    (resolvedOperations, derivedByOperation.values.map(_.structure).toList)
   }
 
   private def buildOperation(

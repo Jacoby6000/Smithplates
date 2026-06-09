@@ -36,7 +36,7 @@ private[service] object SqlSelectJoinResolver {
       findForeignKeys(primaryTable, primaryStructure, joinTable, joinStructure) match {
         case Nil           =>
           SqlValidated.invalid(
-            MissingJoinForeignKey(queryShape, primaryTable.name, joinTable.name)
+            MissingJoinForeignKey(queryShape, "sqlDeriveSelect", primaryTable.name, joinTable.name)
           )
         case single :: Nil =>
           val (leftTableAlias, leftColumn, rightTableAlias, rightColumn) =
@@ -53,12 +53,12 @@ private[service] object SqlSelectJoinResolver {
           ).validNel
         case _             =>
           SqlValidated.invalid(
-            AmbiguousJoinForeignKey(queryShape, primaryTable.name, joinTable.name)
+            AmbiguousJoinForeignKey(queryShape, "sqlDeriveSelect", primaryTable.name, joinTable.name)
           )
       }
     }
 
-  private def findForeignKeys(
+  def findForeignKeys(
       primaryTable: SqlTable,
       primaryStructure: StructureShape,
       joinTable: SqlTable,

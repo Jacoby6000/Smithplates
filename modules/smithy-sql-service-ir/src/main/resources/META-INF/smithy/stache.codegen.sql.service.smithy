@@ -64,13 +64,23 @@ structure sqlDeriveDelete {
 @documentation("""
 Derives a SELECT-by-primary-key statement from an operation and the referenced @sqlTable shape.
 The operation input must be `stache.codegen.sql#DerivedStruct`. Codegen expands input to
-`whereClause` (all @sqlPrimaryKey members). The operation output must be the target @sqlTable
-structure shape. Generated SQL selects every table column and filters by primary key.
+`whereClause` (all @sqlPrimaryKey members). When `joins` is empty, the operation output must
+be the target @sqlTable structure shape. When `joins` lists related @sqlTable shapes, the
+operation output must be `stache.codegen.sql#DerivedStruct`; codegen expands a result
+structure with the target table members plus nested joined structures. Join ON clauses are
+derived from @sqlForeignKey relationships. A joined table whose foreign key points at the
+target table is modeled as a list member (one-to-many). A target-table foreign key pointing
+at a joined table is modeled as a singular nested member (many-to-one or one-to-one); required
+when the foreign key member is required.
+Generated SQL selects every column from the target table and joined tables and filters by
+primary key.
 """)
 @trait(selector: "operation")
 structure sqlDeriveSelectOne {
     @required
     targetTable: String
+
+    joins: sqlSelectJoinList = []
 }
 
 structure sqlDeriveSelectFrom {

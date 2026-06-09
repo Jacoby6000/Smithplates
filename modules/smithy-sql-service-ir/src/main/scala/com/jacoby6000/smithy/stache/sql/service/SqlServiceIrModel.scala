@@ -55,8 +55,50 @@ final case class SqlDeleteQuery(
 final case class SqlSelectOneQuery(
     shapeId: ShapeId,
     table: SqlTable,
-    selectColumns: List[SqlQueryColumn],
-    whereColumns: List[SqlQueryColumn]
+    tableAlias: Option[String] = None,
+    joins: List[SqlSelectJoin] = Nil,
+    selectColumns: List[SqlQueryColumn] = Nil,
+    projectedColumns: List[SqlSelectOneSelectColumn] = Nil,
+    whereColumns: List[SqlQueryColumn],
+    nestedResults: List[SqlSelectOneNestedResult] = Nil
+) {
+  def effectiveProjectedColumns: List[SqlSelectOneSelectColumn] =
+    if (projectedColumns.nonEmpty) {
+      projectedColumns
+    } else {
+      selectColumns.map { column =>
+        SqlSelectOneSelectColumn(
+          tableAlias = tableAlias.getOrElse(table.name),
+          column = column,
+          resultAlias = None
+        )
+      }
+    }
+
+  def hasNestedResults: Boolean = nestedResults.nonEmpty
+}
+
+final case class SqlSelectOneSelectColumn(
+    tableAlias: String,
+    column: SqlQueryColumn,
+    resultAlias: Option[String]
+)
+
+sealed trait SqlSelectOneNestedCardinality
+
+object SqlSelectOneNestedCardinality {
+  case object Singular   extends SqlSelectOneNestedCardinality
+  case object Collection extends SqlSelectOneNestedCardinality
+}
+
+final case class SqlSelectOneNestedResult(
+    memberName: String,
+    shapeId: ShapeId,
+    cardinality: SqlSelectOneNestedCardinality,
+    optional: Boolean,
+    table: SqlTable,
+    tableAlias: String,
+    columns: List[SqlQueryColumn]
 )
 
 final case class SqlQueryColumn(

@@ -147,7 +147,7 @@ object SqlQueryExtractor {
         operation.sqlDeriveSelectOne.map(selectTrait => (operation, selectTrait))
       }
       .traverse { case (operation, selectTrait) =>
-        extractDeriveSelectOne(model, schema, operation, selectTrait.getTargetTable)
+        SqlDeriveSelectOneExtractor.extract(model, schema, operation, selectTrait)
       }
 
   private def extractInsert(
@@ -325,56 +325,6 @@ object SqlQueryExtractor {
   ): SqlValidated[List[SqlQueryColumn]] =
     validateDerivePrimaryKeyColumns(operationShape, tableName, model, tableStructure, table, InvalidDeriveDelete(_, _))
 
-  private def extractDeriveSelectOne(
-      model: Model,
-      schema: SqlSchema,
-      operation: OperationShape,
-      targetTable: String
-  ): SqlValidated[SqlSelectOneQuery] = {
-    val queryKind      = InvalidQueryTableReference.Kind.DeriveSelectOne
-    val operationShape = operation.getId
-
-    resolveTable(model, schema, operationShape, targetTable, queryKind).andThen { case (table, tableStructure) =>
-      (
-        requireDerivedStructInput(operation, "sqlDeriveSelectOne"),
-        requireTableStructureOutput(operation, tableStructure.getId),
-        validateDerivePrimaryKeyColumns(
-          operationShape,
-          table.name,
-          model,
-          tableStructure,
-          table,
-          InvalidDeriveSelectOne(_, _)
-        )
-      ).mapN { (_, _, whereColumns) =>
-        val selectColumns =
-          SqlTableMemberCatalog.membersFor(tableStructure).map { tableMember =>
-            queryColumn(model, tableStructure, table, tableMember)
-          }
-        SqlSelectOneQuery(
-          shapeId = operationShape,
-          table = table,
-          selectColumns = selectColumns,
-          whereColumns = whereColumns
-        )
-      }
-    }
-  }
-
-  private def requireTableStructureOutput(operation: OperationShape, tableShapeId: ShapeId): SqlValidated[Unit] = {
-    val operationShape = operation.getId
-    val outputShapeId  = operation.getOutput.toScala.getOrElse(operation.getOutputShape)
-
-    if (outputShapeId == tableShapeId) {
-      ().validNel
-    } else {
-      InvalidDeriveSelectOne(
-        operationShape,
-        s"output must be the target @sqlTable structure '${tableShapeId.toString}'; got '${outputShapeId.toString}'"
-      ).invalidNel
-    }
-  }
-
   private def validateDerivePrimaryKeyColumns(
       operationShape: ShapeId,
       tableName: String,
@@ -396,6 +346,22 @@ object SqlQueryExtractor {
         .validNel
     }
   }
+
+  private[service] def deriveSelectOnePrimaryKeyColumns(
+      operationShape: ShapeId,
+      tableName: String,
+      model: Model,
+      tableStructure: StructureShape,
+      table: SqlTable
+  ): SqlValidated[List[SqlQueryColumn]] =
+    validateDerivePrimaryKeyColumns(
+      operationShape,
+      tableName,
+      model,
+      tableStructure,
+      table,
+      InvalidDeriveSelectOne(_, _)
+    )
 
   final private case class DeriveUpdateColumns(
       whereColumns: List[SqlQueryColumn],

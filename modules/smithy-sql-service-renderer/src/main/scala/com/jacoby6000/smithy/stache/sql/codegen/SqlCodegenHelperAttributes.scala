@@ -32,11 +32,13 @@ object SqlCodegenHelperAttributes {
   def classRowFactories(operations: List[SqlCodegenOperation]): List[ClassRowFactorySpec] =
     operations
       .flatMap { operation =>
-        operation.sql.toList.filter(SqlCodegenSqlBindingMetadata.canUseClassRow).flatMap { sql =>
-          operation.outputShapeId.map(_.getName).map { outputShapeName =>
-            (outputShapeName, sql.resultFields)
+        operation.sql.toList
+          .filter(sql => SqlCodegenSqlBindingMetadata.canUseClassRow(sql) && sql.selectOneOutput.isEmpty)
+          .flatMap { sql =>
+            operation.outputShapeId.map(_.getName).map { outputShapeName =>
+              (outputShapeName, sql.resultFields)
+            }
           }
-        }
       }
       .groupBy(_._1)
       .values
@@ -59,7 +61,8 @@ object SqlCodegenHelperAttributes {
           case SqlCodegenSqlBodyKind.SelectOneClassRow if dialectKey == "postgres"             =>
             Nil
           case SqlCodegenSqlBodyKind.InsertStructureIndex | SqlCodegenSqlBodyKind.SelectOneIndex |
-              SqlCodegenSqlBodyKind.SelectOneClassRow =>
+              SqlCodegenSqlBodyKind.SelectOneClassRow | SqlCodegenSqlBodyKind.SelectOneJoinedFlat |
+              SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
             operation.resultFields
               .filterNot(_.isJson)
               .flatMap(field => rowReaderForType(field.typeName, field.timestampFormat))

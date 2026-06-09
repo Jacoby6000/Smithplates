@@ -18,4 +18,4 @@ def rowReaderName(typeName: String, timestampFormat: Any): String =
     case "Timestamp"                       => "_read_datetime"
     case other                             => other
   }
-%><% if (isJson) { %><% if (readMode == "col") { %>_read_${typeName}_col(${rowVar}, ${columnNameLiteral})<% } else { %>_read_${typeName}(row, ${columnIndex})<% } %><% } else { %><% val reader = rowReaderName(typeName, timestampFormat) %><% if (readMode == "col") { %>${reader}_col(${rowVar}, ${columnNameLiteral})<% } else { %>${reader}(row, ${columnIndex})<% } %><% } %>
+%><% if (isJson) { %><% if (readMode == "col") { %>_read_${typeName}_col(${rowVar}, ${columnNameLiteral})<% } else { %>_read_${typeName}(${rowVar}, ${columnIndex})<% } %><% } else { %><% val reader = rowReaderName(typeName, timestampFormat) %><% if (readMode == "col") { %>${reader}_col(${rowVar}, ${columnNameLiteral})<% } else { %>${reader}(${rowVar}, ${columnIndex})<% } %><% } %>

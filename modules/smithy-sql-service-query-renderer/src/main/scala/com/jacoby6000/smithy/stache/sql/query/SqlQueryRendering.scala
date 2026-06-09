@@ -80,11 +80,33 @@ private[query] object SqlQueryRendering {
   }
 
   private def renderSelectOneQuery(query: SqlSelectOneQuery): SqlRenderedQuery = {
-    val builder = SqlQuerySegmentBuilder.empty
+    val builder       = SqlQuerySegmentBuilder.empty
+    val projections   =
+      query.effectiveProjectedColumns.map { projected =>
+        val expression = s"${projected.tableAlias}.${projected.column.columnName}"
+        projected.resultAlias match {
+          case Some(alias) => s"$expression AS $alias"
+          case None        => expression
+        }
+      }
     builder.appendText(
-      s"SELECT ${query.selectColumns.map(_.columnName).mkString(", ")} FROM ${query.table.name} WHERE "
+      s"SELECT ${projections.mkString(", ")}\nFROM ${renderTableReference(query.table.name, query.tableAlias)}"
     )
-    appendPlaceholderEqualities(builder, query.whereColumns)(_.columnName)
+    query.joins.foreach(join => builder.appendText(renderJoinClause(join)))
+    builder.appendText("\nWHERE ")
+    val whereTableRef =
+      if (query.joins.nonEmpty) {
+        query.tableAlias.getOrElse(query.table.name)
+      } else {
+        query.table.name
+      }
+    appendPlaceholderEqualities(builder, query.whereColumns) { column =>
+      if (query.joins.nonEmpty) {
+        s"$whereTableRef.${column.columnName}"
+      } else {
+        column.columnName
+      }
+    }
     builder.appendText(";")
     SqlRenderedQuery(query.shapeId, builder.build)
   }

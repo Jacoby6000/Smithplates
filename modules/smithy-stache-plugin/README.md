@@ -22,7 +22,7 @@ Smithy trait IDL is packaged into the published plugin JAR from [`../smithy-sql-
 | `@sqlDeriveInsert(targetTable: String)` | `operation` | INSERT derived from table members; input must be `DerivedStruct`; output is PK type or a RETURNING structure |
 | `@sqlDeriveUpdate(targetTable: String)` | `operation` | UPDATE derived from table; input `DerivedStruct`; output `Boolean`; WHERE uses PKs, SET uses updatable columns |
 | `@sqlDeriveDelete(targetTable: String)` | `operation` | DELETE derived from table; input `DerivedStruct`; output `Boolean`; WHERE uses PKs; SQL uses RETURNING on PK columns |
-| `@sqlDeriveSelectOne(targetTable: String)` | `operation` | SELECT all table columns by PK; input `DerivedStruct`; output must be the target `@sqlTable` structure |
+| `@sqlDeriveSelectOne(targetTable: String, joins: sqlSelectJoinList)` | `operation` | SELECT by PK; input `DerivedStruct`; output is the target `@sqlTable` when `joins` is empty, otherwise `DerivedStruct` with nested joined structures (singular for many-to-one/one-to-one, list for one-to-many). Singular nested members follow FK member requiredness (`@required` → required, otherwise optional). |
 | `@sqlDeriveSelect(…)` | `operation` | SELECT derived from trait lists; `projections` defaults to `"*"` (all columns from `from`/joins as `{alias}_{member}` fields) or an explicit list; input is an explicit structure; output must be `DerivedStruct` |
 | `@sqlUpdate(tableRef: String)` | `structure` | UPDATE query for the referenced `@sqlTable` |
 | `@sqlService` | `service` | SQL data-access service with flat `operations` only (no `resources`; see below) |

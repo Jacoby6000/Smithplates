@@ -12,6 +12,10 @@ Each subdirectory is one test case discovered by [`SqlServiceCodegenTemplateTest
 | `sql-derive-update-only` | `@sqlDeriveUpdate` as the sole derived operation (no integration tests) |
 | `sql-derive-delete-only` | `@sqlDeriveDelete` as the sole derived operation (no integration tests) |
 | `sql-derive-select-one-only` | `@sqlDeriveSelectOne` as the sole derived operation (no integration tests) |
+| `sql-derive-select-one-join-many-to-one` | Required FK join → required nested `category: Category` on `GetWidgetResult` |
+| `sql-derive-select-one-join-many-to-one-optional` | Optional FK join → optional nested `category: Category | None` on `GetWidgetResult` |
+| `sql-derive-select-one-join-one-to-many` | `@sqlDeriveSelectOne` with a child-table join; nested `order_lines: list[OrderLine]` on `GetOrderResult` (includes insert + integration tests) |
+| `sql-derive-select-one-join-one-to-one` | `@sqlDeriveSelectOne` with `@sqlUniqueIndex` FK join; nested singular `bar: Bar` on `GetProfileResult` |
 
 Each `@sqlService` case that defines derived insert + select-one operations golden-tests integration tests under both `test/db/sqlite/` (aiosqlite) and `test/db/postgres/` (psycopg). Models and the service `Protocol` are shared once under `src/db/model/` and `src/db/`. Single derived-operation cases generate src artifacts only — integration tests require both insert and select-one.
 

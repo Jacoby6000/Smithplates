@@ -81,7 +81,8 @@ private[service] object SqlSelectTableContext {
       queryShape: ShapeId,
       primaryContext: TableContext,
       joinContexts: List[TableContext],
-      joinSpecs: java.util.List[SqlSelectJoinValue]
+      joinSpecs: java.util.List[SqlSelectJoinValue],
+      queryKind: InvalidQueryTableReference.Kind = InvalidQueryTableReference.Kind.DeriveSelect
   ): SqlValidated[List[SqlSelectJoin]] =
     joinContexts.zip(joinSpecs.asScala.toList).traverse { case (joinContext, joinSpec) =>
       SqlJoinType.fromString(joinSpec.getType) match {
@@ -113,7 +114,8 @@ private[service] object SqlSelectTableContext {
   def validateUniqueAliases(
       queryShape: ShapeId,
       primaryContext: TableContext,
-      joinContexts: List[TableContext]
+      joinContexts: List[TableContext],
+      queryKind: InvalidQueryTableReference.Kind = InvalidQueryTableReference.Kind.DeriveSelect
   ): SqlValidated[Unit] = {
     val aliases = (primaryContext.referenceAlias :: joinContexts.map(_.referenceAlias)).sorted
     aliases
@@ -122,9 +124,23 @@ private[service] object SqlSelectTableContext {
       .toList match {
       case Nil            => ().validNel
       case duplicate :: _ =>
-        InvalidDeriveSelect(queryShape, s"duplicate table alias '$duplicate'").invalidNel
+        duplicateAliasError(queryShape, duplicate, queryKind).invalidNel
     }
   }
+
+  private def duplicateAliasError(
+      queryShape: ShapeId,
+      alias: String,
+      queryKind: InvalidQueryTableReference.Kind
+  ): SqlSchemaError =
+    queryKind match {
+      case InvalidQueryTableReference.Kind.DeriveSelectOne =>
+        InvalidDeriveSelectOne(queryShape, s"duplicate table alias '$alias'")
+      case InvalidQueryTableReference.Kind.DeriveSelect    =>
+        InvalidDeriveSelect(queryShape, s"duplicate table alias '$alias'")
+      case other                                           =>
+        InvalidQueryTableReference(queryShape, alias, other)
+    }
 
   private def duplicateJoinError(
       queryShape: ShapeId,
@@ -133,9 +149,11 @@ private[service] object SqlSelectTableContext {
       queryKind: InvalidQueryTableReference.Kind
   ): SqlSchemaError =
     queryKind match {
-      case InvalidQueryTableReference.Kind.DeriveSelect =>
+      case InvalidQueryTableReference.Kind.DeriveSelectOne =>
+        InvalidDeriveSelectOne(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
+      case InvalidQueryTableReference.Kind.DeriveSelect    =>
         InvalidDeriveSelect(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
-      case other                                        =>
+      case other                                           =>
         InvalidQueryTableReference(queryShape, joinTable, other)
     }
 }

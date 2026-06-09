@@ -64,6 +64,14 @@ final case class TemplateResultFieldView(
     last: Boolean = false
 )
 
+final case class TemplateSelectOneNestedBindingView(
+    memberName: String,
+    shapeName: String,
+    isCollection: Boolean,
+    optional: Boolean,
+    fields: List[TemplateResultFieldView]
+)
+
 final case class TemplateOperationView(
     name: String,
     hasSql: Boolean,
@@ -78,6 +86,7 @@ final case class TemplateOperationView(
     bindParameters: List[TemplateBindParameterView],
     returningColumnIndex: java.lang.Integer,
     resultFields: List[TemplateResultFieldView],
+    selectOneNestedBindings: List[TemplateSelectOneNestedBindingView] = Nil,
     last: Boolean = false
 )
 
@@ -257,6 +266,20 @@ object SqlCodegenTemplateViews {
         )
     }
     val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields, isSelectOne) = sqlFields
+    val selectOneNestedBindings                                                                      =
+      operation.sql.flatMap(_.selectOneOutput).toList.flatMap { output =>
+        output.nestedBindings.map { nested =>
+          TemplateSelectOneNestedBindingView(
+            memberName = nested.memberName,
+            shapeName = nested.shapeName,
+            isCollection =
+              nested.cardinality == com.jacoby6000.smithy.stache.sql.service.SqlSelectOneNestedCardinality.Collection,
+            optional = nested.optional,
+            fields =
+              withLastFlag(nested.fields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
+          )
+        }
+      }
     TemplateOperationView(
       name = operation.name,
       hasSql = operation.sql.isDefined,
@@ -271,7 +294,8 @@ object SqlCodegenTemplateViews {
       sqlStatement = sqlStatement,
       bindParameters = bindParameters,
       returningColumnIndex = returningColumnIndex,
-      resultFields = resultFields
+      resultFields = resultFields,
+      selectOneNestedBindings = selectOneNestedBindings
     )
   }
 
