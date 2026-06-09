@@ -71,7 +71,7 @@ flowchart TD
 | SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
 | Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala); `models.mustache` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums, and a `-- Queries` section | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL + query units in the plugin; `smithplates.sql.<dialect>.migrationLocation` |
-| Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-postgres-renderer-it`](../../modules/smithplates-sql-postgres-renderer-it/), [`smithplates-sql-sqlite-renderer-it`](../../modules/smithplates-sql-sqlite-renderer-it/) |
+| Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/), [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) |
 | Migration engine | Per-language migration runner with schema-hash tracking; planned input to generated test suites | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
 | Target language interfaces | Repository `Protocol` per `@sqlService` | `service_protocol.mustache`; service IR + query models + templates |
 | Target language abstract test suites | Contract tests against the generated interface | `Protocol` defines the contract today; dedicated abstract test-suite templates are not yet bundled |
@@ -87,27 +87,27 @@ Consumer configuration is documented in [Integration](../usage/integration.md): 
 modules/smithplates-plugin (published)
     ├── smithplates-sql-ir
     ├── smithplates-sql-service-ir
-    ├── smithplates-sql-postgres-renderer
-    ├── smithplates-sql-sqlite-renderer
+    ├── smithplates-sql-ddl-renderer-postgres
+    ├── smithplates-sql-ddl-renderer-sqlite
     ├── smithplates-sql-service-query-renderer
     ├── smithplates-sql-service-query-renderer-postgres
     ├── smithplates-sql-service-query-renderer-sqlite
     └── smithplates-sql-service-renderer
 
 modules/smithplates-testkit (library)
-    ├── smithplates-sql-postgres-renderer-it (test)
-    └── smithplates-sql-sqlite-renderer-it (test)
+    ├── smithplates-sql-ddl-renderer-postgres-it (test)
+    └── smithplates-sql-ddl-renderer-sqlite-it (test)
 ```
 
 - **smithplates-sql-ir** — schema ADTs, table extraction, shared DDL primitives; Smithy trait IDL and Java `TraitService` SPI.
 - **smithplates-sql-service-ir** — query and service IR, extractors.
 - **smithplates-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering.
 - **smithplates-sql-service-query-renderer-postgres** / **smithplates-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
-- **smithplates-sql-sqlite-renderer** / **smithplates-sql-postgres-renderer** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
+- **smithplates-sql-ddl-renderer-sqlite** / **smithplates-sql-ddl-renderer-postgres** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
 - **smithplates-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`; compile depends on query-renderer base only.
 - **smithplates-plugin** — thin orchestration; only published Maven artifact (`com.jacoby6000:smithplates-plugin`).
 - **smithplates-testkit** — shared Smithy fixtures and JDBC DDL helpers in `src/main`.
-- **smithplates-sql-postgres-renderer-it** / **smithplates-sql-sqlite-renderer-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
+- **smithplates-sql-ddl-renderer-postgres-it** / **smithplates-sql-ddl-renderer-sqlite-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
 
 ## SQL plugin design
 

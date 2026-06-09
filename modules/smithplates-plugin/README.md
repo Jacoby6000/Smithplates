@@ -166,7 +166,7 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
 
-Docker-backed schema-path integration tests (SQL IR → dialect DDL → real databases) live in [`../smithplates-sql-postgres-renderer-it/`](../smithplates-sql-postgres-renderer-it/) and [`../smithplates-sql-sqlite-renderer-it/`](../smithplates-sql-sqlite-renderer-it/).
+Docker-backed schema-path integration tests (SQL IR → dialect DDL → real databases) live in [`../smithplates-sql-ddl-renderer-postgres-it/`](../smithplates-sql-ddl-renderer-postgres-it/) and [`../smithplates-sql-ddl-renderer-sqlite-it/`](../smithplates-sql-ddl-renderer-sqlite-it/).
 
 ## Schema DDL export
 

@@ -66,7 +66,7 @@ CI runs [`./validate`](validate) with Nix (Linux), `./validate` without Nix (Lin
 
 **Docker** must be installed and running for:
 
-- `smithplatesSqlPostgresRendererIt` / `smithplatesSqlSqliteRendererIt` (testcontainers-scala)
+- `smithplatesSqlDdlRendererPostgresIt` / `smithplatesSqlDdlRendererSqliteIt` (testcontainers-scala)
 - Postgres variants of the Python template harness (testcontainers Python)
 
 ### With Nix (recommended)
@@ -128,10 +128,10 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 | Schema IR | `modules/smithplates-sql-ir/` | `sbtn smithplatesSqlIr/test` |
 | Service/query IR | `modules/smithplates-sql-service-ir/` | `sbtn smithplatesSqlServiceIr/test` |
 | Query rendering | `modules/smithplates-sql-service-query-renderer*` | `sbtn smithplatesSqlServiceQueryRenderer/test`, … |
-| DDL rendering | `modules/smithplates-sql-*-renderer/` | `sbtn smithplatesSqlPostgresRenderer/test`, … |
+| DDL rendering | `modules/smithplates-sql-ddl-renderer-*/` | `sbtn smithplatesSqlDdlRendererPostgres/test`, … |
 | SSP rendering engine | `modules/smithplates-sql-service-renderer/` | `sbtn smithplatesSqlServiceRenderer/test` |
 | Published plugin | `modules/smithplates-plugin/` | `sbtn smithplatesPlugin/test` |
-| Dialect IT | `modules/smithplates-sql-*-renderer-it/` | `sbtn smithplatesSqlPostgresRendererIt/test`, … |
+| Dialect IT | `modules/smithplates-sql-ddl-renderer-*-it/` | `sbtn smithplatesSqlDdlRendererPostgresIt/test`, … |
 
 **Conventions:** see [`AGENTS.md`](AGENTS.md) (Scala 3.3.6, strict options, `sbtn`, functional validation with `ValidatedNel`). Pre-commit hooks (`scripts/pre-commit-scala.sh`) run scalafmt, scalafix, and compile on staged Scala/SBT changes.
 

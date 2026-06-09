@@ -9,8 +9,8 @@ SQL database service codegen integration tests (derived-query pytest suites) are
 | Module | Database | Container image |
 |--------|----------|-----------------|
 | [`smithplates-testkit`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and dialect-neutral JDBC DDL helpers (`src/main`, consumed by renderer IT modules) |
-| [`smithplates-sql-postgres-renderer-it`](../../modules/smithplates-sql-postgres-renderer-it/) | PostgreSQL 16 | `postgres:16-alpine` |
-| [`smithplates-sql-sqlite-renderer-it`](../../modules/smithplates-sql-sqlite-renderer-it/) | SQLite 3 | `keinos/sqlite3` (CLI in Docker) |
+| [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/) | PostgreSQL 16 | `postgres:16-alpine` |
+| [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) | SQLite 3 | `keinos/sqlite3` (CLI in Docker) |
 
 Dialect-specific test helpers (`PostgresDdlSupport`, `SqliteContainerSupport`) live in the postgres and sqlite renderer IT modules, not in the testkit.
 
@@ -23,8 +23,8 @@ Postgres and SQLite renderer IT modules run integration tests via `test` (not SB
 From the Smithplates repository root:
 
 ```bash
-sbtn smithplatesSqlPostgresRendererIt/test
-sbtn smithplatesSqlSqliteRendererIt/test
+sbtn smithplatesSqlDdlRendererPostgresIt/test
+sbtn smithplatesSqlDdlRendererSqliteIt/test
 ```
 
 Unit tests (no Docker):

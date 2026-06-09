@@ -26,15 +26,15 @@ run_plugin_tests() {
   local -a modules=(
     smithplatesSqlIr
     smithplatesSqlServiceIr
-    smithplatesSqlPostgresRenderer
-    smithplatesSqlSqliteRenderer
+    smithplatesSqlDdlRendererPostgres
+    smithplatesSqlDdlRendererSqlite
     smithplatesSqlServiceQueryRenderer
     smithplatesSqlServiceQueryRendererPostgres
     smithplatesSqlServiceQueryRendererSqlite
     smithplatesSqlServiceRenderer
     smithplatesTestkit
-    smithplatesSqlPostgresRendererIt
-    smithplatesSqlSqliteRendererIt
+    smithplatesSqlDdlRendererPostgresIt
+    smithplatesSqlDdlRendererSqliteIt
   )
   local module
   for module in "${modules[@]}"; do

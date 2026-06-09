@@ -81,24 +81,24 @@ lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-ser
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
-lazy val smithplatesSqlPostgresRenderer = (project in file("modules/smithplates-sql-postgres-renderer"))
+lazy val smithplatesSqlDdlRendererPostgres = (project in file("modules/smithplates-sql-ddl-renderer-postgres"))
   .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
-    name := "smithplates-sql-postgres-renderer",
+    name := "smithplates-sql-ddl-renderer-postgres",
     organization := "com.jacoby6000",
     version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
-lazy val smithplatesSqlSqliteRenderer = (project in file("modules/smithplates-sql-sqlite-renderer"))
+lazy val smithplatesSqlDdlRendererSqlite = (project in file("modules/smithplates-sql-ddl-renderer-sqlite"))
   .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
-    name := "smithplates-sql-sqlite-renderer",
+    name := "smithplates-sql-ddl-renderer-sqlite",
     organization := "com.jacoby6000",
     version := "0.1.0",
     libraryDependencies += catsCoreDependency,
@@ -149,8 +149,8 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
   .dependsOn(
     smithplatesSqlServiceIr,
     smithplatesSqlServiceQueryRenderer,
-    smithplatesSqlPostgresRenderer % "test->compile",
-    smithplatesSqlSqliteRenderer % "test->compile",
+    smithplatesSqlDdlRendererPostgres % "test->compile",
+    smithplatesSqlDdlRendererSqlite % "test->compile",
     smithplatesSqlServiceQueryRendererPostgres % "test->compile",
     smithplatesSqlServiceQueryRendererSqlite % "test->compile",
     smithplatesSqlIr % "test->test",
@@ -178,8 +178,8 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   .dependsOn(
     smithplatesSqlIr,
     smithplatesSqlServiceIr,
-    smithplatesSqlPostgresRenderer,
-    smithplatesSqlSqliteRenderer,
+    smithplatesSqlDdlRendererPostgres,
+    smithplatesSqlDdlRendererSqlite,
     smithplatesSqlServiceQueryRenderer,
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
@@ -228,13 +228,13 @@ lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
     version := "0.1.0"
   )
 
-lazy val smithplatesSqlPostgresRendererIt = (project in file("modules/smithplates-sql-postgres-renderer-it"))
-  .dependsOn(smithplatesSqlPostgresRenderer, smithplatesTestkit)
+lazy val smithplatesSqlDdlRendererPostgresIt = (project in file("modules/smithplates-sql-ddl-renderer-postgres-it"))
+  .dependsOn(smithplatesSqlDdlRendererPostgres, smithplatesTestkit)
   .settings(
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
-    name := "smithplates-sql-postgres-renderer-it",
+    name := "smithplates-sql-ddl-renderer-postgres-it",
     organization := "com.jacoby6000",
     version := "0.1.0",
     dialectIntegrationTestModuleSettings,
@@ -248,13 +248,13 @@ lazy val smithplatesSqlPostgresRendererIt = (project in file("modules/smithplate
     )
   )
 
-lazy val smithplatesSqlSqliteRendererIt = (project in file("modules/smithplates-sql-sqlite-renderer-it"))
-  .dependsOn(smithplatesSqlSqliteRenderer, smithplatesTestkit)
+lazy val smithplatesSqlDdlRendererSqliteIt = (project in file("modules/smithplates-sql-ddl-renderer-sqlite-it"))
+  .dependsOn(smithplatesSqlDdlRendererSqlite, smithplatesTestkit)
   .settings(
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
-    name := "smithplates-sql-sqlite-renderer-it",
+    name := "smithplates-sql-ddl-renderer-sqlite-it",
     organization := "com.jacoby6000",
     version := "0.1.0",
     dialectIntegrationTestModuleSettings,
@@ -278,14 +278,14 @@ lazy val root = (project in file("."))
   .aggregate(
     smithplatesSqlIr,
     smithplatesSqlServiceIr,
-    smithplatesSqlPostgresRenderer,
-    smithplatesSqlSqliteRenderer,
+    smithplatesSqlDdlRendererPostgres,
+    smithplatesSqlDdlRendererSqlite,
     smithplatesSqlServiceQueryRenderer,
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,
     smithplatesPlugin,
     smithplatesTestkit,
-    smithplatesSqlPostgresRendererIt,
-    smithplatesSqlSqliteRendererIt
+    smithplatesSqlDdlRendererPostgresIt,
+    smithplatesSqlDdlRendererSqliteIt
   )
