@@ -24,17 +24,17 @@ run_plugin_tests() {
   require_sbtn
   echo "==> Scala plugin tests (excluding template golden suite; Docker required for *RendererIt)"
   local -a modules=(
-    smithySqlIr
-    smithySqlServiceIr
-    smithySqlPostgresRenderer
-    smithySqlSqliteRenderer
-    smithySqlServiceQueryRenderer
-    smithySqlServiceQueryRendererPostgres
-    smithySqlServiceQueryRendererSqlite
-    smithySqlServiceRenderer
+    smithplatesSqlIr
+    smithplatesSqlServiceIr
+    smithplatesSqlPostgresRenderer
+    smithplatesSqlSqliteRenderer
+    smithplatesSqlServiceQueryRenderer
+    smithplatesSqlServiceQueryRendererPostgres
+    smithplatesSqlServiceQueryRendererSqlite
+    smithplatesSqlServiceRenderer
     smithplatesTestkit
-    smithySqlPostgresRendererIt
-    smithySqlSqliteRendererIt
+    smithplatesSqlPostgresRendererIt
+    smithplatesSqlSqliteRendererIt
   )
   local module
   for module in "${modules[@]}"; do

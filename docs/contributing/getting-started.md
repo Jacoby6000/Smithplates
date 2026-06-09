@@ -17,17 +17,17 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | SBT project | Directory | Maven coordinate | Role |
 |-------------|-----------|------------------|------|
 | `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin:0.1.0` | Published `smithplates` build plugin (orchestration only) |
-| `smithySqlIr` | [`modules/smithy-sql-ir/`](../../modules/smithy-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
-| `smithySqlServiceIr` | [`modules/smithy-sql-service-ir/`](../../modules/smithy-sql-service-ir/) | — | Query/service IR, extractors |
-| `smithySqlServiceQueryRenderer` | [`modules/smithy-sql-service-query-renderer/`](../../modules/smithy-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, dialect-neutral query rendering |
-| `smithySqlServiceQueryRendererPostgres` | [`modules/smithy-sql-service-query-renderer-postgres/`](../../modules/smithy-sql-service-query-renderer-postgres/) | — | Postgres `SqlQueryRenderer` |
-| `smithySqlServiceQueryRendererSqlite` | [`modules/smithy-sql-service-query-renderer-sqlite/`](../../modules/smithy-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
-| `smithySqlPostgresRenderer` | [`modules/smithy-sql-postgres-renderer/`](../../modules/smithy-sql-postgres-renderer/) | — | Postgres DDL renderer |
-| `smithySqlSqliteRenderer` | [`modules/smithy-sql-sqlite-renderer/`](../../modules/smithy-sql-sqlite-renderer/) | — | SQLite DDL renderer |
-| `smithySqlServiceRenderer` | [`modules/smithy-sql-service-renderer/`](../../modules/smithy-sql-service-renderer/) | — | Mustache service codegen (Python templates) |
+| `smithplatesSqlIr` | [`modules/smithplates-sql-ir/`](../../modules/smithplates-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
+| `smithplatesSqlServiceIr` | [`modules/smithplates-sql-service-ir/`](../../modules/smithplates-sql-service-ir/) | — | Query/service IR, extractors |
+| `smithplatesSqlServiceQueryRenderer` | [`modules/smithplates-sql-service-query-renderer/`](../../modules/smithplates-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, dialect-neutral query rendering |
+| `smithplatesSqlServiceQueryRendererPostgres` | [`modules/smithplates-sql-service-query-renderer-postgres/`](../../modules/smithplates-sql-service-query-renderer-postgres/) | — | Postgres `SqlQueryRenderer` |
+| `smithplatesSqlServiceQueryRendererSqlite` | [`modules/smithplates-sql-service-query-renderer-sqlite/`](../../modules/smithplates-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
+| `smithplatesSqlPostgresRenderer` | [`modules/smithplates-sql-postgres-renderer/`](../../modules/smithplates-sql-postgres-renderer/) | — | Postgres DDL renderer |
+| `smithplatesSqlSqliteRenderer` | [`modules/smithplates-sql-sqlite-renderer/`](../../modules/smithplates-sql-sqlite-renderer/) | — | SQLite DDL renderer |
+| `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Mustache service codegen (Python templates) |
 | `smithplatesTestkit` | [`modules/smithplates-testkit/`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
-| `smithySqlPostgresRendererIt` | [`modules/smithy-sql-postgres-renderer-it/`](../../modules/smithy-sql-postgres-renderer-it/) | — | Postgres renderer integration tests |
-| `smithySqlSqliteRendererIt` | [`modules/smithy-sql-sqlite-renderer-it/`](../../modules/smithy-sql-sqlite-renderer-it/) | — | SQLite renderer integration tests |
+| `smithplatesSqlPostgresRendererIt` | [`modules/smithplates-sql-postgres-renderer-it/`](../../modules/smithplates-sql-postgres-renderer-it/) | — | Postgres renderer integration tests |
+| `smithplatesSqlSqliteRendererIt` | [`modules/smithplates-sql-sqlite-renderer-it/`](../../modules/smithplates-sql-sqlite-renderer-it/) | — | SQLite renderer integration tests |
 
 ## Build and publish
 
@@ -90,11 +90,11 @@ Subcommands: `scala` (aggregated `sbtn test`), `templates` (Python pytest only).
 ## Unit tests
 
 ```bash
-sbtn smithySqlIr/test
-sbtn smithySqlServiceIr/test
-sbtn smithySqlPostgresRenderer/test
-sbtn smithySqlSqliteRenderer/test
-sbtn smithySqlServiceRenderer/test
+sbtn smithplatesSqlIr/test
+sbtn smithplatesSqlServiceIr/test
+sbtn smithplatesSqlPostgresRenderer/test
+sbtn smithplatesSqlSqliteRenderer/test
+sbtn smithplatesSqlServiceRenderer/test
 sbtn smithplatesPlugin/test
 ```
 
@@ -103,8 +103,8 @@ sbtn smithplatesPlugin/test
 Requires Docker:
 
 ```bash
-sbtn smithySqlPostgresRendererIt/test
-sbtn smithySqlSqliteRendererIt/test
+sbtn smithplatesSqlPostgresRendererIt/test
+sbtn smithplatesSqlSqliteRendererIt/test
 ```
 
 Python generated-code integration tests (pytest against `templates/python/expected-outputs/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:

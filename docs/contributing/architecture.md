@@ -6,7 +6,7 @@ Smithplates is an SBT multi-module project (**Scala 3.3.6**, strict compiler opt
 
 The Mermaid diagram below is generated from [`docs/reusable-components/architecture-pipeline.mmd`](../reusable-components/architecture-pipeline.mmd). Edit that component, then run `scripts/sync_reusable_components.py` to refresh embedded copies in this document and the repository [`README.md`](../../README.md).
 
-The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). SQL IR feeds the **schema and migrations** path directly. **SQL database service codegen** combines service IR with SQL IR, then renders target-language artifacts with Mustache templates.
+The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). SQL IR feeds the **schema and migrations** path directly. **SQL database service codegen** combines service IR with SQL IR, then renders target-language artifacts with Mustache templates.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -66,12 +66,12 @@ flowchart TD
 |-------|------------|------------------------|
 | Smithy model | Consumer or test Smithy IDL | `PluginContext.getModel` |
 | `smithplates` plugin | Orchestrates extraction and rendering | [`SmithplatesBuildPlugin`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/SmithplatesBuildPlugin.scala) |
-| SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
-| Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceExtractor.scala); `SqlServiceIr` |
+| SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
+| Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceExtractor.scala); `SqlServiceIr` |
 | SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
-| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala); `models.mustache` |
-| Dialect-specific DDL | `CREATE TABLE`, indexes, enums, and a `-- Queries` section | [`SqlSchemaDdlRenderer`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL + query units in the plugin; `smithplates.sql.<dialect>.migrationLocation` |
-| Schema integration tests | Apply generated DDL to real databases | [`smithy-sql-postgres-renderer-it`](../../modules/smithy-sql-postgres-renderer-it/), [`smithy-sql-sqlite-renderer-it`](../../modules/smithy-sql-sqlite-renderer-it/) |
+| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala); `models.mustache` |
+| Dialect-specific DDL | `CREATE TABLE`, indexes, enums, and a `-- Queries` section | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL + query units in the plugin; `smithplates.sql.<dialect>.migrationLocation` |
+| Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-postgres-renderer-it`](../../modules/smithplates-sql-postgres-renderer-it/), [`smithplates-sql-sqlite-renderer-it`](../../modules/smithplates-sql-sqlite-renderer-it/) |
 | Migration engine | Per-language migration runner with schema-hash tracking; planned input to generated test suites | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
 | Target language interfaces | Repository `Protocol` per `@sqlService` | `service_protocol.mustache`; service IR + query models + templates |
 | Target language abstract test suites | Contract tests against the generated interface | `Protocol` defines the contract today; dedicated abstract test-suite templates are not yet bundled |
@@ -85,29 +85,29 @@ Consumer configuration is documented in [Integration](../usage/integration.md): 
 
 ```
 modules/smithplates-plugin (published)
-    ├── smithy-sql-ir
-    ├── smithy-sql-service-ir
-    ├── smithy-sql-postgres-renderer
-    ├── smithy-sql-sqlite-renderer
-    ├── smithy-sql-service-query-renderer
-    ├── smithy-sql-service-query-renderer-postgres
-    ├── smithy-sql-service-query-renderer-sqlite
-    └── smithy-sql-service-renderer
+    ├── smithplates-sql-ir
+    ├── smithplates-sql-service-ir
+    ├── smithplates-sql-postgres-renderer
+    ├── smithplates-sql-sqlite-renderer
+    ├── smithplates-sql-service-query-renderer
+    ├── smithplates-sql-service-query-renderer-postgres
+    ├── smithplates-sql-service-query-renderer-sqlite
+    └── smithplates-sql-service-renderer
 
 modules/smithplates-testkit (library)
-    ├── smithy-sql-postgres-renderer-it (test)
-    └── smithy-sql-sqlite-renderer-it (test)
+    ├── smithplates-sql-postgres-renderer-it (test)
+    └── smithplates-sql-sqlite-renderer-it (test)
 ```
 
-- **smithy-sql-ir** — schema ADTs, table extraction, shared DDL primitives; Smithy trait IDL and Java `TraitService` SPI.
-- **smithy-sql-service-ir** — query and service IR, extractors.
-- **smithy-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering.
-- **smithy-sql-service-query-renderer-postgres** / **smithy-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
-- **smithy-sql-sqlite-renderer** / **smithy-sql-postgres-renderer** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
-- **smithy-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`; compile depends on query-renderer base only.
+- **smithplates-sql-ir** — schema ADTs, table extraction, shared DDL primitives; Smithy trait IDL and Java `TraitService` SPI.
+- **smithplates-sql-service-ir** — query and service IR, extractors.
+- **smithplates-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering.
+- **smithplates-sql-service-query-renderer-postgres** / **smithplates-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
+- **smithplates-sql-sqlite-renderer** / **smithplates-sql-postgres-renderer** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
+- **smithplates-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`; compile depends on query-renderer base only.
 - **smithplates-plugin** — thin orchestration; only published Maven artifact (`com.jacoby6000:smithplates-plugin`).
 - **smithplates-testkit** — shared Smithy fixtures and JDBC DDL helpers in `src/main`.
-- **smithy-sql-postgres-renderer-it** / **smithy-sql-sqlite-renderer-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
+- **smithplates-sql-postgres-renderer-it** / **smithplates-sql-sqlite-renderer-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
 
 ## SQL plugin design
 
@@ -117,13 +117,13 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 
 ### Model extraction
 
-[`SqlIrExtractor`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) assembles **`SqlSchema`** (tables and relationships) from `@sqlTable` and `@sqlForeignKey` members (many-to-one by default; one-to-one when the FK column also has `@sqlUniqueIndex`). [`SqlServiceIrExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrExtractor.scala) assembles **`SqlServiceIr`**: [`SqlQueryExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlQueryExtractor.scala) fills `queries` from derive traits; [`SqlServiceExtractor`](../../modules/smithy-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts into `services`. Derived queries bind to service methods by matching operation shape ids on derive traits.
+[`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) assembles **`SqlSchema`** (tables and relationships) from `@sqlTable` and `@sqlForeignKey` members (many-to-one by default; one-to-one when the FK column also has `@sqlUniqueIndex`). [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceIrExtractor.scala) assembles **`SqlServiceIr`**: [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlQueryExtractor.scala) fills `queries` from derive traits; [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceExtractor.scala) validates `@sqlService` operation contracts into `services`. Derived queries bind to service methods by matching operation shape ids on derive traits.
 
 ### Rendering
 
-**Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/DDLStatement.scala) values keyed by Smithy shape id; dialect query renderers expose [`SqlRenderedQuery`](../../modules/smithy-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/query/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
+**Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/DDLStatement.scala) values keyed by Smithy shape id; dialect query renderers expose [`SqlRenderedQuery`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/query/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
 
-**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithy-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/query/SqlQueryRenderer.scala) instances, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
+**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/query/SqlQueryRenderer.scala) instances, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
 
 ### Package layout
 
@@ -131,9 +131,9 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 |---------|----------------|
 | `com.jacoby6000.smithplates` | `smithplates` build plugin (`SmithplatesBuildPlugin`), settings validation |
 | `com.jacoby6000.smithplates.sql` | `SqlValidated`, schema IR extraction, table traits |
-| `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
+| `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithplates-sql-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors |
-| `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
+| `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.query` | `SqlQueryRenderer`, `SqlParameterizedStatement`, `SqlRenderedQuery`, `SqlQueryRenderOutput` |
 | `com.jacoby6000.smithplates.sql.query.postgres` / `.sqlite` | Dialect `SqlQueryRenderer` implementations |
 | `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer`, `DDLStatement`, DDL rendering, FK ordering |

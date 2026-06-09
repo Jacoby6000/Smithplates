@@ -25,9 +25,9 @@ Bundled Python DB templates are packaged from `templates/python/src/db/` into th
 
 ## Contributing
 
-- Edit SSP sources under `templates/python/src/db/` (not under `modules/smithy-sql-service-renderer/src/main/resources/`).
+- Edit SSP sources under `templates/python/src/db/` (not under `modules/smithplates-sql-service-renderer/src/main/resources/`).
 - Refresh golden expectations under `templates/python/expected-outputs/<test-case>/` when intentional output changes.
-- Run `sbtn smithySqlServiceRenderer/test` after template changes (golden render comparison).
+- Run `sbtn smithplatesSqlServiceRenderer/test` after template changes (golden render comparison).
 - Run `./language-test-harnesses/python/run-linters.sh` and `./language-test-harnesses/python/run-tests.sh` after template changes.
 
 See `templates/python/expected-outputs/README.md` for golden-test case conventions.

@@ -135,6 +135,6 @@ sbtn 'scalafixAll --check'
 Docker-backed dialect tests:
 
 ```bash
-sbtn smithySqlPostgresRendererIt/test
-sbtn smithySqlSqliteRendererIt/test
+sbtn smithplatesSqlPostgresRendererIt/test
+sbtn smithplatesSqlSqliteRendererIt/test
 ```

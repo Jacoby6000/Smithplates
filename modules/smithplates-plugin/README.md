@@ -4,7 +4,7 @@ Scala/SBT Smithy build plugin that extracts **SQL IR** from a Smithy model, rend
 
 ## Traits
 
-Smithy trait IDL is packaged into the published plugin JAR from [`../smithy-sql-ir/`](../smithy-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`) and [`../smithy-sql-service-ir/`](../smithy-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`). Overview: [`docs/usage/sql-plugin.md`](../docs/usage/sql-plugin.md).
+Smithy trait IDL is packaged into the published plugin JAR from [`../smithplates-sql-ir/`](../smithplates-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`) and [`../smithplates-sql-service-ir/`](../smithplates-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`). Overview: [`docs/usage/sql-plugin.md`](../docs/usage/sql-plugin.md).
 
 | Trait | Target | Maps to |
 |-------|--------|---------|
@@ -154,10 +154,10 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 | Package | Responsibility |
 |---------|----------------|
 | `com.jacoby6000.smithplates.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), schema IR extraction, table traits |
-| `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithy-sql-ir`, SPI-registered) |
-| `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors, query rendering (`smithy-sql-service-ir`) |
-| `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithy-sql-ir`) |
-| `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithy-sql-service-ir`, SPI-registered) |
+| `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithplates-sql-ir`, SPI-registered) |
+| `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors, query rendering (`smithplates-sql-service-ir`) |
+| `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithplates-sql-ir`) |
+| `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `DDLStatement` (schema DDL artifacts keyed by Smithy shape id) |
 | `com.jacoby6000.smithplates.sql.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithplates.sql.postgres` | Postgres column types |
@@ -166,15 +166,15 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
 
-Docker-backed schema-path integration tests (SQL IR → dialect DDL → real databases) live in [`../smithy-sql-postgres-renderer-it/`](../smithy-sql-postgres-renderer-it/) and [`../smithy-sql-sqlite-renderer-it/`](../smithy-sql-sqlite-renderer-it/).
+Docker-backed schema-path integration tests (SQL IR → dialect DDL → real databases) live in [`../smithplates-sql-postgres-renderer-it/`](../smithplates-sql-postgres-renderer-it/) and [`../smithplates-sql-sqlite-renderer-it/`](../smithplates-sql-sqlite-renderer-it/).
 
 ## Schema DDL export
 
-The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithy-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
+The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
 
 ## SQL database service codegen
 
-**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala) (in `smithy-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
@@ -219,12 +219,12 @@ See [`SqlServiceCodegenRendererSpec`](src/test/scala/com/jacoby6000/smithplates/
 
 ### Strict Python validation in Mustache tests
 
-[`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares rendered output, then [`PythonCodegenWorkspace`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/PythonCodegenWorkspace.scala) writes each case under `target/sql-service-codegen-python-workspace/cases/<test-name>/` (`python/src/db/` + `python/test/db/<implementation>/`), runs strict **mypy** and **pyright** on src artifacts, and runs **pytest -m integration** on each generated `test_*_derived_sql.py` with `PYTHONPATH`/`MYPYPATH` covering `python/src/db/model`, `python/src/db/`, and the implementation directory. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. The uv project (`pyproject.toml`, `uv.lock`, `.venv`) lives in `target/sql-service-codegen-python-workspace/` and persists across test runs until `sbtn smithySqlServiceRenderer/clean`. Requires `uv` on `PATH`; postgres variants also require Docker.
+[`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares rendered output, then [`PythonCodegenWorkspace`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/PythonCodegenWorkspace.scala) writes each case under `target/sql-service-codegen-python-workspace/cases/<test-name>/` (`python/src/db/` + `python/test/db/<implementation>/`), runs strict **mypy** and **pyright** on src artifacts, and runs **pytest -m integration** on each generated `test_*_derived_sql.py` with `PYTHONPATH`/`MYPYPATH` covering `python/src/db/model`, `python/src/db/`, and the implementation directory. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. The uv project (`pyproject.toml`, `uv.lock`, `.venv`) lives in `target/sql-service-codegen-python-workspace/` and persists across test runs until `sbtn smithplatesSqlServiceRenderer/clean`. Requires `uv` on `PATH`; postgres variants also require Docker.
 
 After changing [`src/test/resources/sql-service-codegen-python-workspace/pyproject.toml`](src/test/resources/sql-service-codegen-python-workspace/pyproject.toml), refresh the lockfile:
 
 ```bash
-cd modules/smithy-sql-service-renderer/src/test/resources/sql-service-codegen-python-workspace && uv lock
+cd modules/smithplates-sql-service-renderer/src/test/resources/sql-service-codegen-python-workspace && uv lock
 ```
 
 ## Smithy integration

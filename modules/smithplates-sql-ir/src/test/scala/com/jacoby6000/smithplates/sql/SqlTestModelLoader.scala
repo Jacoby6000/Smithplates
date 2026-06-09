@@ -35,7 +35,7 @@ object SqlTestModelLoader {
     val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
       throw new IllegalStateException(
         s"SQL schema traits Smithy model not on classpath at '$path'. " +
-          "Ensure smithy-sql-ir is on the classpath."
+          "Ensure smithplates-sql-ir is on the classpath."
       )
     }
     try readStream(stream)

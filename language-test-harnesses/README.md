@@ -2,7 +2,7 @@
 
 Executable linters and test runners for generated artifacts under [`templates/`](../templates/).
 
-Golden **render** comparisons stay in Scala (`sbtn smithySqlServiceRenderer/test`). Harnesses here **lint** and **execute** generated code from `templates/<language>/expected-outputs/`.
+Golden **render** comparisons stay in Scala (`sbtn smithplatesSqlServiceRenderer/test`). Harnesses here **lint** and **execute** generated code from `templates/<language>/expected-outputs/`.
 
 ## Python
 

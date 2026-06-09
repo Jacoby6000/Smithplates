@@ -26,7 +26,7 @@ object SqlItModelLoader {
     val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
       throw new IllegalStateException(
         s"SQL traits Smithy model not on classpath at '$path'. " +
-          "Ensure smithy-sql-ir and smithy-sql-service-ir are on the classpath."
+          "Ensure smithplates-sql-ir and smithplates-sql-service-ir are on the classpath."
       )
     }
     try

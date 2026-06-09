@@ -66,7 +66,7 @@ CI runs [`./validate`](validate) with Nix (Linux), `./validate` without Nix (Lin
 
 **Docker** must be installed and running for:
 
-- `smithySqlPostgresRendererIt` / `smithySqlSqliteRendererIt` (testcontainers-scala)
+- `smithplatesSqlPostgresRendererIt` / `smithplatesSqlSqliteRendererIt` (testcontainers-scala)
 - Postgres variants of the Python template harness (testcontainers Python)
 
 ### With Nix (recommended)
@@ -125,13 +125,13 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 
 | Area | Directory | Typical tests |
 |------|-----------|---------------|
-| Schema IR | `modules/smithy-sql-ir/` | `sbtn smithySqlIr/test` |
-| Service/query IR | `modules/smithy-sql-service-ir/` | `sbtn smithySqlServiceIr/test` |
-| Query rendering | `modules/smithy-sql-service-query-renderer*` | `sbtn smithySqlServiceQueryRenderer/test`, … |
-| DDL rendering | `modules/smithy-sql-*-renderer/` | `sbtn smithySqlPostgresRenderer/test`, … |
-| SSP rendering engine | `modules/smithy-sql-service-renderer/` | `sbtn smithySqlServiceRenderer/test` |
+| Schema IR | `modules/smithplates-sql-ir/` | `sbtn smithplatesSqlIr/test` |
+| Service/query IR | `modules/smithplates-sql-service-ir/` | `sbtn smithplatesSqlServiceIr/test` |
+| Query rendering | `modules/smithplates-sql-service-query-renderer*` | `sbtn smithplatesSqlServiceQueryRenderer/test`, … |
+| DDL rendering | `modules/smithplates-sql-*-renderer/` | `sbtn smithplatesSqlPostgresRenderer/test`, … |
+| SSP rendering engine | `modules/smithplates-sql-service-renderer/` | `sbtn smithplatesSqlServiceRenderer/test` |
 | Published plugin | `modules/smithplates-plugin/` | `sbtn smithplatesPlugin/test` |
-| Dialect IT | `modules/smithy-sql-*-renderer-it/` | `sbtn smithySqlPostgresRendererIt/test`, … |
+| Dialect IT | `modules/smithplates-sql-*-renderer-it/` | `sbtn smithplatesSqlPostgresRendererIt/test`, … |
 
 **Conventions:** see [`AGENTS.md`](AGENTS.md) (Scala 3.3.6, strict options, `sbtn`, functional validation with `ValidatedNel`). Pre-commit hooks (`scripts/pre-commit-scala.sh`) run scalafmt, scalafix, and compile on staged Scala/SBT changes.
 
@@ -165,7 +165,7 @@ Bundled Python DB templates live under [`templates/python/src/db/`](templates/py
 ### Updating bundled Python templates
 
 1. Edit SSP under `templates/python/src/db/` (and `fragments/`).
-2. Run `sbtn smithySqlServiceRenderer/test` — compares rendered output to golden files under `expected-outputs/`.
+2. Run `sbtn smithplatesSqlServiceRenderer/test` — compares rendered output to golden files under `expected-outputs/`.
 3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/expected-outputs/README.md`](templates/python/expected-outputs/README.md)).
 4. Run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
 
@@ -173,11 +173,11 @@ Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `un
 
 ### Adding a new language
 
-1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithy-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
+1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
 2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
 3. Add golden cases under `templates/<language>/expected-outputs/<test-case>/`.
 4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
-5. Extend [`CodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithy-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/SqlServiceCodegenTemplateTestSuite.scala).
+5. Extend [`CodegenTemplateTestSuite`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/SqlServiceCodegenTemplateTestSuite.scala).
 
 Consumers can also point `smithplates.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
 
