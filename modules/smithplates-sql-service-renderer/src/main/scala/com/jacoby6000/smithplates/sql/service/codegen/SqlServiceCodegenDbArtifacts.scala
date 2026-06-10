@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 /** Bundled `@sqlService` artifact paths under the `db/` service-type layout. */
 object SqlServiceCodegenDbArtifacts {

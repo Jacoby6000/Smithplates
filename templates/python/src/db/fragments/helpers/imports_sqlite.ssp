@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
-<%@ val imports: com.jacoby6000.smithplates.sql.codegen.ImportRequirements = importRequirements(ctx) %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithplates.sql.service.codegen.ImportRequirements = importRequirements(ctx) %>
 <% if (imports.needsJsonImport) { %>import json
 <% } %><% if (imports.needsSqlite3Import) { %>import sqlite3
 <% } %><% if (imports.needsDatetimeImports) { %>from datetime import datetime, timezone

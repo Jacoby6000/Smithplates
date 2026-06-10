@@ -1,9 +1,9 @@
-package com.jacoby6000.smithplates.sql.query.postgres
+package com.jacoby6000.smithplates.sql.service.query.renderer.postgres
 
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
-import com.jacoby6000.smithplates.sql.query.*
 import com.jacoby6000.smithplates.sql.service.SqlQueries
+import com.jacoby6000.smithplates.sql.service.query.renderer.*
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 
 final class PostgresSqlQueryRenderer(

@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 import scala.sys.process.*
 

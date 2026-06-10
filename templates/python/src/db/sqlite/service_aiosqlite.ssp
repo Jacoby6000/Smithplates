@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.codegen.ServiceTemplateView %>
-<%@ val imports: com.jacoby6000.smithplates.sql.codegen.ImportRequirements = importRequirements(ctx) %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView %>
+<%@ val imports: com.jacoby6000.smithplates.sql.service.codegen.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations
 
 <% render("fragments/helpers/imports_sqlite", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override

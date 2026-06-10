@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.ddl.sqlite
+package com.jacoby6000.smithplates.sql.ddl.renderer.sqlite
 
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*

@@ -1,16 +1,14 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlOperation
 import com.jacoby6000.smithplates.sql.service.SqlQueries
 import com.jacoby6000.smithplates.sql.service.SqlQueryExtractor
 import com.jacoby6000.smithplates.sql.service.SqlService
-import com.jacoby6000.smithplates.sql.service.codegen.ResolvedSqlOperationQuery
-import com.jacoby6000.smithplates.sql.service.codegen.SqlOperationQueryResolver
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 
 object SqlServiceCodegenContextBuilder {

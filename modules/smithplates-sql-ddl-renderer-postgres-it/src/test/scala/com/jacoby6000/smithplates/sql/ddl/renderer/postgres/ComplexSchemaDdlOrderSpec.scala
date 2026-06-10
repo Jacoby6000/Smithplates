@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.ddl.postgres
+package com.jacoby6000.smithplates.sql.ddl.renderer.postgres
 
 import com.jacoby6000.smithplates.sql.SqlTableTree
 import com.jacoby6000.smithplates.sql.model.DDLStatement

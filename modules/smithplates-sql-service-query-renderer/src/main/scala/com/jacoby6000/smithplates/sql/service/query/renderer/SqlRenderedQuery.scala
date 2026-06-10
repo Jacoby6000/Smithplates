@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.query
+package com.jacoby6000.smithplates.sql.service.query.renderer
 
 import software.amazon.smithy.model.shapes.ShapeId
 

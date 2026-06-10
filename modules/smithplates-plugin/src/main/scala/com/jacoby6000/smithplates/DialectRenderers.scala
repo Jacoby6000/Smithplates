@@ -1,14 +1,14 @@
 package com.jacoby6000.smithplates
 
-import com.jacoby6000.smithplates.sql.ddl.postgres.PostgresRenderer
-import com.jacoby6000.smithplates.sql.ddl.sqlite.SqliteRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.model.SqlSchema
-import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderOutput
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
-import com.jacoby6000.smithplates.sql.query.postgres.PostgresSqlQueryRenderer
-import com.jacoby6000.smithplates.sql.query.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderOutput
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
+import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
+import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
 
 object DialectRenderers {

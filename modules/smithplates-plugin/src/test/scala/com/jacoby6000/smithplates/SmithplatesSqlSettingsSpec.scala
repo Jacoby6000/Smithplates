@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates
 
-import com.jacoby6000.smithplates.sql.codegen.SqlServiceCodegenDbArtifacts
+import com.jacoby6000.smithplates.sql.service.codegen.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
 class SmithplatesSqlSettingsSpec extends munit.FunSuite {

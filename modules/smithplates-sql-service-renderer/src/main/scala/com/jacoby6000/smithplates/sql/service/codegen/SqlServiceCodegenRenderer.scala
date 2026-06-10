@@ -1,10 +1,10 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.SqlSchema
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 
 final case class SqlServiceCodegenArtifactConfig(

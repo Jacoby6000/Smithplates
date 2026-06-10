@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.query
+package com.jacoby6000.smithplates.sql.service.query.renderer
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.sql.model.SqlColumnType

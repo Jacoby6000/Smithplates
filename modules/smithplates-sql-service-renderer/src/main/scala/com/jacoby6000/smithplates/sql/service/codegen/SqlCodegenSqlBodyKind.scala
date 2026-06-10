@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 /** Resolved operation-body dispatch key for SSP {@code #match} on a single string attribute. */
 object SqlCodegenSqlBodyKind {

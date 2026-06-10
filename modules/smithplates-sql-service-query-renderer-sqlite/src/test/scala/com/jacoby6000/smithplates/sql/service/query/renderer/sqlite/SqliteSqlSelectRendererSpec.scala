@@ -1,10 +1,10 @@
-package com.jacoby6000.smithplates.sql.query.sqlite
+package com.jacoby6000.smithplates.sql.service.query.renderer.sqlite
 
 import com.jacoby6000.smithplates.sql.*
-import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import com.jacoby6000.smithplates.sql.service.SqlQueries
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqliteSqlSelectRendererSpec extends munit.FunSuite {

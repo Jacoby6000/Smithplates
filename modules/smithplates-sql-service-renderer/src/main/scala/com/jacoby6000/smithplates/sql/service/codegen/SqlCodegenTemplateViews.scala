@@ -1,8 +1,8 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 
 final case class TemplateAssertionLine(
     line: String,

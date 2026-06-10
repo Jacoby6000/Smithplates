@@ -1,4 +1,4 @@
-<%@ val union: com.jacoby6000.smithplates.sql.codegen.TemplateUnionView %>
+<%@ val union: com.jacoby6000.smithplates.sql.service.codegen.TemplateUnionView %>
 <%@ val dialectKey: String %>
 def _json_bind_${union.name}(value: ${union.name}) -> str:
     present = [key for key in (${unionDiscriminatorKeys(union)}) if key in value]

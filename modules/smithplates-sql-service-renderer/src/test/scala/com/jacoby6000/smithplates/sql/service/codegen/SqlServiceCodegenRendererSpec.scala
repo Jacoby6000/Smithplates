@@ -1,13 +1,13 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestDiscovery
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
-import com.jacoby6000.smithplates.sql.ddl.postgres.PostgresRenderer
-import com.jacoby6000.smithplates.sql.ddl.sqlite.SqliteRenderer
-import com.jacoby6000.smithplates.sql.query.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.query.postgres.PostgresSqlQueryRenderer
-import com.jacoby6000.smithplates.sql.query.sqlite.SqliteSqlQueryRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
+import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
 
 import java.nio.file.Paths
 

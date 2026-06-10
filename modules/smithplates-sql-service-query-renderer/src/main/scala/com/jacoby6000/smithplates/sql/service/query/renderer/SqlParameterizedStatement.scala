@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.query
+package com.jacoby6000.smithplates.sql.service.query.renderer
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated

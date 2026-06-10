@@ -1,4 +1,4 @@
-<%@ val union: com.jacoby6000.smithplates.sql.codegen.TemplateUnionView %>
+<%@ val union: com.jacoby6000.smithplates.sql.service.codegen.TemplateUnionView %>
 <%@ val dialectKey: String %>
 def _read_${union.name}_col(row: dict[str, object], column: str) -> ${union.name}:
 #match (dialectKey)

@@ -1,4 +1,4 @@
-<%@ val model: com.jacoby6000.smithplates.sql.codegen.TemplateModelView %>
+<%@ val model: com.jacoby6000.smithplates.sql.service.codegen.TemplateModelView %>
 <%@ val dialectKey: String %>
 def _json_bind_${model.name}(value: ${model.name}) -> str:
     payload = { <% for (member <- model.members) { %>"${member.name}": cast(object, value.${member.name})<% if (!member.last) { %>, <% } %><% } %> }

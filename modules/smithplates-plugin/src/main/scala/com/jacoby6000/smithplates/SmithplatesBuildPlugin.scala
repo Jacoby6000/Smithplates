@@ -4,8 +4,8 @@ import cats.data.Validated
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlIrExtractor
 import com.jacoby6000.smithplates.sql.SqlValidated
-import com.jacoby6000.smithplates.sql.codegen.SqlServiceCodegenRenderer
 import com.jacoby6000.smithplates.sql.service.SqlServiceIrExtractor
+import com.jacoby6000.smithplates.sql.service.codegen.SqlServiceCodegenRenderer
 import software.amazon.smithy.build.PluginContext
 import software.amazon.smithy.build.SmithyBuildPlugin
 

@@ -159,9 +159,9 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 | `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithplates-sql-ir`) |
 | `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `DDLStatement` (schema DDL artifacts keyed by Smithy shape id) |
-| `com.jacoby6000.smithplates.sql.ddl.sqlite` | SQLite column types and `CHECK` constraints |
-| `com.jacoby6000.smithplates.sql.ddl.postgres` | Postgres column types |
-| `com.jacoby6000.smithplates.sql.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |
+| `com.jacoby6000.smithplates.sql.ddl.renderer.sqlite` | SQLite column types and `CHECK` constraints |
+| `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
+| `com.jacoby6000.smithplates.sql.service.codegen` | Scalate Mustache rendering for `@sqlService` interface/model codegen |
 | `com.jacoby6000.smithplates` | `smithplates` Smithy build plugin (SQL schema export and service codegen) |
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).

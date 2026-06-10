@@ -2,10 +2,10 @@ package com.jacoby6000.smithplates
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
-import com.jacoby6000.smithplates.sql.codegen.SqlServiceCodegenDbArtifacts
-import com.jacoby6000.smithplates.sql.codegen.SqlServiceCodegenSettings
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
-import com.jacoby6000.smithplates.sql.query.SqlQueryRenderer
+import com.jacoby6000.smithplates.sql.service.codegen.SqlServiceCodegenDbArtifacts
+import com.jacoby6000.smithplates.sql.service.codegen.SqlServiceCodegenSettings
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.shared.SqlShared
 

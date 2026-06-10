@@ -1,6 +1,6 @@
-package com.jacoby6000.smithplates.sql.codegen
+package com.jacoby6000.smithplates.sql.service.codegen
 
-import com.jacoby6000.smithplates.sql.query.SqlParameterizedStatement
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
 
 class SqlCodegenSqlBodyKindSpec extends munit.FunSuite {
   private def sqlBinding(

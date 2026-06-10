@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.ddl.sqlite
+package com.jacoby6000.smithplates.sql.ddl.renderer.sqlite
 
 import com.dimafeng.testcontainers.GenericContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
