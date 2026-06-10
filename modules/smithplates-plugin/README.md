@@ -1,6 +1,6 @@
 # smithplates-plugin
 
-Scala/SBT Smithy build plugin that extracts **SQL IR** from a Smithy model, renders dialect-specific DDL and schema integration tests, and runs **SQL database service codegen** by combining service IR, SQL IR, and Mustache templates into target-language repository artifacts and integration tests. See the [codegen pipeline](../docs/contributing/architecture.md) for the full architecture.
+Scala/SBT Smithy build plugin that extracts **SQL IR** from a Smithy model, renders dialect-specific DDL and schema integration tests, and runs **SQL database service codegen** by combining service IR, SQL IR, and Scalate SSP templates into target-language repository artifacts and integration tests. See the [codegen pipeline](../docs/contributing/architecture.md) for the full architecture.
 
 ## Traits
 
@@ -137,7 +137,7 @@ operation FindFoo {
 }
 ```
 
-`@sqlService` operations model repository methods (`input` → `output | errors`). The `smithplates` plugin renders Mustache templates (Scalate) into interface and model artifacts from each `@sqlService` when a `languageTargets` entry is configured. Annotate operations with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` to derive SQL from the target table.
+`@sqlService` operations model repository methods (`input` → `output | errors`). The `smithplates` plugin renders Scalate SSP templates into interface and model artifacts from each `@sqlService` when a `languageTargets` entry is configured. Annotate operations with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` to derive SQL from the target table.
 
 `@sqlService` services use flat `operations` lists, not Smithy `resources`. The natural mapping would be one table per resource, but resource `properties` cannot carry SQL traits on members (`@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlColumn`, …). Tables stay as annotated `@sqlTable` structures; duplicating that metadata elsewhere for resources would hurt authoring UX without much gain.
 
@@ -147,7 +147,7 @@ operation FindFoo {
 sbtn test publishM2
 ```
 
-Tests load the same packaged traits via `SqlTestModelLoader` from the compile classpath. Build inline models with [`SqlTestModelBuilder.assemble`](src/test/scala/com/jacoby6000/smithplates/sql/SqlTestModelBuilder.scala); do not duplicate trait definitions.
+Tests load the same packaged traits via `SqlTestModelLoader` from the compile classpath. Build inline models with [`SqlTestModelBuilder.assemble`](../smithplates-sql-ir/src/test/scala/com/jacoby6000/smithplates/sql/SqlTestModelBuilder.scala) (`smithplates-sql-ir` tests); do not duplicate trait definitions.
 
 ## Plugin layout
 
@@ -155,7 +155,7 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 |---------|----------------|
 | `com.jacoby6000.smithplates.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), schema IR extraction, table traits |
 | `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithplates-sql-ir`, SPI-registered) |
-| `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors, query rendering (`smithplates-sql-service-ir`) |
+| `com.jacoby6000.smithplates.sql.service` | Service/query IR and extractors (`smithplates-sql-service-ir`) |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.common` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithplates-sql-ddl-renderer-common`) |
 | `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.common` | `SqlShared` (DDL rendering, enums, column lines); `SqlTableTree` (FK order) and `DDLStatement` (schema DDL artifacts) live in `smithplates-sql-ir` (`sql`, `sql.model`) |
@@ -163,7 +163,7 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 | `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
 | `com.jacoby6000.smithplates.sql.service.codegen` | Resolved operation queries (`SqlOperationQueryResolver`, `smithplates-sql-service-ir`) |
 | `com.jacoby6000.smithplates.sql.service.renderer` | Scalate SSP rendering for `@sqlService` interface/model codegen (`smithplates-sql-service-renderer`) |
-| `com.jacoby6000.smithplates` | `smithplates` Smithy build plugin (SQL schema export and service codegen) |
+| `com.jacoby6000.smithplates.plugin` | `smithplates` Smithy build plugin (SQL schema export and service codegen) |
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
 
@@ -175,23 +175,23 @@ The **schema and migrations** path renders SQL IR to dialect-specific DDL plus d
 
 ## SQL database service codegen
 
-**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
 ```
 db/
-  model/models.mustache                        → db/model/{{serviceFileName}}_models.py
-  service_protocol.mustache                    → db/{{serviceFileName}}_protocol.py
-  sqlite/service_aiosqlite.mustache            → db/sqlite/{{serviceFileName}}_aiosqlite.py
-  sqlite/tests/service_derived_sql_integration_tests.mustache
-                                               → <testOutputDirectory>/db/sqlite/test_{{serviceFileName}}_derived_sql.py
-  postgres/service_psycopg.mustache            → db/postgres/{{serviceFileName}}_psycopg.py
-  postgres/tests/service_derived_sql_integration_tests_postgres.mustache
-                                               → <testOutputDirectory>/db/postgres/test_{{serviceFileName}}_derived_sql.py
+  model/models.ssp                             → db/model/{{serviceFileName}}_models.py
+  service_protocol.ssp                         → db/{{serviceFileName}}_protocol.py
+  sqlite/service_aiosqlite.ssp               → db/sqlite/{{serviceFileName}}_aiosqlite.py
+  sqlite/tests/service_derived_sql_integration_tests.ssp
+                                               → <testOutputDir>/db/sqlite/test_{{serviceFileName}}_derived_sql.py
+  postgres/service_psycopg.ssp               → db/postgres/{{serviceFileName}}_psycopg.py
+  postgres/tests/service_derived_sql_integration_tests_postgres.ssp
+                                               → <testOutputDir>/db/postgres/test_{{serviceFileName}}_derived_sql.py
 ```
 
-Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDirectory` (required when any artifact has `kind: test`). See [`SqlServiceCodegenDbArtifacts`](src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenDbArtifacts.scala) for the bundled artifact lists.
+Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDir` (required when any artifact has `kind: test`). See [`SqlServiceCodegenDbArtifacts`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) for the bundled artifact lists.
 
 Each `@sqlService` produces one artifact set. Template context includes:
 
@@ -203,12 +203,12 @@ Bundled templates (under `python/db/`):
 
 | Kind | Template | Default output | Purpose |
 |------|----------|----------------|---------|
-| `src` | `db/model/models.mustache` | `db/model/{{serviceFileName}}_models.py` | `@dataclass` models (shared) |
-| `src` | `db/service_protocol.mustache` | `db/{{serviceFileName}}_protocol.py` | async `Protocol` interface (shared) |
-| `src` | `db/sqlite/service_aiosqlite.mustache` | `db/sqlite/{{serviceFileName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (use with `"dialect": "sqlite"`) |
-| `src` | `db/postgres/service_psycopg.mustache` | `db/postgres/{{serviceFileName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (use with `"dialect": "postgres"`) |
-| `test` | `db/sqlite/tests/service_derived_sql_integration_tests.mustache` | `db/sqlite/test_{{serviceFileName}}_derived_sql.py` | in-memory SQLite pytest lifecycle tests (under `testOutputDirectory`) |
-| `test` | `db/postgres/tests/service_derived_sql_integration_tests_postgres.mustache` | `db/postgres/test_{{serviceFileName}}_derived_sql.py` | Testcontainers Postgres + psycopg pytest lifecycle tests (under `testOutputDirectory`) |
+| `src` | `db/model/models.ssp` | `db/model/{{serviceFileName}}_models.py` | `@dataclass` models (shared) |
+| `src` | `db/service_protocol.ssp` | `db/{{serviceFileName}}_protocol.py` | async `Protocol` interface (shared) |
+| `src` | `db/sqlite/service_aiosqlite.ssp` | `db/sqlite/{{serviceFileName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (use with `"dialect": "sqlite"`) |
+| `src` | `db/postgres/service_psycopg.ssp` | `db/postgres/{{serviceFileName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (use with `"dialect": "postgres"`) |
+| `test` | `db/sqlite/tests/service_derived_sql_integration_tests.ssp` | `db/sqlite/test_{{serviceFileName}}_derived_sql.py` | in-memory SQLite pytest lifecycle tests (under `testOutputDir`) |
+| `test` | `db/postgres/tests/service_derived_sql_integration_tests_postgres.ssp` | `db/postgres/test_{{serviceFileName}}_derived_sql.py` | Testcontainers Postgres + psycopg pytest lifecycle tests (under `testOutputDir`) |
 
 Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and placeholder styles (`sqlite` → `?`, `postgres` → `%s`). Derived DML queries are rendered as segment lists with implied bind parameters between segments.
 
@@ -216,17 +216,11 @@ Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and pla
 
 `outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
 
-See [`SqlServiceCodegenRendererSpec`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenRendererSpec.scala) for schema-level checks, and [`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) for golden Mustache output plus strict mypy/pyright/pytest validation (`python/db/sqlite` and `python/db/postgres` backends). Fixture layout and conventions: [`src/test/resources/mustache-template-tests/README.md`](src/test/resources/mustache-template-tests/README.md).
+See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`SqlServiceCodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/SqlServiceCodegenTemplateTestSuite.scala) (`python/db/sqlite` and `python/db/postgres` variants). Fixture layout and conventions: [`templates/python/tests/README.md`](../../templates/python/tests/README.md).
 
-### Strict Python validation in Mustache tests
+### Python validation
 
-[`SqlServiceCodegenMustacheTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenMustacheTemplateTestSuite.scala) golden-compares rendered output, then [`PythonCodegenWorkspace`](src/test/scala/com/jacoby6000/smithplates/sql/codegen/PythonCodegenWorkspace.scala) writes each case under `target/sql-service-codegen-python-workspace/cases/<test-name>/` (`python/src/db/` + `python/test/db/<implementation>/`), runs strict **mypy** and **pyright** on src artifacts, and runs **pytest -m integration** on each generated `test_*_derived_sql.py` with `PYTHONPATH`/`MYPYPATH` covering `python/src/db/model`, `python/src/db/`, and the implementation directory. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. The uv project (`pyproject.toml`, `uv.lock`, `.venv`) lives in `target/sql-service-codegen-python-workspace/` and persists across test runs until `sbtn smithplatesSqlServiceRenderer/clean`. Requires `uv` on `PATH`; postgres variants also require Docker.
-
-After changing [`src/test/resources/sql-service-codegen-python-workspace/pyproject.toml`](src/test/resources/sql-service-codegen-python-workspace/pyproject.toml), refresh the lockfile:
-
-```bash
-cd modules/smithplates-sql-service-renderer/src/test/resources/sql-service-codegen-python-workspace && uv lock
-```
+Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*"` or `./scripts/run-template-golden-tests.sh`). Golden **execution** (strict **mypy**, **ruff**, **pytest -m integration**) runs via [`language-test-harnesses/python/`](../../language-test-harnesses/python/) against `templates/python/tests/<case>/expected/`. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. Requires `uv` on `PATH`.
 
 ## Smithy integration
 
@@ -268,6 +262,6 @@ Contributor generator tasks are defined on **`smithplatesPlugin`** (also aliased
 
 | Task | Usage |
 |------|--------|
-| `generateGoldenTemplatesFor` | `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` — writes rendered artifacts into `templates/<language>/expected-outputs/<case-name>/` |
+| `generateGoldenTemplatesFor` | `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` — writes rendered artifacts into `templates/<language>/tests/<case-name>/expected/` |
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).

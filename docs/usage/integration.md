@@ -76,7 +76,7 @@ Each dialect object supports:
 
 ### `smithplates.sql.languageTargets`
 
-Map of language id → language target configuration (for example `python`). Controls **SQL database service codegen** (database services and operations IR + SQL IR + Mustache templates → query models, interfaces, dialect-specific implementations, and test suites). Each entry supports:
+Map of language id → language target configuration (for example `python`). Controls **SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and test suites). Each entry supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|

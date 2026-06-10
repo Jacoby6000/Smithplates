@@ -6,7 +6,7 @@ Smithy build plugin (`smithplates`) and trait namespace for relational schema an
 
 ## Codegen pipeline
 
-The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smithy model. SQL IR feeds **schema and migrations** directly. **SQL database service codegen** combines **database services and operations IR** (`@sqlService` contracts plus SQL IR) with **Mustache templates** to render target-language artifacts.
+The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smithy model. SQL IR feeds **schema and migrations** directly. **SQL database service codegen** combines **database services and operations IR** (`@sqlService` contracts plus SQL IR) with **Scalate SSP templates** to render target-language artifacts.
 
 | Path | `smithy-build.json` config | Generated artifacts |
 |------|---------------------------|---------------------|
@@ -20,7 +20,7 @@ See [Architecture](../contributing/architecture.md) for the full pipeline diagra
 | Config | Output |
 |--------|--------|
 | Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files (SQL IR → dialect DDL): `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
-| `languageTargets` | Mustache-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
+| `languageTargets` | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
 
 Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithplates-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithplates-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithplates-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithplates-sql-service-ir`).
 
@@ -77,11 +77,11 @@ Layout for the bundled `db` service type:
 
 ```
 db/
-  model/models.mustache           → db/model/{{serviceFileName}}_models.py
-  service_protocol.mustache       → db/{{serviceFileName}}_protocol.py
-  sqlite/service_aiosqlite.mustache
-  postgres/service_psycopg.mustache
-  <implementation>/tests/…        → <testOutputDirectory>/db/<implementation>/test_*.py
+  model/models.ssp                → db/model/{{serviceFileName}}_models.py
+  service_protocol.ssp            → db/{{serviceFileName}}_protocol.py
+  sqlite/service_aiosqlite.ssp
+  postgres/service_psycopg.ssp
+  <implementation>/tests/…        → <testOutputDir>/db/<implementation>/test_*.py
 ```
 
 `dialect` selects SQLite (`?` placeholders) or Postgres (`%s` placeholders unless `bindPlaceholderStyle` is overridden).
