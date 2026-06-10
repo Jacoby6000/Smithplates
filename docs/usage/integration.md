@@ -38,11 +38,11 @@ Configure Smithplates under the `smithplates` plugin key. SQL settings live unde
       "sql": {
         "sqlite": {
           "enable": true,
-          "migrationLocation": "db/sqlite.sql"
+          "migrationLocation": "db/migrations/sqlite"
         },
         "postgres": {
           "enable": true,
-          "migrationLocation": "db/postgres.sql"
+          "migrationLocation": "db/migrations/postgres"
         },
         "languageTargets": {
           "python": {
@@ -72,7 +72,7 @@ Each dialect object supports:
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
 | `enable` | No | `false` | When `true`, render SQL IR to DDL and derived DML for this dialect |
-| `migrationLocation` | When `enable` is `true` | — | Output path for the generated `.sql` migration file |
+| `migrationLocation` | When `enable` is `true` | — | Output directory for versioned migration `.sql` files (for example `db/migrations/sqlite`; initial schema is written as `v1_initial_schema.sql`) |
 
 ### `smithplates.sql.languageTargets`
 
@@ -101,7 +101,7 @@ All plugin file-manifest paths are relative to **`build/smithy/source/smithplate
 
 | Plugin | Build output directory | Pipeline path | Contents |
 |--------|------------------------|---------------|----------|
-| `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
+| `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Versioned migration `.sql` files under each dialect `migrationLocation` |
 | `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full codegen pipeline.

@@ -13,11 +13,11 @@
       "sql": {
         "sqlite": {
           "enable": true,
-          "migrationLocation": "db/sqlite.sql"
+          "migrationLocation": "db/migrations/sqlite"
         },
         "postgres": {
           "enable": true,
-          "migrationLocation": "db/postgres.sql"
+          "migrationLocation": "db/migrations/postgres"
         },
         "languageTargets": {
           "python": {

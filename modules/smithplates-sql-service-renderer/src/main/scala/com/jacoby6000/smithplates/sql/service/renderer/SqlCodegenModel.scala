@@ -85,7 +85,23 @@ final case class SqlCodegenServiceContext(
     models: List[SqlStructure],
     unions: List[SqlUnion],
     operations: List[SqlCodegenOperation],
-    integrationTest: Option[SqlCodegenIntegrationTestContext] = None
+    integrationTest: Option[SqlCodegenIntegrationTestContext] = None,
+    migration: Option[SqlCodegenMigrationContext] = None
+)
+
+final case class SqlCodegenMigrationEntry(
+    version: String,
+    versionNumber: Int,
+    fileName: String,
+    schemaHash: String,
+    sql: String
+)
+
+final case class SqlCodegenMigrationContext(
+    migrationsDirectory: String,
+    migrationsDirectoryFromTestFile: String,
+    stateTableDdl: String,
+    migrations: List[SqlCodegenMigrationEntry]
 )
 
 final case class SqlCodegenIntegrationTestContext(
@@ -98,7 +114,8 @@ final case class SqlCodegenIntegrationTestContext(
     transactionCommitAfterAssertions: List[String],
     extraImports: List[String],
     testImports: String,
-    localImportBlock: String
+    localImportBlock: String,
+    migrationsDirectoryFromTestFile: String
 )
 
 final case class SqlCodegenIntegrationTestOperation(

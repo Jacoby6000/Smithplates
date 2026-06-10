@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator, Iterator
+from pathlib import Path
 
 import psycopg
 import pytest
@@ -10,32 +11,10 @@ from order_repository_protocol import (
     GetOrderResult,
 )
 from order_repository_psycopg import OrderRepositoryPsycopgService
+from psycopg_migrations import PsycopgMigrationService
 from testcontainers.postgres import PostgresContainer
 
-SCHEMA_DDL = """-- example#Order
-CREATE TABLE orders (
-    id UUID NOT NULL DEFAULT gen_random_uuid(),
-    label TEXT,
-
-    PRIMARY KEY (id)
-);
-
--- example#OrderLine
-CREATE TABLE order_lines (
-    id UUID NOT NULL DEFAULT gen_random_uuid(),
-    order_id UUID,
-    sku TEXT,
-
-    PRIMARY KEY (id),
-    FOREIGN KEY (order_id) REFERENCES orders (id)
-);"""
-
-
-async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str) -> None:
-    for statement in schema_ddl.split(";"):
-        ddl_statement = statement.strip()
-        if ddl_statement:
-            _ = await connection.execute(f"{ddl_statement};")
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 
 
 @pytest.fixture(scope="session")
@@ -55,7 +34,9 @@ async def order_repository_service(
         password=postgres_container.password,
         dbname=postgres_container.dbname,
     )
-    await _apply_schema_ddl(connection, SCHEMA_DDL)
+    migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
+    await connection.commit()
     try:
         yield OrderRepositoryPsycopgService(connection)
     finally:

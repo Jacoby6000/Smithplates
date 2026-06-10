@@ -9,8 +9,8 @@ templates/python/tests/<case-name>/
   smithy/smithy-files.smithy       # Smithy model for the case
   smithy-build.json                # plugin config (dialects, languageTargets)
   expected/
-    db/postgres.sql                # golden migration DDL (when dialect enabled)
-    db/sqlite.sql
+    db/migrations/postgres/        # golden versioned migration SQL (when dialect enabled)
+    db/migrations/sqlite/
     src/db/model/*_models.py       # shared query models
     src/db/*_protocol.py           # shared Protocol interface
     src/db/sqlite/*_aiosqlite.py   # per-dialect implementation

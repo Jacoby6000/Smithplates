@@ -132,7 +132,24 @@ final case class IntegrationTestView(
     hasUpdateOperation: Boolean,
     hasDeleteOperation: Boolean,
     transactionCommitInTxAssertions: List[TemplateAssertionLine],
-    transactionCommitAfterAssertions: List[TemplateAssertionLine]
+    transactionCommitAfterAssertions: List[TemplateAssertionLine],
+    migrationsDirectoryFromTestFile: String
+)
+
+final case class TemplateMigrationEntryView(
+    version: String,
+    versionNumber: Int,
+    fileName: String,
+    schemaHash: String,
+    last: Boolean = false
+)
+
+final case class MigrationView(
+    migrationsDirectory: String,
+    migrationsDirectoryFromTestFile: String,
+    stateTableDdl: String,
+    stateTableName: String,
+    migrations: List[TemplateMigrationEntryView]
 )
 
 final case class ServiceTemplateView(
@@ -148,7 +165,8 @@ final case class ServiceTemplateView(
     classRowFactories: List[TemplateClassRowFactoryView],
     protocolTableModelImportBlock: String,
     serviceLocalImportBlock: String,
-    integrationTest: Option[IntegrationTestView]
+    integrationTest: Option[IntegrationTestView],
+    migration: Option[MigrationView]
 )
 
 object SqlCodegenTemplateViews {
@@ -177,9 +195,27 @@ object SqlCodegenTemplateViews {
       },
       protocolTableModelImportBlock = SqlCodegenPythonImports.protocolTableModelImportBlock(context),
       serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
-      integrationTest = context.integrationTest.map(integrationTestView)
+      integrationTest = context.integrationTest.map(integrationTestView),
+      migration = context.migration.map(migrationView)
     )
   }
+
+  private def migrationView(migration: SqlCodegenMigrationContext): MigrationView =
+    MigrationView(
+      migrationsDirectory = migration.migrationsDirectory,
+      migrationsDirectoryFromTestFile = migration.migrationsDirectoryFromTestFile,
+      stateTableDdl = migration.stateTableDdl,
+      stateTableName = SqlCodegenMigrationBuilder.StateTableName,
+      migrations = withLastFlag(migration.migrations.map(migrationEntryView))((entry, last) => entry.copy(last = last))
+    )
+
+  private def migrationEntryView(entry: SqlCodegenMigrationEntry): TemplateMigrationEntryView =
+    TemplateMigrationEntryView(
+      version = entry.version,
+      versionNumber = entry.versionNumber,
+      fileName = entry.fileName,
+      schemaHash = entry.schemaHash
+    )
 
   private def integrationTestView(
       integrationTest: SqlCodegenIntegrationTestContext
@@ -208,7 +244,8 @@ object SqlCodegenTemplateViews {
       )((assertion, last) => assertion.copy(last = last)),
       transactionCommitAfterAssertions = withLastFlag(
         integrationTest.transactionCommitAfterAssertions.map(TemplateAssertionLine(_))
-      )((assertion, last) => assertion.copy(last = last))
+      )((assertion, last) => assertion.copy(last = last)),
+      migrationsDirectoryFromTestFile = integrationTest.migrationsDirectoryFromTestFile
     )
 
   private def integrationOperationView(

@@ -11,7 +11,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         {
           "postgres": {
             "enable": true,
-            "migrationLocation": "db/postgres.sql"
+            "migrationLocation": "db/migrations/postgres"
           },
           "languageTargets": {
             "python": {
@@ -27,11 +27,11 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(settings.enabledDialectKeys, List("postgres"))
     assertEquals(
       settings.dialects.get("postgres").map(_.migrationLocation),
-      Some(Some("db/postgres.sql"))
+      Some(Some("db/migrations/postgres"))
     )
     assertEquals(settings.languageTargets.keySet, Set("python"))
 
-    assertEquals(settings.schemaDialectOutputs, Map("postgres" -> "db/postgres.sql"))
+    assertEquals(settings.dialectMigrationDirectories, Map("postgres" -> "db/migrations/postgres"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:")
@@ -46,7 +46,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "sqlite": {
-            "migrationLocation": "db/sqlite.sql"
+            "migrationLocation": "db/migrations/sqlite"
           }
         }
       """)
@@ -54,7 +54,24 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
 
     val settings = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     assertEquals(settings.enabledDialectKeys, Nil)
-    assertEquals(settings.schemaDialectOutputs, Map.empty)
+    assertEquals(settings.dialectMigrationDirectories, Map.empty)
+  }
+
+  test("rejects migrationLocation ending in .sql when dialect is enabled") {
+    val node =
+      Node
+        .parse("""
+        {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/sqlite.sql"
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("directory path")))
   }
 
   test("requires migrationLocation when dialect is enabled") {
@@ -102,11 +119,11 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         {
           "sqlite": {
             "enable": true,
-            "migrationLocation": "db/sqlite.sql"
+            "migrationLocation": "db/migrations/sqlite"
           },
           "postgres": {
             "enable": true,
-            "migrationLocation": "db/postgres.sql"
+            "migrationLocation": "db/migrations/postgres"
           },
           "languageTargets": {
             "python": {
@@ -191,7 +208,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         {
           "postgres": {
             "enable": true,
-            "migrationLocation": "db/postgres.sql"
+            "migrationLocation": "db/migrations/postgres"
           },
           "languageTargets": {
             "python": {

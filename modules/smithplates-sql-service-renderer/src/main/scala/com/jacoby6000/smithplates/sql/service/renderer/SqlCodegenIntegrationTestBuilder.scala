@@ -16,7 +16,8 @@ object SqlCodegenIntegrationTestBuilder {
       context: SqlCodegenServiceContext,
       schema: SqlSchema,
       queries: SqlQueries,
-      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
+      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer],
+      migrationDirectory: Option[String]
   ): Option[SqlCodegenIntegrationTestContext] = {
     val sqlOperations = context.operations.filter(_.sql.isDefined)
     if (sqlOperations.isEmpty) {
@@ -51,7 +52,12 @@ object SqlCodegenIntegrationTestBuilder {
               context.name,
               context.dialectKey,
               testImports
-            )
+            ),
+            migrationsDirectoryFromTestFile = migrationDirectory
+              .map(SqlCodegenMigrationBuilder.migrationsDirectoryFromTestFile)
+              .getOrElse(
+                SqlCodegenMigrationBuilder.migrationsDirectoryFromTestFile(s"db/migrations/${context.dialectKey}")
+              )
           )
         )
       case _                               =>

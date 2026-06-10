@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import aiosqlite
 import pytest
@@ -10,30 +11,16 @@ from order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from order_repository_protocol import (
     GetOrderResult,
 )
+from sqlite_migrations import SqliteMigrationService
 
-SCHEMA_DDL = """-- example#Order
-CREATE TABLE orders (
-    id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-    label TEXT,
-
-    PRIMARY KEY (id)
-);
-
--- example#OrderLine
-CREATE TABLE order_lines (
-    id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-    order_id TEXT,
-    sku TEXT,
-
-    PRIMARY KEY (id),
-    FOREIGN KEY (order_id) REFERENCES orders (id)
-);"""
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 
 
 @pytest_asyncio.fixture
 async def order_repository_service() -> AsyncIterator[OrderRepositoryAiosqliteService]:
     connection = await aiosqlite.connect(":memory:")
-    await connection.executescript(SCHEMA_DDL)
+    migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
     await connection.commit()
     try:
         yield OrderRepositoryAiosqliteService(connection)

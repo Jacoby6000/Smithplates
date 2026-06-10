@@ -87,6 +87,10 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
           "sqlite"   -> SqliteRenderer,
           "postgres" -> PostgresRenderer
         ),
+        migrationDirectories = Map(
+          "sqlite"   -> "db/migrations/sqlite",
+          "postgres" -> "db/migrations/postgres"
+        ),
         artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
       )
 

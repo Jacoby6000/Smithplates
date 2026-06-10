@@ -10,7 +10,7 @@ The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smi
 
 | Path | `smithy-build.json` config | Generated artifacts |
 |------|---------------------------|---------------------|
-| **Schema and migrations** | `smithplates.sql.<dialect>` with `enable: true` | Dialect-specific DDL (`.sql` migration files today; per-language migration engines planned in [#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
+| **Schema and migrations** | `smithplates.sql.<dialect>` with `enable: true` | Versioned migration `.sql` files under `migrationLocation` (initial `v1_initial_schema.sql` is full schema DDL) and generated per-dialect migration services (Python today) |
 | **SQL database service codegen** | `smithplates.sql.languageTargets` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping.
@@ -19,7 +19,7 @@ See [Architecture](../contributing/architecture.md) for the full pipeline diagra
 
 | Config | Output |
 |--------|--------|
-| Enabled dialects (`sqlite`, `postgres`) | Per-dialect `.sql` files (SQL IR → dialect DDL): `CREATE TABLE`, indexes, enums, and a `-- Queries` section for derived DML |
+| Enabled dialects (`sqlite`, `postgres`) | Versioned migration `.sql` files under `migrationLocation` (SQL IR → dialect DDL); initial `v1_initial_schema.sql` contains full schema DDL (`CREATE TABLE`, indexes, enums) |
 | `languageTargets` | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
 
 Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithplates-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithplates-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithplates-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithplates-sql-service-ir`).
@@ -70,7 +70,8 @@ service FooRepository {
 | `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
-| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Derived-query integration tests (derived queries + templates; migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
+| `db/<dialect>/<dialect>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files from a migrations directory, creates `_smithplates_migrations` state table, applies one pending migration at a time, and records version + schema hash |
+| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Derived-query integration tests (apply migrations via generated migration service) |
 | `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
 
 Layout for the bundled `db` service type:
