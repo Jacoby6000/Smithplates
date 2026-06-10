@@ -1,8 +1,8 @@
 # Python language test harness
 
-Lints and runs `@pytest.mark.integration` suites from [`templates/python/expected-outputs/`](../../templates/python/expected-outputs/).
+Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case has its own `PYTHONPATH` (`src/db/model`, `src/db`, `src/db/<implementation>`), so runners check each case/dialect separately.
+Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`), so runners check each case/dialect separately.
 
 ## Linters (`run-linters.sh`)
 
@@ -25,10 +25,10 @@ Each golden case has its own `PYTHONPATH` (`src/db/model`, `src/db`, `src/db/<im
 Pass custom pytest args (set `PYTHONPATH` yourself when targeting golden trees):
 
 ```bash
-export PYTHONPATH=../../templates/python/expected-outputs/sql-derived-crud-auto-managed-columns/src/db/model:../../templates/python/expected-outputs/sql-derived-crud-auto-managed-columns/src/db:../../templates/python/expected-outputs/sql-derived-crud-auto-managed-columns/src/db/sqlite
-./language-test-harnesses/python/run-tests.sh -m integration ../../templates/python/expected-outputs/sql-derived-crud-auto-managed-columns/test/db/sqlite
+export PYTHONPATH=../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db/model:../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db:../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db/sqlite
+./language-test-harnesses/python/run-tests.sh -m integration ../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/test/db/sqlite
 ```
 
-Cases with `src/db/<implementation>/unsupported.md` are skipped.
+Cases with `expected/src/db/<implementation>/unsupported.md` are skipped.
 
 Shared iteration logic lives in [`lib/common.sh`](lib/common.sh).

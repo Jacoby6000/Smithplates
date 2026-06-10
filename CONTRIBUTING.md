@@ -141,7 +141,7 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 2. For SQL rendering changes, ensure Docker IT modules pass.
 3. `sbtn publishM2` and validate in a consumer `smithy build` when plugin wiring changes.
 
-Template **content** (Mustache/SSP output for target languages) is maintained separately under `templates/` — see below.
+Template **content** (Scalate SSP output for target languages) is maintained separately under `templates/` — see below.
 
 ---
 
@@ -155,27 +155,31 @@ Work on **target-language artifacts** produced from `@sqlService` models: SSP te
 templates/
   <language>/                 # e.g. python
     src/<feature>/            # SSP sources (bundled into the plugin JAR)
-    expected-outputs/         # golden render + execution fixtures
+    tests/
+      <test-case>/
+        smithy/smithy-files.smithy
+        smithy-build.json
+        expected/             # golden render + execution fixtures
 language-test-harnesses/
-  <language>/                 # ruff/mypy/pytest runners for expected-outputs
+  <language>/                 # ruff/mypy/pytest runners for golden expected/ trees
 ```
 
-Bundled Python DB templates live under [`templates/python/src/db/`](templates/python/src/db/). Golden render comparisons use [`templates/python/expected-outputs/`](templates/python/expected-outputs/); execution checks use [`language-test-harnesses/python/`](language-test-harnesses/python/).
+Bundled Python DB templates live under [`templates/python/src/db/`](templates/python/src/db/). Golden render comparisons use [`templates/python/tests/`](templates/python/tests/) (`expected/` under each case); execution checks use [`language-test-harnesses/python/`](language-test-harnesses/python/).
 
 ### Updating bundled Python templates
 
 1. Edit SSP under `templates/python/src/db/` (and `fragments/`).
-2. Run `sbtn smithplatesSqlServiceRenderer/test` — compares rendered output to golden files under `expected-outputs/`.
-3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/expected-outputs/README.md`](templates/python/expected-outputs/README.md)).
+2. Run `./scripts/run-template-golden-tests.sh` — compares rendered output to golden files under `tests/<case>/expected/`.
+3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/tests/README.md`](templates/python/tests/README.md)).
 4. Run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
 
 Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `unmanagedResourceDirectories`).
 
 ### Adding a new language
 
-1. Add `templates/<language>/src/<feature>/` with SSP (or other) templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/codegen/SqlServiceCodegenDbArtifacts.scala).
+1. Add `templates/<language>/src/<feature>/` with SSP templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala).
 2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
-3. Add golden cases under `templates/<language>/expected-outputs/<test-case>/`.
+3. Add golden cases under `templates/<language>/tests/<test-case>/`.
 4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
 5. Extend [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/SqlServiceCodegenTemplateTestSuite.scala).
 

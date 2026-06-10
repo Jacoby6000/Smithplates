@@ -1,7 +1,7 @@
 [project]
 name = "smithplates-python-language-test-harness"
 version = "0.1.0"
-description = "Execute generated Python integration tests from templates expected-outputs"
+description = "Execute generated Python integration tests from templates/python/tests golden expected/ trees"
 requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.20",

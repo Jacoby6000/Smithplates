@@ -14,20 +14,23 @@ templates/
           <impl-templates>
           tests/
         fragments/            # reusable SSP snippets for this feature
-    expected-outputs/
+    tests/
       <test-case>/
         smithy/smithy-files.smithy
-        src/<feature>/…       # golden generated src artifacts
-        test/<feature>/…      # golden generated test artifacts
+        smithy-build.json
+        expected/
+          db/<dialect>.sql    # golden migration DDL (when dialect enabled)
+          src/<feature>/…     # golden generated src artifacts
+          test/<feature>/…    # golden generated test artifacts
 ```
 
-Bundled Python DB templates are packaged from `templates/python/src/db/` into the plugin JAR and loaded via default `classpath:` during `smithy build`. Golden tests compare rendered output against files under `templates/python/expected-outputs/`.
+Bundled Python DB templates are packaged from `templates/python/src/db/` into the plugin JAR and loaded via default `classpath:` during `smithy build`. Golden tests compare rendered output against files under `templates/python/tests/<test-case>/expected/`.
 
 ## Contributing
 
 - Edit SSP sources under `templates/python/src/db/` (not under `modules/smithplates-sql-service-renderer/src/main/resources/`).
-- Refresh golden expectations under `templates/python/expected-outputs/<test-case>/` when intentional output changes.
-- Run `sbtn smithplatesSqlServiceRenderer/test` after template changes (golden render comparison).
+- Refresh golden expectations under `templates/python/tests/<test-case>/expected/` when intentional output changes.
+- Run `./scripts/run-template-golden-tests.sh` after template changes (golden render comparison).
 - Run `./language-test-harnesses/python/run-linters.sh` and `./language-test-harnesses/python/run-tests.sh` after template changes.
 
-See `templates/python/expected-outputs/README.md` for golden-test case conventions.
+See [`templates/python/tests/README.md`](python/tests/README.md) for golden-test case conventions.
