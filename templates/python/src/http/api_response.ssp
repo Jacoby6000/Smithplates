@@ -1,0 +1,11 @@
+from typing import Any
+
+from fastapi.responses import JSONResponse, RedirectResponse, Response
+
+
+def dispatch_api_response(result: Any, binding: dict[str, Any]) -> Response:
+    if result is None:
+        return Response(status_code=int(binding.get("success_status", 204)))
+    if isinstance(result, RedirectResponse):
+        return result
+    return JSONResponse(status_code=int(binding.get("success_status", 200)), content=result)

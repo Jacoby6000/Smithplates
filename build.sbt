@@ -182,6 +182,38 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-http-ir",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
+    libraryDependencies += "software.amazon.smithy" % "smithy-aws-traits" % smithyVersion,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
+lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-http-service-renderer"))
+  .dependsOn(smithplatesHttpIr, smithplatesHttpIr % "test->test")
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-http-service-renderer",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies ++= Seq(
+      catsCoreDependency,
+      "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test
+    ),
+    Compile / unmanagedResourceDirectories +=
+      (ThisBuild / baseDirectory).value / "templates" / "python" / "src" / "http",
+    Test / unmanagedResourceDirectories ++= Seq(
+      (ThisBuild / baseDirectory).value / "templates"
+    )
+  )
+
 lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-sql-service-renderer"))
   .dependsOn(
     smithplatesSqlServiceIr,
@@ -221,7 +253,10 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,
-    smithplatesSqlServiceRenderer % "test->test"
+    smithplatesSqlServiceRenderer % "test->test",
+    smithplatesHttpIr,
+    smithplatesHttpServiceRenderer,
+    smithplatesHttpServiceRenderer % "test->test"
   )
   .settings(
     strictScala3Settings,
@@ -314,6 +349,7 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesSqlIr,
+    smithplatesHttpIr,
     smithplatesSqlDdlRendererCommon,
     smithplatesSqlServiceIr,
     smithplatesSqlDdlRendererPostgres,
@@ -323,6 +359,7 @@ lazy val root = (project in file("."))
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,
+    smithplatesHttpServiceRenderer,
     smithplatesPlugin,
     smithplatesTestkit,
     smithplatesSqlDdlRendererPostgresIt,

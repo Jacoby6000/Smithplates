@@ -19,6 +19,7 @@ Keep these in sync across Smithplates and every consumer:
 |----------|----------------------|--------------------------------|
 | SQL plugin | `0.1.0` | `com.jacoby6000:smithplates-plugin:0.1.0` |
 | Smithy toolchain | `1.71.0` (in plugin `libraryDependencies`) | Matching Smithy CLI |
+| AWS protocol traits | `1.71.0` (`smithy-aws-traits` in `smithplates-http-ir`) | `software.amazon.smithy:smithy-aws-traits:1.71.0` when using `@restJson1` HTTP codegen |
 
 ## `smithy-build.json` example
 
@@ -56,7 +57,58 @@ Configure Smithplates under the `smithplates` plugin key. SQL settings live unde
 }
 ```
 
-An `api` section will be added under `smithplates` in a future release.
+HTTP service codegen is configured under `http` (parallel to `sql`). At least one of `sql` or `http` must be present in plugin settings.
+
+Unlike SQL, HTTP settings do **not** use a nested `languageTargets` map or per-dialect `enable` flags. Top-level keys under `http` are **language ids** (for example `python`); each language entry contains a `server` object with web-framework and output settings.
+
+```json
+"http": {
+  "python": {
+    "server": {
+      "webFramework": "fastapi",
+      "sourceOutputDir": "src/generated",
+      "testOutputDir": "tests",
+      "packageName": "generated.rendering_pipeline_api"
+    }
+  }
+}
+```
+
+### `smithplates.http.<language>.server`
+
+Map of language id → HTTP language configuration (for example `python`). Each language entry requires a `server` object. Controls **HTTP service codegen** (`@restJson1` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers). The `server` object supports:
+
+| Field | Required | Default | Purpose |
+|-------|----------|---------|---------|
+| `webFramework` | No | `fastapi` | Python web framework for generated route and protocol templates. Only `fastapi` is supported today; additional frameworks (for example `flask`) will use the same field when added. |
+| `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/http/`](../../templates/python/src/http/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all templates required by `webFramework`. |
+| `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
+| `testOutputDir` | Yes | — | Base directory for generated test artifacts |
+| `packageName` | No | `generated.api` | Python import root for generated modules (for example `generated.rendering_pipeline_api`) |
+
+Example output layout for bundled FastAPI templates (paths relative to `build/smithy/source/smithplates/`; sources under `templates/python/src/http/`):
+
+- `build/smithy/source/smithplates/<sourceOutputDir>/api/app_factory.py`
+- `build/smithy/source/smithplates/<sourceOutputDir>/api/app_services.py`
+- `build/smithy/source/smithplates/<sourceOutputDir>/api/operation_bindings.py`
+- `build/smithy/source/smithplates/<sourceOutputDir>/api/apis/<route_group>_api.py` (per Smithy `@tags` route group)
+- `build/smithy/source/smithplates/<sourceOutputDir>/api/apis/<route_group>_api_base.py`
+
+Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
+
+Annotate HTTP API services with standard Smithy `@restJson1` (`use aws.protocols#restJson1`) rather than a custom plugin trait. Operations use Smithy `@http` bindings and `@tags` for route grouping, matching the [AWS REST JSON 1.0 protocol](https://smithy.io/2.0/aws/protocols/aws-restjson1-protocol.html).
+
+#### OpenAPI Generator coordination
+
+When Smithy OpenAPI export and [OpenAPI Generator `python-fastapi`](https://openapi-generator.tech/docs/generators/python-fastapi) also run in the consumer pipeline (as in the rendering-pipeline reference layout under `extra-context/generated-db-schemas-and-models/`), keep these settings aligned:
+
+| Smithplates `http` field | OpenAPI Generator / consumer setting | Notes |
+|--------------------------|--------------------------------------|-------|
+| `server.packageName` | `additionalProperties.packageName` in `openapi-generator-server-config.yaml` | Must match so imports resolve across hand-written server code, OAG output, and smithplates wiring. Example: `generated.rendering_pipeline_api`. |
+| `server.sourceOutputDir` | `outputDir` + `sourceFolder` in OAG config | Smithplates writes under `build/smithy/source/smithplates/<sourceOutputDir>/`. OAG typically uses `outputDir: src` with `sourceFolder: .`, placing modules under `src/<package path>/`. Copy smithplates artifacts into the same tree after `smithy build`. |
+| `server.webFramework: fastapi` | `generatorName: python-fastapi` | Selects bundled FastAPI SSP templates under `templates/python/src/http/fastapi/`. |
+
+Smithplates HTTP codegen replaces the OpenAPI Generator wiring layer for FastAPI servers: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). OpenAPI Generator (with custom Mustache templates) may still emit Pydantic `models/` and depends on Smithy OpenAPI export extensions such as `x-python-response-type` for protocol response unions. Pin OpenAPI Generator version in the consumer (for example `openapitools.json`) and keep custom templates in sync when upgrading.
 
 ### `smithplates.sql` dialect keys
 
@@ -103,6 +155,9 @@ All plugin file-manifest paths are relative to **`build/smithy/source/smithplate
 |--------|------------------------|---------------|----------|
 | `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
 | `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
+| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service codegen | FastAPI route modules, protocols, app wiring, and response dispatch helpers per `@restJson1` service |
+
+Consumer Smithy projects must include `software.amazon.smithy:smithy-aws-traits` in `smithy-build.json` `maven.dependencies` so `@restJson1` validates during `smithy build` (same requirement as the Smithy OpenAPI plugin with `protocol: aws.protocols#restJson1`).
 
 See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
 

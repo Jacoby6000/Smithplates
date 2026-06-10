@@ -1,0 +1,26 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+from typing import Annotated  # noqa: F401
+
+from fastapi import APIRouter, Depends  # noqa: F401
+
+from ${ctx.service.packageName}.api_response import dispatch_api_response
+from ${ctx.service.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
+from ${ctx.service.packageName}.app_services import ApiServices, get_api_services
+
+<% val routeGroup = ctx.routeGroup.get %>
+router = APIRouter()
+
+<% for (operation <- routeGroup.operations) { %>
+@router.${operation.method.toLowerCase}(
+    "${operation.uri}",
+    responses={},
+    response_model_by_alias=True,
+)
+async def ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(
+    services: Annotated[ApiServices, Depends(get_api_services)],
+) -> object:
+    return dispatch_api_response(
+        await services.${routeGroup.apiModuleName}.${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(),
+        OPERATION_HTTP_BINDINGS["${operation.name}"],
+    )
+<% } %>

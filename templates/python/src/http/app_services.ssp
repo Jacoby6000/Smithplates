@@ -1,0 +1,15 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+from dataclasses import dataclass
+
+<% for (routeGroup <- ctx.service.routeGroups) { %>
+from ${ctx.service.packageName}.apis.${routeGroup.apiModuleName}_base import ${routeGroup.protocolClassName}
+<% } %>
+
+@dataclass(frozen=True)
+class ApiServices:
+<% for (routeGroup <- ctx.service.routeGroups) { %>
+    ${routeGroup.apiModuleName}: ${routeGroup.protocolClassName}
+<% } %>
+
+def get_api_services() -> ApiServices:
+    raise NotImplementedError("Wire ApiServices in application bootstrap")

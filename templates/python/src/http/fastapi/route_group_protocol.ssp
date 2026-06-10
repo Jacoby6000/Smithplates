@@ -1,0 +1,13 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+from typing import Annotated, Protocol  # noqa: F401
+
+from pydantic import Field  # noqa: F401
+
+<% val routeGroup = ctx.routeGroup.get %>
+class ${routeGroup.protocolClassName}(Protocol):
+<% for (operation <- routeGroup.operations) { %>
+    async def ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(
+        self,
+    ) -> object:
+        ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
+<% } %>

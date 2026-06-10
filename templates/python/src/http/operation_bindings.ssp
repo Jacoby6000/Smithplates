@@ -1,0 +1,10 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+OPERATION_HTTP_BINDINGS: dict[str, dict[str, object]] = {
+<% for (routeGroup <- ctx.service.routeGroups; operation <- routeGroup.operations) { %>
+    "${operation.name}": {
+        "success_status": ${operation.successStatusCode},
+        "method": "${operation.method}",
+        "uri": "${operation.uri}",
+    },
+<% } %>
+}

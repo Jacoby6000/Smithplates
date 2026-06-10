@@ -1,0 +1,16 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+from fastapi import FastAPI
+
+<% for (routeGroup <- ctx.service.routeGroups) { %>
+from ${ctx.service.packageName}.apis.${routeGroup.apiModuleName} import router as ${routeGroup.tag}_router
+<% } %>
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="${ctx.service.name}",
+        version="${ctx.service.version}",
+    )
+<% for (routeGroup <- ctx.service.routeGroups) { %>
+    app.include_router(${routeGroup.tag}_router)
+<% } %>
+    return app

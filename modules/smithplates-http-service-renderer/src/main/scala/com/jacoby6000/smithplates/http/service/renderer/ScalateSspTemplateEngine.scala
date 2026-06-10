@@ -1,0 +1,134 @@
+package com.jacoby6000.smithplates.http.service.renderer
+
+import org.fusesource.scalate.Template
+import org.fusesource.scalate.TemplateEngine
+
+import java.io.OutputStream
+import java.io.PrintStream
+import java.util.concurrent.ConcurrentHashMap
+
+object ScalateSspTemplateEngine {
+  private val compiledTemplateCache = new ConcurrentHashMap[String, Template]()
+
+  def renderClasspathTemplate(
+      templateClasspath: String,
+      view: HttpCodegenTemplateView,
+      templateRoot: Option[String] = None
+  ): String = {
+    val normalizedTemplatePath = normalizeClasspathUri(templateClasspath)
+    val resolvedTemplateRoot   =
+      templateRoot
+        .map(normalizeTemplateRoot)
+        .getOrElse(inferTemplateRoot(normalizedTemplatePath))
+    val templateUri            = templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
+    val engine                 = templateEngine(resolvedTemplateRoot)
+    val template               = compiledTemplateCache.computeIfAbsent(
+      s"$resolvedTemplateRoot:$templateUri",
+      _ =>
+        suppressCompilerOutput {
+          engine.load(templateUri)
+        }
+    )
+    val renderedBody           =
+      normalizeRenderedOutput(
+        engine.layout(templateUri, template, toObjectMap(Map("ctx" -> view)))
+      )
+    prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
+  }
+
+  def classpathResourceExists(resourcePath: String): Boolean = {
+    val normalized = normalizeResourcePath(resourcePath)
+    Option(getClass.getResource(normalized)).isDefined
+  }
+
+  private def prependGeneratedFileHeader(
+      view: HttpCodegenTemplateView,
+      templateRoot: String,
+      renderedBody: String
+  ): String = {
+    val trimmedBody = renderedBody.stripTrailing()
+    if (trimmedBody.isEmpty) {
+      trimmedBody
+    } else {
+      val header =
+        ScalateTemplateHelpers.generatedFileHeader(
+          view.service.shapeId,
+          ScalateTemplateHelpers.languageFromTemplateRoot(templateRoot)
+        )
+      s"$header\n$trimmedBody\n"
+    }
+  }
+
+  private def templateEngine(normalizedTemplateRoot: String): TemplateEngine = {
+    val created = new TemplateEngine
+    created.allowCaching = true
+    created.allowReload = false
+    created.escapeMarkup = false
+    created.resourceLoader = new TemplateRootResourceLoader(getClass.getClassLoader, normalizedTemplateRoot)
+    created
+  }
+
+  private def normalizeClasspathUri(templateClasspath: String): String =
+    templateClasspath.stripPrefix("classpath:")
+
+  private def normalizeTemplateRoot(templateRoot: String): String =
+    templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
+
+  private def inferTemplateRoot(templateClasspath: String): String = {
+    val normalized = normalizeTemplateRoot(templateClasspath)
+    val segments   = normalized.split("/").toList
+    segments match {
+      case "templates" :: language :: "src" :: "http" :: _ =>
+        s"templates/$language/src/http"
+      case _ if segments.length >= 2                       =>
+        segments.take(2).mkString("/")
+      case _                                               =>
+        normalized
+    }
+  }
+
+  private def templateUriRelativeToRoot(templateClasspath: String, templateRoot: String): String = {
+    val normalizedTemplate = normalizeTemplateRoot(templateClasspath)
+    val root               = normalizeTemplateRoot(templateRoot)
+    if (normalizedTemplate.startsWith(s"$root/")) {
+      normalizedTemplate.stripPrefix(s"$root/")
+    } else {
+      normalizedTemplate
+    }
+  }
+
+  private def normalizeResourcePath(resourcePath: String): String =
+    if (resourcePath.startsWith("/")) {
+      resourcePath
+    } else {
+      s"/$resourcePath"
+    }
+
+  private def suppressCompilerOutput[T](action: => T): T = {
+    val previousErr = System.err
+    try {
+      System.setErr(new PrintStream(OutputStream.nullOutputStream()))
+      action
+    } finally System.setErr(previousErr)
+  }
+
+  private def normalizeRenderedOutput(output: String): String = {
+    val trimmed = output.stripTrailing()
+    if (trimmed.isEmpty) {
+      trimmed
+    } else {
+      s"$trimmed\n"
+    }
+  }
+
+  private def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
+    attributes.map { case (key, value) =>
+      key -> (value match {
+        case view: HttpCodegenTemplateView                                  => view.asInstanceOf[Object]
+        case routeGroup: HttpCodegenRouteGroupContext                       => routeGroup.asInstanceOf[Object]
+        case operation: com.jacoby6000.smithplates.http.model.HttpOperation =>
+          operation.asInstanceOf[Object]
+        case other                                                          => other.asInstanceOf[Object]
+      })
+    }
+}

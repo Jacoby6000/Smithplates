@@ -210,9 +210,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
 }
 
 class SmithplatesSettingsSpec extends munit.FunSuite {
-  test("requires sql object") {
+  test("requires at least one of sql or http") {
     val node   = Node.parse("{}").expectObjectNode()
     val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("sql")))
+    assert(errors.exists(error => error.message.contains("sql") && error.message.contains("http")))
   }
 }
