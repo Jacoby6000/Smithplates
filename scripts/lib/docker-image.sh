@@ -2,6 +2,7 @@
 # Requires ROOT (repository root) and set -euo pipefail in the caller.
 
 SMITHYSTACHE_TEST_IMAGE="${SMITHYSTACHE_TEST_IMAGE:-smithystache-test:local}"
+SMITHYSTACHE_DOCKER_PLATFORM="${SMITHYSTACHE_DOCKER_PLATFORM:-linux/amd64}"
 SMITHYSTACHE_DOCKER_CACHE_DIR="${ROOT}/target/docker-test"
 SMITHYSTACHE_DOCKER_INPUT_HASH_FILE="${SMITHYSTACHE_DOCKER_CACHE_DIR}/image-input.hash"
 
@@ -28,7 +29,7 @@ smithystache_ensure_docker_image() {
     mkdir -p "${SMITHYSTACHE_DOCKER_CACHE_DIR}"
     echo "Building Docker test image (${SMITHYSTACHE_TEST_IMAGE})..."
     echo "The first build can take several minutes while Nix downloads dependencies; later builds reuse cached layers and are much faster."
-    docker build -t "${SMITHYSTACHE_TEST_IMAGE}" -f Dockerfile .
+    docker build --platform "${SMITHYSTACHE_DOCKER_PLATFORM}" -t "${SMITHYSTACHE_TEST_IMAGE}" -f Dockerfile .
     smithystache_docker_image_input_hash > "${SMITHYSTACHE_DOCKER_INPUT_HASH_FILE}"
   else
     echo "Reusing Docker test image (${SMITHYSTACHE_TEST_IMAGE}); rebuilds when Dockerfile or flake inputs change."
@@ -48,6 +49,7 @@ smithystache_docker_run() {
   fi
   shift
   docker run --rm \
+    --platform "${SMITHYSTACHE_DOCKER_PLATFORM}" \
     "${docker_run_args[@]}" \
     -v "${ROOT}:/smithystache" \
     -w /smithystache \

@@ -30,6 +30,8 @@ jobs:
   validate-docker:
     name: Validate (Docker, Linux)
     runs-on: ubuntu-latest
+    env:
+      SMITHYSTACHE_VALIDATE_BACKEND: docker
 
     steps:
       - name: Checkout
@@ -41,6 +43,9 @@ jobs:
   validate-windows:
     name: Validate (Windows)
     runs-on: windows-latest
+    env:
+      SMITHYSTACHE_VALIDATE_BACKEND: docker
+      SMITHYSTACHE_DOCKER_PLATFORM: linux/amd64
 
     steps:
       - name: Checkout
