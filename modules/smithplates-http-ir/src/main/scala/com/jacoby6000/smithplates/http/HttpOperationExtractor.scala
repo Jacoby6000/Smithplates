@@ -14,7 +14,8 @@ private[http] object HttpOperationExtractor {
   def extract(
       model: Model,
       serviceShape: ShapeId,
-      operationId: ShapeId
+      operationId: ShapeId,
+      serviceResources: List[HttpResource]
   ): HttpValidated[HttpOperation] =
     model.getShape(operationId).toScala.flatMap(_.asOperationShape.toScala) match {
       case None            =>
@@ -24,13 +25,14 @@ private[http] object HttpOperationExtractor {
           s"operation '${operationId.toString}' is not defined in the model"
         ).invalidNel
       case Some(operation) =>
-        extractOperation(model, serviceShape, operation)
+        extractOperation(model, serviceShape, operation, serviceResources)
     }
 
   private def extractOperation(
       model: Model,
       serviceShape: ShapeId,
-      operation: OperationShape
+      operation: OperationShape,
+      serviceResources: List[HttpResource]
   ): HttpValidated[HttpOperation] = {
     val operationName = operation.getId.getName
     (
@@ -40,20 +42,27 @@ private[http] object HttpOperationExtractor {
       validateOutputShape(operation),
       validateErrorShapes(model, serviceShape, operation)
     ).mapN { (http, tag, inputShape, outputShape, errorShapes) =>
-      HttpOperation(
-        shapeId = operation.getId,
-        name = operationName,
-        method = http.getMethod,
-        uri = http.getUri.toString,
-        successStatusCode = http.getCode,
-        readonly = operation.readonlyOperation,
-        documentation = operation.documentationText,
-        inputShape = inputShape,
-        outputShape = outputShape,
-        errorShapes = errorShapes,
-        tags = List(tag)
-      )
-    }
+      HttpOperationInputMemberExtractor
+        .extract(model, serviceShape, operation, inputShape, serviceResources)
+        .map { inputMembers =>
+          HttpOperation(
+            shapeId = operation.getId,
+            name = operationName,
+            method = http.getMethod,
+            uri = http.getUri.toString,
+            successStatusCode = http.getCode,
+            readonly = operation.readonlyOperation,
+            documentation = operation.documentationText,
+            inputShape = inputShape,
+            inputBoundResource = HttpOperationInputMemberExtractor
+              .inputBoundResource(model, inputShape, operation.getId, serviceResources),
+            inputMembers = inputMembers,
+            outputShape = outputShape,
+            errorShapes = errorShapes,
+            tags = List(tag)
+          )
+        }
+    }.andThen(identity)
   }
 
   private def requireHttpBinding(

@@ -21,7 +21,7 @@ private[http] object HttpServiceExtractor {
         val operationIds =
           (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
         operationIds
-          .traverse(operationId => HttpOperationExtractor.extract(model, serviceShape, operationId))
+          .traverse(operationId => HttpOperationExtractor.extract(model, serviceShape, operationId, resources))
           .andThen { operations =>
             if (operations.isEmpty) {
               EmptyHttpService(serviceShape).invalidNel
@@ -48,6 +48,5 @@ private[http] object HttpServiceExtractor {
     }
 
   private def extractResources(model: Model, service: ServiceShape): HttpValidated[List[HttpResource]] =
-    service.getResources.asScala.toList
-      .traverse(resourceId => HttpResourceExtractor.extract(model, resourceId))
+    HttpResourceExtractor.extractAllForService(model, service)
 }

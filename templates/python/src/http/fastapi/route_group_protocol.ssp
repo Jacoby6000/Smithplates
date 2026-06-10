@@ -1,13 +1,20 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
-from typing import Annotated, Protocol  # noqa: F401
+from typing import ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.typingImports(ctx.routeGroup.get.operations).mkString(", ")}, Protocol  # noqa: F401
 
 from pydantic import Field  # noqa: F401
+<% if (com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.requiresDatetimeImport(ctx.routeGroup.get.operations)) { %>
+from datetime import datetime  # noqa: F401
+<% } %>
 
 <% val routeGroup = ctx.routeGroup.get %>
 class ${routeGroup.protocolClassName}(Protocol):
 <% for (operation <- routeGroup.operations) { %>
     async def ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(
         self,
+<% val routeParams = com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.routeParameters(operation) %>
+<% for (member <- routeParams) { %>
+        ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toSnakeCase(member.name)}: ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.pythonParameterType(member)},
+<% } %>
     ) -> object:
         ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
 <% } %>

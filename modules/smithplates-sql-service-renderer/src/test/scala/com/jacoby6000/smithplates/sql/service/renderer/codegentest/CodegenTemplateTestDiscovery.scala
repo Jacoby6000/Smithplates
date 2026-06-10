@@ -99,33 +99,47 @@ object CodegenTemplateTestDiscovery {
     val implementationRootPath       = expectedRoot.resolve(variant.resourcePath)
     val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
 
-    val sharedModelFiles        =
-      listFilesRelativeToExpectedRoot(
-        expectedRoot,
-        serviceTypeRootPath.resolve("model")
-      )
-    val sharedServiceTypeFiles  =
-      listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-        expectedRoot,
-        serviceTypeRootPath
-      )
+    val serviceTypeFiles        =
+      if (variant.serviceTypeId == "api") {
+        listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath)
+      } else {
+        val sharedModelFiles       =
+          listFilesRelativeToExpectedRoot(
+            expectedRoot,
+            serviceTypeRootPath.resolve("model")
+          )
+        val sharedServiceTypeFiles =
+          listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+            expectedRoot,
+            serviceTypeRootPath
+          )
+        sharedModelFiles ++ sharedServiceTypeFiles
+      }
     val implementationFiles     =
-      listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-        expectedRoot,
-        implementationRootPath
-      )
+      if (variant.serviceTypeId == "api") {
+        Nil
+      } else {
+        listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+          expectedRoot,
+          implementationRootPath
+        )
+      }
     val implementationTestFiles =
       listFilesRelativeToExpectedRoot(
         expectedRoot,
         implementationTestOutputPath
       )
     val migrationFiles          =
-      listDialectMigrationFiles(
-        expectedRoot,
-        variant.implementationId
-      )
+      if (variant.serviceTypeId == "api") {
+        Nil
+      } else {
+        listDialectMigrationFiles(
+          expectedRoot,
+          variant.implementationId
+        )
+      }
 
-    (sharedModelFiles ++ sharedServiceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
+    (serviceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
       .sortBy(_.relativePath)
   }
 

@@ -1,7 +1,10 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
-from typing import Annotated  # noqa: F401
+from typing import ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.typingImports(ctx.routeGroup.get.operations).mkString(", ")}  # noqa: F401
 
-from fastapi import APIRouter, Depends  # noqa: F401
+${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.fastapiImports(ctx.routeGroup.get.operations)}
+<% if (com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.requiresDatetimeImport(ctx.routeGroup.get.operations)) { %>
+from datetime import datetime  # noqa: F401
+<% } %>
 
 from ${ctx.service.packageName}.api_response import dispatch_api_response
 from ${ctx.service.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
@@ -17,10 +20,15 @@ router = APIRouter()
     response_model_by_alias=True,
 )
 async def ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(
+<% val routeParams = com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.routeParameters(operation) %>
+<% for (member <- routeParams) { %>
+    ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toSnakeCase(member.name)}: Annotated[${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.pythonParameterType(member)}, ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.fastapiBinding(member)}]${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.parameterDefault(member)},
+<% } %>
     services: Annotated[ApiServices, Depends(get_api_services)],
 ) -> object:
+<% val callArgs = com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.operationCallArguments(operation) %>
     return dispatch_api_response(
-        await services.${routeGroup.apiModuleName}.${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(),
+        await services.${routeGroup.apiModuleName}.${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toOperationSnakeCase(operation.name)}(${if (callArgs.nonEmpty) callArgs else ""}),
         OPERATION_HTTP_BINDINGS["${operation.name}"],
     )
 <% } %>

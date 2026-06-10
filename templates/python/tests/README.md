@@ -21,18 +21,37 @@ templates/python/tests/<case-name>/
 
 Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
+## HTTP cases
+
+HTTP golden cases use `@restJson1` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
+
+```
+templates/python/tests/<case-name>/
+  smithy/smithy-files.smithy
+  smithy-build.json                # http.python.server + smithy-aws-traits maven dep
+  expected/
+    src/api/app_factory.py
+    src/api/app_services.py
+    src/api/api_response.py
+    src/api/operation_bindings.py
+    src/api/apis/<route_group>_api.py
+    src/api/apis/<route_group>_api_base.py
+```
+
 ## Run golden render comparison
 
 ```bash
 sbtn "smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*"
+sbtn "smithplatesPlugin/testOnly *HttpServiceCodegenTemplateTestSuite*"
 # or
 ./scripts/run-template-golden-tests.sh
 ```
 
-Scoped by dialect:
+Scoped by dialect or HTTP framework:
 
 ```bash
 ./scripts/run-template-golden-tests.sh   # with SMITHYSTACHE_VALIDATE_TARGET=python/db/sqlite
+./scripts/run-template-golden-tests.sh   # with SMITHYSTACHE_VALIDATE_TARGET=python/api/fastapi
 ```
 
 ## Refresh goldens

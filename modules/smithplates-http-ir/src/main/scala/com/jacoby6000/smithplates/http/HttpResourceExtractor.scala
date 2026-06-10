@@ -5,12 +5,25 @@ import com.jacoby6000.smithplates.http.SmithyHttpTraitAccess.*
 import com.jacoby6000.smithplates.http.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ResourceShape
+import software.amazon.smithy.model.shapes.ServiceShape
 import software.amazon.smithy.model.shapes.ShapeId
 
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 private[http] object HttpResourceExtractor {
+  def extractAllForService(model: Model, service: ServiceShape): HttpValidated[List[HttpResource]] =
+    service.getResources.asScala.toList
+      .traverse(resourceId => extractTree(model, resourceId))
+      .map(_.flatten.distinctBy(_.shapeId))
+
+  private def extractTree(model: Model, resourceId: ShapeId): HttpValidated[List[HttpResource]] =
+    extract(model, resourceId).andThen { resource =>
+      resource.childResourceIds
+        .traverse(childId => extractTree(model, childId))
+        .map(childResources => resource :: childResources.flatten)
+    }
+
   def extract(model: Model, resourceId: ShapeId): HttpValidated[HttpResource] =
     model.getShape(resourceId).toScala.flatMap(_.asResourceShape.toScala) match {
       case None           =>

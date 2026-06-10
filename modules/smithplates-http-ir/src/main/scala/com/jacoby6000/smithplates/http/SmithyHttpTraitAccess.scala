@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.http
 
 import software.amazon.smithy.aws.traits.protocols.RestJson1Trait
+import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ResourceShape
 import software.amazon.smithy.model.shapes.ServiceShape
@@ -8,6 +9,7 @@ import software.amazon.smithy.model.shapes.Shape
 import software.amazon.smithy.model.traits.DocumentationTrait
 import software.amazon.smithy.model.traits.HttpTrait
 import software.amazon.smithy.model.traits.ReadonlyTrait
+import software.amazon.smithy.model.traits.RequiredTrait
 import software.amazon.smithy.model.traits.TagsTrait
 import software.amazon.smithy.model.traits.TitleTrait
 
@@ -34,6 +36,11 @@ object SmithyHttpTraitAccess {
   extension (operation: OperationShape) {
     def readonlyOperation: Boolean =
       Option(operation.getTrait(classOf[ReadonlyTrait]).orElse(null)).isDefined
+  }
+
+  extension (member: MemberShape) {
+    def requiredMember: Boolean =
+      Option(member.getTrait(classOf[RequiredTrait]).orElse(null)).isDefined
   }
 
   extension (service: ServiceShape) {

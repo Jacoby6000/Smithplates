@@ -45,6 +45,8 @@ final case class HttpOperation(
     readonly: Boolean,
     documentation: Option[String],
     inputShape: ShapeId,
+    inputBoundResource: Option[ShapeId],
+    inputMembers: List[HttpOperationInputMember],
     outputShape: Option[ShapeId],
     errorShapes: List[ShapeId],
     tags: List[String]
