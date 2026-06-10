@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 import psycopg
 import pytest
 import pytest_asyncio
+from testcontainers.postgres import PostgresContainer
 from widget_repository_models import (
     Widget,
 )
@@ -32,7 +33,7 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
 
 @pytest_asyncio.fixture
 async def widget_repository_service(
-    postgres_container,
+    postgres_container: PostgresContainer,
 ) -> AsyncIterator[WidgetRepositoryPsycopgService]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),

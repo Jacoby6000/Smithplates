@@ -11,6 +11,7 @@ from shipment_repository_models import (
     Shipment,
 )
 from shipment_repository_psycopg import ShipmentRepositoryPsycopgService
+from testcontainers.postgres import PostgresContainer
 
 SCHEMA_DDL = """-- example#Shipment
 CREATE TABLE shipments (
@@ -33,7 +34,7 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
 
 @pytest_asyncio.fixture
 async def shipment_repository_service(
-    postgres_container,
+    postgres_container: PostgresContainer,
 ) -> AsyncIterator[ShipmentRepositoryPsycopgService]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),
