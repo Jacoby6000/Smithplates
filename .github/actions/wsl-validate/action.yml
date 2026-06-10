@@ -1,0 +1,18 @@
+name: WSL validate
+description: Run ./validate inside WSL with Nix (Windows runners only).
+
+inputs:
+  target:
+    description: Validate --target value (for example plugin or python).
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Validate
+      shell: pwsh
+      env:
+        SMITHYSTACHE_WSL_CI_CACHE: '1'
+      run: |
+        $repoPath = (wsl wslpath -a $env:GITHUB_WORKSPACE).Trim()
+        wsl bash -lc "cd '$repoPath' && SMITHYSTACHE_WSL_CI_CACHE=1 ./scripts/ci-wsl-validate.sh --target ${{ inputs.target }}"

@@ -51,7 +51,7 @@ Run Scala and template-language static checks through [`scripts/run-linters.sh`]
 nix run .#run-linters
 ```
 
-CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; currently `python`). Linux uses Nix for the plugin and language jobs; Linux Docker and Windows jobs exercise the Docker backend with the same target split. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
+CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; currently `python`). Linux uses Nix for the plugin and language jobs; Linux Docker jobs exercise the Docker backend with the same target split; Windows runs Nix inside WSL via [`scripts/ci-wsl-validate.sh`](scripts/ci-wsl-validate.sh). Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
 
 ## Running tests
 

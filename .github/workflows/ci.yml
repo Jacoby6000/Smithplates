@@ -106,35 +106,23 @@ jobs:
   validate-plugin-build-windows:
     name: Plugin build (Windows)
     runs-on: windows-latest
-    env:
-      SMITHYSTACHE_VALIDATE_BACKEND: docker
-      SMITHYSTACHE_DOCKER_PLATFORM: linux/amd64
-      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup
-        uses: ./.github/actions/setup-validate
-        with:
-          backend: docker
+        uses: ./.github/actions/setup-validate-wsl
 
       - name: Validate
-        shell: pwsh
-        run: .\validate.ps1 -Target plugin
-
-      - name: Finalize
-        uses: ./.github/actions/finalize-docker-validate
+        uses: ./.github/actions/wsl-validate
+        with:
+          target: plugin
 
   validate-language-templates-windows:
     name: Language templates (${{ matrix.language }}, Windows)
     needs: validate-plugin-build-windows
     runs-on: windows-latest
-    env:
-      SMITHYSTACHE_VALIDATE_BACKEND: docker
-      SMITHYSTACHE_DOCKER_PLATFORM: linux/amd64
-      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
     strategy:
       fail-fast: false
       matrix:
@@ -146,14 +134,11 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup
-        uses: ./.github/actions/setup-validate
+        uses: ./.github/actions/setup-validate-wsl
         with:
-          backend: docker
           cache-uv: true
 
       - name: Validate
-        shell: pwsh
-        run: .\validate.ps1 -Target ${{ matrix.language }}
-
-      - name: Finalize
-        uses: ./.github/actions/finalize-docker-validate
+        uses: ./.github/actions/wsl-validate
+        with:
+          target: ${{ matrix.language }}
