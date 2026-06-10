@@ -1,5 +1,3 @@
-package com.jacoby6000.smithplates
+package com.jacoby6000.smithplates.sql
 
-package object sql {
-  export SmithySqlTraitAccess.*
-}
+export SmithySqlTraitAccess.*

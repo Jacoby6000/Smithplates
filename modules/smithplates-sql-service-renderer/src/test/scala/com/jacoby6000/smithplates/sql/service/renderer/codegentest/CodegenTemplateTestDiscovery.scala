@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.codegentest
+package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files

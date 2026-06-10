@@ -1,9 +1,9 @@
 package com.jacoby6000.smithplates.plugin.codegentest
 
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestAssertions
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestCase
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestDiscovery
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateVariant
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestAssertions
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestCase
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateVariant
 import munit.FunSuite
 
 import java.nio.charset.StandardCharsets

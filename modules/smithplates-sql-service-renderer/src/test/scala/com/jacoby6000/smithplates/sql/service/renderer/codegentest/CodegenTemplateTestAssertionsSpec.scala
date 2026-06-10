@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.codegentest
+package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 
 import munit.FunSuite
 

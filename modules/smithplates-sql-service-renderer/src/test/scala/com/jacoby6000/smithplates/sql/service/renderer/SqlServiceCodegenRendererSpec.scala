@@ -1,6 +1,5 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestDiscovery
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
@@ -8,6 +7,7 @@ import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
 
 import java.nio.file.Paths
 

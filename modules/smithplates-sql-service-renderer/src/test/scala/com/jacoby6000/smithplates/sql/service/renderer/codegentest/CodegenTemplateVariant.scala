@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.codegentest
+package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 
 /** Identifies a language/service-type/implementation variant for golden tests. */
 final case class CodegenTemplateVariant(
