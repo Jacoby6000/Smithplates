@@ -1,6 +1,6 @@
 # Smithplates
 
-Pulling the AI Slop Machine lever to non-deterministicly generate deterministic code-generators. 
+Pulling the AI Slop Machine lever to non-deterministically generate deterministic code-generators.
 
 This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Scalate SSP templates.
 
@@ -21,7 +21,7 @@ flowchart TD
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
-        SQLIR --> SchemaIT["Target language database schema integration tests"]
+        SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
         
         Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
         DDL   -.-> Migration
@@ -40,10 +40,6 @@ flowchart TD
         MT    --> Interfaces   
         TLQM  --> Interfaces
 
-        SVCIR --> AbstractTests["Target language abstract test suites"]
-        MT    --> AbstractTests
-        TLQM  --> AbstractTests
-
         SVCIR --> DerivedQueries["Derived dialect-specific queries"]
         SQLIR --> DerivedQueries
 
@@ -54,7 +50,6 @@ flowchart TD
         Migration      --> TestImpl["Target language test suite implementations"]
         MT             --> TestImpl
         DerivedQueries --> TestImpl
-        AbstractTests  --> TestImpl
 
     end
 ```
@@ -80,7 +75,7 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
 | **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
 | **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
-| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + SSP templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
+| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + SSP templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
@@ -123,7 +118,7 @@ Pre-commit hooks (optional; `pre-commit install`):
 pre-commit run --all-files
 ```
 
-Runs `scalafmtAll`, `scalafixAll`, and `compile` before each commit. See [Getting started](docs/contributing/getting-started.md#pre-commit-hooks).
+Runs `scalafmtAll`, `scalafixAll`, and `compile` on staged Scala/SBT changes, and checks reusable documentation components when applicable. See [Getting started](docs/contributing/getting-started.md#pre-commit-hooks).
 
 Lint and format (also run in [CI](.github/workflows/ci.yml)):
 

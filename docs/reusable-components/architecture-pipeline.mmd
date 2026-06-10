@@ -9,7 +9,7 @@ flowchart TD
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
-        SQLIR --> SchemaIT["Target language database schema integration tests"]
+        SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
         
         Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
         DDL   -.-> Migration
@@ -28,10 +28,6 @@ flowchart TD
         MT    --> Interfaces   
         TLQM  --> Interfaces
 
-        SVCIR --> AbstractTests["Target language abstract test suites"]
-        MT    --> AbstractTests
-        TLQM  --> AbstractTests
-
         SVCIR --> DerivedQueries["Derived dialect-specific queries"]
         SQLIR --> DerivedQueries
 
@@ -42,6 +38,5 @@ flowchart TD
         Migration      --> TestImpl["Target language test suite implementations"]
         MT             --> TestImpl
         DerivedQueries --> TestImpl
-        AbstractTests  --> TestImpl
 
     end

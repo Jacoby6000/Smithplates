@@ -57,7 +57,7 @@ operation CreateFoo {
 @sqlService
 service FooRepository {
     version: "1"
-    operations: [GetFoo]
+    operations: [CreateFoo]
 }
 ```
 
@@ -70,7 +70,7 @@ service FooRepository {
 | `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
-| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Test suite implementations (derived queries + abstract suites + templates; migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
+| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Derived-query integration tests (derived queries + templates; migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
 | `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
 
 Layout for the bundled `db` service type:
@@ -84,7 +84,7 @@ db/
   <implementation>/tests/…        → <testOutputDir>/db/<implementation>/test_*.py
 ```
 
-`dialect` selects SQLite (`?` placeholders) or Postgres (`%s` placeholders unless `bindPlaceholderStyle` is overridden).
+`dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` in generated Python; `$1`, `$2`, … in migration `-- Queries` SQL).
 
 ### Python row mapping (Postgres vs SQLite)
 
@@ -115,4 +115,4 @@ Trait tables, Smithy examples, template context fields, SPI entries, and Python 
 
 ## Configuration
 
-See [Integration](integration.md) for the `smithplates` plugin example and [`sql-plugin/README.md`](../../sql-plugin/README.md) for trait and template details.
+See [Integration](integration.md) for the `smithplates` plugin example and [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md) for trait and template details.

@@ -263,5 +263,3 @@ Contributor generator tasks are defined on **`smithplatesPlugin`** (also aliased
 | Task | Usage |
 |------|--------|
 | `generateGoldenTemplatesFor` | `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` — writes rendered artifacts into `templates/<language>/tests/<case-name>/expected/` |
-
-Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).

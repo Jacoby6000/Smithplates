@@ -86,19 +86,23 @@ Map of language id → language target configuration (for example `python`). Con
 
 When a language target is configured, bundled `db` service-type templates are selected automatically from enabled dialects. Users do not list individual `artifacts` entries.
 
-Example output layout for bundled templates (sources under `templates/python/src/db/`):
+Example output layout for bundled templates (paths relative to `build/smithy/source/smithplates/`; sources under `templates/python/src/db/`):
 
-- `sourceOutputDir/db/model/{{serviceFileName}}_models.py`
-- `sourceOutputDir/db/{{serviceFileName}}_protocol.py`
-- `sourceOutputDir/db/sqlite/{{serviceFileName}}_aiosqlite.py` (when `sqlite.enable` is `true`)
-- `testOutputDir/db/sqlite/test_{{serviceFileName}}_derived_sql.py` (when `sqlite.enable` is `true`)
+- `build/smithy/source/smithplates/<sourceOutputDir>/db/model/{{serviceFileName}}_models.py`
+- `build/smithy/source/smithplates/<sourceOutputDir>/db/{{serviceFileName}}_protocol.py`
+- `build/smithy/source/smithplates/<sourceOutputDir>/db/sqlite/{{serviceFileName}}_aiosqlite.py` (when `sqlite.enable` is `true`)
+- `build/smithy/source/smithplates/<testOutputDir>/db/sqlite/test_{{serviceFileName}}_derived_sql.py` (when `sqlite.enable` is `true`)
+
+Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
 
 ### Plugin outputs
+
+All plugin file-manifest paths are relative to **`build/smithy/source/smithplates/`** (the Smithy projection directory for the `smithplates` plugin).
 
 | Plugin | Build output directory | Pipeline path | Contents |
 |--------|------------------------|---------------|----------|
 | `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
-| `smithplates` | configured `sourceOutputDir` / `testOutputDir` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
+| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
 

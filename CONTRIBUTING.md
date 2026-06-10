@@ -126,6 +126,7 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 | Area | Directory | Typical tests |
 |------|-----------|---------------|
 | Schema IR | `modules/smithplates-sql-ir/` | `sbtn smithplatesSqlIr/test` |
+| Shared DDL rendering | `modules/smithplates-sql-ddl-renderer-common/` | (covered by dialect renderer tests) |
 | Service/query IR | `modules/smithplates-sql-service-ir/` | `sbtn smithplatesSqlServiceIr/test` |
 | Query rendering | `modules/smithplates-sql-service-query-renderer*` | `sbtn smithplatesSqlServiceQueryRenderer/test`, … |
 | DDL rendering | `modules/smithplates-sql-ddl-renderer-*/` | `sbtn smithplatesSqlDdlRendererPostgres/test`, … |
