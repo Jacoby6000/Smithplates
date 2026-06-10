@@ -1,5 +1,5 @@
 name: Setup validate
-description: Checkout, install tooling, and restore caches for validate jobs.
+description: Install tooling and restore caches for validate jobs (run actions/checkout first).
 
 inputs:
   backend:
@@ -13,9 +13,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
     - name: Install Nix
       if: inputs.backend == 'nix'
       uses: cachix/install-nix-action@v30

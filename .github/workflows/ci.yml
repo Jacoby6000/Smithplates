@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
@@ -37,6 +40,9 @@ jobs:
         language: [python]
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
@@ -54,6 +60,9 @@ jobs:
       SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
@@ -79,6 +88,9 @@ jobs:
         language: [python]
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
@@ -100,6 +112,9 @@ jobs:
       SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
@@ -127,6 +142,9 @@ jobs:
         language: [python]
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
