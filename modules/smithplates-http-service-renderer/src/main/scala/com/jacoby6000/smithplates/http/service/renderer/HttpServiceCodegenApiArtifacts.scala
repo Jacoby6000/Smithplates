@@ -45,6 +45,18 @@ object HttpServiceCodegenApiArtifacts {
         template = "apis/__init__.ssp",
         outputFile = "api/apis/__init__.py",
         scope = HttpCodegenArtifactScope.Service
+      ),
+      HttpServiceCodegenArtifactConfig(
+        kind = HttpServiceCodegenArtifactKind.Src,
+        template = "models/__init__.ssp",
+        outputFile = "api/models/__init__.py",
+        scope = HttpCodegenArtifactScope.Service
+      ),
+      HttpServiceCodegenArtifactConfig(
+        kind = HttpServiceCodegenArtifactKind.Src,
+        template = "models/problem.ssp",
+        outputFile = "api/models/problem.py",
+        scope = HttpCodegenArtifactScope.Service
       )
     )
 

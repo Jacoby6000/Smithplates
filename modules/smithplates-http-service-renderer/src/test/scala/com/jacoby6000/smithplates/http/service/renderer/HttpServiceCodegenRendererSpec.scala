@@ -121,7 +121,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
       case Validated.Valid(artifacts) =>
         val routes   = artifacts.find(_.relativePath.endsWith("assets_api.py")).getOrElse(fail("missing routes"))
-        assert(routes.content.contains("since: Annotated[float | None, Query(alias=\"since\")] = None"))
+        assert(routes.content.contains("since: float | None = Query(None, alias=\"since\")"))
         val protocol =
           artifacts.find(_.relativePath.endsWith("assets_api_base.py")).getOrElse(fail("missing protocol"))
         assert(protocol.content.contains("since: float | None,"))

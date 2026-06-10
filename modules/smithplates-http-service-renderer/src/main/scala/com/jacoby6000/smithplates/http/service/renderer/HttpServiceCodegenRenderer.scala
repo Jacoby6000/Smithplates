@@ -10,32 +10,42 @@ object HttpServiceCodegenRenderer {
       model: Model,
       serviceIr: HttpServiceIr,
       settings: HttpServiceCodegenSettings
-  ): HttpValidated[List[HttpCodegenArtifact]] = {
-    val _ = model
+  ): HttpValidated[List[HttpCodegenArtifact]] =
     serviceIr.services
       .traverse { service =>
-        val context = HttpCodegenServiceContext.fromService(service, settings.defaultFrameworkKey, settings.packageName)
-        settings.artifacts
-          .traverse { artifactConfig =>
-            artifactConfig.scope match {
-              case HttpCodegenArtifactScope.Service         =>
-                renderArtifact(settings, artifactConfig, HttpCodegenTemplateView(service = context))
-              case HttpCodegenArtifactScope.RouteGroup(tag) =>
-                context.routeGroups.find(_.tag == tag) match {
-                  case Some(routeGroup) =>
-                    renderArtifact(
-                      settings,
-                      artifactConfig,
-                      HttpCodegenTemplateView(service = context, routeGroup = Some(routeGroup))
-                    )
-                  case None             => Nil.validNel
-                }
+        val context             = HttpCodegenServiceContext.fromService(service, settings.defaultFrameworkKey, settings.packageName)
+        val configuredArtifacts =
+          settings.artifacts
+            .traverse { artifactConfig =>
+              artifactConfig.scope match {
+                case HttpCodegenArtifactScope.Service         =>
+                  renderArtifact(settings, artifactConfig, HttpCodegenTemplateView(service = context))
+                case HttpCodegenArtifactScope.RouteGroup(tag) =>
+                  context.routeGroups.find(_.tag == tag) match {
+                    case Some(routeGroup) =>
+                      renderArtifact(
+                        settings,
+                        artifactConfig,
+                        HttpCodegenTemplateView(service = context, routeGroup = Some(routeGroup))
+                      )
+                    case None             => Nil.validNel
+                  }
+              }
             }
-          }
-          .map(_.flatten)
+            .map(_.flatten)
+        configuredArtifacts.andThen { artifacts =>
+          HttpStructureModelAttributes
+            .outputModels(model, HttpServiceIr(services = List(service)))
+            .fold(
+              error => error.invalidNel,
+              outputModels =>
+                outputModels
+                  .traverse(outputModel => renderOutputModelArtifact(settings, outputModel))
+                  .map(modelArtifacts => artifacts ++ modelArtifacts)
+            )
+        }
       }
       .map(_.flatten)
-  }
 
   private def renderArtifact(
       settings: HttpServiceCodegenSettings,
@@ -87,4 +97,29 @@ object HttpServiceCodegenRenderer {
 
   private def normalizeDirectory(directory: String): String =
     directory.stripSuffix("/")
+
+  private def renderOutputModelArtifact(
+      settings: HttpServiceCodegenSettings,
+      outputModel: HttpStructureModelAttributes.StructureModelView
+  ): HttpValidated[HttpCodegenArtifact] = {
+    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+    val content      =
+      ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
+        resolveTemplatePath(settings, "models/structure.ssp"),
+        Map("model" -> outputModel),
+        Some(templateRoot)
+      )
+    val relativePath =
+      settings.sourceOutputDirectory match {
+        case Some(sourceOutputDirectory) =>
+          s"${normalizeDirectory(sourceOutputDirectory)}/api/models/${outputModel.moduleName}.py"
+        case None                        =>
+          s"api/models/${outputModel.moduleName}.py"
+      }
+    HttpCodegenArtifact(
+      relativePath = relativePath,
+      content = content,
+      kind = HttpServiceCodegenArtifactKind.Src
+    ).validNel
+  }
 }

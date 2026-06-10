@@ -10,8 +10,11 @@ final case class HttpCodegenServiceContext(
     name: String,
     namespace: String,
     version: String,
+    title: Option[String],
+    documentation: Option[String],
     frameworkKey: String,
     packageName: String,
+    modelsPackageName: String,
     routeGroups: List[HttpCodegenRouteGroupContext],
     serviceErrors: List[ShapeId]
 )
@@ -30,8 +33,11 @@ object HttpCodegenServiceContext {
       name = service.shapeId.getName,
       namespace = service.shapeId.getNamespace,
       version = service.version,
+      title = service.title,
+      documentation = service.documentation,
       frameworkKey = frameworkKey,
       packageName = packageName,
+      modelsPackageName = s"$packageName.models",
       routeGroups = service.routeGroups.map(HttpCodegenRouteGroupContext.fromRouteGroup),
       serviceErrors = service.serviceErrors
     )

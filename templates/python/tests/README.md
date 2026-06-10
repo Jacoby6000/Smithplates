@@ -34,6 +34,10 @@ templates/python/tests/<case-name>/
     src/api/app_services.py
     src/api/api_response.py
     src/api/operation_bindings.py
+    src/api/api_exceptions.py
+    src/api/api_exception_handler.py
+    src/api/models/problem.py
+    src/api/models/<output_shape>.py
     src/api/apis/<route_group>_api.py
     src/api/apis/<route_group>_api_base.py
 ```

@@ -8,6 +8,13 @@ object HttpCodegenFastApiAttributes {
   def routeParameters(operation: HttpOperation): List[HttpOperationInputMember] =
     operation.inputMembers.filter(isRouteParameter)
 
+  def routerImportAlias(apiModuleName: String): String =
+    apiModuleName
+      .split("_")
+      .filter(_.nonEmpty)
+      .map(segment => s"${segment.head.toUpper}${segment.tail}")
+      .mkString + "Router"
+
   def pythonParameterType(member: HttpOperationInputMember): String =
     if (member.required) {
       member.pythonTypeName
@@ -15,22 +22,16 @@ object HttpCodegenFastApiAttributes {
       s"${member.pythonTypeName} | None"
     }
 
-  def fastapiBinding(member: HttpOperationInputMember): String =
-    member.binding match {
-      case HttpInputMemberBinding.PathLabel()        => "Path()"
-      case HttpInputMemberBinding.Query(queryName)   =>
-        s"""Query(alias="${queryName}")"""
-      case HttpInputMemberBinding.Header(headerName) =>
-        s"""Header(alias="${headerName}")"""
-      case HttpInputMemberBinding.Payload()          => "Body()"
-    }
+  def endpointArgumentDefinition(member: HttpOperationInputMember): String = {
+    val parameterName = HttpCodegenTemplateAttributes.toSnakeCase(member.name)
+    val binding       = fastapiBindingExpression(member)
+    s"$parameterName: ${pythonParameterType(member)} = $binding"
+  }
 
-  def parameterDefault(member: HttpOperationInputMember): String =
-    if (member.required) {
-      ""
-    } else {
-      " = None"
-    }
+  def implArgumentDefinition(member: HttpOperationInputMember): String = {
+    val parameterName = HttpCodegenTemplateAttributes.toSnakeCase(member.name)
+    s"$parameterName: ${pythonParameterType(member)}"
+  }
 
   def operationCallArguments(operation: HttpOperation): String =
     routeParameters(operation)
@@ -43,11 +44,25 @@ object HttpCodegenFastApiAttributes {
   def fastapiImports(operations: List[HttpOperation]): String = {
     val bindings = operations.flatMap(routeParameters).map(_.binding).toSet
     val symbols  =
-      List("APIRouter", "Depends") ++
-        Option.when(bindings.exists(_.isInstanceOf[HttpInputMemberBinding.PathLabel]))("Path") ++
-        Option.when(bindings.exists(_.isInstanceOf[HttpInputMemberBinding.Query]))("Query") ++
-        Option.when(bindings.exists(_.isInstanceOf[HttpInputMemberBinding.Header]))("Header")
-    s"from fastapi import ${symbols.mkString(", ")}"
+      List(
+        "APIRouter",
+        "Body",
+        "Depends",
+        "Header",
+        "Path",
+        "Query"
+      ).filter { symbol =>
+        symbol match {
+          case "Body"   => bindings.exists(_.isInstanceOf[HttpInputMemberBinding.Payload])
+          case "Header" => bindings.exists(_.isInstanceOf[HttpInputMemberBinding.Header])
+          case "Path"   => bindings.exists(_.isInstanceOf[HttpInputMemberBinding.PathLabel])
+          case "Query"  => bindings.exists(_.isInstanceOf[HttpInputMemberBinding.Query])
+          case _        => true
+        }
+      }
+    s"""from fastapi import (  # noqa: F401
+    ${symbols.mkString(",\n    ")},
+)"""
   }
 
   def typingImports(operations: List[HttpOperation]): List[String] = {
@@ -58,6 +73,46 @@ object HttpCodegenFastApiAttributes {
 
   def requiresDatetimeImport(operations: List[HttpOperation]): Boolean =
     operations.flatMap(_.inputMembers).exists(_.pythonTypeName == "datetime")
+
+  def responseTypeNames(operations: List[HttpOperation]): List[String] =
+    operations
+      .map(HttpOperationBindingAttributes.responseTypeAnnotation)
+      .filter(_ != "None")
+      .distinct
+      .sorted
+
+  def modelImportLine(modelsPackageName: String, typeName: String): String = {
+    val moduleName = HttpCodegenTemplateAttributes.toSnakeCase(typeName)
+    s"from $modelsPackageName.$moduleName import $typeName"
+  }
+
+  private def fastapiBindingExpression(member: HttpOperationInputMember): String =
+    member.binding match {
+      case HttpInputMemberBinding.PathLabel()        =>
+        if (member.required) {
+          "Path(...)"
+        } else {
+          "Path(None)"
+        }
+      case HttpInputMemberBinding.Query(queryName)   =>
+        if (member.required) {
+          s"""Query(..., alias="${queryName}")"""
+        } else {
+          s"""Query(None, alias="${queryName}")"""
+        }
+      case HttpInputMemberBinding.Header(headerName) =>
+        if (member.required) {
+          s"""Header(..., alias="${headerName}")"""
+        } else {
+          s"""Header(None, alias="${headerName}")"""
+        }
+      case HttpInputMemberBinding.Payload()          =>
+        if (member.required) {
+          "Body(...)"
+        } else {
+          "Body(None)"
+        }
+    }
 
   private def isRouteParameter(member: HttpOperationInputMember): Boolean =
     member.binding match {

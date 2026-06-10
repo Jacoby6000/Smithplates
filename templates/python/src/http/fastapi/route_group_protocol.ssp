@@ -5,6 +5,9 @@ from pydantic import Field  # noqa: F401
 <% if (com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.requiresDatetimeImport(ctx.routeGroup.get.operations)) { %>
 from datetime import datetime  # noqa: F401
 <% } %>
+<% for (typeName <- com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.responseTypeNames(ctx.routeGroup.get.operations)) { %>
+${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.modelImportLine(ctx.service.modelsPackageName, typeName)}
+<% } %>
 
 <% val routeGroup = ctx.routeGroup.get %>
 class ${routeGroup.protocolClassName}(Protocol):
@@ -13,8 +16,8 @@ class ${routeGroup.protocolClassName}(Protocol):
         self,
 <% val routeParams = com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.routeParameters(operation) %>
 <% for (member <- routeParams) { %>
-        ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.toSnakeCase(member.name)}: ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.pythonParameterType(member)},
+        ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.implArgumentDefinition(member)},
 <% } %>
-    ) -> object:
+    ) -> ${com.jacoby6000.smithplates.http.service.renderer.HttpOperationBindingAttributes.responseTypeAnnotation(operation)}:
         ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
 <% } %>

@@ -22,4 +22,10 @@ object HttpCodegenTemplateAttributes {
       .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
       .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
       .toLowerCase
+
+  def pythonStringLiteral(value: String): String =
+    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+  def pythonOptionalStringLiteral(value: Option[String]): String =
+    value.map(pythonStringLiteral).getOrElse("None")
 }
