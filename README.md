@@ -2,11 +2,11 @@
 
 Pulling the AI Slop Machine lever to non-deterministicly generate deterministic code-generators. 
 
-This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Mustache templates.
+This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Scalate SSP templates.
 
 ## Architecture
 
-The `smithplates` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Mustache templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
+The `smithplates` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Scalate SSP templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -32,7 +32,7 @@ flowchart TD
         SSP   --> SVCIR["Database services and operations IR"]
         SQLIR --> SVCIR
         
-        MT["Moustache Templates"]
+        MT["Scalate SSP templates"]
         SVCIR --> TLQM["Target Language Query Models"]
         MT    --> TLQM
 
@@ -80,7 +80,7 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
 | **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
 | **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
-| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + Mustache templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
+| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + abstract test suites + SSP templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer

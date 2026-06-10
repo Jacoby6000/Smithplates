@@ -26,7 +26,7 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | `smithplatesSqlServiceQueryRendererSqlite` | [`modules/smithplates-sql-service-query-renderer-sqlite/`](../../modules/smithplates-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
 | `smithplatesSqlDdlRendererPostgres` | [`modules/smithplates-sql-ddl-renderer-postgres/`](../../modules/smithplates-sql-ddl-renderer-postgres/) | — | Postgres DDL renderer |
 | `smithplatesSqlDdlRendererSqlite` | [`modules/smithplates-sql-ddl-renderer-sqlite/`](../../modules/smithplates-sql-ddl-renderer-sqlite/) | — | SQLite DDL renderer |
-| `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Mustache service codegen (Python templates) |
+| `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Scalate SSP service codegen (Python templates) |
 | `smithplatesTestkit` | [`modules/smithplates-testkit/`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
 | `smithplatesSqlDdlRendererPostgresIt` | [`modules/smithplates-sql-ddl-renderer-postgres-it/`](../../modules/smithplates-sql-ddl-renderer-postgres-it/) | — | Postgres renderer integration tests |
 | `smithplatesSqlDdlRendererSqliteIt` | [`modules/smithplates-sql-ddl-renderer-sqlite-it/`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) | — | SQLite renderer integration tests |
@@ -109,7 +109,7 @@ sbtn smithplatesSqlDdlRendererPostgresIt/test
 sbtn smithplatesSqlDdlRendererSqliteIt/test
 ```
 
-Python generated-code integration tests (pytest against `templates/python/expected-outputs/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:
+Python generated-code integration tests (pytest against `templates/python/tests/<case>/expected/`) require [uv](https://docs.astral.sh/uv/) and Docker for postgres variants:
 
 ```bash
 ./language-test-harnesses/python/run-tests.sh
