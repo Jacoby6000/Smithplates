@@ -1,0 +1,87 @@
+name: Setup validate
+description: Checkout, install tooling, and restore caches for validate jobs.
+
+inputs:
+  backend:
+    description: Validate backend (nix or docker).
+    required: true
+  cache-uv:
+    description: Restore uv cache for Python language template jobs.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install Nix
+      if: inputs.backend == 'nix'
+      uses: cachix/install-nix-action@v30
+      with:
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+
+    - name: Cache Nix store
+      if: inputs.backend == 'nix'
+      uses: nix-community/cache-nix-action@v6
+      with:
+        primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+
+    - name: Restore Docker test image cache
+      if: inputs.backend == 'docker'
+      uses: actions/cache@v4
+      id: docker-image-cache
+      with:
+        path: /tmp/smithystache-test-image.tar
+        key: smithystache-docker-${{ hashFiles('Dockerfile', 'flake.lock', 'flake.nix') }}
+        restore-keys: |
+          smithystache-docker-
+
+    - name: Load Docker test image
+      if: inputs.backend == 'docker' && steps.docker-image-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: docker load -i /tmp/smithystache-test-image.tar
+
+    - name: Restore Scala dependency cache (Nix)
+      if: inputs.backend == 'nix'
+      uses: actions/cache@v4
+      with:
+        path: |
+          /home/runner/.sbt
+          /home/runner/.cache/coursier
+          /home/runner/.ivy2/cache
+        key: sbt-${{ runner.os }}-${{ hashFiles('build.sbt', 'project/**') }}
+        restore-keys: |
+          sbt-${{ runner.os }}-
+
+    - name: Restore Scala dependency cache (Docker)
+      if: inputs.backend == 'docker'
+      uses: actions/cache@v4
+      with:
+        path: |
+          .ci-cache/sbt
+          .ci-cache/coursier
+          .ci-cache/ivy2/cache
+        key: sbt-docker-${{ hashFiles('build.sbt', 'project/**') }}
+        restore-keys: |
+          sbt-docker-
+
+    - name: Restore uv cache (Nix)
+      if: inputs.cache-uv == 'true' && inputs.backend == 'nix'
+      uses: actions/cache@v4
+      with:
+        path: /home/runner/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('language-test-harnesses/python/uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Restore uv cache (Docker)
+      if: inputs.cache-uv == 'true' && inputs.backend == 'docker'
+      uses: actions/cache@v4
+      with:
+        path: .ci-cache/uv
+        key: uv-docker-${{ hashFiles('language-test-harnesses/python/uv.lock') }}
+        restore-keys: |
+          uv-docker-

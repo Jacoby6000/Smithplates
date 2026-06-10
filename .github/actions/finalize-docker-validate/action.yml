@@ -1,0 +1,12 @@
+name: Finalize Docker validate
+description: Export the Docker test image so Actions can persist it in cache.
+
+runs:
+  using: composite
+  steps:
+    - name: Export Docker test image
+      shell: bash
+      run: |
+        if docker image inspect smithystache-test:local >/dev/null 2>&1; then
+          docker save smithystache-test:local -o /tmp/smithystache-test-image.tar
+        fi

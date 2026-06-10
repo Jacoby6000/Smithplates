@@ -14,6 +14,26 @@ smithystache_docker_image_exists() {
   docker image inspect "${SMITHYSTACHE_TEST_IMAGE}" >/dev/null 2>&1
 }
 
+smithystache_docker_append_ci_cache_mounts() {
+  local -n out_args=$1
+  if [[ -z "${SMITHYSTACHE_DOCKER_CI_CACHE:-}" ]]; then
+    return 0
+  fi
+
+  local cache_root="${ROOT}/.ci-cache"
+  mkdir -p \
+    "${cache_root}/coursier" \
+    "${cache_root}/sbt" \
+    "${cache_root}/ivy2/cache" \
+    "${cache_root}/uv"
+  out_args+=(
+    -v "${cache_root}/coursier:/root/.cache/coursier"
+    -v "${cache_root}/sbt:/root/.sbt"
+    -v "${cache_root}/ivy2:/root/.ivy2"
+    -v "${cache_root}/uv:/root/.cache/uv"
+  )
+}
+
 smithystache_needs_docker_build() {
   if ! smithystache_docker_image_exists; then
     return 0
@@ -48,9 +68,12 @@ smithystache_docker_run() {
     return 2
   fi
   shift
+  local -a run_mounts=()
+  smithystache_docker_append_ci_cache_mounts run_mounts
   docker run --rm \
     --platform "${SMITHYSTACHE_DOCKER_PLATFORM}" \
     "${docker_run_args[@]}" \
+    "${run_mounts[@]}" \
     -v "${ROOT}:/smithystache" \
     -w /smithystache \
     "${SMITHYSTACHE_TEST_IMAGE}" \

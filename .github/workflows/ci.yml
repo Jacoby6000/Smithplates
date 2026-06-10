@@ -13,44 +13,129 @@ env:
   NIX_CONFIG: experimental-features = nix-command flakes
 
 jobs:
-  validate-nix:
-    name: Validate (Nix, Linux)
+  validate-plugin-build:
+    name: Plugin build (Nix)
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v19
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: nix
 
       - name: Validate
-        run: ./validate
+        run: ./validate --target plugin
 
-  validate-docker:
-    name: Validate (Docker, Linux)
+  validate-language-templates:
+    name: Language templates (${{ matrix.language }}, Nix)
+    needs: validate-plugin-build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with language-test-harnesses/<language>/ directories.
+        language: [python]
+
+    steps:
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: nix
+          cache-uv: true
+
+      - name: Validate
+        run: ./validate --target ${{ matrix.language }}
+
+  validate-plugin-build-docker:
+    name: Plugin build (Docker)
     runs-on: ubuntu-latest
     env:
       SMITHYSTACHE_VALIDATE_BACKEND: docker
+      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: docker
 
       - name: Validate
-        run: ./validate
+        run: ./validate --target plugin
 
-  validate-windows:
-    name: Validate (Windows)
+      - name: Finalize
+        uses: ./.github/actions/finalize-docker-validate
+
+  validate-language-templates-docker:
+    name: Language templates (${{ matrix.language }}, Docker)
+    needs: validate-plugin-build-docker
+    runs-on: ubuntu-latest
+    env:
+      SMITHYSTACHE_VALIDATE_BACKEND: docker
+      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with language-test-harnesses/<language>/ directories.
+        language: [python]
+
+    steps:
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: docker
+          cache-uv: true
+
+      - name: Validate
+        run: ./validate --target ${{ matrix.language }}
+
+      - name: Finalize
+        uses: ./.github/actions/finalize-docker-validate
+
+  validate-plugin-build-windows:
+    name: Plugin build (Windows)
     runs-on: windows-latest
     env:
       SMITHYSTACHE_VALIDATE_BACKEND: docker
       SMITHYSTACHE_DOCKER_PLATFORM: linux/amd64
+      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: docker
 
       - name: Validate
         shell: pwsh
-        run: .\validate.ps1
+        run: .\validate.ps1 -Target plugin
+
+      - name: Finalize
+        uses: ./.github/actions/finalize-docker-validate
+
+  validate-language-templates-windows:
+    name: Language templates (${{ matrix.language }}, Windows)
+    needs: validate-plugin-build-windows
+    runs-on: windows-latest
+    env:
+      SMITHYSTACHE_VALIDATE_BACKEND: docker
+      SMITHYSTACHE_DOCKER_PLATFORM: linux/amd64
+      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep in sync with language-test-harnesses/<language>/ directories.
+        language: [python]
+
+    steps:
+      - name: Setup
+        uses: ./.github/actions/setup-validate
+        with:
+          backend: docker
+          cache-uv: true
+
+      - name: Validate
+        shell: pwsh
+        run: .\validate.ps1 -Target ${{ matrix.language }}
+
+      - name: Finalize
+        uses: ./.github/actions/finalize-docker-validate

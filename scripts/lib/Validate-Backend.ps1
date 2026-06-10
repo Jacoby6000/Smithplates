@@ -103,6 +103,21 @@ function Invoke-SmithplatesDockerRun {
       $dockerArgs += @('-v', '/var/run/docker.sock:/var/run/docker.sock')
     }
   }
+  if ($env:SMITHYSTACHE_DOCKER_CI_CACHE) {
+    $cacheRoot = Join-Path $Root '.ci-cache'
+    $null = New-Item -ItemType Directory -Force -Path @(
+      (Join-Path $cacheRoot 'coursier'),
+      (Join-Path $cacheRoot 'sbt'),
+      (Join-Path $cacheRoot 'ivy2/cache'),
+      (Join-Path $cacheRoot 'uv')
+    )
+    $dockerArgs += @(
+      '-v', "$(Join-Path $cacheRoot 'coursier'):/root/.cache/coursier",
+      '-v', "$(Join-Path $cacheRoot 'sbt'):/root/.sbt",
+      '-v', "$(Join-Path $cacheRoot 'ivy2'):/root/.ivy2",
+      '-v', "$(Join-Path $cacheRoot 'uv'):/root/.cache/uv"
+    )
+  }
   $dockerArgs += @(
     '-v', "${Root}:/smithystache",
     '-w', '/smithystache',

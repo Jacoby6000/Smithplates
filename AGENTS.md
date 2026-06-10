@@ -10,7 +10,7 @@
   pkill -f 'sbt-launch\.jar' || true
   ```
   Prefer single commands over chained `sbtn 'reload; …'` when possible. Use `sbtn --client shutdown` only when the client still responds.
-* CI (`.github/workflows/ci.yml`) runs on push/PR to `main`: [`./validate`](validate) with Nix installed (Linux), without Nix (Linux Docker auto-detect), and [`validate.ps1`](validate.ps1) on Windows (Docker auto-detect). Requires **Docker** on the runner for testcontainers-backed tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+* CI (`.github/workflows/ci.yml`) runs on push/PR to `main` in parallel jobs: `validate-plugin-build` / `validate-language-templates` (Nix on Linux), plus Docker and Windows variants with the same `--target plugin` and per-language matrix. Requires **Docker** on the runner for testcontainers-backed tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 * Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:
