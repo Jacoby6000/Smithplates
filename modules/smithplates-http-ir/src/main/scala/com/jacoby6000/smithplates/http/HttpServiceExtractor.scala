@@ -20,28 +20,37 @@ private[http] object HttpServiceExtractor {
       requireServiceVersion(service),
       requireSupportedSerialization(service)
     ).mapN { (version, serialization) =>
-      extractResources(model, service).andThen { resources =>
-        val operationIds =
-          (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
-        operationIds
-          .traverse(operationId => HttpOperationExtractor.extract(model, serviceShape, operationId, resources))
-          .andThen { operations =>
-            if (operations.isEmpty) {
-              EmptyHttpService(serviceShape).invalidNel
-            } else {
-              HttpService(
-                shapeId = serviceShape,
-                version = version,
-                serialization = serialization,
-                title = service.titleText,
-                documentation = service.documentationText,
-                serviceErrors = service.getErrorsSet.asScala.toList,
-                resources = resources,
-                routeGroups = HttpRouteGroupBuilder.build(operations)
-              ).validNel
-            }
+      HttpServiceErrorExtractor
+        .extract(model, serviceShape, service.getErrorsSet.asScala.toList)
+        .andThen { serviceErrors =>
+          extractResources(model, service).andThen { resources =>
+            val operationIds =
+              (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
+            operationIds
+              .traverse(operationId => HttpOperationExtractor.extract(model, serviceShape, operationId, resources))
+              .andThen { operations =>
+                if (operations.isEmpty) {
+                  EmptyHttpService(serviceShape).invalidNel
+                } else {
+                  HttpStructureExtractor
+                    .extractForService(model, serviceShape, operations, serviceErrors)
+                    .map { structures =>
+                      HttpService(
+                        shapeId = serviceShape,
+                        version = version,
+                        serialization = serialization,
+                        title = service.titleText,
+                        documentation = service.documentationText,
+                        serviceErrors = serviceErrors,
+                        resources = resources,
+                        routeGroups = HttpRouteGroupBuilder.build(operations),
+                        structures = structures
+                      )
+                    }
+                }
+              }
           }
-      }
+        }
     }.andThen(identity)
   }
 

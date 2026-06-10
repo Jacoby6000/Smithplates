@@ -6,7 +6,7 @@ from __future__ import annotations
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel
 
-from ${ctx.service.packageName}.operation_bindings import OperationHttpBinding
+from ${ctx.packageName}.operation_bindings import OperationHttpBinding
 
 
 def dispatch_api_response(
@@ -23,7 +23,7 @@ def _to_http_response(
     *,
     variant: object,
 ) -> Response | RedirectResponse | JSONResponse | BaseModel | None:
-    from ${ctx.service.packageName}.operation_bindings import ResponseVariantBinding
+    from ${ctx.packageName}.operation_bindings import ResponseVariantBinding
 
     if not isinstance(variant, ResponseVariantBinding):
         msg = "Expected ResponseVariantBinding"

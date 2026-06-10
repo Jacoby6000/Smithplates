@@ -1,0 +1,117 @@
+<%
+def operationMethodName(operationName: String): String =
+  snakeCase(operationName)
+
+def apiModuleName(tag: String): String =
+  s"${tag}_api"
+
+def protocolClassName(tag: String): String =
+  tag
+    .split("[_\\-]+")
+    .filter(_.nonEmpty)
+    .map(segment => s"${segment.head.toUpper}${segment.tail}")
+    .mkString + "ApiServiceProtocol"
+
+def routerImportAlias(moduleName: String): String =
+  moduleName
+    .split("_")
+    .filter(_.nonEmpty)
+    .map(segment => s"${segment.head.toUpper}${segment.tail}")
+    .mkString + "Router"
+
+def modelsPackageName(packageName: String): String =
+  s"$packageName.models"
+
+def serviceErrorExceptionName(errorName: String): String =
+  s"${errorName}ApiError"
+
+def serviceErrorHandlerName(errorName: String): String =
+  s"handle_${snakeCase(errorName)}_api_error"
+
+def serviceErrorRegistrationName(errorName: String): String =
+  s"on_${snakeCase(errorName)}_api_error"
+
+def httpMemberPythonType(
+    typeName: String,
+    timestampFormat: Option[com.jacoby6000.smithplates.http.model.HttpTimestampFormat]
+): String =
+  if (typeName == "Timestamp") {
+    timestampFormat match {
+      case Some(com.jacoby6000.smithplates.http.model.HttpTimestampFormat.EpochSeconds) => "float"
+      case Some(com.jacoby6000.smithplates.http.model.HttpTimestampFormat.HttpDate)     => "str"
+      case _                                                                              => "datetime"
+    }
+  } else {
+    pythonTypeName(typeName)
+  }
+
+def httpMemberTypeAnnotation(
+    typeName: String,
+    timestampFormat: Option[com.jacoby6000.smithplates.http.model.HttpTimestampFormat],
+    required: Boolean
+): String =
+  if (required) {
+    httpMemberPythonType(typeName, timestampFormat)
+  } else {
+    s"${httpMemberPythonType(typeName, timestampFormat)} | None"
+  }
+
+def fastapiParameterBinding(
+    member: com.jacoby6000.smithplates.http.model.HttpOperationInputMember
+): String =
+  member.binding match {
+    case _: com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.PathLabel =>
+      if (member.required) {
+        "Path(...)"
+      } else {
+        "Path(None)"
+      }
+    case com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Query(queryName) =>
+      if (member.required) {
+        s"""Query(..., alias="${queryName}")"""
+      } else {
+        s"""Query(None, alias="${queryName}")"""
+      }
+    case com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Header(headerName) =>
+      if (member.required) {
+        s"""Header(..., alias="${headerName}")"""
+      } else {
+        s"""Header(None, alias="${headerName}")"""
+      }
+    case _: com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Payload =>
+      if (member.required) {
+        "Body(...)"
+      } else {
+        "Body(None)"
+      }
+  }
+
+def isRouteParameter(member: com.jacoby6000.smithplates.http.model.HttpOperationInputMember): Boolean =
+  member.binding match {
+    case _: com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Payload => false
+    case _                                                                       => true
+  }
+
+def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val unitShapeId = software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
+  operation.outputShape.filter(_ != unitShapeId).map(_.getName).getOrElse("None")
+}
+
+def operationBindingTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val unitShapeId = software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
+  operation.outputShape.filter(_ != unitShapeId).map(_.getName).getOrElse("__empty__")
+}
+
+def mediaTypeForSerialization(
+    serialization: com.jacoby6000.smithplates.http.model.HttpSerialization
+): String =
+  serialization match {
+    case com.jacoby6000.smithplates.http.model.HttpSerialization.Json => "\"application/json\""
+    case _                                                              => "None"
+  }
+
+def structureMemberPythonType(
+    member: com.jacoby6000.smithplates.http.model.HttpStructureMember
+): String =
+  httpMemberPythonType(member.typeName, member.timestampFormat)
+%>

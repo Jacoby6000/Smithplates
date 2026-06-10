@@ -2,6 +2,23 @@
 
 from __future__ import annotations
 
+from generated.widget_api.models.internal_widget_error import InternalWidgetError
+from generated.widget_api.models.widget_not_found import WidgetNotFound
+
 
 class NotImplementedApiError(Exception):
-    """Raised by stub service code; converted to 501 by unknown-error handlers."""
+    """Raised by stub service code; converted to 501 by fallback API exception handlers."""
+
+
+class WidgetNotFoundApiError(Exception):
+    """Raised for Smithy service error WidgetNotFound."""
+
+    def __init__(self, payload: WidgetNotFound | None = None) -> None:
+        self.payload = payload
+
+
+class InternalWidgetErrorApiError(Exception):
+    """Raised for Smithy service error InternalWidgetError."""
+
+    def __init__(self, payload: InternalWidgetError | None = None) -> None:
+        self.payload = payload

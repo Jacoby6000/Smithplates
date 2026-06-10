@@ -3,6 +3,7 @@ package com.jacoby6000.smithplates.http.service.renderer
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.HttpValidated
 import com.jacoby6000.smithplates.http.model.HttpServiceIr
+import com.jacoby6000.smithplates.http.model.HttpStructure
 import software.amazon.smithy.model.Model
 
 object HttpServiceCodegenRenderer {
@@ -10,42 +11,38 @@ object HttpServiceCodegenRenderer {
       model: Model,
       serviceIr: HttpServiceIr,
       settings: HttpServiceCodegenSettings
-  ): HttpValidated[List[HttpCodegenArtifact]] =
+  ): HttpValidated[List[HttpCodegenArtifact]] = {
+    val _ = model
     serviceIr.services
       .traverse { service =>
-        val context             = HttpCodegenServiceContext.fromService(service, settings.defaultFrameworkKey, settings.packageName)
+        val view                = HttpCodegenTemplateView(service = service, packageName = settings.packageName)
         val configuredArtifacts =
           settings.artifacts
             .traverse { artifactConfig =>
               artifactConfig.scope match {
                 case HttpCodegenArtifactScope.Service         =>
-                  renderArtifact(settings, artifactConfig, HttpCodegenTemplateView(service = context))
+                  renderArtifact(settings, artifactConfig, view)
                 case HttpCodegenArtifactScope.RouteGroup(tag) =>
-                  context.routeGroups.find(_.tag == tag) match {
+                  service.routeGroups.find(_.tag == tag) match {
                     case Some(routeGroup) =>
                       renderArtifact(
                         settings,
                         artifactConfig,
-                        HttpCodegenTemplateView(service = context, routeGroup = Some(routeGroup))
+                        view.copy(routeGroup = Some(routeGroup))
                       )
                     case None             => Nil.validNel
                   }
               }
             }
             .map(_.flatten)
-        configuredArtifacts.andThen { artifacts =>
-          HttpStructureModelAttributes
-            .outputModels(model, HttpServiceIr(services = List(service)))
-            .fold(
-              error => error.invalidNel,
-              outputModels =>
-                outputModels
-                  .traverse(outputModel => renderOutputModelArtifact(settings, outputModel))
-                  .map(modelArtifacts => artifacts ++ modelArtifacts)
-            )
+        configuredArtifacts.map { artifacts =>
+          val structureArtifacts =
+            service.structures.map(structure => renderStructureModelArtifact(settings, structure))
+          artifacts ++ structureArtifacts
         }
       }
       .map(_.flatten)
+  }
 
   private def renderArtifact(
       settings: HttpServiceCodegenSettings,
@@ -55,7 +52,7 @@ object HttpServiceCodegenRenderer {
     val templatePath = resolveTemplatePath(settings, artifactConfig.template)
     val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
     val content      = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
-    val relativePath = resolveOutputPath(settings, artifactConfig, view.service)
+    val relativePath = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
     List(
       HttpCodegenArtifact(
         relativePath = relativePath,
@@ -74,9 +71,11 @@ object HttpServiceCodegenRenderer {
   private def resolveOutputPath(
       settings: HttpServiceCodegenSettings,
       artifactConfig: HttpServiceCodegenArtifactConfig,
-      context: HttpCodegenServiceContext
+      service: com.jacoby6000.smithplates.http.model.HttpService,
+      packageName: String
   ): String = {
-    val renderedOutputFile = HttpCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, context)
+    val renderedOutputFile =
+      HttpCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, service, packageName)
     val prefixedOutputFile =
       artifactConfig.kind match {
         case HttpServiceCodegenArtifactKind.Src  =>
@@ -98,28 +97,29 @@ object HttpServiceCodegenRenderer {
   private def normalizeDirectory(directory: String): String =
     directory.stripSuffix("/")
 
-  private def renderOutputModelArtifact(
+  private def renderStructureModelArtifact(
       settings: HttpServiceCodegenSettings,
-      outputModel: HttpStructureModelAttributes.StructureModelView
-  ): HttpValidated[HttpCodegenArtifact] = {
+      structure: HttpStructure
+  ): HttpCodegenArtifact = {
     val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
     val content      =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
         resolveTemplatePath(settings, "models/structure.ssp"),
-        Map("model" -> outputModel),
+        Map("structure" -> structure),
         Some(templateRoot)
       )
+    val moduleName   = HttpCodegenTemplateAttributes.toSnakeCase(structure.name)
     val relativePath =
       settings.sourceOutputDirectory match {
         case Some(sourceOutputDirectory) =>
-          s"${normalizeDirectory(sourceOutputDirectory)}/api/models/${outputModel.moduleName}.py"
+          s"${normalizeDirectory(sourceOutputDirectory)}/api/models/$moduleName.py"
         case None                        =>
-          s"api/models/${outputModel.moduleName}.py"
+          s"api/models/$moduleName.py"
       }
     HttpCodegenArtifact(
       relativePath = relativePath,
       content = content,
       kind = HttpServiceCodegenArtifactKind.Src
-    ).validNel
+    )
   }
 }

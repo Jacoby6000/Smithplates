@@ -7,11 +7,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from ${ctx.service.packageName}.api_exception_handler import FallbackApiExceptionHandler
-from ${ctx.service.packageName}.api_exceptions import NotImplementedApiError
-from ${ctx.service.packageName}.app_services import ApiServices
+from ${ctx.packageName}.api_exception_handler import FallbackApiExceptionHandler
+from ${ctx.packageName}.api_exceptions import NotImplementedApiError
+<% for (error <- ctx.service.serviceErrors) { %>
+from ${ctx.packageName}.api_exceptions import ${serviceErrorExceptionName(error.name)}
+<% } %>
+from ${ctx.packageName}.app_services import ApiServices
 <% for (routeGroup <- ctx.service.routeGroups) { %>
-from ${ctx.service.packageName}.apis.${routeGroup.apiModuleName} import router as ${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.routerImportAlias(routeGroup.apiModuleName)}
+from ${ctx.packageName}.apis.${apiModuleName(routeGroup.tag)} import router as ${routerImportAlias(apiModuleName(routeGroup.tag))}
 <% } %>
 
 
@@ -25,6 +28,15 @@ def configure_fallback_exception_handlers(
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return await fallback_exception_handler.handle_not_implemented(request, exc)
+<% for (error <- ctx.service.serviceErrors) { %>
+
+    @app.exception_handler(${serviceErrorExceptionName(error.name)})
+    async def ${serviceErrorRegistrationName(error.name)}(
+        request: Request,
+        exc: ${serviceErrorExceptionName(error.name)},
+    ) -> JSONResponse:
+        return await fallback_exception_handler.${serviceErrorHandlerName(error.name)}(request, exc)
+<% } %>
 
     @app.exception_handler(RequestValidationError)
     async def on_validation_error(
@@ -41,7 +53,7 @@ def configure_fallback_exception_handlers(
 def configure_services(app: FastAPI, services: ApiServices) -> None:
     app.state.api_services = services
 <% for (routeGroup <- ctx.service.routeGroups) { %>
-    app.include_router(${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenFastApiAttributes.routerImportAlias(routeGroup.apiModuleName)})
+    app.include_router(${routerImportAlias(apiModuleName(routeGroup.tag))})
 <% } %>
 
 
@@ -50,9 +62,9 @@ def create_app(
     fallback_exception_handler: FallbackApiExceptionHandler,
 ) -> FastAPI:
     app = FastAPI(
-        title=${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.pythonStringLiteral(ctx.service.title.getOrElse(ctx.service.name))},
-        description=${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.pythonOptionalStringLiteral(ctx.service.documentation)},
-        version=${com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateAttributes.pythonStringLiteral(ctx.service.version)},
+        title=${pythonStringLiteral(ctx.service.title.getOrElse(ctx.service.shapeId.getName))},
+        description=${pythonOptionalStringLiteral(ctx.service.documentation)},
+        version=${pythonStringLiteral(ctx.service.version)},
     )
     configure_services(app, services)
     configure_fallback_exception_handlers(app, fallback_exception_handler)

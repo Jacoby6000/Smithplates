@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.plugin
 
+import com.jacoby6000.smithplates.sql.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
@@ -34,7 +35,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(settings.schemaDialectOutputs, Map("postgres" -> "db/postgres.sql"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
-    assertEquals(codegenSettings.templateDirectory, "classpath:")
+    assertEquals(codegenSettings.templateDirectory, PythonTemplateNamespaces.bundledDbTemplateDirectory)
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))

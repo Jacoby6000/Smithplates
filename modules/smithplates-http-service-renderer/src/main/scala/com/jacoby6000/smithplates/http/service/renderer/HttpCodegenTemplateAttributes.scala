@@ -1,31 +1,21 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
+import com.jacoby6000.smithplates.http.model.HttpService
+
 object HttpCodegenTemplateAttributes {
-  def renderOutputPath(pattern: String, context: HttpCodegenServiceContext): String =
+  def renderOutputPath(pattern: String, service: HttpService, packageName: String): String =
     pattern
-      .replace("{{serviceName}}", context.name)
-      .replace("{{serviceClassName}}", context.name)
-      .replace("{{serviceFileName}}", toSnakeCase(context.name))
-      .replace("{{serviceNamespace}}", context.namespace)
-      .replace("{{serviceShapeId}}", context.shapeId.toString)
-      .replace("{{serviceVersion}}", context.version)
-      .replace("{{packageName}}", context.packageName)
+      .replace("{{serviceName}}", service.shapeId.getName)
+      .replace("{{serviceClassName}}", service.shapeId.getName)
+      .replace("{{serviceFileName}}", toSnakeCase(service.shapeId.getName))
+      .replace("{{serviceNamespace}}", service.shapeId.getNamespace)
+      .replace("{{serviceShapeId}}", service.shapeId.toString)
+      .replace("{{serviceVersion}}", service.version)
+      .replace("{{packageName}}", packageName)
 
   def toSnakeCase(value: String): String =
     value
       .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
       .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
       .toLowerCase
-
-  def toOperationSnakeCase(operationName: String): String =
-    operationName
-      .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-      .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
-      .toLowerCase
-
-  def pythonStringLiteral(value: String): String =
-    "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-
-  def pythonOptionalStringLiteral(value: Option[String]): String =
-    value.map(pythonStringLiteral).getOrElse("None")
 }

@@ -70,7 +70,7 @@ object SqlServiceCodegenTemplateBackend {
     apply(
       templateVariant = templateVariant,
       settings = SqlServiceCodegenSettings(
-        templateDirectory = "classpath:",
+        templateDirectory = PythonTemplateNamespaces.bundledDbTemplateDirectory,
         defaultDialectKey = dialectKey,
         enabledDialectKeys = List(dialectKey),
         queryRenderers = Map(dialectKey -> queryRenderer),

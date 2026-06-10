@@ -6,7 +6,11 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from generated.widget_api.api_exception_handler import FallbackApiExceptionHandler
-from generated.widget_api.api_exceptions import NotImplementedApiError
+from generated.widget_api.api_exceptions import (
+    InternalWidgetErrorApiError,
+    NotImplementedApiError,
+    WidgetNotFoundApiError,
+)
 from generated.widget_api.apis.v1_widgets_api import router as V1WidgetsApiRouter
 from generated.widget_api.app_services import ApiServices
 
@@ -21,6 +25,20 @@ def configure_fallback_exception_handlers(
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return await fallback_exception_handler.handle_not_implemented(request, exc)
+
+    @app.exception_handler(WidgetNotFoundApiError)
+    async def on_widget_not_found_api_error(
+        request: Request,
+        exc: WidgetNotFoundApiError,
+    ) -> JSONResponse:
+        return await fallback_exception_handler.handle_widget_not_found_api_error(request, exc)
+
+    @app.exception_handler(InternalWidgetErrorApiError)
+    async def on_internal_widget_error_api_error(
+        request: Request,
+        exc: InternalWidgetErrorApiError,
+    ) -> JSONResponse:
+        return await fallback_exception_handler.handle_internal_widget_error_api_error(request, exc)
 
     @app.exception_handler(RequestValidationError)
     async def on_validation_error(

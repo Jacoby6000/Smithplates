@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
+import com.jacoby6000.smithplates.http.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
@@ -11,7 +12,7 @@ object HttpLanguageTargetTemplateValidator {
 
   def defaultTemplateDirectory(languageId: String): String =
     languageId match {
-      case "python" => "classpath:"
+      case "python" => PythonTemplateNamespaces.bundledHttpTemplateDirectory
       case other    => s"classpath:templates/$other/src/http"
     }
 

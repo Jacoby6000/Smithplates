@@ -57,7 +57,7 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(ir.services.length, 1)
     assertEquals(ir.services.head.routeGroups.map(_.tag), List("v1_widgets"))
     assertEquals(ir.services.head.routeGroups.head.operations.map(_.name), List("GetWidget", "ListWidgets"))
-    assertEquals(ir.services.head.routeGroups.head.apiModuleName, "v1_widgets_api")
+    assertEquals(ir.services.head.routeGroups.head.tag, "v1_widgets")
   }
 
   test("HttpIrExtractor ignores services without @httpService") {
@@ -157,10 +157,10 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(getAsset.inputBoundResource.map(_.getName), Some("Asset"))
     assertEquals(
       getAsset.inputMembers.map(member =>
-        (member.name, member.pythonTypeName, member.resourceIdentifierName, member.binding)),
+        (member.name, member.typeName, member.resourceIdentifierName, member.binding)),
       List(
-        ("projectId", "str", Some("projectId"), HttpInputMemberBinding.PathLabel()),
-        ("assetId", "str", Some("assetId"), HttpInputMemberBinding.PathLabel())
+        ("projectId", "String", Some("projectId"), HttpInputMemberBinding.PathLabel()),
+        ("assetId", "String", Some("assetId"), HttpInputMemberBinding.PathLabel())
       )
     )
   }
@@ -215,7 +215,7 @@ class HttpIrExtractorSpec extends FunSuite {
     assert(error.getMessage.contains("assetId"))
   }
 
-  test("HttpIrExtractor resolves @timestampFormat into HTTP member python types") {
+  test("HttpIrExtractor resolves @timestampFormat into neutral member types") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -260,13 +260,12 @@ class HttpIrExtractorSpec extends FunSuite {
 
     val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
     assertEquals(
-      operation.inputMembers.map(member =>
-        (member.name, member.pythonTypeName, member.timestampFormat, member.binding)),
+      operation.inputMembers.map(member => (member.name, member.typeName, member.timestampFormat, member.binding)),
       List(
-        ("since", "float", Some(HttpTimestampFormat.EpochSeconds), HttpInputMemberBinding.Query("since")),
+        ("since", "Timestamp", Some(HttpTimestampFormat.EpochSeconds), HttpInputMemberBinding.Query("since")),
         (
           "ifModifiedSince",
-          "str",
+          "Timestamp",
           Some(HttpTimestampFormat.HttpDate),
           HttpInputMemberBinding.Header("If-Modified-Since")
         )
@@ -340,5 +339,101 @@ class HttpIrExtractorSpec extends FunSuite {
 
     val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
     assert(error.getMessage.contains("serialization"))
+  }
+
+  test("HttpIrExtractor extracts service-level errors with @httpError status codes") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@error("client")
+          |@httpError(404)
+          |structure WidgetNotFound {
+          |    @required
+          |    message: String
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.serviceErrors.map(error => (error.name, error.statusCode)), List(("WidgetNotFound", 404)))
+  }
+
+  test("HttpIrExtractor rejects service errors without @httpError") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@error("client")
+          |structure WidgetNotFound {
+          |    @required
+          |    message: String
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
+    assert(error.getMessage.contains("@httpError"))
   }
 }

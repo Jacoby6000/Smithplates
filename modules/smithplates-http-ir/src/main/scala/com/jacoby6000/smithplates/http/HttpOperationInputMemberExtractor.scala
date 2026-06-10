@@ -122,8 +122,7 @@ private[http] object HttpOperationInputMemberExtractor {
       HttpOperationInputMember(
         name = memberName,
         targetShape = member.getTarget,
-        smithyTypeName = memberType.smithyTypeName,
-        pythonTypeName = memberType.pythonTypeName,
+        typeName = memberType.typeName,
         timestampFormat = memberType.timestampFormat,
         required = member.requiredMember,
         binding = binding,

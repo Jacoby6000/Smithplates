@@ -17,8 +17,7 @@ object HttpInputMemberBinding {
 final case class HttpOperationInputMember(
     name: String,
     targetShape: ShapeId,
-    smithyTypeName: String,
-    pythonTypeName: String,
+    typeName: String,
     timestampFormat: Option[HttpTimestampFormat],
     required: Boolean,
     binding: HttpInputMemberBinding,

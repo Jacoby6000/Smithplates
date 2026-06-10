@@ -10,9 +10,13 @@ from typing import Protocol
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
-from ${ctx.service.modelsPackageName}.problem import Problem
-from ${ctx.service.packageName}.api_exceptions import NotImplementedApiError
+from ${modelsPackageName(ctx.packageName)}.problem import Problem
+from ${ctx.packageName}.api_exceptions import NotImplementedApiError
+<% for (error <- ctx.service.serviceErrors) { %>
+from ${ctx.packageName}.api_exceptions import ${serviceErrorExceptionName(error.name)}
+<% } %>
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,6 +27,14 @@ class FallbackApiExceptionHandler(Protocol):
         request: Request,
         exc: NotImplementedApiError,
     ) -> JSONResponse: ...
+<% for (error <- ctx.service.serviceErrors) { %>
+
+    async def ${serviceErrorHandlerName(error.name)}(
+        self,
+        request: Request,
+        exc: ${serviceErrorExceptionName(error.name)},
+    ) -> JSONResponse: ...
+<% } %>
 
     async def handle_validation_error(
         self,
@@ -45,6 +57,14 @@ def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
     )
 
 
+def service_error_json_response(
+    status_code: int,
+    payload: BaseModel | None,
+) -> JSONResponse:
+    content = payload.model_dump(mode="json", exclude_none=True) if payload is not None else {}
+    return JSONResponse(status_code=status_code, content=content)
+
+
 class DefaultFallbackApiExceptionHandler:
     async def handle_not_implemented(
         self,
@@ -52,6 +72,15 @@ class DefaultFallbackApiExceptionHandler:
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return problem_json_response(501, Problem(title="Not implemented"))
+<% for (error <- ctx.service.serviceErrors) { %>
+
+    async def ${serviceErrorHandlerName(error.name)}(
+        self,
+        request: Request,
+        exc: ${serviceErrorExceptionName(error.name)},
+    ) -> JSONResponse:
+        return service_error_json_response(${error.statusCode}, exc.payload)
+<% } %>
 
     async def handle_validation_error(
         self,

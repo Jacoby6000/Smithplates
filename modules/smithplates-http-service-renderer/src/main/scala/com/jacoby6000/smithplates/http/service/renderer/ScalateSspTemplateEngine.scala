@@ -1,5 +1,7 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
+import com.jacoby6000.smithplates.http.model.HttpRouteGroup
+import com.jacoby6000.smithplates.http.model.HttpStructure
 import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateEngine
 
@@ -8,7 +10,13 @@ import java.io.PrintStream
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
-  private val compiledTemplateCache = new ConcurrentHashMap[String, Template]()
+  private val compiledTemplateCache                                          = new ConcurrentHashMap[String, Template]()
+  private def contextBindingPreamble(normalizedTemplateRoot: String): String =
+    readClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("") +
+      readClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot)).getOrElse("")
+
+  private def readClasspathTemplate(resourcePath: String): Option[String] =
+    readClasspathTemplateOptional(normalizeResourcePath(resourcePath))
 
   def renderClasspathTemplate(
       templateClasspath: String,
@@ -81,9 +89,22 @@ object ScalateSspTemplateEngine {
     created.allowCaching = true
     created.allowReload = false
     created.escapeMarkup = false
-    created.resourceLoader = new TemplateRootResourceLoader(getClass.getClassLoader, normalizedTemplateRoot)
+    created.resourceLoader = new PreambleTemplateRootResourceLoader(
+      getClass.getClassLoader,
+      normalizedTemplateRoot,
+      contextBindingPreamble(normalizedTemplateRoot)
+    )
     created
   }
+
+  private def readClasspathTemplateOptional(resourcePath: String): Option[String] =
+    Option(getClass.getResourceAsStream(normalizeResourcePath(resourcePath))).map { stream =>
+      try readStream(stream)
+      finally stream.close()
+    }
+
+  private def readStream(stream: java.io.InputStream): String =
+    scala.io.Source.fromInputStream(stream, "UTF-8").mkString
 
   private def normalizeClasspathUri(templateClasspath: String): String =
     templateClasspath.stripPrefix("classpath:")
@@ -95,6 +116,8 @@ object ScalateSspTemplateEngine {
     val normalized = normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
+      case "python" :: "src" :: feature :: _               =>
+        s"python/src/$feature"
       case "templates" :: language :: "src" :: "http" :: _ =>
         s"templates/$language/src/http"
       case _ if segments.length >= 2                       =>
@@ -141,13 +164,12 @@ object ScalateSspTemplateEngine {
   private def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
     attributes.map { case (key, value) =>
       key -> (value match {
-        case view: HttpCodegenTemplateView                                   => view.asInstanceOf[Object]
-        case routeGroup: HttpCodegenRouteGroupContext                        => routeGroup.asInstanceOf[Object]
-        case operation: com.jacoby6000.smithplates.http.model.HttpOperation  =>
+        case view: HttpCodegenTemplateView                                  => view.asInstanceOf[Object]
+        case routeGroup: HttpRouteGroup                                     => routeGroup.asInstanceOf[Object]
+        case operation: com.jacoby6000.smithplates.http.model.HttpOperation =>
           operation.asInstanceOf[Object]
-        case structureModel: HttpStructureModelAttributes.StructureModelView =>
-          structureModel.asInstanceOf[Object]
-        case other                                                           => other.asInstanceOf[Object]
+        case structure: HttpStructure                                       => structure.asInstanceOf[Object]
+        case other                                                          => other.asInstanceOf[Object]
       })
     }
 }

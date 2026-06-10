@@ -6,15 +6,35 @@ final case class HttpServiceIr(
     services: List[HttpService]
 )
 
+final case class HttpServiceError(
+    shapeId: ShapeId,
+    name: String,
+    statusCode: Int
+)
+
+final case class HttpStructureMember(
+    name: String,
+    typeName: String,
+    required: Boolean,
+    timestampFormat: Option[HttpTimestampFormat]
+)
+
+final case class HttpStructure(
+    shapeId: ShapeId,
+    name: String,
+    members: List[HttpStructureMember]
+)
+
 final case class HttpService(
     shapeId: ShapeId,
     version: String,
     serialization: HttpSerialization,
     title: Option[String],
     documentation: Option[String],
-    serviceErrors: List[ShapeId],
+    serviceErrors: List[HttpServiceError],
     resources: List[HttpResource],
-    routeGroups: List[HttpRouteGroup]
+    routeGroups: List[HttpRouteGroup],
+    structures: List[HttpStructure]
 )
 
 final case class HttpResource(
@@ -32,8 +52,6 @@ final case class HttpResource(
 
 final case class HttpRouteGroup(
     tag: String,
-    apiModuleName: String,
-    protocolClassName: String,
     operations: List[HttpOperation]
 )
 

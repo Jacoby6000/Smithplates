@@ -9,8 +9,13 @@ from typing import Protocol
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from generated.widget_api.api_exceptions import NotImplementedApiError
+from generated.widget_api.api_exceptions import (
+    InternalWidgetErrorApiError,
+    NotImplementedApiError,
+    WidgetNotFoundApiError,
+)
 from generated.widget_api.models.problem import Problem
+from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,6 +25,18 @@ class FallbackApiExceptionHandler(Protocol):
         self,
         request: Request,
         exc: NotImplementedApiError,
+    ) -> JSONResponse: ...
+
+    async def handle_widget_not_found_api_error(
+        self,
+        request: Request,
+        exc: WidgetNotFoundApiError,
+    ) -> JSONResponse: ...
+
+    async def handle_internal_widget_error_api_error(
+        self,
+        request: Request,
+        exc: InternalWidgetErrorApiError,
     ) -> JSONResponse: ...
 
     async def handle_validation_error(
@@ -43,6 +60,14 @@ def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
     )
 
 
+def service_error_json_response(
+    status_code: int,
+    payload: BaseModel | None,
+) -> JSONResponse:
+    content = payload.model_dump(mode="json", exclude_none=True) if payload is not None else {}
+    return JSONResponse(status_code=status_code, content=content)
+
+
 class DefaultFallbackApiExceptionHandler:
     async def handle_not_implemented(
         self,
@@ -50,6 +75,20 @@ class DefaultFallbackApiExceptionHandler:
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return problem_json_response(501, Problem(title="Not implemented"))
+
+    async def handle_widget_not_found_api_error(
+        self,
+        request: Request,
+        exc: WidgetNotFoundApiError,
+    ) -> JSONResponse:
+        return service_error_json_response(404, exc.payload)
+
+    async def handle_internal_widget_error_api_error(
+        self,
+        request: Request,
+        exc: InternalWidgetErrorApiError,
+    ) -> JSONResponse:
+        return service_error_json_response(500, exc.payload)
 
     async def handle_validation_error(
         self,

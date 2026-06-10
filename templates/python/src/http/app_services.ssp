@@ -8,14 +8,14 @@ from dataclasses import dataclass
 from fastapi import HTTPException, Request
 
 <% for (routeGroup <- ctx.service.routeGroups) { %>
-from ${ctx.service.packageName}.apis.${routeGroup.apiModuleName}_base import ${routeGroup.protocolClassName}
+from ${ctx.packageName}.apis.${apiModuleName(routeGroup.tag)}_base import ${protocolClassName(routeGroup.tag)}
 <% } %>
 
 
 @dataclass(frozen=True)
 class ApiServices:
 <% for (routeGroup <- ctx.service.routeGroups) { %>
-    ${routeGroup.apiModuleName}: ${routeGroup.protocolClassName}
+    ${apiModuleName(routeGroup.tag)}: ${protocolClassName(routeGroup.tag)}
 <% } %>
 
 

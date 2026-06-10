@@ -70,7 +70,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     val schema   = SqlModelExtractor.extractOrThrow(model)
     val settings =
       SqlServiceCodegenSettings(
-        templateDirectory = "classpath:",
+        templateDirectory = PythonTemplateNamespaces.bundledDbTemplateDirectory,
         defaultDialectKey = "sqlite",
         enabledDialectKeys = List("sqlite", "postgres"),
         queryRenderers = Map(
