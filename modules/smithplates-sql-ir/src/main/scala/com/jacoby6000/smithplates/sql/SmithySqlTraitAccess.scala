@@ -1,6 +1,5 @@
 package com.jacoby6000.smithplates.sql
 
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 import com.jacoby6000.smithplates.sql.traits.SqlAutoUuidTrait
 import com.jacoby6000.smithplates.sql.traits.SqlColumnIndexTrait
 import com.jacoby6000.smithplates.sql.traits.SqlColumnTrait
@@ -109,7 +108,7 @@ private[sql] object SmithySqlTraitAccess {
 
     def sqlColumnName(memberName: String): String =
       member.sqlColumn
-        .flatMap(traitValue => SqlShared.trimmedNonEmpty(traitValue.getName.toScala))
+        .flatMap(traitValue => SqlText.trimmedNonEmpty(traitValue.getName.toScala))
         .getOrElse(memberName)
   }
 }

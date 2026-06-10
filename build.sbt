@@ -81,8 +81,20 @@ lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-ser
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithplatesSqlDdlRendererCommon = (project in file("modules/smithplates-sql-ddl-renderer-common"))
+  .dependsOn(smithplatesSqlIr)
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-sql-ddl-renderer-common",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
 lazy val smithplatesSqlDdlRendererPostgres = (project in file("modules/smithplates-sql-ddl-renderer-postgres"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
+  .dependsOn(smithplatesSqlDdlRendererCommon, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -94,7 +106,7 @@ lazy val smithplatesSqlDdlRendererPostgres = (project in file("modules/smithplat
   )
 
 lazy val smithplatesSqlDdlRendererSqlite = (project in file("modules/smithplates-sql-ddl-renderer-sqlite"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
+  .dependsOn(smithplatesSqlDdlRendererCommon, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -106,7 +118,7 @@ lazy val smithplatesSqlDdlRendererSqlite = (project in file("modules/smithplates
   )
 
 lazy val smithplatesSqlServiceQueryRenderer = (project in file("modules/smithplates-sql-service-query-renderer"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr)
+  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr, smithplatesSqlDdlRendererCommon)
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -117,10 +129,29 @@ lazy val smithplatesSqlServiceQueryRenderer = (project in file("modules/smithpla
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithplatesSqlServiceQueryRendererCommon = (project in file(
+  "modules/smithplates-sql-service-query-renderer-common"
+))
+  .dependsOn(smithplatesSqlServiceQueryRenderer, smithplatesSqlIr, smithplatesSqlServiceIr)
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-sql-service-query-renderer-common",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += catsCoreDependency
+  )
+
 lazy val smithplatesSqlServiceQueryRendererPostgres = (project in file(
   "modules/smithplates-sql-service-query-renderer-postgres"
 ))
-  .dependsOn(smithplatesSqlServiceQueryRenderer, smithplatesSqlServiceQueryRenderer % "test->test", smithplatesSqlIr % "test->test", smithplatesSqlServiceIr % "test->test")
+  .dependsOn(
+    smithplatesSqlServiceQueryRenderer,
+    smithplatesSqlServiceQueryRendererCommon,
+    smithplatesSqlServiceQueryRenderer % "test->test",
+    smithplatesSqlIr % "test->test",
+    smithplatesSqlServiceIr % "test->test"
+  )
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -134,7 +165,13 @@ lazy val smithplatesSqlServiceQueryRendererPostgres = (project in file(
 lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
   "modules/smithplates-sql-service-query-renderer-sqlite"
 ))
-  .dependsOn(smithplatesSqlServiceQueryRenderer, smithplatesSqlServiceQueryRenderer % "test->test", smithplatesSqlIr % "test->test", smithplatesSqlServiceIr % "test->test")
+  .dependsOn(
+    smithplatesSqlServiceQueryRenderer,
+    smithplatesSqlServiceQueryRendererCommon,
+    smithplatesSqlServiceQueryRenderer % "test->test",
+    smithplatesSqlIr % "test->test",
+    smithplatesSqlServiceIr % "test->test"
+  )
   .settings(
     strictScala3Settings,
     unpublishedModuleSettings,
@@ -218,7 +255,7 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   )
 
 lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr)
+  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr, smithplatesSqlDdlRendererCommon)
   .settings(
     strictScala3Settings,
     withCatsEffect,
@@ -277,10 +314,12 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesSqlIr,
+    smithplatesSqlDdlRendererCommon,
     smithplatesSqlServiceIr,
     smithplatesSqlDdlRendererPostgres,
     smithplatesSqlDdlRendererSqlite,
     smithplatesSqlServiceQueryRenderer,
+    smithplatesSqlServiceQueryRendererCommon,
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,

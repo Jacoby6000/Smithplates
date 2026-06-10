@@ -3,7 +3,6 @@ package com.jacoby6000.smithplates.sql
 import cats.data.Validated
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.ShapeId
@@ -135,7 +134,7 @@ object SqlIrExtractor {
       unique: Boolean
   ): SqlIndex =
     SqlIndex(
-      name = SqlShared.trimmedNonEmpty(name),
+      name = SqlText.trimmedNonEmpty(name),
       columns = List(member.sqlColumnName(memberName)),
       unique = unique
     )
@@ -145,7 +144,7 @@ object SqlIrExtractor {
 
   private def requireTableName(structure: StructureShape): SqlValidated[String] =
     structure.sqlTable
-      .flatMap(tableTrait => SqlShared.trimmedNonEmpty(tableTrait.getName))
+      .flatMap(tableTrait => SqlText.trimmedNonEmpty(tableTrait.getName))
       .map(SqlValidated.valid)
       .getOrElse(SqlValidated.invalid(MissingSqlTableName(structure.getId)))
 
@@ -194,7 +193,7 @@ object SqlIrExtractor {
   ): Option[Either[UnsupportedColumnType, SqlColumnType]] =
     parseShapeId(foreignKeyTrait.getReferences).toOption.flatMap { targetId =>
       lookupSqlTableStructure(model, targetId).flatMap { targetStructure =>
-        val referencesColumn = SqlShared.trimmedNonEmpty(foreignKeyTrait.getColumn.toScala) match {
+        val referencesColumn = SqlText.trimmedNonEmpty(foreignKeyTrait.getColumn.toScala) match {
           case Some(column) => Some(column)
           case None         => solePrimaryKeyColumnName(targetStructure).toOption
         }
@@ -220,7 +219,7 @@ object SqlIrExtractor {
     for {
       targetId         <- parseShapeId(reference).left.map(_ => invalidReference)
       targetStructure  <- lookupSqlTableStructure(model, targetId).toRight(invalidReference)
-      referencesColumn <- SqlShared.trimmedNonEmpty(explicitColumn) match {
+      referencesColumn <- SqlText.trimmedNonEmpty(explicitColumn) match {
                             case Some(column) => Right(column)
                             case None         => solePrimaryKeyColumnName(targetStructure)
                           }
@@ -252,7 +251,7 @@ object SqlIrExtractor {
           MissingPrimaryKey(
             structure.getId,
             structure.sqlTable
-              .flatMap(tableTrait => SqlShared.trimmedNonEmpty(tableTrait.getName))
+              .flatMap(tableTrait => SqlText.trimmedNonEmpty(tableTrait.getName))
               .getOrElse(structure.getId.getName)
           )
         )

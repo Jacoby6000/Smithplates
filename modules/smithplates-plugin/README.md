@@ -156,9 +156,9 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 | `com.jacoby6000.smithplates.sql` | `SqlValidated` (`ValidatedNel[SqlSchemaError, *]`), schema IR extraction, table traits |
 | `com.jacoby6000.smithplates.sql.traits` | Schema trait `TraitService` implementations (`smithplates-sql-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors, query rendering (`smithplates-sql-service-ir`) |
-| `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithplates-sql-ir`) |
+| `com.jacoby6000.smithplates.sql.ddl.renderer.common` | `SqlSchemaDdlRenderer` (schema DDL); dialect renderers implement this (`smithplates-sql-ddl-renderer-common`) |
 | `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
-| `com.jacoby6000.smithplates.sql.shared` | `SqlShared` (DDL rendering, enums, column lines), `SqlTableTree` (FK order), `DDLStatement` (schema DDL artifacts keyed by Smithy shape id) |
+| `com.jacoby6000.smithplates.sql.ddl.renderer.common` | `SqlShared` (DDL rendering, enums, column lines); `SqlTableTree` (FK order) and `DDLStatement` (schema DDL artifacts) live in `smithplates-sql-ir` (`sql`, `sql.model`) |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
 | `com.jacoby6000.smithplates.sql.service.codegen` | Resolved operation queries (`SqlOperationQueryResolver`, `smithplates-sql-service-ir`) |
@@ -171,7 +171,7 @@ Docker-backed schema-path integration tests (SQL IR → dialect DDL → real dat
 
 ## Schema DDL export
 
-The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
+The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
 
 ## SQL database service codegen
 

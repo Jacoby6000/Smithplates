@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.query.renderer
+package com.jacoby6000.smithplates.sql.service.query.renderer.common
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
@@ -11,6 +11,8 @@ import com.jacoby6000.smithplates.sql.service.SqlSelectOneQuery
 import com.jacoby6000.smithplates.sql.service.SqlSelectQuery
 import com.jacoby6000.smithplates.sql.service.SqlSortDirection
 import com.jacoby6000.smithplates.sql.service.SqlUpdateQuery
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQuerySegmentBuilder
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlRenderedQuery
 
 /** Dialect-neutral query rendering with dialect-specific timestamp assignments injected by implementations. */
 private[query] object SqlQueryRendering {

@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql.ddl.renderer.common
 
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.SqlSchema

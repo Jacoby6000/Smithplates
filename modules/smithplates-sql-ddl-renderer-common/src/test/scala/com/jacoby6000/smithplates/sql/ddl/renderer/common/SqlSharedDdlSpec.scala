@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql.ddl.renderer.common
 
 import munit.FunSuite
 

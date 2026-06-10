@@ -17,9 +17,11 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | SBT project | Directory | Maven coordinate | Role |
 |-------------|-----------|------------------|------|
 | `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin:0.1.0` | Published `smithplates` build plugin (orchestration only) |
-| `smithplatesSqlIr` | [`modules/smithplates-sql-ir/`](../../modules/smithplates-sql-ir/) | — | Schema IR, table extraction, shared DDL primitives |
+| `smithplatesSqlIr` | [`modules/smithplates-sql-ir/`](../../modules/smithplates-sql-ir/) | — | Schema IR, table extraction |
+| `smithplatesSqlDdlRendererCommon` | [`modules/smithplates-sql-ddl-renderer-common/`](../../modules/smithplates-sql-ddl-renderer-common/) | — | Shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) |
 | `smithplatesSqlServiceIr` | [`modules/smithplates-sql-service-ir/`](../../modules/smithplates-sql-service-ir/) | — | Query/service IR, extractors |
-| `smithplatesSqlServiceQueryRenderer` | [`modules/smithplates-sql-service-query-renderer/`](../../modules/smithplates-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, dialect-neutral query rendering |
+| `smithplatesSqlServiceQueryRenderer` | [`modules/smithplates-sql-service-query-renderer/`](../../modules/smithplates-sql-service-query-renderer/) | — | `SqlQueryRenderer` trait, parameterized statements, query output types |
+| `smithplatesSqlServiceQueryRendererCommon` | [`modules/smithplates-sql-service-query-renderer-common/`](../../modules/smithplates-sql-service-query-renderer-common/) | — | Shared dialect-neutral query rendering (`SqlQueryRendering`) |
 | `smithplatesSqlServiceQueryRendererPostgres` | [`modules/smithplates-sql-service-query-renderer-postgres/`](../../modules/smithplates-sql-service-query-renderer-postgres/) | — | Postgres `SqlQueryRenderer` |
 | `smithplatesSqlServiceQueryRendererSqlite` | [`modules/smithplates-sql-service-query-renderer-sqlite/`](../../modules/smithplates-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
 | `smithplatesSqlDdlRendererPostgres` | [`modules/smithplates-sql-ddl-renderer-postgres/`](../../modules/smithplates-sql-ddl-renderer-postgres/) | — | Postgres DDL renderer |

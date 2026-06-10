@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.sql.ddl.renderer.postgres
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 

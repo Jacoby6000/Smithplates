@@ -86,10 +86,12 @@ Consumer configuration is documented in [Integration](../usage/integration.md): 
 ```
 modules/smithplates-plugin (published)
     ├── smithplates-sql-ir
+    ├── smithplates-sql-ddl-renderer-common
     ├── smithplates-sql-service-ir
     ├── smithplates-sql-ddl-renderer-postgres
     ├── smithplates-sql-ddl-renderer-sqlite
     ├── smithplates-sql-service-query-renderer
+    ├── smithplates-sql-service-query-renderer-common
     ├── smithplates-sql-service-query-renderer-postgres
     ├── smithplates-sql-service-query-renderer-sqlite
     └── smithplates-sql-service-renderer
@@ -99,11 +101,13 @@ modules/smithplates-testkit (library)
     └── smithplates-sql-ddl-renderer-sqlite-it (test)
 ```
 
-- **smithplates-sql-ir** — schema ADTs, table extraction, shared DDL primitives; Smithy trait IDL and Java `TraitService` SPI.
+- **smithplates-sql-ir** — schema ADTs, table extraction; Smithy trait IDL and Java `TraitService` SPI.
+- **smithplates-sql-ddl-renderer-common** — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`).
 - **smithplates-sql-service-ir** — query and service IR, extractors.
-- **smithplates-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering.
+- **smithplates-sql-service-query-renderer** — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query output types.
+- **smithplates-sql-service-query-renderer-common** — shared dialect-neutral query rendering (`SqlQueryRendering`).
 - **smithplates-sql-service-query-renderer-postgres** / **smithplates-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
-- **smithplates-sql-ddl-renderer-sqlite** / **smithplates-sql-ddl-renderer-postgres** — dialect schema DDL (`SqlSchemaDdlRenderer`); no service-IR dependency.
+- **smithplates-sql-ddl-renderer-sqlite** / **smithplates-sql-ddl-renderer-postgres** — dialect schema DDL (`SqlSchemaDdlRenderer`); depend on `smithplates-sql-ddl-renderer-common`; no service-IR dependency.
 - **smithplates-sql-service-renderer** — Mustache codegen; Python-specific logic in `codegen.python`; compile depends on query-renderer base only.
 - **smithplates-plugin** — thin orchestration; only published Maven artifact (`com.jacoby6000:smithplates-plugin`).
 - **smithplates-testkit** — shared Smithy fixtures and JDBC DDL helpers in `src/main`.
@@ -135,8 +139,9 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | `com.jacoby6000.smithplates.sql.service` | Service/query IR, extractors |
 | `com.jacoby6000.smithplates.sql.service.traits` | Query/service trait `TraitService` implementations (`smithplates-sql-service-ir`, SPI-registered) |
 | `com.jacoby6000.smithplates.sql.service.query.renderer` | `SqlQueryRenderer`, `SqlParameterizedStatement`, `SqlRenderedQuery`, `SqlQueryRenderOutput` |
+| `com.jacoby6000.smithplates.sql.service.query.renderer.common` | `SqlQueryRendering` (dialect-neutral query unit rendering) |
 | `com.jacoby6000.smithplates.sql.service.query.renderer.postgres` / `.sqlite` | Dialect `SqlQueryRenderer` implementations |
-| `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer`, `DDLStatement`, DDL rendering, FK ordering |
+| `com.jacoby6000.smithplates.sql.ddl.renderer.common` | `SqlSchemaDdlRenderer`, `SqlShared`, DDL rendering (`smithplates-sql-ddl-renderer-common`) |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
 | `com.jacoby6000.smithplates.sql.service.codegen` | Resolved operation queries (`SqlOperationQueryResolver`, `smithplates-sql-service-ir`) |

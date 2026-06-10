@@ -2,8 +2,8 @@ package com.jacoby6000.smithplates.sql.service.query.renderer
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 
 /** SQL with bind parameters implied between consecutive segments. */
 final case class SqlParameterizedStatement(segments: List[String]) {

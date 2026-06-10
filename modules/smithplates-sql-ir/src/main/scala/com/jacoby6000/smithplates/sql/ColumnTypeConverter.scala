@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.sql
 
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.Shape
@@ -103,13 +102,13 @@ object SmithyColumnTypeConverter extends ColumnTypeConverter {
   private def stringEnumColumnType(enumShape: software.amazon.smithy.model.shapes.EnumShape): SqlColumnType =
     SqlColumnType.StringEnum(
       enumShape.getId,
-      SqlShared.enumTypeName(enumShape.getId),
+      SqlText.enumTypeName(enumShape.getId),
       enumShape.getEnumValues.asScala.toList.sortBy(_._1).map(_._2)
     )
 
   private def intEnumColumnType(intEnumShape: software.amazon.smithy.model.shapes.IntEnumShape): SqlColumnType =
     SqlColumnType.IntEnum(
-      SqlShared.enumTypeName(intEnumShape.getId),
+      SqlText.enumTypeName(intEnumShape.getId),
       intEnumShape.getEnumValues.asScala.toList.sortBy(_._1).map(_._2.intValue())
     )
 

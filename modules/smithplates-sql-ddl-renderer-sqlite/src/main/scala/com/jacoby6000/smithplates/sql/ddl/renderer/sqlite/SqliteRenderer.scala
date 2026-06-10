@@ -1,9 +1,9 @@
 package com.jacoby6000.smithplates.sql.ddl.renderer.sqlite
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 
 object SqliteRenderer extends SqlSchemaDdlRenderer {
   override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {

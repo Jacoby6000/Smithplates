@@ -3,7 +3,6 @@ package com.jacoby6000.smithplates.sql.service
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.shapes.StructureShape
@@ -170,7 +169,7 @@ private[service] object SqlSelectJoinResolver {
       targetStructure: StructureShape,
       explicitColumn: Option[String]
   ): Option[String] =
-    SqlShared.trimmedNonEmpty(explicitColumn) match {
+    SqlText.trimmedNonEmpty(explicitColumn) match {
       case Some(column) => Some(column)
       case None         =>
         SqlTableMemberCatalog

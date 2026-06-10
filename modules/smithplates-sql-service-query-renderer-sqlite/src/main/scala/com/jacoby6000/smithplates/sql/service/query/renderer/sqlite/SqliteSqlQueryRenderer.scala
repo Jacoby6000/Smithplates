@@ -4,6 +4,7 @@ import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
 import com.jacoby6000.smithplates.sql.service.SqlQueries
 import com.jacoby6000.smithplates.sql.service.query.renderer.*
+import com.jacoby6000.smithplates.sql.service.query.renderer.common.SqlQueryRendering
 
 final class SqliteSqlQueryRenderer(
     val migrationBindPlaceholder: SqlBindPlaceholder,

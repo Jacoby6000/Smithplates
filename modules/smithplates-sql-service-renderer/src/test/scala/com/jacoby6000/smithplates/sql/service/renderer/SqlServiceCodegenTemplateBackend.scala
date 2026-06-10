@@ -4,6 +4,7 @@ import com.jacoby6000.smithplates.codegentest.CodegenTemplateBackend
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestCase
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateVariant
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
@@ -11,7 +12,6 @@ import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
-import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
 import software.amazon.smithy.model.Model
 
 object SqlServiceCodegenTemplateBackend {

@@ -1,10 +1,10 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.sql.*
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.service.SqlQueries
-import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
-import com.jacoby6000.smithplates.sql.shared.SqlShared
 
 object SqlCodegenIntegrationTestBuilder {
   private enum SampleVariant {

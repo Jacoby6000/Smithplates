@@ -1,6 +1,7 @@
-package com.jacoby6000.smithplates.sql.shared
+package com.jacoby6000.smithplates.sql.ddl.renderer.common
 
 import com.jacoby6000.smithplates.sql.SqlTableTree
+import com.jacoby6000.smithplates.sql.SqlText
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.NoSqlTables
 import com.jacoby6000.smithplates.sql.model.SqlColumn
@@ -18,10 +19,10 @@ object SqlShared {
     }
 
   def trimmedNonEmpty(text: String): Option[String] =
-    Option(text).filter(_.trim.nonEmpty)
+    SqlText.trimmedNonEmpty(text)
 
   def trimmedNonEmpty(opt: Option[String]): Option[String] =
-    opt.filter(_.trim.nonEmpty)
+    SqlText.trimmedNonEmpty(opt)
 
   def formatDdlStatements(statements: List[DDLStatement]): String =
     statements.map(_.formatted).filter(_.nonEmpty).mkString(StatementSeparator)
@@ -120,10 +121,8 @@ object SqlShared {
       case _                               => None
     }
 
-  def enumTypeName(shapeId: ShapeId): String = {
-    val namespace = shapeId.getNamespace.replace('.', '_').replace('-', '_')
-    s"${namespace}_${shapeId.getName}".toLowerCase
-  }
+  def enumTypeName(shapeId: ShapeId): String =
+    SqlText.enumTypeName(shapeId)
 
   // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows millisecond fractional seconds;
   //                                                  DECIMAL(13, 3) stores whole seconds plus millis.

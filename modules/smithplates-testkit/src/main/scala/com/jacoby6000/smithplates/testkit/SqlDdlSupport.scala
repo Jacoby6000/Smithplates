@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.testkit
 
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.SqlSchema
-import com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer
 
 import java.sql.Connection
 import scala.util.Try

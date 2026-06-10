@@ -14,11 +14,13 @@
 * Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:
-  * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`), shared DDL primitives; `SqlTableTree` / `SqlTableMemberOrdering` live in `sql`
+  * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`); `SqlTableTree` / `SqlTableMemberOrdering` / `SqlText` live in `sql`
+  * `smithplates-sql-ddl-renderer-common` — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) under `sql.ddl.renderer.common`
   * `smithplates-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors
-  * `smithplates-sql-service-query-renderer` — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query rendering
+  * `smithplates-sql-service-query-renderer` — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query output types
+  * `smithplates-sql-service-query-renderer-common` — shared dialect-neutral query rendering (`SqlQueryRendering`) under `sql.service.query.renderer.common`
   * `smithplates-sql-service-query-renderer-postgres` / `smithplates-sql-service-query-renderer-sqlite` — dialect `SqlQueryRenderer` implementations
-  * `smithplates-sql-ddl-renderer-sqlite` / `smithplates-sql-ddl-renderer-postgres` — dialect schema DDL only (`SqlSchemaDdlRenderer`); depend on `smithplates-sql-ir` only
+  * `smithplates-sql-ddl-renderer-sqlite` / `smithplates-sql-ddl-renderer-postgres` — dialect schema DDL only (`SqlSchemaDdlRenderer`); depend on `smithplates-sql-ir` and `smithplates-sql-ddl-renderer-common`
   * `smithplates-sql-service-renderer` — Scalate SSP rendering and language-neutral template attributes in `codegen` (type/bind metadata only; rendering lives in templates); bundled Python SSP sources live under [`templates/python/src/db/`](templates/python/src/db/) and are packaged as compile resources; compile depends on query-renderer base only
   * `smithplates-plugin` — thin Smithy build plugin; wires DDL and query renderers; **only published** artifact (`com.jacoby6000:smithplates-plugin`)
   * `smithplates-testkit`, `smithplates-sql-ddl-renderer-postgres-it`, `smithplates-sql-ddl-renderer-sqlite-it` — testkit + dialect integration tests

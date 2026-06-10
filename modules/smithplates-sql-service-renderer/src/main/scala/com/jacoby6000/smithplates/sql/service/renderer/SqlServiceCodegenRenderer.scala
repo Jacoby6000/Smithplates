@@ -19,7 +19,7 @@ final case class SqlServiceCodegenSettings(
     defaultDialectKey: String,
     enabledDialectKeys: List[String],
     queryRenderers: Map[String, SqlQueryRenderer],
-    schemaDdlRenderers: Map[String, com.jacoby6000.smithplates.sql.shared.SqlSchemaDdlRenderer],
+    schemaDdlRenderers: Map[String, com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer],
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
     artifacts: List[SqlServiceCodegenArtifactConfig]
