@@ -40,7 +40,7 @@ smithystache_validate_target_is_python() {
 
 smithystache_validate_target_needs_postgres_docker() {
   case "${1:-all}" in
-    all|python|python/db|python/db/postgres) return 0 ;;
+    all|plugin|python|python/db|python/db/postgres) return 0 ;;
     *) return 1 ;;
   esac
 }

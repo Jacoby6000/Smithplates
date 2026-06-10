@@ -38,7 +38,7 @@ function Test-SmithplatesValidateTargetIsPython {
 function Test-SmithplatesValidateTargetNeedsPostgresDocker {
   param([Parameter(Mandatory = $true)][string]$Target)
 
-  return $Target -in @('all', 'python', 'python/db', 'python/db/postgres')
+  return $Target -in @('all', 'plugin', 'python', 'python/db', 'python/db/postgres')
 }
 
 function Get-SmithplatesValidateTargetServiceType {
