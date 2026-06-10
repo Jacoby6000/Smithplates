@@ -9,6 +9,10 @@ inputs:
     description: Restore uv cache for Python language template jobs.
     required: false
     default: 'false'
+  docker-image-cache:
+    description: Restore persisted Docker test image (for Docker smoke jobs).
+    required: false
+    default: 'false'
 
 runs:
   using: composite
@@ -27,7 +31,7 @@ runs:
         primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
 
     - name: Restore Docker test image cache
-      if: inputs.backend == 'docker'
+      if: inputs.backend == 'docker' || inputs.docker-image-cache == 'true'
       uses: actions/cache@v4
       id: docker-image-cache
       with:
@@ -37,7 +41,7 @@ runs:
           smithystache-docker-
 
     - name: Load Docker test image
-      if: inputs.backend == 'docker' && steps.docker-image-cache.outputs.cache-hit == 'true'
+      if: (inputs.backend == 'docker' || inputs.docker-image-cache == 'true') && steps.docker-image-cache.outputs.cache-hit == 'true'
       shell: bash
       run: docker load -i /tmp/smithystache-test-image.tar
 

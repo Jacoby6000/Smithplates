@@ -51,7 +51,24 @@ Run Scala and template-language static checks through [`scripts/run-linters.sh`]
 nix run .#run-linters
 ```
 
-CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; currently `python`). Linux uses Nix for the plugin and language jobs; Linux Docker jobs exercise the Docker backend with the same target split; Windows runs Nix inside WSL via [`scripts/ci-wsl-validate.sh`](scripts/ci-wsl-validate.sh). Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
+CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; currently `python`) on Linux with Nix, plus a Docker smoke job ([`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh)) that checks flake dev-shell parity between host Nix and the test image and that `./validate` selects Docker when Nix is unavailable. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
+
+### Docker dev-shell parity (CI)
+
+The `validate-docker` job compares sorted output from [`scripts/lib/dev-shell-fingerprint.sh`](scripts/lib/dev-shell-fingerprint.sh) on the host (`nix develop`) and inside `smithystache-test:local` (bind-mounted sources, same flake). The fingerprint must stay aligned with `devShells.default` in [`flake.nix`](flake.nix).
+
+When you add build systems, language targets, or other dev-shell tooling to the flake, update the fingerprint in the same change (or a follow-up that lands before CI fails):
+
+1. Add each new executable to the `for cmd in ...` presence loop.
+2. Add a `*-version=` line when the tool exposes a stable `--version` (or equivalent) output worth comparing across host and container.
+
+Do not fingerprint the Nix CLI version: the Docker image pins `nixos/nix` while CI installs Nix via `cachix/install-nix-action`; dev-shell **packages** from `flake.lock` are what must match.
+
+Run the smoke checks locally:
+
+```bash
+./scripts/ci-docker-validate.sh
+```
 
 ## Running tests
 

@@ -10,7 +10,7 @@
   pkill -f 'sbt-launch\.jar' || true
   ```
   Prefer single commands over chained `sbtn 'reload; …'` when possible. Use `sbtn --client shutdown` only when the client still responds.
-* CI (`.github/workflows/ci.yml`) runs on push/PR to `main` in parallel jobs: `validate-plugin-build` / `validate-language-templates` (Nix on Linux), Docker variants with the same target split, and Windows jobs that run Nix in WSL via `scripts/ci-wsl-validate.sh`. Requires **Docker** on the runner for testcontainers-backed tests. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+* CI (`.github/workflows/ci.yml`) runs on push/PR to `main`: `validate-plugin-build` and `validate-language-templates` (Nix on Linux), plus `validate-docker` smoke checks via [`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh) (dev-shell parity and Docker backend auto-detection). When extending `devShells.default` in `flake.nix`, update [`scripts/lib/dev-shell-fingerprint.sh`](scripts/lib/dev-shell-fingerprint.sh) per [`CONTRIBUTING.md`](CONTRIBUTING.md). Requires **Docker** on the runner for testcontainers-backed tests.
 * Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:

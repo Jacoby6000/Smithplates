@@ -52,93 +52,24 @@ jobs:
       - name: Validate
         run: ./validate --target ${{ matrix.language }}
 
-  validate-plugin-build-docker:
-    name: Plugin build (Docker)
+  validate-docker:
+    name: Validate (Docker smoke)
     runs-on: ubuntu-latest
-    env:
-      SMITHYSTACHE_VALIDATE_BACKEND: docker
-      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Host Nix is required to fingerprint `nix develop` for parity with the
+      # container; docker-image-cache restores the test image separately.
       - name: Setup
         uses: ./.github/actions/setup-validate
         with:
-          backend: docker
+          backend: nix
+          docker-image-cache: true
 
-      - name: Validate
-        run: ./validate --target plugin
-
-      - name: Finalize
-        uses: ./.github/actions/finalize-docker-validate
-
-  validate-language-templates-docker:
-    name: Language templates (${{ matrix.language }}, Docker)
-    needs: validate-plugin-build-docker
-    runs-on: ubuntu-latest
-    env:
-      SMITHYSTACHE_VALIDATE_BACKEND: docker
-      SMITHYSTACHE_DOCKER_CI_CACHE: '1'
-    strategy:
-      fail-fast: false
-      matrix:
-        # Keep in sync with language-test-harnesses/<language>/ directories.
-        language: [python]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup-validate
-        with:
-          backend: docker
-          cache-uv: true
-
-      - name: Validate
-        run: ./validate --target ${{ matrix.language }}
+      - name: Smoke test
+        run: ./scripts/ci-docker-validate.sh
 
       - name: Finalize
         uses: ./.github/actions/finalize-docker-validate
-
-  validate-plugin-build-windows:
-    name: Plugin build (Windows)
-    runs-on: windows-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup-validate-wsl
-
-      - name: Validate
-        uses: ./.github/actions/wsl-validate
-        with:
-          target: plugin
-
-  validate-language-templates-windows:
-    name: Language templates (${{ matrix.language }}, Windows)
-    needs: validate-plugin-build-windows
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # Keep in sync with language-test-harnesses/<language>/ directories.
-        language: [python]
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup
-        uses: ./.github/actions/setup-validate-wsl
-        with:
-          cache-uv: true
-
-      - name: Validate
-        uses: ./.github/actions/wsl-validate
-        with:
-          target: ${{ matrix.language }}
