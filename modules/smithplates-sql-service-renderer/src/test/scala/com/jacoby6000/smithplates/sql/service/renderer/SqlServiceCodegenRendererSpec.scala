@@ -6,7 +6,7 @@ import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
-  test("ServiceCodegen - derives CRUD for @sqlJson struct and union columns") {
+  test("@sqlJson - derives insert and update columns for struct and union members") {
     val schema =
       SqlModelExtractor.extractOrThrow(
         SqlTestModelBuilder.assemble(
@@ -71,7 +71,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(update.setColumns.map(_.memberName), List("label", "destination", "state"))
   }
 
-  test("ServiceCodegen - expands output path placeholders per service") {
+  test("OutputPath - expands placeholders per service") {
     val queryRenderer           =
       new SqliteSqlQueryRenderer(
         migrationBindPlaceholder = SqlBindPlaceholder("?"),

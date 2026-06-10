@@ -30,7 +30,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
          |""".stripMargin
     )
 
-  test("Service - extracts operations with input, output, and errors") {
+  test("extracts operations with input, output, and errors") {
     val schema = SqlModelExtractor.extractOrThrow(
       assembleServiceModel(
         """
@@ -90,7 +90,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
     assertEquals(listItems.errorShapes, Nil)
   }
 
-  test("Service - fails when no operations are declared") {
+  test("fails when no operations are declared") {
     val result = SqlModelExtractor.extract(
       assembleServiceModel(
         """
@@ -110,7 +110,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
     assert(result.swap.toOption.get.exists(_.isInstanceOf[EmptySqlService]))
   }
 
-  test("Service - fails when resources are declared") {
+  test("fails when resources are declared") {
     val result = SqlModelExtractor.extract(
       assembleServiceModel(
         """
@@ -140,7 +140,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
     assert(result.swap.toOption.get.exists(_.isInstanceOf[InvalidSqlService]))
   }
 
-  test("Service - ignores services without @sqlService") {
+  test("ignores services without @sqlService") {
     val schema = SqlModelExtractor.extractOrThrow(
       assembleServiceModel(
         "",

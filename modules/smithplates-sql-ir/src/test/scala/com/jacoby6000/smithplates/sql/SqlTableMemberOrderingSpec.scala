@@ -3,7 +3,7 @@ package com.jacoby6000.smithplates.sql
 import munit.FunSuite
 
 class SqlTableMemberOrderingSpec extends FunSuite {
-  test("SqlTableMemberOrdering - keeps definition order for unindexed members") {
+  test("definition order - keeps unindexed members in declaration order") {
     val model = SqlTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -28,7 +28,7 @@ class SqlTableMemberOrderingSpec extends FunSuite {
     )
   }
 
-  test("SqlTableMemberOrdering - places timestamp columns last with created before updated") {
+  test("timestamps - places created before updated last") {
     val model = SqlTestModelBuilder.assemble(
       """use smithplates.codegen.sql#sqlAutoUuid
         |use smithplates.codegen.sql#sqlCreatedTimestamp
@@ -59,7 +59,7 @@ class SqlTableMemberOrderingSpec extends FunSuite {
     )
   }
 
-  test("SqlTableMemberOrdering - honors explicit @sqlColumnIndex values") {
+  test("@sqlColumnIndex - honors explicit values") {
     val model = SqlTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"

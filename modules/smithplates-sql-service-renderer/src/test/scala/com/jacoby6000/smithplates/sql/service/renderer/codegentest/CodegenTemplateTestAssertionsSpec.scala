@@ -21,7 +21,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
       expectedOutputsByVariant = Map(variant -> expectedFiles)
     )
 
-  test("CodegenTemplateTestAssertions - reports missing generated files") {
+  test("reports missing generated files") {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
@@ -36,7 +36,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
     assert(thrown.getMessage.contains("src/db/sqlite/example.py"))
   }
 
-  test("CodegenTemplateTestAssertions - reports unexpected generated files") {
+  test("reports unexpected generated files") {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
@@ -54,7 +54,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
     assert(thrown.getMessage.contains("Unexpected: src/db/sqlite/extra.py"))
   }
 
-  test("CodegenTemplateTestAssertions - reports content diff on mismatch") {
+  test("reports content diff on mismatch") {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
