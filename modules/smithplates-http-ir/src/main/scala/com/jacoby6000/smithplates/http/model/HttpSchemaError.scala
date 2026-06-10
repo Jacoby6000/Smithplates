@@ -10,12 +10,12 @@ final case class InvalidPluginConfig(message: String) extends HttpSchemaError
 
 final case class MissingHttpServiceVersion(serviceShape: ShapeId) extends HttpSchemaError {
   override def message: String =
-    s"@restJson1 service '${serviceShape.toString}' requires a non-empty service version"
+    s"@httpService '${serviceShape.toString}' requires a non-empty service version"
 }
 
 final case class EmptyHttpService(serviceShape: ShapeId) extends HttpSchemaError {
   override def message: String =
-    s"@restJson1 service '${serviceShape.toString}' must declare at least one HTTP-bound operation"
+    s"@httpService '${serviceShape.toString}' must declare at least one HTTP-bound operation"
 }
 
 final case class InvalidHttpOperation(
@@ -32,5 +32,5 @@ final case class InvalidHttpService(
     reason: String
 ) extends HttpSchemaError {
   override def message: String =
-    s"Invalid @restJson1 service '${serviceShape.toString}': $reason"
+    s"Invalid @httpService '${serviceShape.toString}': $reason"
 }

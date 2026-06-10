@@ -9,6 +9,7 @@ final case class HttpServiceIr(
 final case class HttpService(
     shapeId: ShapeId,
     version: String,
+    serialization: HttpSerialization,
     title: Option[String],
     documentation: Option[String],
     serviceErrors: List[ShapeId],

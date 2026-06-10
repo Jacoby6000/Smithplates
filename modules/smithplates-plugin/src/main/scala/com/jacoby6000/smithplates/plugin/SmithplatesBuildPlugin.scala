@@ -105,7 +105,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
         case Some(codegenSettings) =>
           if (serviceIr.services.isEmpty) {
             logger.info(
-              s"Skipping $languageId HTTP service codegen: Smithy model contains no @restJson1 services"
+              s"Skipping $languageId HTTP service codegen: Smithy model contains no @httpService services"
             )
           } else {
             HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {

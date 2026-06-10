@@ -1,11 +1,11 @@
 $version: "2.0"
 namespace example
 
-use aws.protocols#restJson1
+use smithplates.codegen.http#httpService
 use smithy.api#http
 use smithy.api#tags
 
-@restJson1
+@httpService
 service WidgetApi {
     version: "1"
     operations: [GetWidget, ListWidgets]

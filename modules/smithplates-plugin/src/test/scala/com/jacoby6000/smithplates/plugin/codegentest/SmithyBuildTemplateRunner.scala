@@ -67,7 +67,7 @@ object SmithyBuildTemplateRunner {
     List(
       "META-INF/smithy/smithplates.codegen.sql.smithy",
       "META-INF/smithy/smithplates.codegen.sql.service.smithy",
-      "META-INF/smithy/aws.protocols.smithy"
+      "META-INF/smithy/smithplates.codegen.http.smithy"
     )
 
   private def modelAssemblerFor(config: SmithyBuildConfig, classLoader: ClassLoader): ModelAssembler = {

@@ -19,7 +19,7 @@ Keep these in sync across Smithplates and every consumer:
 |----------|----------------------|--------------------------------|
 | SQL plugin | `0.1.0` | `com.jacoby6000:smithplates-plugin:0.1.0` |
 | Smithy toolchain | `1.71.0` (in plugin `libraryDependencies`) | Matching Smithy CLI |
-| AWS protocol traits | `1.71.0` (`smithy-aws-traits` in `smithplates-http-ir`) | `software.amazon.smithy:smithy-aws-traits:1.71.0` when using `@restJson1` HTTP codegen |
+| HTTP service trait | `0.1.0` (bundled in `smithplates-plugin`) | `com.jacoby6000:smithplates-plugin:0.1.0` supplies `@httpService` via classpath trait discovery |
 
 ## `smithy-build.json` example
 
@@ -76,7 +76,7 @@ Unlike SQL, HTTP settings do **not** use a nested `languageTargets` map or per-d
 
 ### `smithplates.http.<language>.server`
 
-Map of language id → HTTP language configuration (for example `python`). Each language entry requires a `server` object. Controls **HTTP service codegen** (`@restJson1` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers). The `server` object supports:
+Map of language id → HTTP language configuration (for example `python`). Each language entry requires a `server` object. Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers). The `server` object supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
@@ -96,7 +96,7 @@ Example output layout for bundled FastAPI templates (paths relative to `build/sm
 
 Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
 
-Annotate HTTP API services with standard Smithy `@restJson1` (`use aws.protocols#restJson1`) rather than a custom plugin trait. Operations use Smithy `@http` bindings and `@tags` for route grouping, matching the [AWS REST JSON 1.0 protocol](https://smithy.io/2.0/aws/protocols/aws-restjson1-protocol.html).
+Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#httpService`). The trait accepts an optional `serialization` field (default `"json"`). Operations use Smithy `@http` bindings and `@tags` for route grouping.
 
 #### OpenAPI Generator coordination
 
@@ -155,9 +155,9 @@ All plugin file-manifest paths are relative to **`build/smithy/source/smithplate
 |--------|------------------------|---------------|----------|
 | `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Dialect `.sql` files at each `migrationLocation` |
 | `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
-| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service codegen | FastAPI route modules, protocols, app wiring, and response dispatch helpers per `@restJson1` service |
+| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service codegen | FastAPI route modules, protocols, app wiring, and response dispatch helpers per `@httpService` service |
 
-Consumer Smithy projects must include `software.amazon.smithy:smithy-aws-traits` in `smithy-build.json` `maven.dependencies` so `@restJson1` validates during `smithy build` (same requirement as the Smithy OpenAPI plugin with `protocol: aws.protocols#restJson1`).
+The `@httpService` trait ships in `smithplates-plugin`; consumers do not need a separate AWS protocol traits dependency for HTTP codegen.
 
 See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
 

@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-/** Bundled `@restJson1` service artifact paths under the `api/` service-type layout. */
+/** Bundled `@httpService` artifact paths under the `api/` service-type layout. */
 object HttpServiceCodegenApiArtifacts {
   val sharedPerService: List[HttpServiceCodegenArtifactConfig] =
     List(

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.http
 
 import com.jacoby6000.smithplates.http.model.HttpInputMemberBinding
+import com.jacoby6000.smithplates.http.model.HttpSerialization
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 import munit.FunSuite
 
@@ -11,11 +12,11 @@ class HttpIrExtractorSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |
-          |@restJson1
+          |@httpService
           |service WidgetApi {
           |    version: "1"
           |    operations: [GetWidget, ListWidgets]
@@ -59,7 +60,7 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(ir.services.head.routeGroups.head.apiModuleName, "v1_widgets_api")
   }
 
-  test("HttpIrExtractor ignores services without @restJson1") {
+  test("HttpIrExtractor ignores services without @httpService") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -102,12 +103,12 @@ class HttpIrExtractorSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |use smithy.api#readonly
           |
-          |@restJson1
+          |@httpService
           |service AssetApi {
           |    version: "1"
           |    resources: [Project]
@@ -170,13 +171,13 @@ class HttpIrExtractorSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |use smithy.api#readonly
           |use smithy.api#resourceIdentifier
           |
-          |@restJson1
+          |@httpService
           |service AssetApi {
           |    version: "1"
           |    resources: [Asset]
@@ -220,13 +221,13 @@ class HttpIrExtractorSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |use smithy.api#readonly
           |use smithy.api#timestampFormat
           |
-          |@restJson1
+          |@httpService
           |service AssetApi {
           |    version: "1"
           |    operations: [ListAssets]
@@ -271,5 +272,73 @@ class HttpIrExtractorSpec extends FunSuite {
         )
       )
     )
+  }
+
+  test("HttpIrExtractor defaults @httpService serialization to json") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |operation GetWidget {
+          |    input: Unit
+          |    output: WidgetOutput
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.serialization, HttpSerialization.Json)
+  }
+
+  test("HttpIrExtractor rejects unsupported @httpService serialization") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService(serialization: "xml")
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |operation GetWidget {
+          |    input: Unit
+          |    output: WidgetOutput
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
+    assert(error.getMessage.contains("serialization"))
   }
 }

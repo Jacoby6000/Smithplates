@@ -11,12 +11,15 @@ import scala.jdk.CollectionConverters.*
 private[http] object HttpServiceExtractor {
   def extract(model: Model): HttpValidated[List[HttpService]] =
     model.getServiceShapes.asScala.toList
-      .filter(_.restJson1Protocol)
+      .filter(_.httpService.isDefined)
       .traverse(extractService(model, _))
 
   private def extractService(model: Model, service: ServiceShape): HttpValidated[HttpService] = {
     val serviceShape = service.getId
-    requireServiceVersion(service).andThen { version =>
+    (
+      requireServiceVersion(service),
+      requireSupportedSerialization(service)
+    ).mapN { (version, serialization) =>
       extractResources(model, service).andThen { resources =>
         val operationIds =
           (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
@@ -29,6 +32,7 @@ private[http] object HttpServiceExtractor {
               HttpService(
                 shapeId = serviceShape,
                 version = version,
+                serialization = serialization,
                 title = service.titleText,
                 documentation = service.documentationText,
                 serviceErrors = service.getErrorsSet.asScala.toList,
@@ -38,13 +42,24 @@ private[http] object HttpServiceExtractor {
             }
           }
       }
-    }
+    }.andThen(identity)
   }
 
   private def requireServiceVersion(service: ServiceShape): HttpValidated[String] =
     Option(service.getVersion).filter(_.nonEmpty) match {
       case Some(version) => version.validNel
       case None          => MissingHttpServiceVersion(service.getId).invalidNel
+    }
+
+  private def requireSupportedSerialization(service: ServiceShape): HttpValidated[HttpSerialization] =
+    service.httpService match {
+      case None             =>
+        InvalidHttpService(service.getId, "service is missing @httpService").invalidNel
+      case Some(traitValue) =>
+        HttpSerialization.fromTraitValue(traitValue.getSerialization) match {
+          case Right(serialization) => serialization.validNel
+          case Left(reason)         => InvalidHttpService(service.getId, reason).invalidNel
+        }
     }
 
   private def extractResources(model: Model, service: ServiceShape): HttpValidated[List[HttpResource]] =

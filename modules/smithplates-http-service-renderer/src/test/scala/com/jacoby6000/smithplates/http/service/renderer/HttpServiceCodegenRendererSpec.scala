@@ -12,11 +12,11 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |
-          |@restJson1
+          |@httpService
           |service WidgetApi {
           |    version: "1"
           |    operations: [GetWidget]
@@ -73,13 +73,13 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         """$version: "2.0"
           |namespace example
           |
-          |use aws.protocols#restJson1
+          |use smithplates.codegen.http#httpService
           |use smithy.api#http
           |use smithy.api#tags
           |use smithy.api#readonly
           |use smithy.api#timestampFormat
           |
-          |@restJson1
+          |@httpService
           |service AssetApi {
           |    version: "1"
           |    operations: [ListAssets]

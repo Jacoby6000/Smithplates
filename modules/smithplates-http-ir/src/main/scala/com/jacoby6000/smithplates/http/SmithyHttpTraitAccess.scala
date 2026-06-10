@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.http
 
-import software.amazon.smithy.aws.traits.protocols.RestJson1Trait
+import com.jacoby6000.smithplates.http.traits.HttpServiceTrait
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ResourceShape
@@ -44,8 +44,8 @@ object SmithyHttpTraitAccess {
   }
 
   extension (service: ServiceShape) {
-    def restJson1Protocol: Boolean =
-      Option(service.getTrait(classOf[RestJson1Trait]).orElse(null)).isDefined
+    def httpService: Option[HttpServiceTrait] =
+      Option(service.getTrait(classOf[HttpServiceTrait]).orElse(null))
   }
 
   extension (resource: ResourceShape) {

@@ -23,12 +23,12 @@ Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
 ## HTTP cases
 
-HTTP golden cases use `@restJson1` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
+HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
 
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
-  smithy-build.json                # http.python.server + smithy-aws-traits maven dep
+  smithy-build.json                # http.python.server + smithplates-plugin maven dep
   expected/
     src/api/app_factory.py
     src/api/app_services.py

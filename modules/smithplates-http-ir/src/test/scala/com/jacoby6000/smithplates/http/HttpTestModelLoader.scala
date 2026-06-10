@@ -7,16 +7,16 @@ import java.io.InputStream
 import java.nio.charset.StandardCharsets
 
 object HttpTestModelLoader {
-  val AwsProtocolsModelId: String = "META-INF/smithy/aws.protocols.smithy"
+  val HttpTraitsModelId: String = "META-INF/smithy/smithplates.codegen.http.smithy"
 
-  def assemblerWithAwsProtocols: ModelAssembler = {
+  def assemblerWithHttpTraits: ModelAssembler = {
     val assembler = Model.assembler().disableValidation()
-    assembler.addUnparsedModel(AwsProtocolsModelId, readClasspathResource(AwsProtocolsModelId))
+    assembler.addUnparsedModel(HttpTraitsModelId, readClasspathResource(HttpTraitsModelId))
     assembler
   }
 
   def assemble(additionalModels: (String, String)*): Model = {
-    val assembler = assemblerWithAwsProtocols
+    val assembler = assemblerWithHttpTraits
     additionalModels.foreach { case (id, content) => assembler.addUnparsedModel(id, content) }
     assembler.assemble().unwrap()
   }
@@ -24,8 +24,8 @@ object HttpTestModelLoader {
   private def readClasspathResource(path: String): String = {
     val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
       throw new IllegalStateException(
-        s"AWS protocol Smithy model not on classpath at '$path'. " +
-          "Ensure smithy-aws-traits is on the classpath."
+        s"HTTP trait Smithy model not on classpath at '$path'. " +
+          "Ensure smithplates-http-ir is on the classpath."
       )
     }
     try readStream(stream)
