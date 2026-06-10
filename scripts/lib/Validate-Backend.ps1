@@ -48,6 +48,7 @@ function Ensure-SmithplatesDockerImage {
   param([Parameter(Mandatory = $true)][string]$Root)
 
   $image = if ($env:SMITHYSTACHE_TEST_IMAGE) { $env:SMITHYSTACHE_TEST_IMAGE } else { 'smithystache-test:local' }
+  $platform = if ($env:SMITHYSTACHE_DOCKER_PLATFORM) { $env:SMITHYSTACHE_DOCKER_PLATFORM } else { 'linux/amd64' }
   $cacheDir = Join-Path $Root 'target/docker-test'
   $hashFile = Join-Path $cacheDir 'image-input.hash'
   $currentHash = Get-SmithplatesDockerImageInputHash -Root $Root
@@ -66,7 +67,7 @@ function Ensure-SmithplatesDockerImage {
     New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
     Write-Host "Building Docker test image ($image)..."
     Write-Host 'The first build can take several minutes while Nix downloads dependencies; later builds reuse cached layers and are much faster.'
-    & docker build -t $image -f (Join-Path $Root 'Dockerfile') $Root
+    & docker build --platform $platform -t $image -f (Join-Path $Root 'Dockerfile') $Root
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     Set-Content -LiteralPath $hashFile -Value $currentHash -NoNewline
   } else {
@@ -84,7 +85,8 @@ function Invoke-SmithplatesDockerRun {
   )
 
   $image = Ensure-SmithplatesDockerImage -Root $Root
-  $dockerArgs = @('run', '--rm')
+  $platform = if ($env:SMITHYSTACHE_DOCKER_PLATFORM) { $env:SMITHYSTACHE_DOCKER_PLATFORM } else { 'linux/amd64' }
+  $dockerArgs = @('run', '--rm', '--platform', $platform)
   if ($env:SMITHYSTACHE_VALIDATE_TARGET) {
     $dockerArgs += @('-e', "SMITHYSTACHE_VALIDATE_TARGET=$($env:SMITHYSTACHE_VALIDATE_TARGET)")
   }
@@ -100,6 +102,21 @@ function Invoke-SmithplatesDockerRun {
     } else {
       $dockerArgs += @('-v', '/var/run/docker.sock:/var/run/docker.sock')
     }
+  }
+  if ($env:SMITHYSTACHE_DOCKER_CI_CACHE) {
+    $cacheRoot = Join-Path $Root '.ci-cache'
+    $null = New-Item -ItemType Directory -Force -Path @(
+      (Join-Path $cacheRoot 'coursier'),
+      (Join-Path $cacheRoot 'sbt'),
+      (Join-Path $cacheRoot 'ivy2/cache'),
+      (Join-Path $cacheRoot 'uv')
+    )
+    $dockerArgs += @(
+      '-v', "$(Join-Path $cacheRoot 'coursier'):/root/.cache/coursier",
+      '-v', "$(Join-Path $cacheRoot 'sbt'):/root/.sbt",
+      '-v', "$(Join-Path $cacheRoot 'ivy2'):/root/.ivy2",
+      '-v', "$(Join-Path $cacheRoot 'uv'):/root/.cache/uv"
+    )
   }
   $dockerArgs += @(
     '-v', "${Root}:/smithystache",

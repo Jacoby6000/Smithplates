@@ -1,4 +1,5 @@
 target/
+.ci-cache/
 .metals
 .sbt
 .bsp
