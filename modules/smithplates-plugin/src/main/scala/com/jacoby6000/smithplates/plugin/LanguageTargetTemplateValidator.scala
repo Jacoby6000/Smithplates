@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates
+package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated

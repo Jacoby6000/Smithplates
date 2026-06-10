@@ -1,6 +1,6 @@
-package com.jacoby6000.smithplates.codegentest
+package com.jacoby6000.smithplates.plugin.codegentest
 
-import com.jacoby6000.smithplates.SmithplatesBuildPlugin
+import com.jacoby6000.smithplates.plugin.SmithplatesBuildPlugin
 import software.amazon.smithy.build.SmithyBuild
 import software.amazon.smithy.build.SmithyBuildPlugin
 import software.amazon.smithy.build.model.SmithyBuildConfig

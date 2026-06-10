@@ -1,7 +1,7 @@
-package com.jacoby6000.smithplates.sql.service.renderer
+package com.jacoby6000.smithplates.plugin
 
-import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestSuite
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateVariant
+import com.jacoby6000.smithplates.plugin.codegentest.CodegenTemplateTestSuite
 
 class SqlServiceCodegenTemplateTestSuite
     extends CodegenTemplateTestSuite(

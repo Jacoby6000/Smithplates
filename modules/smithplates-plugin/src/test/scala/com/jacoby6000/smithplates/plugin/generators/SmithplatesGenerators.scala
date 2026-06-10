@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.generators
+package com.jacoby6000.smithplates.plugin.generators
 
 /** Build-time entrypoint for Smithy Stache generator tasks (`generateGoldenTemplatesFor`, etc.). */
 object SmithplatesGenerators {

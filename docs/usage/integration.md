@@ -106,4 +106,4 @@ See [SQL plugin](sql-plugin.md) for plugin behavior.
 
 ## SPI registration
 
-The SQL plugin registers as `com.jacoby6000.smithplates.SmithplatesBuildPlugin`.
+The SQL plugin registers as `com.jacoby6000.smithplates.plugin.SmithplatesBuildPlugin`.

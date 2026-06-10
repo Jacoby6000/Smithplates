@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates
+package com.jacoby6000.smithplates.plugin
 
 import cats.data.Validated
 import cats.syntax.all.*

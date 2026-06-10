@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates
+package com.jacoby6000.smithplates.plugin
 
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer

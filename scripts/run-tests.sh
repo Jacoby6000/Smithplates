@@ -40,7 +40,7 @@ run_plugin_tests() {
   for module in "${modules[@]}"; do
     sbtn "${module}/test"
   done
-  sbtn 'smithplatesPlugin/testOnly com.jacoby6000.smithplates.SmithplatesSqlSettingsSpec'
+  sbtn 'smithplatesPlugin/testOnly com.jacoby6000.smithplates.plugin.SmithplatesSqlSettingsSpec'
 }
 
 run_template_golden_tests() {

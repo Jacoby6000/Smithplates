@@ -1,8 +1,8 @@
-package com.jacoby6000.smithplates.generators
+package com.jacoby6000.smithplates.plugin.generators
 
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestDiscovery
-import com.jacoby6000.smithplates.codegentest.PythonCodegenRuffFormatter
-import com.jacoby6000.smithplates.codegentest.SmithyBuildTemplateRunner
+import com.jacoby6000.smithplates.plugin.codegentest.PythonCodegenRuffFormatter
+import com.jacoby6000.smithplates.plugin.codegentest.SmithyBuildTemplateRunner
 
 import java.nio.file.Files
 import java.nio.file.Path

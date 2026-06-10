@@ -211,7 +211,7 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
           )
         }
         (Test / runMain).toTask(
-          s" com.jacoby6000.smithplates.generators.SmithplatesGenerators golden-templates ${args.mkString(" ")}"
+          s" com.jacoby6000.smithplates.plugin.generators.SmithplatesGenerators golden-templates ${args.mkString(" ")}"
         )
       }.evaluated
     }

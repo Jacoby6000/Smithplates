@@ -171,7 +171,7 @@ Docker-backed schema-path integration tests (SQL IR → dialect DDL → real dat
 
 ## Schema DDL export
 
-The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
+The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
 
 ## SQL database service codegen
 
@@ -260,11 +260,11 @@ Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage
 }
 ```
 
-SPI entry: `com.jacoby6000.smithplates.SmithplatesBuildPlugin`
+SPI entry: `com.jacoby6000.smithplates.plugin.SmithplatesBuildPlugin`
 
 ## Build-time generators
 
-Contributor generator tasks are defined on **`smithplatesPlugin`** (also aliased on the root project). [`SmithplatesGenerators`](src/test/scala/com/jacoby6000/smithplates/generators/SmithplatesGenerators.scala) is the shared entrypoint for all build-time generators.
+Contributor generator tasks are defined on **`smithplatesPlugin`** (also aliased on the root project). [`SmithplatesGenerators`](src/test/scala/com/jacoby6000/smithplates/plugin/generators/SmithplatesGenerators.scala) is the shared entrypoint for all build-time generators.
 
 | Task | Usage |
 |------|--------|

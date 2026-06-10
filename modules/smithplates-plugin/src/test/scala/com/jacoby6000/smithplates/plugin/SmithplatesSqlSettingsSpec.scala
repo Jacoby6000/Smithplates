@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates
+package com.jacoby6000.smithplates.plugin
 
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node

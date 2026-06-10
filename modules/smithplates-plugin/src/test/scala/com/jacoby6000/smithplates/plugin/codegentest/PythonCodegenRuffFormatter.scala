@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.codegentest
+package com.jacoby6000.smithplates.plugin.codegentest
 
 import java.nio.file.Files
 import java.nio.file.Path
