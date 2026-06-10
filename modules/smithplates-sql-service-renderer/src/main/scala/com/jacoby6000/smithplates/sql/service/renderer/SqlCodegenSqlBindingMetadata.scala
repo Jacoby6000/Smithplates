@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.codegen
+package com.jacoby6000.smithplates.sql.service.renderer
 
 object SqlCodegenSqlBindingMetadata {
   def canUseClassRow(sql: SqlCodegenSqlBinding): Boolean =

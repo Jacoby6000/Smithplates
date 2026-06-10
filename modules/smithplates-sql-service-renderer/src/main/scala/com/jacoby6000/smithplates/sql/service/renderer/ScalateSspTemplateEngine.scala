@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.codegen
+package com.jacoby6000.smithplates.sql.service.renderer
 
 import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateEngine
@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap
 object ScalateSspTemplateEngine {
   private val compiledTemplateCache      = new ConcurrentHashMap[String, Template]()
   private val baseContextBindingPreamble =
-    """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithplates.sql.service.codegen.ScalateTemplateHelpers.isTruthy(value) %>
+    """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithplates.sql.service.renderer.ScalateTemplateHelpers.isTruthy(value) %>
 """
 
   def readClasspathResource(resourceClasspath: String): String = {

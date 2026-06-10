@@ -1,4 +1,4 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 from __future__ import annotations
 
 <% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass

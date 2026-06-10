@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.codegen
+package com.jacoby6000.smithplates.sql.service.renderer
 
 import org.fusesource.scalate.util.Resource
 import org.fusesource.scalate.util.ResourceLoader

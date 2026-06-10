@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.codegen
+package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateBackend
 import com.jacoby6000.smithplates.codegentest.CodegenTemplateTestCase

@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.codegen
+package com.jacoby6000.smithplates.sql.service.renderer
 
 class SspFragmentsSpec extends munit.FunSuite {
   private val templateRoot = ""

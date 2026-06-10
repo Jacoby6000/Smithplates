@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithplates.sql.service.codegen.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
 
     deleted = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.deleteOperation.name)}(${test.deleteOperation.callArguments})
     assert deleted is True

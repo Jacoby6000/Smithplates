@@ -1,4 +1,4 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.codegen.TemplateOperationView %>
+<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
 <% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None

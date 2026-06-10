@@ -1,4 +1,4 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val needsDatetimeImport: Boolean = ctx.models.exists(_.members.exists(_.typeName == "Timestamp")) || ctx.unions.exists(_.members.exists(_.typeName == "Timestamp")) %>
 from __future__ import annotations
 

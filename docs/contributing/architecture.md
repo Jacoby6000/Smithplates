@@ -69,7 +69,7 @@ flowchart TD
 | SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
 | Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlServiceExtractor.scala); `SqlServiceIr` |
 | SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
-| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/codegen/SqlServiceCodegenRenderer.scala); `models.mustache` |
+| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models.mustache` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums, and a `-- Queries` section | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL + query units in the plugin; `smithplates.sql.<dialect>.migrationLocation` |
 | Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/), [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) |
 | Migration engine | Per-language migration runner with schema-hash tracking; planned input to generated test suites | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
@@ -123,7 +123,7 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 
 **Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/shared/DDLStatement.scala) values keyed by Smithy shape id; dialect query renderers expose [`SqlRenderedQuery`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/query/renderer/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
 
-**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/codegen/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/query/renderer/SqlQueryRenderer.scala) instances, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
+**SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/query/renderer/SqlQueryRenderer.scala) instances, and Mustache templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
 
 ### Package layout
 
@@ -139,8 +139,8 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | `com.jacoby6000.smithplates.sql.shared` | `SqlSchemaDdlRenderer`, `DDLStatement`, DDL rendering, FK ordering |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.sqlite` | SQLite column types and `CHECK` constraints |
 | `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
-| `com.jacoby6000.smithplates.sql.service.codegen` | Mustache orchestration for `@sqlService` codegen |
-| `com.jacoby6000.smithplates.sql.service.codegen.python` | Python type names, bind/read expressions, template attributes |
+| `com.jacoby6000.smithplates.sql.service.codegen` | Resolved operation queries (`SqlOperationQueryResolver`, `smithplates-sql-service-ir`) |
+| `com.jacoby6000.smithplates.sql.service.renderer` | Scalate SSP orchestration for `@sqlService` codegen (`smithplates-sql-service-renderer`) |
 
 ## Dependencies
 

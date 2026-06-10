@@ -1,6 +1,6 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.codegen.TemplateOperationView %>
+<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
 <%
-def responseType(operation: com.jacoby6000.smithplates.sql.service.codegen.TemplateOperationView): String = {
+def responseType(operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView): String = {
   if (operation.isSelectOne) {
     if (operation.hasOutput) {
       s"${pythonTypeName(operation.outputTypeName)} | None"

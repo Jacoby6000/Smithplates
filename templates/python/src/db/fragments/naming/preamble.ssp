@@ -57,32 +57,32 @@ def transactionTypeName(dialectKey: String): String =
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
 
-def unionDiscriminatorKeys(union: com.jacoby6000.smithplates.sql.service.codegen.TemplateUnionView): String =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.unionDiscriminatorKeys(union)
+def unionDiscriminatorKeys(union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView): String =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionDiscriminatorKeys(union)
 
-def helperPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[String] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.helperPartialPaths(ctx)
+def helperPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[String] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.helperPartialPaths(ctx)
 
-def helperColPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[String] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.helperColPartialPaths(ctx)
+def helperColPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[String] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.helperColPartialPaths(ctx)
 
-def unionsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.codegen.TemplateUnionView] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.unionsUsedAsJson(ctx)
+def unionsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionsUsedAsJson(ctx)
 
-def modelsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.codegen.TemplateModelView] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.modelsUsedAsJson(ctx)
+def modelsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.modelsUsedAsJson(ctx)
 
-def unionsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.codegen.TemplateUnionView] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.unionsUsedAsJsonCol(ctx)
+def unionsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionsUsedAsJsonCol(ctx)
 
-def modelsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.codegen.TemplateModelView] =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.modelsUsedAsJsonCol(ctx)
+def modelsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.modelsUsedAsJsonCol(ctx)
 
-def importRequirements(ctx: com.jacoby6000.smithplates.sql.service.codegen.ServiceTemplateView): com.jacoby6000.smithplates.sql.service.codegen.ImportRequirements =
-  com.jacoby6000.smithplates.sql.service.codegen.SqlCodegenHelperAttributes.importRequirements(ctx)
+def importRequirements(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.importRequirements(ctx)
 
 def resultFieldAssignmentBindings(
-    resultField: com.jacoby6000.smithplates.sql.service.codegen.TemplateResultFieldView,
+    resultField: com.jacoby6000.smithplates.sql.service.renderer.TemplateResultFieldView,
     readMode: String,
     rowVar: String = "row"
 ): Map[String, Any] =
