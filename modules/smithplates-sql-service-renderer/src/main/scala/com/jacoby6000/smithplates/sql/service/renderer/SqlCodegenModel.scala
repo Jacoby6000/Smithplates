@@ -97,7 +97,6 @@ final case class SqlCodegenMigrationEntry(
 
 final case class SqlCodegenMigrationContext(
     migrationsDirectory: String,
-    migrationsDirectoryFromTestFile: String,
     stateTableDdl: String,
     migrations: List[SqlCodegenMigrationEntry]
 )
@@ -112,8 +111,7 @@ final case class SqlCodegenIntegrationTestContext(
     transactionCommitAfterAssertions: List[String],
     extraImports: List[String],
     testImports: String,
-    localImportBlock: String,
-    migrationsDirectoryFromTestFile: String
+    localImportBlock: String
 )
 
 final case class SqlCodegenIntegrationTestOperation(

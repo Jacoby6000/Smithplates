@@ -15,7 +15,7 @@ ${test.localImportBlock}
 <% } %>
 from psycopg_migrations import PsycopgMigrationService
 
-MIGRATIONS_DIRECTORY = ${test.migrationsDirectoryFromTestFile}
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
 
 
 @pytest.fixture(scope="session")

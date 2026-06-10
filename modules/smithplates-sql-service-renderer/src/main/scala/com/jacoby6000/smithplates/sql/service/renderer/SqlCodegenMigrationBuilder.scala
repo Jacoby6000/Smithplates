@@ -9,18 +9,6 @@ object SqlCodegenMigrationBuilder {
   val InitialMigrationVersionNumber: Int = 1
   val StateTableName: String             = "_smithplates_migrations"
 
-  def migrationsDirectoryFromTestFile(migrationsDirectory: String): String = {
-    val parts    =
-      migrationsDirectory
-        .stripPrefix("/")
-        .stripSuffix("/")
-        .stripSuffix("\\")
-        .split("/")
-        .filter(_.nonEmpty)
-    val pathExpr = parts.map(part => s""""$part"""").mkString(" / ")
-    s"""Path(__file__).resolve().parents[3] / $pathExpr"""
-  }
-
   def build(
       schema: SqlSchema,
       dialectKey: String,
@@ -36,7 +24,6 @@ object SqlCodegenMigrationBuilder {
       Some(
         SqlCodegenMigrationContext(
           migrationsDirectory = migrationsDirectory,
-          migrationsDirectoryFromTestFile = migrationsDirectoryFromTestFile(migrationsDirectory),
           stateTableDdl = stateTableDdl(dialectKey),
           migrations = List(
             SqlCodegenMigrationEntry(

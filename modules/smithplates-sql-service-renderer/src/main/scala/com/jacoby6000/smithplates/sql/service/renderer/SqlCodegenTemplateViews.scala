@@ -132,8 +132,7 @@ final case class IntegrationTestView(
     hasUpdateOperation: Boolean,
     hasDeleteOperation: Boolean,
     transactionCommitInTxAssertions: List[TemplateAssertionLine],
-    transactionCommitAfterAssertions: List[TemplateAssertionLine],
-    migrationsDirectoryFromTestFile: String
+    transactionCommitAfterAssertions: List[TemplateAssertionLine]
 )
 
 final case class TemplateMigrationEntryView(
@@ -145,7 +144,6 @@ final case class TemplateMigrationEntryView(
 
 final case class MigrationView(
     migrationsDirectory: String,
-    migrationsDirectoryFromTestFile: String,
     stateTableDdl: String,
     stateTableName: String,
     migrations: List[TemplateMigrationEntryView]
@@ -202,7 +200,6 @@ object SqlCodegenTemplateViews {
   private def migrationView(migration: SqlCodegenMigrationContext): MigrationView =
     MigrationView(
       migrationsDirectory = migration.migrationsDirectory,
-      migrationsDirectoryFromTestFile = migration.migrationsDirectoryFromTestFile,
       stateTableDdl = migration.stateTableDdl,
       stateTableName = SqlCodegenMigrationBuilder.StateTableName,
       migrations = withLastFlag(migration.migrations.map(migrationEntryView))((entry, last) => entry.copy(last = last))
@@ -242,8 +239,7 @@ object SqlCodegenTemplateViews {
       )((assertion, last) => assertion.copy(last = last)),
       transactionCommitAfterAssertions = withLastFlag(
         integrationTest.transactionCommitAfterAssertions.map(TemplateAssertionLine(_))
-      )((assertion, last) => assertion.copy(last = last)),
-      migrationsDirectoryFromTestFile = integrationTest.migrationsDirectoryFromTestFile
+      )((assertion, last) => assertion.copy(last = last))
     )
 
   private def integrationOperationView(

@@ -66,8 +66,7 @@ object SqlServiceCodegenContextBuilder {
               baseContext,
               schema,
               queries,
-              settings.schemaDdlRenderers,
-              migrationDirectory
+              settings.schemaDdlRenderers
             ),
             migration = migrationDirectory.flatMap(directory =>
               SqlCodegenMigrationBuilder.build(schema, queryRenderer.key, settings.schemaDdlRenderers, directory))

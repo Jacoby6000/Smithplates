@@ -14,7 +14,7 @@ ${test.localImportBlock}
 <% } %>
 from sqlite_migrations import SqliteMigrationService
 
-MIGRATIONS_DIRECTORY = ${test.migrationsDirectoryFromTestFile}
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
 
 
 @pytest_asyncio.fixture

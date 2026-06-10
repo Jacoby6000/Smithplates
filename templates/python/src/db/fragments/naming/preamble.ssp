@@ -118,4 +118,18 @@ def pythonTypeName(typeName: String): String =
       case other                             => other
     }
   }
+
+def configuredMigrationsDirectory(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String =
+  ctx.migration.map(_.migrationsDirectory).getOrElse(s"db/migrations/${ctx.dialectKey}")
+
+def migrationsDirectoryFromTestFile(migrationsDirectory: String): String = {
+  val parts = migrationsDirectory
+    .stripPrefix("/")
+    .stripSuffix("/")
+    .stripSuffix("\\")
+    .split("/")
+    .filter(_.nonEmpty)
+  val pathExpr = parts.map(part => s""""$part"""").mkString(" / ")
+  s"Path(__file__).resolve().parents[3] / $pathExpr"
+}
 %>
