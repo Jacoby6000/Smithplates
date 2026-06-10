@@ -80,7 +80,7 @@ object HttpSmithyTypeResolver {
       ).validNel
     }
 
-  private def isPreludeShape(shapeId: ShapeId): Boolean =
+  def isPreludeShape(shapeId: ShapeId): Boolean =
     shapeId.getNamespace == "smithy.api"
 
   private def primitiveTypeName(shapeId: ShapeId): String =
@@ -99,6 +99,27 @@ object HttpSmithyTypeResolver {
       case "Unit"       => "Unit"
       case other        => other
     }
+
+  val primitiveTypeNames: Set[String] =
+    Set(
+      "String",
+      "Integer",
+      "Long",
+      "Float",
+      "Double",
+      "BigDecimal",
+      "BigInteger",
+      "Boolean",
+      "Blob",
+      "Timestamp",
+      "Document",
+      "Unit"
+    )
+
+  def isStructureTypeName(typeName: String): Boolean =
+    !primitiveTypeNames.contains(typeName) &&
+      !typeName.startsWith("List[") &&
+      !typeName.startsWith("Map[String, ")
 }
 
 final case class HttpMemberType(

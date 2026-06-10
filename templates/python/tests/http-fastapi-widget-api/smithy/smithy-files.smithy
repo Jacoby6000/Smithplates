@@ -44,6 +44,7 @@ operation ListWidgets {
 
 structure GetWidgetInput {
     @required
+    @httpLabel
     id: String
 }
 

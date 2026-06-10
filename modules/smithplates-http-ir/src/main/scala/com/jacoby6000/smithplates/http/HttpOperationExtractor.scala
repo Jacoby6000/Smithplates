@@ -16,7 +16,7 @@ private[http] object HttpOperationExtractor {
       serviceShape: ShapeId,
       operationId: ShapeId,
       serviceResources: List[HttpResource]
-  ): HttpValidated[HttpOperation] =
+  ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] =
     model.getShape(operationId).toScala.flatMap(_.asOperationShape.toScala) match {
       case None            =>
         InvalidHttpOperation(
@@ -33,7 +33,7 @@ private[http] object HttpOperationExtractor {
       serviceShape: ShapeId,
       operation: OperationShape,
       serviceResources: List[HttpResource]
-  ): HttpValidated[HttpOperation] = {
+  ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] = {
     val operationName = operation.getId.getName
     (
       requireHttpBinding(serviceShape, operationName, operation),
@@ -45,21 +45,32 @@ private[http] object HttpOperationExtractor {
       HttpOperationInputMemberExtractor
         .extract(model, serviceShape, operation, inputShape, serviceResources)
         .map { inputMembers =>
-          HttpOperation(
-            shapeId = operation.getId,
-            name = operationName,
-            method = http.getMethod,
-            uri = http.getUri.toString,
-            successStatusCode = http.getCode,
-            readonly = operation.readonlyOperation,
-            documentation = operation.documentationText,
-            inputShape = inputShape,
-            inputBoundResource = HttpOperationInputMemberExtractor
-              .inputBoundResource(model, inputShape, operation.getId, serviceResources),
-            inputMembers = inputMembers,
-            outputShape = outputShape,
-            errorShapes = errorShapes,
-            tags = List(tag)
+          val uri            = http.getUri.toString
+          val warnings       =
+            HttpInputMemberOrdering
+              .lintInputMemberOrder(serviceShape, operationName, inputShape, uri, inputMembers)
+              .toList
+          val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
+          val bodyBinding    = HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+          (
+            HttpOperation(
+              shapeId = operation.getId,
+              name = operationName,
+              method = http.getMethod,
+              uri = uri,
+              successStatusCode = http.getCode,
+              readonly = operation.readonlyOperation,
+              documentation = operation.documentationText,
+              inputShape = inputShape,
+              inputBoundResource = HttpOperationInputMemberExtractor
+                .inputBoundResource(model, inputShape, operation.getId, serviceResources),
+              inputMembers = orderedMembers,
+              bodyBinding = bodyBinding,
+              outputShape = outputShape,
+              errorShapes = errorShapes,
+              tags = List(tag)
+            ),
+            warnings
           )
         }
     }.andThen(identity)

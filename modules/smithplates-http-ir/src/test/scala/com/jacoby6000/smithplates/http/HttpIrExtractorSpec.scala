@@ -1,9 +1,11 @@
 package com.jacoby6000.smithplates.http
 
 import com.jacoby6000.smithplates.http.model.HttpInputMemberBinding
+import com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding
 import com.jacoby6000.smithplates.http.model.HttpSerialization
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 import munit.FunSuite
+import software.amazon.smithy.model.shapes.ShapeId
 
 class HttpIrExtractorSpec extends FunSuite {
   test("HttpIrExtractor groups operations by @tags into route modules") {
@@ -38,6 +40,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |
           |structure GetWidgetInput {
           |    @required
+          |    @httpLabel
           |    id: String
           |}
           |
@@ -83,6 +86,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |
           |structure GetWidgetInput {
           |    @required
+          |    @httpLabel
           |    id: String
           |}
           |
@@ -262,15 +266,263 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(
       operation.inputMembers.map(member => (member.name, member.typeName, member.timestampFormat, member.binding)),
       List(
-        ("since", "Timestamp", Some(HttpTimestampFormat.EpochSeconds), HttpInputMemberBinding.Query("since")),
         (
           "ifModifiedSince",
           "Timestamp",
           Some(HttpTimestampFormat.HttpDate),
           HttpInputMemberBinding.Header("If-Modified-Since")
-        )
+        ),
+        ("since", "Timestamp", Some(HttpTimestampFormat.EpochSeconds), HttpInputMemberBinding.Query("since"))
       )
     )
+  }
+
+  test("HttpIrExtractor extracts nested structures and Smithy tagged unions for HTTP bodies") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#readonly
+          |
+          |@httpService
+          |service ContentApi {
+          |    version: "1"
+          |    operations: [CreateContent, GetContent]
+          |}
+          |
+          |@tags(["content"])
+          |@http(method: "POST", uri: "/content", code: 201)
+          |operation CreateContent {
+          |    input: CreateContentInput
+          |    output: ContentOutput
+          |}
+          |
+          |@tags(["content"])
+          |@http(method: "GET", uri: "/content/{contentId}", code: 200)
+          |@readonly
+          |operation GetContent {
+          |    input: GetContentInput
+          |    output: ContentOutput
+          |}
+          |
+          |structure PostalAddress {
+          |    @required
+          |    street: String
+          |
+          |    @required
+          |    city: String
+          |}
+          |
+          |structure ImageAsset {
+          |    @required
+          |    url: String
+          |
+          |    @required
+          |    width: Integer
+          |}
+          |
+          |union MediaAttachment {
+          |    caption: String
+          |    image: ImageAsset
+          |}
+          |
+          |structure CreateContentInput {
+          |    @required
+          |    title: String
+          |
+          |    @required
+          |    authorAddress: PostalAddress
+          |
+          |    @required
+          |    attachment: MediaAttachment
+          |}
+          |
+          |structure GetContentInput {
+          |    @required
+          |    @httpLabel
+          |    contentId: String
+          |}
+          |
+          |structure ContentOutput {
+          |    @required
+          |    contentId: String
+          |
+          |    @required
+          |    title: String
+          |
+          |    @required
+          |    authorAddress: PostalAddress
+          |
+          |    @required
+          |    attachment: MediaAttachment
+          |}
+          |""".stripMargin
+    )
+
+    val service         = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(
+      service.structures.map(_.name).toSet,
+      Set("PostalAddress", "ImageAsset", "CreateContentInput", "ContentOutput")
+    )
+    assertEquals(service.unions.map(_.name), List("MediaAttachment"))
+    val mediaAttachment = service.unions.head
+    assertEquals(
+      mediaAttachment.members.map(member => (member.name, member.typeName)),
+      List(("caption", "String"), ("image", "ImageAsset"))
+    )
+    val createInput     = service.structures.find(_.name == "CreateContentInput").get
+    assertEquals(
+      createInput.members.map(member => (member.name, member.typeName)),
+      List(
+        ("title", "String"),
+        ("authorAddress", "PostalAddress"),
+        ("attachment", "MediaAttachment")
+      )
+    )
+  }
+
+  test("HttpIrExtractor resolves document and member HTTP body bindings") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service ProjectApi {
+          |    version: "1"
+          |    operations: [CreateProject, CreateProjectTask]
+          |}
+          |
+          |@tags(["projects"])
+          |@http(method: "POST", uri: "/projects", code: 201)
+          |operation CreateProject {
+          |    input: CreateProjectInput
+          |    output: ProjectOutput
+          |}
+          |
+          |@tags(["project_tasks"])
+          |@http(method: "POST", uri: "/projects/{projectId}/tasks", code: 201)
+          |operation CreateProjectTask {
+          |    input: CreateProjectTaskInput
+          |    output: TaskOutput
+          |}
+          |
+          |structure CreateProjectInput {
+          |    @required
+          |    name: String
+          |}
+          |
+          |structure CreateProjectTaskInput {
+          |    @required
+          |    @httpLabel
+          |    projectId: String
+          |
+          |    @required
+          |    title: String
+          |}
+          |
+          |structure ProjectOutput {
+          |    @required
+          |    projectId: String
+          |
+          |    @required
+          |    name: String
+          |}
+          |
+          |structure TaskOutput {
+          |    @required
+          |    projectId: String
+          |
+          |    @required
+          |    taskId: String
+          |
+          |    @required
+          |    title: String
+          |}
+          |""".stripMargin
+    )
+
+    val service    = HttpIrExtractor.extractOrThrow(model).services.head
+    val create     = service.routeGroups.flatMap(_.operations).find(_.name == "CreateProject").get
+    val createTask = service.routeGroups.flatMap(_.operations).find(_.name == "CreateProjectTask").get
+    assertEquals(
+      create.bodyBinding,
+      HttpOperationBodyBinding.Document(ShapeId.from("example#CreateProjectInput"))
+    )
+    create.bodyBinding match {
+      case HttpOperationBodyBinding.Members(members) =>
+        fail(s"CreateProject should use document body binding, got members=$members")
+      case _                                         => ()
+    }
+    createTask.bodyBinding match {
+      case HttpOperationBodyBinding.Members(members) =>
+        assertEquals(members.map(_.name), List("title"))
+      case other                                     =>
+        fail(s"CreateProjectTask should use member payload binding, got $other")
+    }
+    assertEquals(
+      service.structures.map(_.name).toSet,
+      Set("CreateProjectInput", "ProjectOutput", "TaskOutput")
+    )
+  }
+
+  test("HttpIrExtractor warns when route input members are declared out of order") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#readonly
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [InspectWidget]
+          |}
+          |
+          |@tags(["widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |@readonly
+          |operation InspectWidget {
+          |    input: InspectWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure InspectWidgetInput {
+          |    @httpQuery("category")
+          |    category: String
+          |
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |
+          |    @httpHeader("X-Region")
+          |    region: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val ir        = HttpIrExtractor.extractOrThrow(model)
+    val operation = ir.services.head.routeGroups.head.operations.head
+    assertEquals(operation.inputMembers.map(_.name), List("region", "id", "category"))
+    assertEquals(ir.warnings.size, 1)
+    assert(ir.warnings.head.message.contains("declares route input members out of order"))
   }
 
   test("HttpIrExtractor defaults @httpService serialization to json") {
@@ -376,6 +628,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |
           |structure GetWidgetInput {
           |    @required
+          |    @httpLabel
           |    id: String
           |}
           |
@@ -423,6 +676,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |
           |structure GetWidgetInput {
           |    @required
+          |    @httpLabel
           |    id: String
           |}
           |

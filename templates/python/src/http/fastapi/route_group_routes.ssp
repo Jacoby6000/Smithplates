@@ -2,13 +2,14 @@
 <% val routeGroup = ctx.routeGroup.get %>
 <% val operations = routeGroup.operations %>
 <% val bindings = operations.flatMap(_.inputMembers.map(_.binding)).toSet %>
+<% val hasBodyBinding = routeGroupHasBody(operations) %>
 <% val typingSymbols = List("Annotated") ++ (if (operations.flatMap(_.inputMembers).exists(_.typeName == "Document")) List("Any") else Nil) %>
 from typing import ${typingSymbols.mkString(", ")}  # noqa: F401
 
 from pydantic import Field  # noqa: F401
 from fastapi import (  # noqa: F401
     APIRouter,
-<% if (bindings.exists(_.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Payload])) { %>
+<% if (hasBodyBinding) { %>
     Body,
 <% } %>
     Depends,
@@ -29,7 +30,7 @@ from datetime import datetime  # noqa: F401
 from ${ctx.packageName}.api_response import dispatch_api_response
 from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
 from ${ctx.packageName}.app_services import ApiServices, get_api_services
-<% for (typeName <- operations.map(responseTypeName).filter(_ != "None").distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
 from ${modelsPackageName(ctx.packageName)}.${snakeCase(typeName)} import ${typeName}
 <% } %>
 
@@ -48,10 +49,15 @@ async def ${operationMethodName(operation.name)}(
 <% for (member <- operation.inputMembers.filter(isRouteParameter)) { %>
     ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)} = ${fastapiParameterBinding(member)},
 <% } %>
+<% documentBodyInputShape(operation).foreach { inputShape => %>
+    ${snakeCase(inputShape.getName)}: ${inputShape.getName} = ${bodyParameterBinding(documentBodyRequired(operation))},
+<% } %>
+<% for (member <- bodyBindingMembers(operation)) { %>
+    ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)} = ${fastapiParameterBinding(member)},
+<% } %>
 ) -> ${responseTypeName(operation)}:
-<% val callArgs = operation.inputMembers.filter(isRouteParameter).map(member => s"${snakeCase(member.name)}=${snakeCase(member.name)}").mkString(", ") %>
     return dispatch_api_response(
-        await services.${apiModuleName(routeGroup.tag)}.${operationMethodName(operation.name)}(${callArgs}),
+        await services.${apiModuleName(routeGroup.tag)}.${operationMethodName(operation.name)}(${operationCallArguments(operation)}),
         OPERATION_HTTP_BINDINGS["${operationMethodName(operation.name)}"],
     )
 <% } %>

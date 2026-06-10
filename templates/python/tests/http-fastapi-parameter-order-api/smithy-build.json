@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:0.1.0"
+    ]
+  },
+  "plugins": {
+    "smithplates": {
+      "http": {
+        "python": {
+          "server": {
+            "webFramework": "fastapi",
+            "sourceOutputDir": "src",
+            "testOutputDir": "test",
+            "packageName": "generated.widget_api"
+          }
+        }
+      }
+    }
+  }
+}

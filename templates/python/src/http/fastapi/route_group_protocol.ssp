@@ -8,7 +8,7 @@ from pydantic import Field  # noqa: F401
 <% if (operations.flatMap(_.inputMembers).exists(m => httpMemberPythonType(m.typeName, m.timestampFormat) == "datetime")) { %>
 from datetime import datetime  # noqa: F401
 <% } %>
-<% for (typeName <- operations.map(responseTypeName).filter(_ != "None").distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
 from ${modelsPackageName(ctx.packageName)}.${snakeCase(typeName)} import ${typeName}
 <% } %>
 
@@ -17,6 +17,12 @@ class ${protocolClassName(routeGroup.tag)}(Protocol):
     async def ${operationMethodName(operation.name)}(
         self,
 <% for (member <- operation.inputMembers.filter(isRouteParameter)) { %>
+        ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
+<% } %>
+<% documentBodyInputShape(operation).foreach { inputShape => %>
+        ${snakeCase(inputShape.getName)}: ${inputShape.getName},
+<% } %>
+<% for (member <- bodyBindingMembers(operation)) { %>
         ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
 <% } %>
     ) -> ${responseTypeName(operation)}:

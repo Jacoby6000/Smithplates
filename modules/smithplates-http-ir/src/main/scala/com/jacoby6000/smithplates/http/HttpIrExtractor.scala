@@ -6,7 +6,9 @@ import software.amazon.smithy.model.Model
 
 object HttpIrExtractor {
   def extract(model: Model): HttpValidated[HttpServiceIr] =
-    HttpServiceExtractor.extract(model).map(services => HttpServiceIr(services = services))
+    HttpServiceExtractor.extract(model).map { case (services, warnings) =>
+      HttpServiceIr(services = services, warnings = warnings)
+    }
 
   def extractOrThrow(model: Model): HttpServiceIr =
     extract(model) match {

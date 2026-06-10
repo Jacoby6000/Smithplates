@@ -12,18 +12,50 @@ import scala.jdk.OptionConverters.*
 private[http] object HttpStructureExtractor {
   private val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
 
+  final case class ExtractedShapes(
+      structures: List[HttpStructure],
+      unions: List[HttpUnion]
+  )
+
   def extractForService(
       model: Model,
       serviceShape: ShapeId,
       operations: List[HttpOperation],
       serviceErrors: List[HttpServiceError]
-  ): HttpValidated[List[HttpStructure]] = {
-    val shapeIds =
-      (operations.flatMap(_.outputShape) ++ serviceErrors.map(_.shapeId))
+  ): HttpValidated[ExtractedShapes] = {
+    val rootShapeIds             =
+      (operations.flatMap(_.outputShape) ++
+        serviceErrors.map(_.shapeId) ++
+        documentInputShapeIds(operations) ++
+        memberPayloadStructureShapeIds(model, operations))
         .filter(_ != UnitShapeId)
         .distinct
-    shapeIds.traverse(shapeId => extractStructure(model, serviceShape, shapeId))
+    val (structureIds, unionIds) = HttpShapeGraph.referencedShapes(model, rootShapeIds)
+    (
+      structureIds.traverse(shapeId => extractStructure(model, serviceShape, shapeId)),
+      unionIds.traverse(shapeId => extractUnion(model, serviceShape, shapeId))
+    ).mapN(ExtractedShapes.apply)
   }
+
+  private def documentInputShapeIds(operations: List[HttpOperation]): List[ShapeId] =
+    operations.flatMap { operation =>
+      operation.bodyBinding match {
+        case HttpOperationBodyBinding.Document(inputShape) => List(inputShape)
+        case _                                             => Nil
+      }
+    }
+
+  private def memberPayloadStructureShapeIds(model: Model, operations: List[HttpOperation]): List[ShapeId] =
+    operations.flatMap { operation =>
+      operation.bodyBinding match {
+        case HttpOperationBodyBinding.Members(members) =>
+          members
+            .map(_.targetShape)
+            .filter(shapeId => HttpShapeGraph.isUserDefinedStructure(model, shapeId))
+        case _                                         =>
+          Nil
+      }
+    }
 
   private def extractStructure(
       model: Model,
@@ -59,6 +91,44 @@ private[http] object HttpStructureExtractor {
             HttpStructure(
               shapeId = structure.getId,
               name = structure.getId.getName,
+              members = members
+            )
+          }
+    }
+
+  private def extractUnion(
+      model: Model,
+      serviceShape: ShapeId,
+      shapeId: ShapeId
+  ): HttpValidated[HttpUnion] =
+    model.getShape(shapeId).toScala.flatMap(_.asUnionShape.toScala) match {
+      case None                                                    =>
+        InvalidHttpService(
+          serviceShape,
+          s"union shape '${shapeId.toString}' is not defined in the model"
+        ).invalidNel
+      case Some(union) if union.getId.getNamespace == "smithy.api" =>
+        InvalidHttpService(
+          serviceShape,
+          s"union shape '${shapeId.toString}' cannot be a smithy prelude shape"
+        ).invalidNel
+      case Some(union)                                             =>
+        union.getAllMembers.asScala.toList
+          .traverse { case (memberName, member) =>
+            HttpSmithyTypeResolver
+              .resolveMemberType(model, serviceShape, union.getId.getName, memberName, member)
+              .map { memberType =>
+                HttpUnionMember(
+                  name = memberName,
+                  typeName = memberType.typeName,
+                  timestampFormat = memberType.timestampFormat
+                )
+              }
+          }
+          .map { members =>
+            HttpUnion(
+              shapeId = union.getId,
+              name = union.getId.getName,
               members = members
             )
           }

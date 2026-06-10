@@ -99,6 +99,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
       httpSettings: SmithplatesHttpSettings
   ): Unit = {
     val serviceIr = HttpIrExtractor.extractOrThrow(model)
+    serviceIr.warnings.foreach(warning => logger.warning(warning.message))
 
     httpSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
       httpSettings.toCodegenSettings(languageId, serviceIr) match {

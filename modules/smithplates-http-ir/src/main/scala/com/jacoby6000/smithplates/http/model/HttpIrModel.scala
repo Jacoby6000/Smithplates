@@ -3,7 +3,8 @@ package com.jacoby6000.smithplates.http.model
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class HttpServiceIr(
-    services: List[HttpService]
+    services: List[HttpService],
+    warnings: List[HttpSchemaWarning] = Nil
 )
 
 final case class HttpServiceError(
@@ -25,6 +26,18 @@ final case class HttpStructure(
     members: List[HttpStructureMember]
 )
 
+final case class HttpUnionMember(
+    name: String,
+    typeName: String,
+    timestampFormat: Option[HttpTimestampFormat]
+)
+
+final case class HttpUnion(
+    shapeId: ShapeId,
+    name: String,
+    members: List[HttpUnionMember]
+)
+
 final case class HttpService(
     shapeId: ShapeId,
     version: String,
@@ -34,7 +47,8 @@ final case class HttpService(
     serviceErrors: List[HttpServiceError],
     resources: List[HttpResource],
     routeGroups: List[HttpRouteGroup],
-    structures: List[HttpStructure]
+    structures: List[HttpStructure],
+    unions: List[HttpUnion]
 )
 
 final case class HttpResource(
@@ -66,6 +80,7 @@ final case class HttpOperation(
     inputShape: ShapeId,
     inputBoundResource: Option[ShapeId],
     inputMembers: List[HttpOperationInputMember],
+    bodyBinding: HttpOperationBodyBinding,
     outputShape: Option[ShapeId],
     errorShapes: List[ShapeId],
     tags: List[String]

@@ -92,6 +92,86 @@ def isRouteParameter(member: com.jacoby6000.smithplates.http.model.HttpOperation
     case _                                                                       => true
   }
 
+def operationHasBody(operation: com.jacoby6000.smithplates.http.model.HttpOperation): Boolean =
+  operation.bodyBinding match {
+    case com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.None => false
+    case _                                                                   => true
+  }
+
+def routeGroupHasBody(operations: List[com.jacoby6000.smithplates.http.model.HttpOperation]): Boolean =
+  operations.exists(operationHasBody)
+
+def documentBodyInputShape(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): Option[software.amazon.smithy.model.shapes.ShapeId] =
+  operation.bodyBinding match {
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
+      Some(binding.inputShape)
+    case _ =>
+      None
+  }
+
+def bodyBindingMembers(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): List[com.jacoby6000.smithplates.http.model.HttpOperationInputMember] =
+  operation.bodyBinding match {
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
+      binding.members
+    case _ =>
+      Nil
+  }
+
+def documentBodyRequired(operation: com.jacoby6000.smithplates.http.model.HttpOperation): Boolean =
+  operation.inputMembers.exists(_.required)
+
+def operationBodyModelNames(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] =
+  operation.bodyBinding match {
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
+      List(binding.inputShape.getName)
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
+      binding.members
+        .filter(member =>
+          com.jacoby6000.smithplates.http.HttpSmithyTypeResolver.isStructureTypeName(member.typeName)
+        )
+        .map(_.typeName)
+        .distinct
+    case _ =>
+      Nil
+  }
+
+def operationImportedModelNames(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] = {
+  val responseType = responseTypeName(operation)
+  val responseTypes =
+    if (responseType == "None") {
+      Nil
+    } else {
+      List(responseType)
+    }
+  (operationBodyModelNames(operation) ++ responseTypes).distinct.sorted
+}
+
+def bodyParameterBinding(required: Boolean): String =
+  if (required) {
+    "Body(...)"
+  } else {
+    "Body(None)"
+  }
+
+def operationCallArguments(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val routeArgs =
+    operation.inputMembers.filter(isRouteParameter).map(member => s"${snakeCase(member.name)}=${snakeCase(member.name)}")
+  val bodyArgs = operation.bodyBinding match {
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
+      val paramName = snakeCase(binding.inputShape.getName)
+      List(s"$paramName=$paramName")
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
+      binding.members.map(member => s"${snakeCase(member.name)}=${snakeCase(member.name)}")
+    case _ =>
+      Nil
+  }
+  (routeArgs ++ bodyArgs).mkString(", ")
+}
+
 def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
   val unitShapeId = software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
   operation.outputShape.filter(_ != unitShapeId).map(_.getName).getOrElse("None")
@@ -112,6 +192,17 @@ def mediaTypeForSerialization(
 
 def structureMemberPythonType(
     member: com.jacoby6000.smithplates.http.model.HttpStructureMember
+): String =
+  httpMemberPythonType(member.typeName, member.timestampFormat)
+
+def unionVariantTypeName(unionName: String, memberName: String): String =
+  s"$unionName${memberName.capitalize}"
+
+def unionTypeAlias(unionName: String, memberNames: Seq[String]): String =
+  memberNames.map(memberName => unionVariantTypeName(unionName, memberName)).mkString(" | ")
+
+def unionMemberPythonType(
+    member: com.jacoby6000.smithplates.http.model.HttpUnionMember
 ): String =
   httpMemberPythonType(member.typeName, member.timestampFormat)
 %>
