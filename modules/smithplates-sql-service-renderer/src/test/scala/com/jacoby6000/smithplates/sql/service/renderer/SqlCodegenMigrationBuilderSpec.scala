@@ -2,7 +2,6 @@ package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.service.renderer.SqlSchemaHash.sha256Hex
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
@@ -26,7 +25,7 @@ class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
 
   private val schema = SqlSchema(tables = List(bookmarkTable))
 
-  test("build initial migration metadata from full schema DDL") {
+  test("build initial migration metadata without build-time schema hash") {
     val migration =
       SqlCodegenMigrationBuilder
         .build(schema, "sqlite", Map("sqlite" -> SqliteRenderer), "db/migrations/sqlite")
@@ -39,8 +38,6 @@ class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
     assertEquals(initial.version, "v1")
     assertEquals(initial.versionNumber, 1)
     assertEquals(initial.fileName, "v1_initial_schema.sql")
-    assert(initial.sql.contains("CREATE TABLE bookmarks"))
-    assertEquals(initial.schemaHash, sha256Hex(initial.sql))
     assert(migration.stateTableDdl.contains("_smithplates_migrations"))
   }
 

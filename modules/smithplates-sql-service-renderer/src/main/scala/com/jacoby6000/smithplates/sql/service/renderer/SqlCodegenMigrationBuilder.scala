@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
-import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.SqlSchema
 
 object SqlCodegenMigrationBuilder {
@@ -31,12 +30,9 @@ object SqlCodegenMigrationBuilder {
     if (schema.tables.isEmpty) {
       None
     } else {
-      val ddlRenderer =
-        schemaDdlRenderers.getOrElse(
-          dialectKey,
-          throw new IllegalStateException(s"schema DDL renderer for dialect '$dialectKey' is required")
-        )
-      val ddl         = SqlShared.formatDdlStatements(ddlRenderer.renderSchemaDdlStatements(schema))
+      if (!schemaDdlRenderers.contains(dialectKey)) {
+        throw new IllegalStateException(s"schema DDL renderer for dialect '$dialectKey' is required")
+      }
       Some(
         SqlCodegenMigrationContext(
           migrationsDirectory = migrationsDirectory,
@@ -46,9 +42,7 @@ object SqlCodegenMigrationBuilder {
             SqlCodegenMigrationEntry(
               version = InitialMigrationVersion,
               versionNumber = InitialMigrationVersionNumber,
-              fileName = InitialMigrationFileName,
-              schemaHash = SqlSchemaHash.sha256Hex(ddl),
-              sql = ddl
+              fileName = InitialMigrationFileName
             )
           )
         )

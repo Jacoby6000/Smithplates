@@ -70,7 +70,7 @@ service FooRepository {
 | `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
-| `db/<dialect>/<dialect>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files from a migrations directory, creates `_smithplates_migrations` state table, applies one pending migration at a time, and records version + schema hash |
+| `db/<dialect>/<dialect>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files from a migrations directory, creates `_smithplates_migrations` state table, validates the live schema hash against the last recorded hash before applying pending migrations, applies one migration at a time, and records version plus a schema hash computed from database catalog metadata after each migration |
 | `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Derived-query integration tests (apply migrations via generated migration service) |
 | `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
 

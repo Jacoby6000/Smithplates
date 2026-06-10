@@ -140,7 +140,6 @@ final case class TemplateMigrationEntryView(
     version: String,
     versionNumber: Int,
     fileName: String,
-    schemaHash: String,
     last: Boolean = false
 )
 
@@ -213,8 +212,7 @@ object SqlCodegenTemplateViews {
     TemplateMigrationEntryView(
       version = entry.version,
       versionNumber = entry.versionNumber,
-      fileName = entry.fileName,
-      schemaHash = entry.schemaHash
+      fileName = entry.fileName
     )
 
   private def integrationTestView(

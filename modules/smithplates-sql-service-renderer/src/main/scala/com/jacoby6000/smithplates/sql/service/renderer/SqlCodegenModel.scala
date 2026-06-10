@@ -92,9 +92,7 @@ final case class SqlCodegenServiceContext(
 final case class SqlCodegenMigrationEntry(
     version: String,
     versionNumber: Int,
-    fileName: String,
-    schemaHash: String,
-    sql: String
+    fileName: String
 )
 
 final case class SqlCodegenMigrationContext(

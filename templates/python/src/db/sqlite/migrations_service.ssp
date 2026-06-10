@@ -20,7 +20,6 @@ class MigrationSpec:
     version: str
     version_number: int
     file_name: str
-    schema_hash: str
 
 
 MIGRATION_SPECS: tuple[MigrationSpec, ...] = (
@@ -29,7 +28,6 @@ MIGRATION_SPECS: tuple[MigrationSpec, ...] = (
         version="${entry.version}",
         version_number=${entry.versionNumber},
         file_name="${entry.fileName}",
-        schema_hash="${entry.schemaHash}",
     ),
 <% } %>
 )
@@ -41,6 +39,10 @@ def parse_migration_version(file_name: str) -> int:
         msg = f"Migration file must match v<number><suffix>.sql: {file_name}"
         raise ValueError(msg)
     return int(match.group(1))
+
+
+def _hash_schema_metadata(lines: list[str]) -> str:
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
 
 
 class SqliteMigrationService:
@@ -59,6 +61,7 @@ class SqliteMigrationService:
 
     async def migrate_next(self) -> bool:
         await self._ensure_state_table()
+        await self._validate_schema_unchanged()
         pending = await self._pending_migrations()
         if not pending:
             return False
@@ -67,6 +70,18 @@ class SqliteMigrationService:
 
     async def _ensure_state_table(self) -> None:
         await self._connection.executescript(STATE_TABLE_DDL)
+
+    async def _validate_schema_unchanged(self) -> None:
+        stored_hash = await self._latest_stored_schema_hash()
+        if stored_hash is None:
+            return
+        current_hash = await self._compute_schema_hash()
+        if current_hash != stored_hash:
+            msg = (
+                "Database schema has drifted since the last migration: "
+                f"expected {stored_hash}, found {current_hash}"
+            )
+            raise ValueError(msg)
 
     async def _pending_migrations(self) -> list[MigrationSpec]:
         applied_versions = await self._applied_versions()
@@ -82,18 +97,42 @@ class SqliteMigrationService:
             msg = f"Missing migration file: {sql_path}"
             raise FileNotFoundError(msg)
         sql_text = sql_path.read_text(encoding="utf-8")
-        actual_hash = hashlib.sha256(sql_text.encode("utf-8")).hexdigest()
-        if actual_hash != spec.schema_hash:
-            msg = (
-                f"Schema hash mismatch for migration {spec.file_name}: "
-                f"expected {spec.schema_hash}, got {actual_hash}"
-            )
-            raise ValueError(msg)
         await self._connection.executescript(sql_text)
+        schema_hash = await self._compute_schema_hash()
         _ = await self._connection.execute(
             f"INSERT INTO {STATE_TABLE_NAME} (version, schema_hash) VALUES (?, ?)",
-            (spec.version, spec.schema_hash),
+            (spec.version, schema_hash),
         )
+
+    async def _compute_schema_hash(self) -> str:
+        cursor = await self._connection.execute(
+            f"""
+            SELECT type, name, sql
+            FROM sqlite_master
+            WHERE name NOT LIKE 'sqlite_%'
+              AND name != ?
+              AND sql IS NOT NULL
+            ORDER BY type, name
+            """,
+            (STATE_TABLE_NAME,),
+        )
+        rows = await cursor.fetchall()
+        lines = [f"{row[0]}|{row[1]}|{row[2]}" for row in rows]
+        return _hash_schema_metadata(lines)
+
+    async def _latest_stored_schema_hash(self) -> str | None:
+        cursor = await self._connection.execute(
+            f"""
+            SELECT schema_hash
+            FROM {STATE_TABLE_NAME}
+            ORDER BY applied_at DESC
+            LIMIT 1
+            """
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return str(row[0])
 
     async def _applied_versions(self) -> set[str]:
         cursor = await self._connection.execute(

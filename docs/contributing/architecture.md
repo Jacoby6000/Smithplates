@@ -67,11 +67,11 @@ flowchart TD
 | Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models.ssp` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums in versioned migration files | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) in the plugin; `smithplates.sql.<dialect>.migrationLocation` (directory) |
 | Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/), [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) |
-| Migration engine | Per-language migration runner with schema-hash tracking; planned input to generated test suites | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
+| Migration engine | Per-language migration runner: applies versioned `.sql` files one at a time, records version + schema hash in `_smithplates_migrations`; hash is computed from live database catalog metadata after each migration and validated before applying pending migrations | Bundled Python `sqlite_migrations.py` / `psycopg_migrations.py`; `migrations_service.ssp` |
 | Target language interfaces | Repository `Protocol` per `@sqlService` | `service_protocol.ssp`; service IR + query models + templates |
 | Derived dialect-specific queries | INSERT, UPDATE, DELETE, and SELECT rendered per dialect from service IR, bound to service operations | `SqlServiceIr.queries`; service IR + SQL IR |
 | Dialect-specific implementations | Driver-specific `@sqlService` implementations | `service_aiosqlite.ssp`, `service_psycopg.ssp`; interfaces + derived queries + templates |
-| Test suite implementations | Pytest lifecycle tests for derived CRUD operations | `service_derived_sql_integration_tests*.ssp`; derived queries + templates (migration engine planned) |
+| Test suite implementations | Pytest lifecycle tests for derived CRUD operations | `service_derived_sql_integration_tests*.ssp`; derived queries + templates + generated migration services |
 
 Consumer configuration is documented in [Integration](../usage/integration.md): enabled dialects control DDL export and driver templates; `languageTargets` controls service codegen.
 

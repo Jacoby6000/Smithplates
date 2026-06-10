@@ -23,7 +23,6 @@ class MigrationSpec:
     version: str
     version_number: int
     file_name: str
-    schema_hash: str
 
 
 MIGRATION_SPECS: tuple[MigrationSpec, ...] = (
@@ -31,7 +30,6 @@ MIGRATION_SPECS: tuple[MigrationSpec, ...] = (
         version="v1",
         version_number=1,
         file_name="v1_initial_schema.sql",
-        schema_hash="b356cbe8dd33593736198697619848edd363e22e3d34b72a1205fb249b9cbbd3",
     ),
 )
 
@@ -42,6 +40,10 @@ def parse_migration_version(file_name: str) -> int:
         msg = f"Migration file must match v<number><suffix>.sql: {file_name}"
         raise ValueError(msg)
     return int(match.group(1))
+
+
+def _hash_schema_metadata(lines: list[str]) -> str:
+    return hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
 
 
 class PsycopgMigrationService:
@@ -60,6 +62,7 @@ class PsycopgMigrationService:
 
     async def migrate_next(self) -> bool:
         await self._ensure_state_table()
+        await self._validate_schema_unchanged()
         pending = await self._pending_migrations()
         if not pending:
             return False
@@ -68,6 +71,15 @@ class PsycopgMigrationService:
 
     async def _ensure_state_table(self) -> None:
         await self._execute_script(STATE_TABLE_DDL)
+
+    async def _validate_schema_unchanged(self) -> None:
+        stored_hash = await self._latest_stored_schema_hash()
+        if stored_hash is None:
+            return
+        current_hash = await self._compute_schema_hash()
+        if current_hash != stored_hash:
+            msg = f"Database schema has drifted since the last migration: expected {stored_hash}, found {current_hash}"
+            raise ValueError(msg)
 
     async def _pending_migrations(self) -> list[MigrationSpec]:
         applied_versions = await self._applied_versions()
@@ -83,15 +95,58 @@ class PsycopgMigrationService:
             msg = f"Missing migration file: {sql_path}"
             raise FileNotFoundError(msg)
         sql_text = sql_path.read_text(encoding="utf-8")
-        actual_hash = hashlib.sha256(sql_text.encode("utf-8")).hexdigest()
-        if actual_hash != spec.schema_hash:
-            msg = f"Schema hash mismatch for migration {spec.file_name}: expected {spec.schema_hash}, got {actual_hash}"
-            raise ValueError(msg)
         await self._execute_script(sql_text)
+        schema_hash = await self._compute_schema_hash()
         _ = await self._connection.execute(
             f"INSERT INTO {STATE_TABLE_NAME} (version, schema_hash) VALUES (%s, %s)",
-            (spec.version, spec.schema_hash),
+            (spec.version, schema_hash),
         )
+
+    async def _compute_schema_hash(self) -> str:
+        lines: list[str] = []
+
+        cursor = await self._connection.execute(
+            """
+            SELECT table_name, column_name, data_type, is_nullable,
+                   COALESCE(column_default, '') AS column_default
+            FROM information_schema.columns
+            WHERE table_schema = 'public'
+              AND table_name != %s
+            ORDER BY table_name, ordinal_position
+            """,
+            (STATE_TABLE_NAME,),
+        )
+        rows = await cursor.fetchall()
+        lines.extend("column|" + "|".join(str(value) for value in row) for row in rows)
+
+        cursor = await self._connection.execute(
+            """
+            SELECT indexname, indexdef
+            FROM pg_indexes
+            WHERE schemaname = 'public'
+              AND tablename != %s
+            ORDER BY indexname
+            """,
+            (STATE_TABLE_NAME,),
+        )
+        rows = await cursor.fetchall()
+        lines.extend("index|" + "|".join(str(value) for value in row) for row in rows)
+
+        return _hash_schema_metadata(lines)
+
+    async def _latest_stored_schema_hash(self) -> str | None:
+        cursor = await self._connection.execute(
+            f"""
+            SELECT schema_hash
+            FROM {STATE_TABLE_NAME}
+            ORDER BY applied_at DESC
+            LIMIT 1
+            """
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return str(row[0])
 
     async def _execute_script(self, script: str) -> None:
         for statement in script.split(";"):

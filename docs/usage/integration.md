@@ -60,7 +60,7 @@ An `api` section will be added under `smithplates` in a future release.
 
 ### `smithplates.sql` dialect keys
 
-Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Migration files are written today; per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
+Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Versioned migration `.sql` files are written at build time; generated migration services apply them at runtime and track schema state in `_smithplates_migrations`.
 
 | Key | Purpose |
 |-----|---------|
