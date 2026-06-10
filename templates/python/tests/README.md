@@ -21,6 +21,8 @@ templates/python/tests/<case-name>/
 
 Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
+Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
+
 ## Run golden render comparison
 
 ```bash

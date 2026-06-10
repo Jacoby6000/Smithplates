@@ -1,7 +1,7 @@
 # Generated from example#ShipmentRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 
 import psycopg
 import pytest
@@ -11,7 +11,6 @@ from shipment_repository_models import (
     Shipment,
 )
 from shipment_repository_psycopg import ShipmentRepositoryPsycopgService
-from testcontainers.postgres import PostgresContainer
 
 SCHEMA_DDL = """-- example#Shipment
 CREATE TABLE shipments (
@@ -32,15 +31,9 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
             _ = await connection.execute(f"{ddl_statement};")
 
 
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
-
-
 @pytest_asyncio.fixture
 async def shipment_repository_service(
-    postgres_container: PostgresContainer,
+    postgres_container,
 ) -> AsyncIterator[ShipmentRepositoryPsycopgService]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),

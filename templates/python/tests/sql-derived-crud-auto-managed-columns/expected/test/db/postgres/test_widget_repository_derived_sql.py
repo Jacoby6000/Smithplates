@@ -1,12 +1,11 @@
 # Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 
 import psycopg
 import pytest
 import pytest_asyncio
-from testcontainers.postgres import PostgresContainer
 from widget_repository_models import (
     Widget,
 )
@@ -31,15 +30,9 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
             _ = await connection.execute(f"{ddl_statement};")
 
 
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
-
-
 @pytest_asyncio.fixture
 async def widget_repository_service(
-    postgres_container: PostgresContainer,
+    postgres_container,
 ) -> AsyncIterator[WidgetRepositoryPsycopgService]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),

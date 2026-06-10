@@ -1,7 +1,7 @@
 # Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 
 import psycopg
 import pytest
@@ -10,7 +10,6 @@ from order_repository_protocol import (
     GetOrderResult,
 )
 from order_repository_psycopg import OrderRepositoryPsycopgService
-from testcontainers.postgres import PostgresContainer
 
 SCHEMA_DDL = """-- example#Order
 CREATE TABLE orders (
@@ -38,15 +37,9 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
             _ = await connection.execute(f"{ddl_statement};")
 
 
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
-
-
 @pytest_asyncio.fixture
 async def order_repository_service(
-    postgres_container: PostgresContainer,
+    postgres_container,
 ) -> AsyncIterator[OrderRepositoryPsycopgService]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),
