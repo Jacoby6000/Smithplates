@@ -2,7 +2,7 @@
 <%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 <% if (test.extraImports != "") { %>${test.extraImports}<% } %>
 
@@ -16,12 +16,6 @@ ${test.localImportBlock}
 from psycopg_migrations import PsycopgMigrationService
 
 MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
-
-
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
 
 
 @pytest_asyncio.fixture

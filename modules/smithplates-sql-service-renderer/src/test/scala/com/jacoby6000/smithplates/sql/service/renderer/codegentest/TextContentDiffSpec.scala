@@ -3,7 +3,7 @@ package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 import munit.FunSuite
 
 class TextContentDiffSpec extends FunSuite {
-  test("TextContentDiff - formats first difference with surrounding context") {
+  test("formats first difference with surrounding context") {
     val message =
       TextContentDiff.formatMismatch(
         fileLabel = "python/expected-outputs/sample/src/example.py",

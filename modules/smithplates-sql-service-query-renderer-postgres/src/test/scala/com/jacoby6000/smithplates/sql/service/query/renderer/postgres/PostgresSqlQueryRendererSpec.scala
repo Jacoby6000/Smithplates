@@ -63,7 +63,7 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
            |""".stripMargin
       )
     )
-  test("Postgres - renders derive insert placeholders and RETURNING") {
+  test("DeriveInsert - renders placeholders and RETURNING") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -83,7 +83,7 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
       "INSERT INTO widgets (foo, bar) VALUES ($1, $2) RETURNING id;"
     )
   }
-  test("Postgres - renders derive update with primary key WHERE and updatable SET columns") {
+  test("DeriveUpdate - renders primary key WHERE and updatable SET columns") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -105,7 +105,7 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
         |WHERE id = $3 RETURNING updated_at;""".stripMargin
     )
   }
-  test("Postgres - renders derive delete with primary key WHERE and RETURNING") {
+  test("DeriveDelete - renders primary key WHERE and RETURNING") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -125,7 +125,7 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
       "DELETE FROM widgets WHERE id = $1 RETURNING id;"
     )
   }
-  test("Postgres - renders derive select one with all columns and primary key WHERE") {
+  test("DeriveSelectOne - renders all columns and primary key WHERE") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -147,7 +147,7 @@ final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
         |WHERE id = $1;""".stripMargin
     )
   }
-  test("Postgres - renders structure-based update SET and WHERE columns") {
+  test("Update - renders structure-based SET and WHERE columns") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#sqlUpdate

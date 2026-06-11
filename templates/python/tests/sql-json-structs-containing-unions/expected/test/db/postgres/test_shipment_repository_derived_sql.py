@@ -1,7 +1,7 @@
 # Generated from example#ShipmentRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 import psycopg
@@ -16,12 +16,6 @@ from shipment_repository_psycopg import ShipmentRepositoryPsycopgService
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
-
-
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
 
 
 @pytest_asyncio.fixture

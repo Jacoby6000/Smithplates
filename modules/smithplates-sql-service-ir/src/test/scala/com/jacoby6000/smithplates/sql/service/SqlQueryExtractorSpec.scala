@@ -601,7 +601,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
   }
 
-  test("DeriveSelectOne - derives whereClause from primary keys and selects all table columns") {
+  test("DeriveSelectOne - base table - derives whereClause from primary keys and selects all columns") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -644,7 +644,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - joins many-to-one table as singular nested result") {
+  test("DeriveSelectOne - join many-to-one - joins table as singular nested result") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -696,7 +696,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - optional FK yields optional singular nested member") {
+  test("DeriveSelectOne - join many-to-one - optional FK yields optional singular nested member") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -741,7 +741,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(selectOne.joins.head.joinType, SqlJoinType.Left)
   }
 
-  test("DeriveSelectOne - joins one-to-many table as collection nested result") {
+  test("DeriveSelectOne - join one-to-many - joins table as collection nested result") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -787,7 +787,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(selectOne.joins.head.joinType, SqlJoinType.Left)
   }
 
-  test("DeriveSelectOne - transitive joins resolve through prior joined tables") {
+  test("DeriveSelectOne - join transitive - resolves through prior joined tables") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -865,7 +865,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - reverse transitive joins resolve from department to widgets") {
+  test("DeriveSelectOne - join transitive reverse - resolves from department to widgets") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -943,7 +943,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - fails when joins are declared but output is not DerivedStruct") {
+  test("DeriveSelectOne - validation - fails when joins are declared but output is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -991,7 +991,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - fails when input is not DerivedStruct") {
+  test("DeriveSelectOne - validation - fails when input is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -1030,7 +1030,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - fails when output is not the target table structure") {
+  test("DeriveSelectOne - validation - fails when output is not the target table structure") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -1067,7 +1067,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelectOne - fails when table has no primary key members") {
+  test("DeriveSelectOne - validation - fails when table has no primary key members") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """

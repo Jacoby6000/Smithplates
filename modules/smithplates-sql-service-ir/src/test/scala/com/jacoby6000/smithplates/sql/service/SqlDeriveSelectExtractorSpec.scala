@@ -38,7 +38,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
         fail(s"expected column projection, got aggregate ${aggregate.resultAlias}")
     }
 
-  test("DeriveSelect - expands default star projections for from and joins") {
+  test("StarProjection - expands default for from and joins") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -67,7 +67,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelect - rejects star projections with groupBy") {
+  test("StarProjection - rejects with groupBy") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -92,7 +92,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
   }
 
-  test("DeriveSelect - infers bare column reference when table is unique") {
+  test("ColumnReference - infers bare reference when table is unique") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -118,7 +118,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     assertEquals(columnProjection(select.selectColumns.head), SqlQualifiedColumn("items", "category_id"))
   }
 
-  test("DeriveSelect - fails when output is not DerivedStruct") {
+  test("Validation - fails when output is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -148,7 +148,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveSelect - fails when input is DerivedStruct") {
+  test("Validation - fails when input is DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -168,7 +168,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
   }
 
-  test("DeriveSelect - fails when WHERE references aggregate projection") {
+  test("Aggregates - fails when WHERE references aggregate projection") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         baseTableModel +
@@ -198,7 +198,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
   }
 
-  test("DeriveSelect - allows HAVING on aggregate projection") {
+  test("Aggregates - allows HAVING on aggregate projection") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
         baseTableModel +

@@ -178,3 +178,32 @@ foreach_python_variant() {
     return 1
   fi
 }
+
+enumerate_python_variants() {
+  local -a service_types=()
+  local -a impls=()
+
+  mapfile -t service_types < <(resolve_python_service_types) || return $?
+  mapfile -t impls < <(resolve_python_impls) || return $?
+
+  shopt -s nullglob
+  for case_dir in "${TESTS_ROOT}"/*/; do
+    local case_name
+    case_name="$(basename "${case_dir}")"
+
+    local service_type
+    for service_type in "${service_types[@]}"; do
+      local db_root="${case_dir}expected/src/${service_type}"
+
+      local impl
+      for impl in "${impls[@]}"; do
+        local test_dir="${case_dir}expected/test/${service_type}/${impl}"
+        if ! variant_has_derived_sql_tests "${db_root}" "${impl}" "${test_dir}"; then
+          continue
+        fi
+
+        printf '%s\t%s\t%s\t%s\n' "${case_name}" "${impl}" "${db_root}" "${test_dir}"
+      done
+    done
+  done
+}
