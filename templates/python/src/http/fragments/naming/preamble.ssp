@@ -157,7 +157,7 @@ def bodyParameterBinding(required: Boolean): String =
     "Body(None)"
   }
 
-def operationCallArguments(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+def operationCallArgumentList(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] = {
   val routeArgs =
     operation.inputMembers.filter(isRouteParameter).map(member => s"${snakeCase(member.name)}=${snakeCase(member.name)}")
   val bodyArgs = operation.bodyBinding match {
@@ -169,7 +169,23 @@ def operationCallArguments(operation: com.jacoby6000.smithplates.http.model.Http
     case _ =>
       Nil
   }
-  (routeArgs ++ bodyArgs).mkString(", ")
+  routeArgs ++ bodyArgs
+}
+
+def operationCallArguments(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String =
+  operationCallArgumentList(operation).mkString(", ")
+
+def operationServiceCallExpression(
+    routeGroupTag: String,
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): String = {
+  val args = operationCallArgumentList(operation)
+  val target = s"services.${apiModuleName(routeGroupTag)}.${operationMethodName(operation.name)}"
+  if (args.length <= 2) {
+    s"await $target(${operationCallArguments(operation)})"
+  } else {
+    s"await $target(\n            ${args.mkString(",\n            ")},\n        )"
+  }
 }
 
 def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {

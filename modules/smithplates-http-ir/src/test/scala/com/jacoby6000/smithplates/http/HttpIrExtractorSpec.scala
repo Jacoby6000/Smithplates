@@ -385,6 +385,117 @@ class HttpIrExtractorSpec extends FunSuite {
     )
   }
 
+  test("HttpIrExtractor resolves mixed header, path label, and body payload bindings on POST") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WarehouseApi {
+          |    version: "1"
+          |    operations: [CreateShelfItem, AssignShelfSku]
+          |}
+          |
+          |@tags(["warehouse"])
+          |@http(method: "POST", uri: "/warehouses/{warehouseId}/shelves/{shelfId}/items", code: 201)
+          |operation CreateShelfItem {
+          |    input: CreateShelfItemInput
+          |    output: ShelfItemOutput
+          |}
+          |
+          |@tags(["warehouse"])
+          |@http(method: "POST", uri: "/shelves/{shelfId}/skus", code: 201)
+          |operation AssignShelfSku {
+          |    input: AssignShelfSkuInput
+          |    output: ShelfSkuOutput
+          |}
+          |
+          |structure ItemDetails {
+          |    @required
+          |    name: String
+          |}
+          |
+          |structure CreateShelfItemInput {
+          |    @httpHeader("X-Idempotency-Key")
+          |    idempotencyKey: String
+          |
+          |    @required
+          |    @httpLabel
+          |    warehouseId: String
+          |
+          |    @required
+          |    @httpLabel
+          |    shelfId: String
+          |
+          |    @httpPayload
+          |    @required
+          |    details: ItemDetails
+          |}
+          |
+          |structure AssignShelfSkuInput {
+          |    @httpHeader("X-Request-Id")
+          |    requestId: String
+          |
+          |    @required
+          |    @httpLabel
+          |    shelfId: String
+          |
+          |    @required
+          |    sku: String
+          |}
+          |
+          |structure ShelfItemOutput {
+          |    @required
+          |    itemId: String
+          |
+          |    @required
+          |    name: String
+          |}
+          |
+          |structure ShelfSkuOutput {
+          |    @required
+          |    shelfId: String
+          |
+          |    @required
+          |    sku: String
+          |}
+          |""".stripMargin
+    )
+
+    val operations = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations
+    val createItem = operations.find(_.name == "CreateShelfItem").get
+    val assignSku  = operations.find(_.name == "AssignShelfSku").get
+    assertEquals(
+      createItem.inputMembers.map(member => (member.name, member.binding)),
+      List(
+        ("idempotencyKey", HttpInputMemberBinding.Header("X-Idempotency-Key")),
+        ("warehouseId", HttpInputMemberBinding.PathLabel()),
+        ("shelfId", HttpInputMemberBinding.PathLabel()),
+        ("details", HttpInputMemberBinding.Payload())
+      )
+    )
+    createItem.bodyBinding match {
+      case HttpOperationBodyBinding.Members(members) =>
+        assertEquals(members.map(_.name), List("details"))
+      case other                                     =>
+        fail(s"CreateShelfItem should use member payload binding, got $other")
+    }
+    assertEquals(
+      assignSku.inputMembers.map(member => (member.name, member.binding)),
+      List(
+        ("requestId", HttpInputMemberBinding.Header("X-Request-Id")),
+        ("shelfId", HttpInputMemberBinding.PathLabel()),
+        ("sku", HttpInputMemberBinding.Payload())
+      )
+    )
+  }
+
   test("HttpIrExtractor resolves document and member HTTP body bindings") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->

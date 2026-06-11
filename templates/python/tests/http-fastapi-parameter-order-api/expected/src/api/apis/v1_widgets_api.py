@@ -33,7 +33,12 @@ async def inspect_widget(
     since: float | None = Query(None, alias="since"),
 ) -> WidgetOutput:
     return dispatch_api_response(
-        await services.v1_widgets_api.inspect_widget(region=region, id=id, category=category, since=since),
+        await services.v1_widgets_api.inspect_widget(
+            region=region,
+            id=id,
+            category=category,
+            since=since,
+        ),
         OPERATION_HTTP_BINDINGS["inspect_widget"],
     )
 
@@ -52,6 +57,10 @@ async def search_widgets(
     limit: int | None = Query(None, alias="limit"),
 ) -> WidgetListOutput:
     return dispatch_api_response(
-        await services.v1_widgets_api.search_widgets(trace_id=trace_id, sort=sort, limit=limit),
+        await services.v1_widgets_api.search_widgets(
+            trace_id=trace_id,
+            sort=sort,
+            limit=limit,
+        ),
         OPERATION_HTTP_BINDINGS["search_widgets"],
     )

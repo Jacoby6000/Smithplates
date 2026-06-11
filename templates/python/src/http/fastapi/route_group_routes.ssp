@@ -57,7 +57,7 @@ async def ${operationMethodName(operation.name)}(
 <% } %>
 ) -> ${responseTypeName(operation)}:
     return dispatch_api_response(
-        await services.${apiModuleName(routeGroup.tag)}.${operationMethodName(operation.name)}(${operationCallArguments(operation)}),
+        ${operationServiceCallExpression(routeGroup.tag, operation)},
         OPERATION_HTTP_BINDINGS["${operationMethodName(operation.name)}"],
     )
 <% } %>
