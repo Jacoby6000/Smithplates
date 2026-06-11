@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
-/** Runs each fixture's `smithy-build.json` once (cached per case) and compares `out/` to `expected/`. */
+/** Runs each fixture's `smithy-build.json` once, then compares `out/` to `expected/` per variant. */
 abstract class CodegenTemplateTestSuite(
     languageId: String,
     variants: Set[CodegenTemplateVariant]
@@ -29,6 +29,27 @@ abstract class CodegenTemplateTestSuite(
 
   private lazy val testCases: List[CodegenTemplateTestCase] =
     CodegenTemplateTestDiscovery.discover(repoRoot, languageId, variants)
+
+  private def hasActiveVariantExpectations(testCase: CodegenTemplateTestCase): Boolean =
+    variants.exists { variant =>
+      val expectedFiles = testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
+      !CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant) && expectedFiles.nonEmpty
+    }
+
+  private lazy val casesRequiringBuild: List[CodegenTemplateTestCase] =
+    testCases.filter(hasActiveVariantExpectations)
+
+  casesRequiringBuild.foreach { testCase =>
+    test(s"build - ${testCase.name}") {
+      val result =
+        SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
+      buildOutputs.put(testCase.name, result)
+      result.fold(
+        message => fail(s"Smithy build failed for '${testCase.name}': $message"),
+        _ => ()
+      )
+    }
+  }
 
   variants.foreach { variant =>
     testCases.foreach { testCase =>
@@ -55,15 +76,16 @@ abstract class CodegenTemplateTestSuite(
   }
 
   private def outputDirectoryFor(testCase: CodegenTemplateTestCase): Path =
-    buildOutputs
-      .computeIfAbsent(
-        testCase.name,
-        _ => SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
-      )
-      .fold(
-        message => fail(s"Smithy build failed for '${testCase.name}': $message"),
-        identity
-      )
+    Option(buildOutputs.get(testCase.name)) match {
+      case None                         =>
+        fail(
+          s"Missing Smithy build output for '${testCase.name}'; expected a preceding build - ${testCase.name} test"
+        )
+      case Some(Left(message))          =>
+        fail(s"Smithy build failed for '${testCase.name}': $message")
+      case Some(Right(outputDirectory)) =>
+        outputDirectory
+    }
 
   private def readBuildOutputs(outputDirectory: Path): Map[String, String] =
     if (!Files.isDirectory(outputDirectory)) {

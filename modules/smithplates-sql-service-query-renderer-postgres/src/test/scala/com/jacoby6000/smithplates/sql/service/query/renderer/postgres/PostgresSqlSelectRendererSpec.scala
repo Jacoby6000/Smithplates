@@ -69,7 +69,7 @@ final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
   )
 
   private lazy val starSchema = SqlModelExtractor.extractOrThrow(starQueryModel)
-  test("Postgres - renders default star projections as explicit table columns") {
+  test("StarProjection - renders default as explicit table columns") {
     val statement =
       renderer
         .renderQueryUnits(starSchema.queries)
@@ -142,7 +142,7 @@ final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
   )
 
   private lazy val schema = SqlModelExtractor.extractOrThrow(queryModel)
-  test("Postgres - renders derive select join, filters, and HAVING placeholders") {
+  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
     assertEquals(
       queryStatement(schema.queries, renderer),
       """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount

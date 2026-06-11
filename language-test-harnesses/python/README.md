@@ -2,7 +2,7 @@
 
 Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`), so runners check each case/dialect separately.
+Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`). Linters still run per case/dialect; pytest batches all cases per dialect (see Tests below).
 
 ## Linters (`run-linters.sh`)
 
@@ -17,6 +17,8 @@ Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/sr
 ## Tests (`run-tests.sh`)
 
 4. **pytest** — `@pytest.mark.integration` suites (postgres requires **Docker**)
+
+Suites are batched by dialect (`sqlite`, then `postgres`) in a single pytest process per dialect so startup and Postgres testcontainers are not repeated for every golden case. Postgres uses a shared session fixture in [`templates/python/tests/conftest.py`](../../templates/python/tests/conftest.py). Pytest is configured for live output (`-v`, `--capture=tee-sys`) via [`pyproject.toml`](pyproject.toml).
 
 ```bash
 ./language-test-harnesses/python/run-tests.sh

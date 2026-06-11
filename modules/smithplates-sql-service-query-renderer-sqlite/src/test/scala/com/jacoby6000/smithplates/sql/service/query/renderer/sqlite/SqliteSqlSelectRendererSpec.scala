@@ -78,7 +78,7 @@ final class SqliteSqlSelectRendererSpec extends munit.FunSuite {
 
   private lazy val schema = SqlModelExtractor.extractOrThrow(queryModel)
 
-  test("SQLite - renders derive select join, filters, and HAVING placeholders") {
+  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
     assertEquals(
       queryStatement(schema.queries, renderer),
       """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount

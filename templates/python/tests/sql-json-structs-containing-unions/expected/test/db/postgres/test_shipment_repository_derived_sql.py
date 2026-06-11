@@ -1,7 +1,7 @@
 # Generated from example#ShipmentRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator
 
 import psycopg
 import pytest
@@ -30,12 +30,6 @@ async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str
         ddl_statement = statement.strip()
         if ddl_statement:
             _ = await connection.execute(f"{ddl_statement};")
-
-
-@pytest.fixture(scope="session")
-def postgres_container() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
-        yield container
 
 
 @pytest_asyncio.fixture

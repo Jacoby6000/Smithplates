@@ -1,6 +1,6 @@
 # Python template golden tests
 
-Golden cases live under `templates/python/tests/<case-name>/`. Each case runs `smithy build` via [`SmithyBuildTemplateRunner`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/SmithyBuildTemplateRunner.scala) and compares rendered output to files under `expected/`.
+Golden cases live under `templates/python/tests/<case-name>/`. Each case runs `smithy build` via [`SmithyBuildTemplateRunner`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/SmithyBuildTemplateRunner.scala) as its own munit test (`build - <case-name>`), then compares rendered output to files under `expected/` per dialect variant.
 
 ## Layout
 
@@ -21,6 +21,7 @@ templates/python/tests/<case-name>/
 
 Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
+<<<<<<< HEAD
 ## HTTP cases
 
 HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
@@ -41,6 +42,9 @@ templates/python/tests/<case-name>/
     src/api/apis/<route_group>_api.py
     src/api/apis/<route_group>_api_base.py
 ```
+=======
+Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
+>>>>>>> origin/main
 
 ## Run golden render comparison
 

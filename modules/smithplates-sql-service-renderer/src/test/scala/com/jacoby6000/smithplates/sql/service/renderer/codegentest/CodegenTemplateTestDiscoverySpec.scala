@@ -12,7 +12,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
   private lazy val repoRoot: Path =
     Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
 
-  test("CodegenTemplateTestDiscovery - discovers language template fixture cases") {
+  test("discovers language template fixture cases") {
     val cases =
       CodegenTemplateTestDiscovery.discover(repoRoot, "python", Set(sqliteVariant))
 
@@ -22,7 +22,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     assert(sqlCases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
   }
 
-  test("CodegenTemplateTestDiscovery - ignores empty and non-golden junk files under expected/") {
+  test("ignores empty and non-golden junk files under expected/") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
       val testsRoot        = tempRoot.resolve("templates/python/tests")
@@ -59,7 +59,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     } finally deleteRecursively(tempRoot)
   }
 
-  test("CodegenTemplateTestDiscovery - unsupported.md suppresses expected files for a variant") {
+  test("unsupported.md suppresses expected files for a variant") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
       val testsRoot        = tempRoot.resolve("templates/python/tests")
@@ -93,7 +93,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     } finally deleteRecursively(tempRoot)
   }
 
-  test("CodegenTemplateTestDiscovery - scopes dialect migration files per variant") {
+  test("scopes dialect migration files per variant") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
       val testsRoot       = tempRoot.resolve("templates/python/tests")

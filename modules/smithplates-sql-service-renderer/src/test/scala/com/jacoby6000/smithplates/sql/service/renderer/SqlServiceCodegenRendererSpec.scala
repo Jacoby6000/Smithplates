@@ -1,29 +1,69 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-import com.jacoby6000.smithplates.sql.SqlTestModelLoader
-import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
-import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
+import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
-import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
-
-import java.nio.file.Paths
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
-  private lazy val repoRoot =
-    Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
-
-  private def loadTestCaseModel(testName: String) =
-    CodegenTemplateTestDiscovery
-      .discover(repoRoot, "python", Set(SqlServiceCodegenTemplateBackend.pythonSqlite.variant))
-      .find(_.name == testName)
-      .map(testCase => SqlTestModelLoader.assemble(testCase.smithyModelId -> testCase.smithyContent))
-      .getOrElse(fail(s"expected templates golden case '$testName'"))
-
-  test("ServiceCodegen - derives CRUD for @sqlJson struct and union columns") {
-    val schema = SqlModelExtractor.extractOrThrow(loadTestCaseModel("sql-json-structs-containing-unions"))
+  test("@sqlJson - derives insert and update columns for struct and union members") {
+    val schema =
+      SqlModelExtractor.extractOrThrow(
+        SqlTestModelBuilder.assemble(
+          """
+            |use smithplates.codegen.sql#DerivedStruct
+            |use smithplates.codegen.sql#sqlAutoUuid
+            |use smithplates.codegen.sql#sqlCreatedTimestamp
+            |use smithplates.codegen.sql#sqlDeriveInsert
+            |use smithplates.codegen.sql#sqlDeriveUpdate
+            |use smithplates.codegen.sql#sqlJson
+            |use smithplates.codegen.sql#sqlPrimaryKey
+            |use smithplates.codegen.sql#sqlTable
+            |use smithy.api#required
+            |
+            |structure PostalAddress {
+            |    @required
+            |    street: String
+            |    @required
+            |    city: String
+            |}
+            |
+            |union DeliveryState {
+            |    pending: String
+            |    delivered: Timestamp
+            |}
+            |
+            |@sqlTable(name: "shipments")
+            |structure Shipment {
+            |    @sqlPrimaryKey
+            |    @sqlAutoUuid
+            |    id: String
+            |    @required
+            |    label: String
+            |    @required
+            |    @sqlJson
+            |    destination: PostalAddress
+            |    @required
+            |    @sqlJson
+            |    state: DeliveryState
+            |    @sqlCreatedTimestamp
+            |    created_at: Timestamp
+            |}
+            |
+            |@sqlDeriveInsert(targetTable: "example#Shipment")
+            |operation CreateShipment {
+            |    input: DerivedStruct
+            |    output: String
+            |}
+            |
+            |@sqlDeriveUpdate(targetTable: "example#Shipment")
+            |operation UpdateShipment {
+            |    input: DerivedStruct
+            |    output: Boolean
+            |}
+            |""".stripMargin
+        )
+      )
     val insert = schema.queries.inserts.head
     val update = schema.queries.updates.head
 
@@ -31,7 +71,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(update.setColumns.map(_.memberName), List("label", "destination", "state"))
   }
 
-  test("ServiceCodegen - expands output path placeholders per service") {
+  test("OutputPath - expands placeholders per service") {
     val queryRenderer           =
       new SqliteSqlQueryRenderer(
         migrationBindPlaceholder = SqlBindPlaceholder("?"),
@@ -64,6 +104,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       "test/db/sqlite/test_widget_repository_derived_sql.py"
     )
   }
+<<<<<<< HEAD
 
   test("ServiceCodegen - uses postgres query renderer for postgres service artifacts when both dialects are enabled") {
     val model    = loadTestCaseModel("sql-derive-select-one-only")
@@ -104,4 +145,6 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assert(clue(postgresService.content).contains("WHERE id = %s"))
     assert(!clue(postgresService.content).contains("AiosqliteService"))
   }
+=======
+>>>>>>> origin/main
 }

@@ -63,7 +63,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
            |""".stripMargin
       )
     )
-  test("SQLite - renders derive insert placeholders and RETURNING") {
+  test("DeriveInsert - renders placeholders and RETURNING") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -83,7 +83,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
       "INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;"
     )
   }
-  test("SQLite - renders derive update with primary key WHERE and updatable SET columns") {
+  test("DeriveUpdate - renders primary key WHERE and updatable SET columns") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -105,7 +105,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
         |WHERE id = ? RETURNING updated_at;""".stripMargin
     )
   }
-  test("SQLite - renders derive delete with primary key WHERE and RETURNING") {
+  test("DeriveDelete - renders primary key WHERE and RETURNING") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -125,7 +125,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
       "DELETE FROM widgets WHERE id = ? RETURNING id;"
     )
   }
-  test("SQLite - renders derive select one with all columns and primary key WHERE") {
+  test("DeriveSelectOne - renders all columns and primary key WHERE") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#DerivedStruct
@@ -147,7 +147,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
         |WHERE id = ?;""".stripMargin
     )
   }
-  test("SQLite - renders structure-based update SET and WHERE columns") {
+  test("Update - renders structure-based SET and WHERE columns") {
     val schema = assembleWidgetModel(
       """
         |use smithplates.codegen.sql#sqlUpdate
