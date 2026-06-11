@@ -104,7 +104,6 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       "test/db/sqlite/test_widget_repository_derived_sql.py"
     )
   }
-<<<<<<< HEAD
 
   test("ServiceCodegen - uses postgres query renderer for postgres service artifacts when both dialects are enabled") {
     val model    = loadTestCaseModel("sql-derive-select-one-only")
@@ -145,6 +144,4 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assert(clue(postgresService.content).contains("WHERE id = %s"))
     assert(!clue(postgresService.content).contains("AiosqliteService"))
   }
-=======
->>>>>>> origin/main
 }

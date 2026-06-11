@@ -21,7 +21,6 @@ templates/python/tests/<case-name>/
 
 Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
-<<<<<<< HEAD
 ## HTTP cases
 
 HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
@@ -42,9 +41,8 @@ templates/python/tests/<case-name>/
     src/api/apis/<route_group>_api.py
     src/api/apis/<route_group>_api_base.py
 ```
-=======
+
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
->>>>>>> origin/main
 
 ## Run golden render comparison
 
