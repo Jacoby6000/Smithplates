@@ -209,10 +209,18 @@ object SqlOperationBindingBuilder {
       columnName = column.columnName,
       columnIndex = columnIndex,
       typeName = column.typeName,
+      readTypeName = rowReadTypeName(column.typeName, columnType),
       isJson = isJson,
       timestampFormat = timestampFormat
     )
   }
+
+  private def rowReadTypeName(typeName: String, columnType: Option[SqlColumnType]): String =
+    columnType match {
+      case Some(_: SqlColumnType.StringEnum) => "String"
+      case Some(_: SqlColumnType.IntEnum)    => "Integer"
+      case _                                 => typeName
+    }
 
   private def tableColumnType(table: SqlTable, columnName: String): Option[SqlColumnType] =
     table.columns.find(_.name == columnName).map(_.columnType)

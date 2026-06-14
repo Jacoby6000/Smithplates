@@ -43,6 +43,7 @@ final case class SqlCodegenResultField(
     columnName: String,
     columnIndex: Int,
     typeName: String,
+    readTypeName: String,
     isJson: Boolean = false,
     timestampFormat: Option[SqlTimestampFormat] = None
 )

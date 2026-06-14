@@ -1,0 +1,317 @@
+$version: "2.0"
+namespace petstore
+
+use smithy.api#http
+use smithy.api#httpError
+use smithy.api#httpLabel
+use smithy.api#idempotent
+use smithy.api#readonly
+use smithy.api#required
+
+/// HTTP-facing petstore contract. Hand-written server and client implementations
+/// map these operations to generated `@sqlService` repositories under `src/generated`.
+@http(method: "POST", uri: "/pets", code: 201)
+operation CreatePet {
+    input: CreatePetInput
+    output: CreatePetOutput
+    errors: [ValidationError]
+}
+
+structure CreatePetInput {
+    @required
+    name: String
+    @required
+    status: PetStatus
+    @required
+    species: PetSpecies
+    @required
+    category_id: String
+    owner_id: String
+    @required
+    tag_count: Integer
+    @required
+    tags: StringList
+    @required
+    attributes: PetAttributeList
+    photo: Blob
+    metadata: Document
+    adopted_at: Timestamp
+}
+
+structure CreatePetOutput {
+    @required
+    id: String
+}
+
+@readonly
+@http(method: "GET", uri: "/pets/{petId}")
+operation GetPet {
+    input: GetPetInput
+    output: GetPetOutput
+    errors: [PetNotFound]
+}
+
+structure GetPetInput {
+    @httpLabel
+    @required
+    petId: String
+}
+
+structure GetPetOutput {
+    @required
+    pet: PetDetail
+}
+
+/// Aggregate read model returned by GetPet; mirrors joined repository output.
+structure PetDetail {
+    @required
+    id: String
+    @required
+    name: String
+    @required
+    status: PetStatus
+    @required
+    species: PetSpecies
+    @required
+    category_id: String
+    owner_id: String
+    @required
+    tag_count: Integer
+    @required
+    tags: StringList
+    @required
+    attributes: PetAttributeList
+    photo: Blob
+    metadata: Document
+    adopted_at: Timestamp
+    @required
+    created_at: Timestamp
+    @required
+    updated_at: Timestamp
+    @required
+    category: CategorySummary
+    @required
+    store: StoreSummary
+    owner: OwnerSummary
+    profile: PetProfileSummary
+}
+
+structure CategorySummary {
+    @required
+    id: String
+    @required
+    name: String
+    @required
+    store_id: String
+}
+
+structure StoreSummary {
+    @required
+    id: String
+    @required
+    name: String
+}
+
+structure OwnerSummary {
+    @required
+    id: String
+    @required
+    full_name: String
+    @required
+    mailing_address: PostalAddress
+    @required
+    created_at: Timestamp
+}
+
+structure PetProfileSummary {
+    @required
+    id: String
+    @required
+    biography: String
+    @required
+    pet_id: String
+}
+
+@idempotent
+@http(method: "PUT", uri: "/pets/{petId}")
+operation UpdatePet {
+    input: UpdatePetInput
+    output: UpdatePetOutput
+    errors: [PetNotFound, ValidationError]
+}
+
+structure UpdatePetInput {
+    @httpLabel
+    @required
+    petId: String
+    @required
+    name: String
+    @required
+    status: PetStatus
+    @required
+    species: PetSpecies
+    @required
+    category_id: String
+    owner_id: String
+    @required
+    tag_count: Integer
+    @required
+    tags: StringList
+    @required
+    attributes: PetAttributeList
+    photo: Blob
+    metadata: Document
+    adopted_at: Timestamp
+}
+
+structure UpdatePetOutput {
+    @required
+    updated: Boolean
+}
+
+@idempotent
+@http(method: "DELETE", uri: "/pets/{petId}", code: 204)
+operation DeletePet {
+    input: DeletePetInput
+    output: Unit
+    errors: [PetNotFound]
+}
+
+structure DeletePetInput {
+    @httpLabel
+    @required
+    petId: String
+}
+
+@readonly
+@http(method: "GET", uri: "/categories/{categoryId}")
+operation GetCategory {
+    input: GetCategoryInput
+    output: GetCategoryOutput
+    errors: [CategoryNotFound]
+}
+
+structure GetCategoryInput {
+    @httpLabel
+    @required
+    categoryId: String
+}
+
+structure GetCategoryOutput {
+    @required
+    category: CategoryDetail
+}
+
+structure CategoryDetail {
+    @required
+    id: String
+    @required
+    name: String
+    @required
+    store_id: String
+    @required
+    store: StoreSummary
+}
+
+@http(method: "POST", uri: "/orders", code: 201)
+operation PlaceOrder {
+    input: PlaceOrderInput
+    output: PlaceOrderOutput
+    errors: [ValidationError]
+}
+
+structure PlaceOrderInput {
+    @required
+    label: String
+    @required
+    status: OrderStatus
+    @required
+    priority: OrderPriority
+}
+
+structure PlaceOrderOutput {
+    @required
+    id: String
+}
+
+@readonly
+@http(method: "GET", uri: "/orders/{orderId}")
+operation GetOrder {
+    input: GetOrderInput
+    output: GetOrderOutput
+    errors: [OrderNotFound]
+}
+
+structure GetOrderInput {
+    @httpLabel
+    @required
+    orderId: String
+}
+
+structure GetOrderOutput {
+    @required
+    order: OrderDetail
+}
+
+structure OrderDetail {
+    @required
+    id: String
+    @required
+    label: String
+    @required
+    status: OrderStatus
+    @required
+    priority: OrderPriority
+    @required
+    created_at: Timestamp
+    @required
+    updated_at: Timestamp
+    @required
+    lines: OrderLineDetailList
+}
+
+list OrderLineDetailList {
+    member: OrderLineDetail
+}
+
+structure OrderLineDetail {
+    @required
+    id: String
+    @required
+    order_id: String
+    @required
+    pet_id: String
+    @required
+    quantity: Integer
+    @required
+    unit_price_cents: Long
+    @required
+    fulfillment: FulfillmentState
+}
+
+@httpError(404)
+@readonly
+@http(method: "GET", uri: "/health")
+operation HealthCheck {
+    input: Unit
+    output: HealthCheckOutput
+}
+
+structure HealthCheckOutput {
+    @required
+    status: String
+}
+
+service Petstore {
+    version: "2024-01-01"
+    operations: [
+        CreatePet
+        GetPet
+        UpdatePet
+        DeletePet
+        GetCategory
+        PlaceOrder
+        GetOrder
+        HealthCheck
+    ]
+}

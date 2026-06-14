@@ -89,6 +89,7 @@ def resultFieldAssignmentBindings(
   Map(
     "fieldName"         -> resultField.fieldName,
     "typeName"          -> resultField.typeName,
+    "readTypeName"      -> resultField.readTypeName,
     "isJson"            -> resultField.isJson,
     "readMode"          -> readMode,
     "columnIndex"       -> resultField.columnIndex,

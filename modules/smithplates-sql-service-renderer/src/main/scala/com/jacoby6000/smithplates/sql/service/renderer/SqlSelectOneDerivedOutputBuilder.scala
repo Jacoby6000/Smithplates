@@ -64,6 +64,7 @@ object SqlSelectOneDerivedOutputBuilder {
           columnName = projected.resultAlias.getOrElse(projected.column.columnName),
           columnIndex = index,
           typeName = projected.column.typeName,
+          readTypeName = rowReadTypeName(query.table, projected.column.columnName, projected.column.typeName),
           isJson = isJsonColumn(query.table, projected.column.columnName),
           timestampFormat = timestampFormat(query.table, projected.column.columnName)
         )
@@ -83,6 +84,7 @@ object SqlSelectOneDerivedOutputBuilder {
               columnName = projected.resultAlias.getOrElse(projected.column.columnName),
               columnIndex = startIndex + offset,
               typeName = column.typeName,
+              readTypeName = rowReadTypeName(nested.table, column.columnName, column.typeName),
               isJson = isJsonColumn(nested.table, column.columnName),
               timestampFormat = timestampFormat(nested.table, column.columnName)
             )
@@ -116,4 +118,11 @@ object SqlSelectOneDerivedOutputBuilder {
         case column if column.columnType.isInstanceOf[SqlColumnType.Timestamp] =>
           column.columnType.asInstanceOf[SqlColumnType.Timestamp].format
       }
+
+  private def rowReadTypeName(table: SqlTable, columnName: String, typeName: String): String =
+    table.columns.find(_.name == columnName).map(_.columnType) match {
+      case Some(_: SqlColumnType.StringEnum) => "String"
+      case Some(_: SqlColumnType.IntEnum)    => "Integer"
+      case _                                 => typeName
+    }
 }

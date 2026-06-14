@@ -66,7 +66,7 @@ object SqlCodegenHelperAttributes {
               SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
             operation.resultFields
               .filterNot(_.isJson)
-              .flatMap(field => rowReaderForType(field.typeName, field.timestampFormat))
+              .flatMap(field => rowReaderForType(field.readTypeName, field.timestampFormat))
           case _                                                                               =>
             Nil
         }
@@ -78,7 +78,7 @@ object SqlCodegenHelperAttributes {
     operations
       .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
       .flatMap(_.resultFields.filterNot(_.isJson).flatMap { field =>
-        rowReaderForType(field.typeName, field.timestampFormat).map(reader => s"${reader}_col")
+        rowReaderForType(field.readTypeName, field.timestampFormat).map(reader => s"${reader}_col")
       })
       .toSet
 

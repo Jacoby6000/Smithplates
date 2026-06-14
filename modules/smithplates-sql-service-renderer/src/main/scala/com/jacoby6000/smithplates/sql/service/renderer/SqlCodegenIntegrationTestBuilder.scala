@@ -23,12 +23,15 @@ object SqlCodegenIntegrationTestBuilder {
       return None
     }
 
+    val enumSamples        = enumSampleLiterals(context, schema)
     val insertOperation    =
-      sqlOperations.find(_.sql.exists(_.queryKind == "insert")).flatMap(buildInsertOperation(context, _))
+      sqlOperations.find(_.sql.exists(_.queryKind == "insert")).flatMap(buildInsertOperation(context, _, enumSamples))
     val selectOneOperation =
-      sqlOperations.find(_.sql.exists(_.queryKind == "selectOne")).flatMap(buildSelectOneOperation(context, _))
+      sqlOperations
+        .find(_.sql.exists(_.queryKind == "selectOne"))
+        .flatMap(buildSelectOneOperation(context, _, enumSamples))
     val updateOperation    =
-      sqlOperations.find(_.sql.exists(_.queryKind == "update")).flatMap(buildUpdateOperation(context, _))
+      sqlOperations.find(_.sql.exists(_.queryKind == "update")).flatMap(buildUpdateOperation(context, _, enumSamples))
     val deleteOperation    =
       sqlOperations.find(_.sql.exists(_.queryKind == "delete")).flatMap(buildDeleteOperation)
 
@@ -86,14 +89,36 @@ object SqlCodegenIntegrationTestBuilder {
     SqlShared.formatDdlStatements(ddlRenderer.renderSchemaDdlStatements(filteredSchema))
   }
 
+  private def enumSampleLiterals(
+      context: SqlCodegenServiceContext,
+      schema: SqlSchema
+  ): Map[String, String] =
+    schema.tables.flatMap { table =>
+      context.models.find(_.shapeId == table.shapeId).toList.flatMap { model =>
+        model.members.flatMap { member =>
+          table.columns.find(_.name == member.name).flatMap { column =>
+            column.columnType match {
+              case SqlColumnType.StringEnum(_, _, values) if values.nonEmpty =>
+                Some(member.typeName -> s"\"${values.head}\"")
+              case SqlColumnType.IntEnum(_, values) if values.nonEmpty       =>
+                Some(member.typeName -> values.head.toString)
+              case _                                                         =>
+                None
+            }
+          }
+        }
+      }
+    }.toMap
+
   private def buildInsertOperation(
       context: SqlCodegenServiceContext,
-      operation: SqlCodegenOperation
+      operation: SqlCodegenOperation,
+      enumSamples: Map[String, String]
   ): Option[SqlCodegenIntegrationTestOperation] =
     Some(
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
-        callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial),
+        callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial, enumSamples),
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
         resultAssertions = Nil,
@@ -103,7 +128,8 @@ object SqlCodegenIntegrationTestBuilder {
 
   private def buildSelectOneOperation(
       context: SqlCodegenServiceContext,
-      operation: SqlCodegenOperation
+      operation: SqlCodegenOperation,
+      enumSamples: Map[String, String]
   ): Option[SqlCodegenIntegrationTestOperation] = {
     val insertParameters       =
       context.operations
@@ -123,16 +149,17 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
-        resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial),
+        resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial, enumSamples),
         updatedResultAssertions =
-          resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated)
+          resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated, enumSamples)
       )
     )
   }
 
   private def buildUpdateOperation(
       context: SqlCodegenServiceContext,
-      operation: SqlCodegenOperation
+      operation: SqlCodegenOperation,
+      enumSamples: Map[String, String]
   ): Option[SqlCodegenIntegrationTestOperation] =
     Some(
       SqlCodegenIntegrationTestOperation(
@@ -140,7 +167,7 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = {
           val valueParameters = operation.parameters.filterNot(_.name == "id")
           if (valueParameters.nonEmpty) {
-            s"${renderCallArguments(context, valueParameters, SampleVariant.Updated)}, id=entity_id"
+            s"${renderCallArguments(context, valueParameters, SampleVariant.Updated, enumSamples)}, id=entity_id"
           } else {
             "id=entity_id"
           }
@@ -174,17 +201,19 @@ object SqlCodegenIntegrationTestBuilder {
   private def renderCallArguments(
       context: SqlCodegenServiceContext,
       parameters: List[SqlCodegenParameter],
-      variant: SampleVariant
+      variant: SampleVariant,
+      enumSamples: Map[String, String]
   ): String =
     parameters
-      .map(parameter => s"${parameter.name}=${sampleExpression(context, parameter, variant)}")
+      .map(parameter => s"${parameter.name}=${sampleExpression(context, parameter, variant, enumSamples)}")
       .mkString(", ")
 
   private def resultAssertions(
       context: SqlCodegenServiceContext,
       parameters: List[SqlCodegenParameter],
       targetExpression: String,
-      variant: SampleVariant
+      variant: SampleVariant,
+      enumSamples: Map[String, String]
   ): List[String] =
     parameters.flatMap { parameter =>
       if (parameter.isStructure) {
@@ -192,13 +221,19 @@ object SqlCodegenIntegrationTestBuilder {
           s"""assert $targetExpression.${parameter.name}.${member.name} == ${sampleMemberExpression(
               context,
               member,
-              variant)}"""
+              variant,
+              enumSamples
+            )}"""
         }
       } else if (isUnionParameter(context, parameter)) {
-        unionAssertion(context, parameter, targetExpression, variant).toList
+        unionAssertion(context, parameter, targetExpression, variant, enumSamples).toList
       } else {
         List(
-          s"""assert $targetExpression.${parameter.name} == ${sampleExpression(context, parameter, variant)}"""
+          s"""assert $targetExpression.${parameter.name} == ${sampleExpression(
+              context,
+              parameter,
+              variant,
+              enumSamples)}"""
         )
       }
     }
@@ -207,10 +242,11 @@ object SqlCodegenIntegrationTestBuilder {
       context: SqlCodegenServiceContext,
       parameter: SqlCodegenParameter,
       targetExpression: String,
-      variant: SampleVariant
+      variant: SampleVariant,
+      enumSamples: Map[String, String]
   ): Option[String] =
     Some(
-      s"""assert $targetExpression.${parameter.name} == ${sampleExpression(context, parameter, variant)}"""
+      s"""assert $targetExpression.${parameter.name} == ${sampleExpression(context, parameter, variant, enumSamples)}"""
     )
 
   private def structureMembers(
@@ -228,13 +264,14 @@ object SqlCodegenIntegrationTestBuilder {
   private def sampleExpression(
       context: SqlCodegenServiceContext,
       parameter: SqlCodegenParameter,
-      variant: SampleVariant
+      variant: SampleVariant,
+      enumSamples: Map[String, String]
   ): String =
     if (parameter.isStructure) {
       val members   = structureMembers(context, parameter)
       val arguments =
         members
-          .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant)}")
+          .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant, enumSamples)}")
           .mkString(", ")
       s"${parameter.typeName}($arguments)"
     } else if (isUnionParameter(context, parameter)) {
@@ -245,24 +282,26 @@ object SqlCodegenIntegrationTestBuilder {
       val member      = union.members.headOption.getOrElse {
         throw new IllegalStateException(s"Union ${union.name} has no members for integration test sampling")
       }
-      val sampleValue = sampleLiteral(context, member.typeName, variant, member.name)
+      val sampleValue = sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
       s"""{"${member.name}": $sampleValue}"""
     } else {
-      sampleLiteral(context, parameter.typeName, variant, parameter.name)
+      sampleLiteral(context, parameter.typeName, variant, parameter.name, enumSamples)
     }
 
   private def sampleMemberExpression(
       context: SqlCodegenServiceContext,
       member: SqlStructureMember,
-      variant: SampleVariant
+      variant: SampleVariant,
+      enumSamples: Map[String, String]
   ): String =
-    sampleLiteral(context, member.typeName, variant, member.name)
+    sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
 
   private def sampleLiteral(
       context: SqlCodegenServiceContext,
       typeName: String,
       variant: SampleVariant,
-      seed: String
+      seed: String,
+      enumSamples: Map[String, String]
   ): String = {
     val suffix =
       variant match {
@@ -276,19 +315,25 @@ object SqlCodegenIntegrationTestBuilder {
       case "Float" | "Double"                              => if (variant == SampleVariant.Initial) "3.5" else "7.0"
       case "Boolean"                                       => "True"
       case "Blob"                                          => s"b\"integration-$suffix\""
+      case "Document"                                      => "{\"integration\": true}"
       case "Timestamp"                                     => "datetime.now(timezone.utc)"
       case other if context.models.exists(_.name == other) =>
         val structure = context.models.find(_.name == other).get
         val arguments =
           structure.members
-            .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant)}")
+            .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant, enumSamples)}")
             .mkString(", ")
         s"$other($arguments)"
       case other if context.unions.exists(_.name == other) =>
         val union       = context.unions.find(_.name == other).get
         val member      = union.members.head
-        val memberValue = sampleLiteral(context, member.typeName, variant, member.name)
+        val memberValue = sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
         s"""{"${member.name}": $memberValue}"""
+      case other if enumSamples.contains(other)            =>
+        enumSamples(other)
+      case other if typeName.startsWith("List[")           =>
+        val inner = typeName.substring(5, typeName.length - 1)
+        s"[${sampleLiteral(context, inner, variant, seed, enumSamples)}]"
       case other                                           =>
         throw new IllegalArgumentException(s"Unsupported integration test sample type: $other")
     }
