@@ -5,6 +5,7 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.HttpIrExtractor
 import com.jacoby6000.smithplates.http.HttpValidated
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenRenderer
+import com.jacoby6000.smithplates.http.transform.HttpProblemHttpErrorModelTransformer
 import com.jacoby6000.smithplates.sql.SqlIrExtractor
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.service.SqlServiceIrExtractor
@@ -22,7 +23,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
   override def getName: String = "smithplates"
 
   override def execute(context: PluginContext): Unit = {
-    val model = context.getModel
+    val model = HttpProblemHttpErrorModelTransformer.transform(context.getModel)
     SmithplatesSettings.fromNode(context.getSettings) match {
       case Validated.Invalid(errors) =>
         throw new IllegalArgumentException(

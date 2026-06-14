@@ -100,6 +100,28 @@ Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#ht
 
 Service error structures with `@error` may use `@httpProblem` (`use smithplates.codegen.http#httpProblem`) to emit RFC 9457 `application/problem+json` exception classes and imply `Content-Type: application/problem+json` on operation error response bindings. Set `code` on `@httpProblem` to imply `@httpError` with the same status (otherwise declare `@httpError` separately). Set `type` to an HTTPS URL documenting the error (defaults to `about:blank`; smithplates warns when `type` is not HTTPS). Provide `title` and optional trait `detail` defaults; raise the generated exception with `detail=` and `instance=` to describe a specific occurrence (for example trace identifiers).
 
+Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpError`, that materializes implied `@httpError` traits from `@httpProblem(code: ...)` on structure shapes. The smithplates build plugin applies the same transform before HTTP extraction. Other Smithy build plugins (for example the OpenAPI converter) only see standard Smithy traits, so list this transform in `smithy-build.json` **before** those plugins when your model uses `@httpProblem(code: ...)` without an explicit `@httpError`:
+
+```json
+{
+  "version": "1.0",
+  "projections": {
+    "openapi": {
+      "transforms": [
+        { "name": "applyHttpProblemHttpError" }
+      ],
+      "plugins": {
+        "openapi": {
+          "service": "example.api#ExampleService"
+        }
+      }
+    }
+  }
+}
+```
+
+The transform is registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call `HttpProblemHttpErrorModelTransformer.transform(model)` from the smithplates HTTP IR module.
+
 #### OpenAPI Generator coordination
 
 When Smithy OpenAPI export and [OpenAPI Generator `python-fastapi`](https://openapi-generator.tech/docs/generators/python-fastapi) also run in the consumer pipeline (as in the rendering-pipeline reference layout under `extra-context/generated-db-schemas-and-models/`), keep these settings aligned:
