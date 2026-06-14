@@ -21,20 +21,53 @@ templates/python/tests/<case-name>/
 
 Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
+## HTTP cases
+
+HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
+
+| Case | What it validates |
+|------|-------------------|
+| `http-fastapi-service-errors-api` | Service-level `@httpError`, `@httpProblem` RFC 9457 exceptions, `Unit` input |
+| `http-fastapi-parameter-order-api` | Canonical route param order (header → path → query), `@timestampFormat` |
+| `http-fastapi-resource-nested-api` | Resources, nested routes, document/member request bodies |
+| `http-fastapi-body-unions-nested-api` | Tagged unions and nested structures in input/output bodies |
+| `http-fastapi-mixed-input-bindings-api` | POST with `@httpHeader`, `@httpLabel`, and `@httpPayload` together |
+| `http-fastapi-operation-errors-api` | Operation-level `@httpError` unions on protocol methods (no exceptions) |
+| `http-fastapi-output-bindings-api` | Output `@httpPayload` flattening, `@httpHeader` redirects, `@httpProblem` implied Content-Type |
+
+```
+templates/python/tests/<case-name>/
+  smithy/smithy-files.smithy
+  smithy-build.json                # http.python.server + smithplates-plugin maven dep
+  expected/
+    src/api/app_factory.py
+    src/api/app_services.py
+    src/api/api_response.py
+    src/api/operation_bindings.py
+    src/api/api_exceptions.py
+    src/api/api_exception_handler.py
+    src/api/models/problem.py
+    src/api/models/<output_shape>.py
+    src/api/apis/<route_group>_api.py
+    src/api/apis/<route_group>_api_base.py
+```
+
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
 
 ## Run golden render comparison
 
 ```bash
 sbtn "smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*"
+sbtn "smithplatesPlugin/testOnly *HttpServiceCodegenTemplateTestSuite*"
 # or
 ./scripts/run-template-golden-tests.sh
 ```
 
-Scoped by dialect:
+Scoped by dialect or HTTP framework:
 
 ```bash
 ./scripts/run-template-golden-tests.sh   # with SMITHYSTACHE_VALIDATE_TARGET=python/db/sqlite
+./scripts/run-template-golden-tests.sh   # with SMITHYSTACHE_VALIDATE_TARGET=python/api/fastapi
 ```
 
 ## Refresh goldens

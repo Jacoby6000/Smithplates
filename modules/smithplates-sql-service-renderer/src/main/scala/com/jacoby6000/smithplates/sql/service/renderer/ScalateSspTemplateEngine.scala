@@ -108,15 +108,15 @@ object ScalateSspTemplateEngine {
   }
 
   private def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
-    val root               = templateRoot.map(normalizeTemplateRoot).getOrElse(normalizedTemplateRoot)
-    val namingPreamblePath =
-      if (root.isEmpty) {
-        "/fragments/naming/preamble.ssp"
-      } else {
-        s"/$root/fragments/naming/preamble.ssp"
-      }
-    baseContextBindingPreamble + readClasspathTemplateOptional(namingPreamblePath).getOrElse("")
+    val _ = templateRoot
+    baseContextBindingPreamble +
+      readOptionalClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("") +
+      readOptionalClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot))
+        .getOrElse("")
   }
+
+  private def readOptionalClasspathTemplate(resourcePath: String): Option[String] =
+    readClasspathTemplateOptional(normalizeResourcePath(resourcePath))
 
   private def readClasspathTemplateOptional(resourcePath: String): Option[String] =
     Option(getClass.getResourceAsStream(normalizeResourcePath(resourcePath))).map { stream =>
@@ -136,6 +136,8 @@ object ScalateSspTemplateEngine {
     val normalized = normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
+      case "python" :: "src" :: feature :: _             =>
+        s"python/src/$feature"
       case "templates" :: language :: "src" :: "db" :: _ =>
         s"templates/$language/src/db"
       case _ if segments.length >= 2                     =>

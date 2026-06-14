@@ -1,0 +1,66 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+<% val routeGroup = ctx.routeGroup.get %>
+<% val operations = routeGroup.operations %>
+<% val bindings = operations.flatMap(_.inputMembers.map(_.binding)).toSet %>
+<% val hasBodyBinding = routeGroupHasBody(operations) %>
+<% val typingSymbols = List("Annotated") ++ (if (operations.flatMap(_.inputMembers).exists(_.typeName == "Document")) List("Any") else Nil) %>
+from typing import ${typingSymbols.mkString(", ")}  # noqa: F401
+
+from pydantic import Field  # noqa: F401
+from fastapi import (  # noqa: F401
+    APIRouter,
+<% if (hasBodyBinding) { %>
+    Body,
+<% } %>
+    Depends,
+<% if (bindings.exists(_.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Header])) { %>
+    Header,
+<% } %>
+<% if (bindings.exists(_.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.PathLabel])) { %>
+    Path,
+<% } %>
+<% if (bindings.exists(_.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Query])) { %>
+    Query,
+<% } %>
+)
+<% if (operations.flatMap(_.inputMembers).exists(m => httpMemberPythonType(m.typeName, m.timestampFormat) == "datetime")) { %>
+from datetime import datetime  # noqa: F401
+<% } %>
+
+from ${ctx.packageName}.api_response import dispatch_api_response
+from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
+from ${ctx.packageName}.app_services import ApiServices, get_api_services
+<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
+from ${modelsPackageName(ctx.packageName)}.${snakeCase(typeName)} import ${typeName}
+<% } %>
+
+router = APIRouter()
+
+<% for (operation <- operations) { %>
+@router.${operation.method.toLowerCase}(
+    "${operation.uri}",
+    responses={
+<% val responseStatuses = operation.responseBinding.allVariants.map(_.statusCode).distinct.sorted %>
+<% for (statusCode <- responseStatuses) { %>
+        ${statusCode}: {"description": "Response"},
+<% } %>
+    },
+    response_model_by_alias=True,
+)
+async def ${operationMethodName(operation.name)}(
+    services: Annotated[ApiServices, Depends(get_api_services)],
+<% for (member <- operation.inputMembers.filter(isRouteParameter)) { %>
+    ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)} = ${fastapiParameterBinding(member)},
+<% } %>
+<% documentBodyInputShape(operation).foreach { inputShape => %>
+    ${snakeCase(inputShape.getName)}: ${inputShape.getName} = ${bodyParameterBinding(documentBodyRequired(operation))},
+<% } %>
+<% for (member <- bodyBindingMembers(operation)) { %>
+    ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)} = ${fastapiParameterBinding(member)},
+<% } %>
+) -> ${responseTypeName(operation)}:
+    return dispatch_api_response(
+        ${operationServiceCallExpression(routeGroup.tag, operation)},
+        OPERATION_HTTP_BINDINGS["${operationMethodName(operation.name)}"],
+    )
+<% } %>

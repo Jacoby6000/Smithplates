@@ -18,6 +18,8 @@ object ScalateTemplateHelpers {
       "python"
     } else {
       normalized.split("/").toList match {
+        case "python" :: "src" :: _              =>
+          "python"
         case "templates" :: language :: _        =>
           language
         case "custom-templates" :: language :: _ =>

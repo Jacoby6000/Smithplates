@@ -1,0 +1,51 @@
+<%
+def snakeCase(name: String): String =
+  name
+    .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
+    .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+    .toLowerCase
+
+def pythonTypeName(typeName: String): String =
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"list[${pythonTypeName(inner)}]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"dict[str, ${pythonTypeName(inner)}]"
+  } else {
+    typeName match {
+      case "String"                          => "str"
+      case "Integer" | "Long" | "BigInteger" => "int"
+      case "Float" | "Double"                => "float"
+      case "BigDecimal"                      => "Decimal"
+      case "Boolean"                         => "bool"
+      case "Blob"                            => "bytes"
+      case "Timestamp"                       => "datetime"
+      case "Document"                        => "Any"
+      case "Unit"                            => "None"
+      case other                             => other
+    }
+  }
+
+def pythonStringLiteral(value: String): String =
+  "\"" +
+    value
+      .replace("\\", "\\\\")
+      .replace("\"", "\\\"")
+      .replace("\r\n", "\\n")
+      .replace("\n", "\\n")
+      .replace("\r", "\\n") +
+    "\""
+
+def pythonMultilineStringLiteral(value: String): String =
+  "\"\"\"" + value + "\"\"\""
+
+def pythonOptionalStringLiteral(value: Option[String]): String =
+  value match {
+    case None                 => "None"
+    case Some(text) if text.contains('\n') || text.length > 100 =>
+      pythonMultilineStringLiteral(text)
+    case Some(text)           =>
+      pythonStringLiteral(text)
+  }
+%>

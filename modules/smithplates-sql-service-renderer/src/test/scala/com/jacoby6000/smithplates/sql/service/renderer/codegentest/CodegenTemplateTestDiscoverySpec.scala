@@ -16,8 +16,10 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     val cases =
       CodegenTemplateTestDiscovery.discover(repoRoot, "python", Set(sqliteVariant))
 
-    assertEquals(cases.size, 12)
-    assert(cases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
+    assertEquals(cases.size, 19)
+    val sqlCases = cases.filterNot(_.name.startsWith("http-"))
+    assertEquals(sqlCases.size, 12)
+    assert(sqlCases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
   }
 
   test("ignores empty and non-golden junk files under expected/") {
@@ -147,6 +149,40 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(postgresVariant, Nil).map(_.relativePath),
         List("db/migrations/postgres/v1_initial_schema.sql")
+      )
+    } finally deleteRecursively(tempRoot)
+  }
+
+  test("CodegenTemplateTestDiscovery - discovers nested api service-type files for http variants") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot       = tempRoot.resolve("templates/python/tests")
+      val caseDirectory   = testsRoot.resolve("sample-http-case")
+      val smithyDirectory = caseDirectory.resolve("smithy")
+      val apiDirectory    = caseDirectory.resolve("expected/src/api")
+      val apisDirectory   = apiDirectory.resolve("apis")
+      Files.createDirectories(smithyDirectory)
+      Files.createDirectories(apisDirectory)
+      Files.writeString(
+        smithyDirectory.resolve("smithy-files.smithy"),
+        """$version: "2.0"
+          |namespace example
+          |structure Placeholder {}
+          |""".stripMargin
+      )
+      Files.writeString(apiDirectory.resolve("app_factory.py"), "# app factory\n")
+      Files.writeString(apisDirectory.resolve("v1_widgets_api.py"), "# routes\n")
+
+      val fastapiVariant = CodegenTemplateVariant("python", "api", "fastapi")
+      val testCase       =
+        CodegenTemplateTestDiscovery
+          .discover(tempRoot, "python", Set(fastapiVariant))
+          .headOption
+          .getOrElse(fail("expected discovered test case"))
+
+      assertEquals(
+        testCase.expectedOutputsByVariant.getOrElse(fastapiVariant, Nil).map(_.relativePath).sorted,
+        List("src/api/apis/v1_widgets_api.py", "src/api/app_factory.py")
       )
     } finally deleteRecursively(tempRoot)
   }

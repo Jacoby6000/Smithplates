@@ -1,0 +1,3 @@
+<%@ val typeName: String %>
+<%@ val optional: Boolean = false %>
+<% if (optional) { %>${pythonTypeName(typeName)} | None<% } else { %>${pythonTypeName(typeName)}<% } %>

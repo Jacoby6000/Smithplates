@@ -52,6 +52,32 @@ def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   Compile / packageDoc / publishArtifact := false
 )
 
+def pythonTemplateNamespace(feature: String): String =
+  s"python/src/$feature"
+
+/** Package each template tree under its own classpath namespace (e.g. python/src/http). */
+def pythonNamespacedTemplateResources(features: String*): Seq[Def.Setting[_]] = Seq(
+  Compile / resourceGenerators += Def.task {
+    val repoRoot     = (ThisBuild / baseDirectory).value
+    val resourceRoot = (Compile / resourceManaged).value
+    val templateSrc  = repoRoot / "templates" / "python" / "src"
+
+    features.flatMap { feature =>
+      val sourceRoot = templateSrc / feature
+      (sourceRoot ** "*")
+        .filter(_.isFile)
+        .get
+        .map { source =>
+          val relative = source.relativeTo(sourceRoot).get.getPath
+          val target   = resourceRoot / pythonTemplateNamespace(feature) / relative
+          IO.createDirectories(Seq(target.getParentFile))
+          IO.copyFile(source, target, preserveLastModified = true)
+          target
+        }
+    }
+  }
+)
+
 /** Dialect IT modules: integration tests live in src/test only (not src/it or IntegrationTest). */
 def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
   Compile / sources := Nil,
@@ -183,6 +209,37 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-http-ir",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
+    libraryDependencies += "software.amazon.smithy" % "smithy-build" % smithyVersion,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
+lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-http-service-renderer"))
+  .dependsOn(smithplatesHttpIr, smithplatesHttpIr % "test->test")
+  .settings(
+    strictScala3Settings,
+    unpublishedModuleSettings,
+    name := "smithplates-http-service-renderer",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies ++= Seq(
+      catsCoreDependency,
+      "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
+      "org.scalameta" %% "munit" % munitVersion % Test
+    ),
+    pythonNamespacedTemplateResources("common", "http"),
+    Test / unmanagedResourceDirectories ++= Seq(
+      (ThisBuild / baseDirectory).value / "templates"
+    )
+  )
+
 lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-sql-service-renderer"))
   .dependsOn(
     smithplatesSqlServiceIr,
@@ -205,8 +262,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
-    Compile / unmanagedResourceDirectories +=
-      (ThisBuild / baseDirectory).value / "templates" / "python" / "src" / "db",
+    pythonNamespacedTemplateResources("common", "db"),
     Test / unmanagedResourceDirectories ++= Seq(
       (ThisBuild / baseDirectory).value / "templates"
     )
@@ -222,7 +278,10 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,
-    smithplatesSqlServiceRenderer % "test->test"
+    smithplatesSqlServiceRenderer % "test->test",
+    smithplatesHttpIr,
+    smithplatesHttpServiceRenderer,
+    smithplatesHttpServiceRenderer % "test->test"
   )
   .settings(
     strictScala3Settings,
@@ -318,6 +377,7 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesSqlIr,
+    smithplatesHttpIr,
     smithplatesSqlDdlRendererCommon,
     smithplatesSqlServiceIr,
     smithplatesSqlDdlRendererPostgres,
@@ -327,6 +387,7 @@ lazy val root = (project in file("."))
     smithplatesSqlServiceQueryRendererPostgres,
     smithplatesSqlServiceQueryRendererSqlite,
     smithplatesSqlServiceRenderer,
+    smithplatesHttpServiceRenderer,
     smithplatesPlugin,
     smithplatesTestkit,
     smithplatesSqlDdlRendererPostgresIt,
