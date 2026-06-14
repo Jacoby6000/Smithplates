@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 <% if (test.extraImports != "") { %>${test.extraImports}<% } %>
 
 import psycopg
@@ -10,16 +11,11 @@ import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 <% if (test.localImportBlock != "") { %>
-${test.localImportBlock}<% } %>
+${test.localImportBlock}
+<% } %>
+from psycopg_migrations import PsycopgMigrationService
 
-SCHEMA_DDL = """${test.schemaDdl}"""
-
-
-async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str) -> None:
-    for statement in schema_ddl.split(";"):
-        ddl_statement = statement.strip()
-        if ddl_statement:
-            _ = await connection.execute(f"{ddl_statement};")
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
 
 
 @pytest_asyncio.fixture
@@ -33,7 +29,9 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}(
         password=postgres_container.password,
         dbname=postgres_container.dbname,
     )
-    await _apply_schema_ddl(connection, SCHEMA_DDL)
+    migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
+    await connection.commit()
     try:
         yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)
     finally:

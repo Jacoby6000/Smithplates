@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.plugin
 
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
+import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.model.SqlSchema
@@ -40,6 +41,9 @@ object DialectRenderers {
       queryRenderer.migrationBindPlaceholder
     )
   }
+
+  def renderDdlOnly(schema: SqlSchema, dialectKey: String): String =
+    SqlShared.formatDdlStatements(schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema))
 
   private def sqliteQueryRenderer(): SqliteSqlQueryRenderer =
     new SqliteSqlQueryRenderer(

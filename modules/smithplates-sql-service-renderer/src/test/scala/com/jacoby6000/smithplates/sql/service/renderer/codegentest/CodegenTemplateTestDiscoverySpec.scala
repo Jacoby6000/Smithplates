@@ -94,11 +94,11 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
   test("scopes dialect migration files per variant") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
-      val testsRoot       = tempRoot.resolve("templates/python/tests")
-      val caseDirectory   = testsRoot.resolve("sample-case")
-      val smithyDirectory = caseDirectory.resolve("smithy")
-      val expectedRoot    = caseDirectory.resolve("expected")
-      val sqliteDirectory = expectedRoot.resolve("src/db/sqlite")
+      val testsRoot             = tempRoot.resolve("templates/python/tests")
+      val caseDirectory         = testsRoot.resolve("sample-case")
+      val smithyDirectory       = caseDirectory.resolve("smithy")
+      val expectedRoot          = caseDirectory.resolve("expected")
+      val sqliteDirectory       = expectedRoot.resolve("src/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(sqliteDirectory)
       Files.createDirectories(expectedRoot.resolve("db"))
@@ -113,8 +113,25 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         sqliteDirectory.resolve("sample_repository_aiosqlite.py"),
         "# valid golden file\n"
       )
-      Files.writeString(expectedRoot.resolve("db/sqlite.sql"), "-- sqlite ddl\n")
-      Files.writeString(expectedRoot.resolve("db/postgres.sql"), "-- postgres ddl\n")
+      val sqliteMigrationsDir   = expectedRoot.resolve("db/migrations/sqlite")
+      val postgresMigrationsDir = expectedRoot.resolve("db/migrations/postgres")
+      Files.createDirectories(sqliteMigrationsDir)
+      Files.createDirectories(postgresMigrationsDir)
+      Files.writeString(
+        caseDirectory.resolve("smithy-build.json"),
+        """{
+          |  "plugins": {
+          |    "smithplates": {
+          |      "sql": {
+          |        "sqlite": { "enable": true, "migrationLocation": "db/migrations/sqlite" },
+          |        "postgres": { "enable": true, "migrationLocation": "db/migrations/postgres" }
+          |      }
+          |    }
+          |  }
+          |}""".stripMargin
+      )
+      Files.writeString(sqliteMigrationsDir.resolve("v1_initial_schema.sql"), "-- sqlite ddl\n")
+      Files.writeString(postgresMigrationsDir.resolve("v1_initial_schema.sql"), "-- postgres ddl\n")
 
       val postgresVariant = CodegenTemplateVariant("python", "db", "postgres")
       val testCase        =
@@ -125,11 +142,11 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
 
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath).sorted,
-        List("db/sqlite.sql", "src/db/sqlite/sample_repository_aiosqlite.py")
+        List("db/migrations/sqlite/v1_initial_schema.sql", "src/db/sqlite/sample_repository_aiosqlite.py")
       )
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(postgresVariant, Nil).map(_.relativePath),
-        List("db/postgres.sql")
+        List("db/migrations/postgres/v1_initial_schema.sql")
       )
     } finally deleteRecursively(tempRoot)
   }

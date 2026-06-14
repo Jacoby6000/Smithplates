@@ -20,6 +20,7 @@ final case class SqlServiceCodegenSettings(
     enabledDialectKeys: List[String],
     queryRenderers: Map[String, SqlQueryRenderer],
     schemaDdlRenderers: Map[String, com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer],
+    migrationDirectories: Map[String, String] = Map.empty,
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
     artifacts: List[SqlServiceCodegenArtifactConfig]
@@ -44,6 +45,9 @@ object SqlServiceCodegenRenderer {
                 if ((SqlServiceCodegenDbArtifacts.isIntegrationTestTemplate(artifactConfig.template) ||
                     SqlServiceCodegenDbArtifacts.isPostgresTestcontainersStub(artifactConfig.template)) &&
                   context.integrationTest.isEmpty) {
+                  Nil
+                } else if (SqlServiceCodegenDbArtifacts.isMigrationServiceTemplate(artifactConfig.template) &&
+                  context.migration.isEmpty) {
                   Nil
                 } else {
                   val templatePath = resolveTemplatePath(settings, artifactConfig)

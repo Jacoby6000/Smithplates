@@ -60,9 +60,16 @@ object SqlServiceCodegenContextBuilder {
               operations = resolvedOperations
             )
 
+          val migrationDirectory = settings.migrationDirectories.get(queryRenderer.key)
           baseContext.copy(
-            integrationTest =
-              SqlCodegenIntegrationTestBuilder.build(baseContext, schema, queries, settings.schemaDdlRenderers)
+            integrationTest = SqlCodegenIntegrationTestBuilder.build(
+              baseContext,
+              schema,
+              queries,
+              settings.schemaDdlRenderers
+            ),
+            migration = migrationDirectory.flatMap(directory =>
+              SqlCodegenMigrationBuilder.build(schema, queryRenderer.key, settings.schemaDdlRenderers, directory))
           )
         }
     }

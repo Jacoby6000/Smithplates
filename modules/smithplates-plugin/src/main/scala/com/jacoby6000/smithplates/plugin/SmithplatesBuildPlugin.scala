@@ -5,6 +5,7 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlIrExtractor
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.service.SqlServiceIrExtractor
+import com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenMigrationBuilder
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenRenderer
 import software.amazon.smithy.build.PluginContext
 import software.amazon.smithy.build.SmithyBuildPlugin
@@ -26,15 +27,17 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
     ).mapN { (settings, schema) =>
       val serviceIr = SqlServiceIrExtractor.extractOrThrow(model, schema)
 
-      if (settings.sql.schemaDialectOutputs.nonEmpty) {
+      if (settings.sql.dialectMigrationDirectories.nonEmpty) {
         if (schema.tables.isEmpty) {
           logger.info("Skipping SQL schema generation: Smithy model contains no @sqlTable structures")
         } else {
-          settings.sql.schemaDialectOutputs.foreach { case (dialectKey, fileName) =>
+          settings.sql.dialectMigrationDirectories.foreach { case (dialectKey, migrationDirectory) =>
             try {
-              logger.info(s"Generating $dialectKey schema into '$fileName'")
-              val sql = DialectRenderers.render(schema, serviceIr, dialectKey)
-              context.getFileManifest.writeFile(fileName, sql)
+              val ddlOnly           = DialectRenderers.renderDdlOnly(schema, dialectKey)
+              val migrationFileName =
+                s"${normalizeDirectory(migrationDirectory)}/${SqlCodegenMigrationBuilder.InitialMigrationFileName}"
+              logger.info(s"Generating $dialectKey initial migration into '$migrationFileName'")
+              context.getFileManifest.writeFile(migrationFileName, ddlOnly)
             } catch {
               case NonFatal(ex) =>
                 logger.severe(s"Failed writing $dialectKey schema: ${ex.getMessage}")
@@ -83,4 +86,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
         )
     }
   }
+
+  private def normalizeDirectory(directory: String): String =
+    directory.stripSuffix("/").stripSuffix("\\")
 }

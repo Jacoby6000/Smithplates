@@ -121,6 +121,7 @@ object CodegenTemplateTestDiscovery {
       )
     val migrationFiles          =
       listDialectMigrationFiles(
+        caseDirectory,
         expectedRoot,
         variant.implementationId
       )
@@ -143,20 +144,28 @@ object CodegenTemplateTestDiscovery {
   }
 
   private def listDialectMigrationFiles(
+      caseDirectory: Path,
       expectedRoot: Path,
       implementationId: String
   ): List[CodegenTemplateExpectedFile] = {
-    val migrationPath = expectedRoot.resolve("db").resolve(s"$implementationId.sql")
-    if (!isGoldenExpectedFile(migrationPath)) {
-      Nil
-    } else {
-      List(
-        CodegenTemplateExpectedFile(
-          relativePath = expectedRoot.relativize(migrationPath).toString.replace('\\', '/'),
-          content = Files.readString(migrationPath, StandardCharsets.UTF_8)
-        )
-      )
+    val migrationDirectory =
+      resolveMigrationDirectory(caseDirectory, implementationId)
+    val migrationDir       = expectedRoot.resolve(migrationDirectory.stripPrefix("/"))
+    listFilesRelativeToExpectedRoot(expectedRoot, migrationDir)
+  }
+
+  private def resolveMigrationDirectory(caseDirectory: Path, dialectKey: String): String = {
+    val configPath = caseDirectory.resolve(SmithyBuildFileName)
+    if (!Files.isRegularFile(configPath)) {
+      return s"db/migrations/$dialectKey"
     }
+    val content    = Files.readString(configPath, StandardCharsets.UTF_8)
+    val pattern    =
+      s""""$dialectKey"\\s*:\\s*\\{[^}]*"migrationLocation"\\s*:\\s*"([^"]+)"""".r
+    pattern
+      .findFirstMatchIn(content)
+      .map(_.group(1))
+      .getOrElse(s"db/migrations/$dialectKey")
   }
 
   private def listFilesRelativeToExpectedRoot(
