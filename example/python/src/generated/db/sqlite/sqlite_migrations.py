@@ -1,4 +1,4 @@
-# Generated from petstore#PetRepository by sql-service-codegen. Do not edit by hand.
+# Generated from petstore#OrderRepository by sql-service-codegen. Do not edit by hand.
 # Generated sqlite migration service for sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 

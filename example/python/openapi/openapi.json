@@ -1,0 +1,959 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Petstore",
+        "version": "2024-01-01",
+        "description": "OpenAPI export service shape (no @httpService — avoids projection transform conflicts)."
+    },
+    "paths": {
+        "/categories/{categoryId}": {
+            "get": {
+                "operationId": "GetCategory",
+                "parameters": [
+                    {
+                        "name": "categoryId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetCategory 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetCategoryResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "CategoryNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CategoryNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "operationId": "HealthCheck",
+                "responses": {
+                    "200": {
+                        "description": "HealthCheck 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthCheckResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders": {
+            "post": {
+                "operationId": "PlaceOrder",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PlaceOrderRequestContent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "PlaceOrder 201 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PlaceOrderResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ValidationError 400 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{orderId}": {
+            "get": {
+                "operationId": "GetOrder",
+                "parameters": [
+                    {
+                        "name": "orderId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetOrder 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetOrderResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "OrderNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OrderNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pets": {
+            "post": {
+                "description": "HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations\nin `src/server` that delegate to generated `@sqlService` repositories.",
+                "operationId": "CreatePet",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreatePetRequestContent"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "CreatePet 201 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CreatePetResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ValidationError 400 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pets/{petId}": {
+            "delete": {
+                "operationId": "DeletePet",
+                "parameters": [
+                    {
+                        "name": "petId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "DeletePet 204 response"
+                    },
+                    "404": {
+                        "description": "PetNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PetNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "operationId": "GetPet",
+                "parameters": [
+                    {
+                        "name": "petId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "GetPet 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/GetPetResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "PetNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PetNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "UpdatePet",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdatePetBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "parameters": [
+                    {
+                        "name": "petId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "UpdatePet 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UpdatePetResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ValidationError 400 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationErrorResponseContent"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "PetNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PetNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "CategoryDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "store_id": {
+                        "type": "string"
+                    },
+                    "store": {
+                        "$ref": "#/components/schemas/StoreSummary"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "store",
+                    "store_id"
+                ]
+            },
+            "CategoryNotFoundResponseContent": {
+                "type": "object",
+                "description": "Requested category was not found.",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
+            "CategorySummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "store_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "store_id"
+                ]
+            },
+            "CreatePetRequestContent": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PetStatus"
+                    },
+                    "species": {
+                        "$ref": "#/components/schemas/PetSpecies"
+                    },
+                    "category_id": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": "string"
+                    },
+                    "tag_count": {
+                        "type": "number"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PetAttribute"
+                        }
+                    },
+                    "photo": {
+                        "type": "string",
+                        "format": "byte"
+                    },
+                    "metadata": {},
+                    "adopted_at": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "required": [
+                    "attributes",
+                    "category_id",
+                    "name",
+                    "species",
+                    "status",
+                    "tag_count",
+                    "tags"
+                ]
+            },
+            "CreatePetResponseContent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "FulfillmentState": {
+                "description": "Delivery progress for a pet order line item.",
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "title": "pending",
+                        "properties": {
+                            "pending": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "pending"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "title": "shipped",
+                        "properties": {
+                            "shipped": {
+                                "type": "number",
+                                "format": "double"
+                            }
+                        },
+                        "required": [
+                            "shipped"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "title": "delivered",
+                        "properties": {
+                            "delivered": {
+                                "type": "number",
+                                "format": "double"
+                            }
+                        },
+                        "required": [
+                            "delivered"
+                        ]
+                    }
+                ]
+            },
+            "GetCategoryResponseContent": {
+                "type": "object",
+                "properties": {
+                    "category": {
+                        "$ref": "#/components/schemas/CategoryDetail"
+                    }
+                },
+                "required": [
+                    "category"
+                ]
+            },
+            "GetOrderResponseContent": {
+                "type": "object",
+                "properties": {
+                    "order": {
+                        "$ref": "#/components/schemas/OrderDetail"
+                    }
+                },
+                "required": [
+                    "order"
+                ]
+            },
+            "GetPetResponseContent": {
+                "type": "object",
+                "properties": {
+                    "pet": {
+                        "$ref": "#/components/schemas/PetDetail"
+                    }
+                },
+                "required": [
+                    "pet"
+                ]
+            },
+            "HealthCheckResponseContent": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "OrderDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "label": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/OrderStatus"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/OrderPriority"
+                    },
+                    "created_at": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "updated_at": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "lines": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/OrderLineDetail"
+                        }
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "id",
+                    "label",
+                    "lines",
+                    "priority",
+                    "status",
+                    "updated_at"
+                ]
+            },
+            "OrderLineDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "order_id": {
+                        "type": "string"
+                    },
+                    "pet_id": {
+                        "type": "string"
+                    },
+                    "quantity": {
+                        "type": "number"
+                    },
+                    "unit_price_cents": {
+                        "type": "number"
+                    },
+                    "fulfillment": {
+                        "$ref": "#/components/schemas/FulfillmentState"
+                    }
+                },
+                "required": [
+                    "fulfillment",
+                    "id",
+                    "order_id",
+                    "pet_id",
+                    "quantity",
+                    "unit_price_cents"
+                ]
+            },
+            "OrderNotFoundResponseContent": {
+                "type": "object",
+                "description": "Requested order was not found.",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
+            "OrderPriority": {
+                "type": "number",
+                "description": "Numeric priority levels for store orders.",
+                "enum": [
+                    1,
+                    2,
+                    3
+                ]
+            },
+            "OrderStatus": {
+                "type": "string",
+                "enum": [
+                    "placed",
+                    "approved",
+                    "delivered"
+                ]
+            },
+            "OwnerSummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "full_name": {
+                        "type": "string"
+                    },
+                    "mailing_address": {
+                        "$ref": "#/components/schemas/PostalAddress"
+                    },
+                    "created_at": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "required": [
+                    "created_at",
+                    "full_name",
+                    "id",
+                    "mailing_address"
+                ]
+            },
+            "PetAttribute": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "$ref": "#/components/schemas/PetAttributeValue"
+                    }
+                },
+                "required": [
+                    "name",
+                    "value"
+                ]
+            },
+            "PetAttributeValue": {
+                "description": "Union of possible pet attribute payloads stored as JSON.",
+                "oneOf": [
+                    {
+                        "type": "object",
+                        "title": "color",
+                        "properties": {
+                            "color": {
+                                "type": "string"
+                            }
+                        },
+                        "required": [
+                            "color"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "title": "weight_kg",
+                        "properties": {
+                            "weight_kg": {
+                                "type": "number",
+                                "format": "double"
+                            }
+                        },
+                        "required": [
+                            "weight_kg"
+                        ]
+                    },
+                    {
+                        "type": "object",
+                        "title": "vaccinated",
+                        "properties": {
+                            "vaccinated": {
+                                "type": "boolean"
+                            }
+                        },
+                        "required": [
+                            "vaccinated"
+                        ]
+                    }
+                ]
+            },
+            "PetDetail": {
+                "type": "object",
+                "description": "Aggregate read model returned by GetPet; mirrors joined repository output.",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PetStatus"
+                    },
+                    "species": {
+                        "$ref": "#/components/schemas/PetSpecies"
+                    },
+                    "category_id": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": "string"
+                    },
+                    "tag_count": {
+                        "type": "number"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PetAttribute"
+                        }
+                    },
+                    "photo": {
+                        "type": "string",
+                        "format": "byte"
+                    },
+                    "metadata": {},
+                    "adopted_at": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "created_at": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "updated_at": {
+                        "type": "number",
+                        "format": "double"
+                    },
+                    "category": {
+                        "$ref": "#/components/schemas/CategorySummary"
+                    },
+                    "store": {
+                        "$ref": "#/components/schemas/StoreSummary"
+                    },
+                    "owner": {
+                        "$ref": "#/components/schemas/OwnerSummary"
+                    },
+                    "profile": {
+                        "$ref": "#/components/schemas/PetProfileSummary"
+                    }
+                },
+                "required": [
+                    "attributes",
+                    "category",
+                    "category_id",
+                    "created_at",
+                    "id",
+                    "name",
+                    "species",
+                    "status",
+                    "store",
+                    "tag_count",
+                    "tags",
+                    "updated_at"
+                ]
+            },
+            "PetNotFoundResponseContent": {
+                "type": "object",
+                "description": "Requested pet was not found.",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            },
+            "PetProfileSummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "biography": {
+                        "type": "string"
+                    },
+                    "pet_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "biography",
+                    "id",
+                    "pet_id"
+                ]
+            },
+            "PetSpecies": {
+                "type": "number",
+                "description": "Species identifier stored as an integer enum column.",
+                "enum": [
+                    1,
+                    2,
+                    3,
+                    4
+                ]
+            },
+            "PetStatus": {
+                "type": "string",
+                "description": "Classic pet lifecycle states stored as a Postgres ENUM / SQLite TEXT+CHECK column.",
+                "enum": [
+                    "available",
+                    "pending",
+                    "sold"
+                ]
+            },
+            "PlaceOrderRequestContent": {
+                "type": "object",
+                "properties": {
+                    "label": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/OrderStatus"
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/OrderPriority"
+                    }
+                },
+                "required": [
+                    "label",
+                    "priority",
+                    "status"
+                ]
+            },
+            "PlaceOrderResponseContent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id"
+                ]
+            },
+            "PostalAddress": {
+                "type": "object",
+                "description": "Structured postal address stored as JSON on pets and owners.",
+                "properties": {
+                    "street": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "postal_code": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "city",
+                    "postal_code",
+                    "street"
+                ]
+            },
+            "StoreSummary": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ]
+            },
+            "UpdatePetBody": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PetStatus"
+                    },
+                    "species": {
+                        "$ref": "#/components/schemas/PetSpecies"
+                    },
+                    "category_id": {
+                        "type": "string"
+                    },
+                    "owner_id": {
+                        "type": "string"
+                    },
+                    "tag_count": {
+                        "type": "number"
+                    },
+                    "tags": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "attributes": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PetAttribute"
+                        }
+                    },
+                    "photo": {
+                        "type": "string",
+                        "format": "byte"
+                    },
+                    "metadata": {},
+                    "adopted_at": {
+                        "type": "number",
+                        "format": "double"
+                    }
+                },
+                "required": [
+                    "attributes",
+                    "category_id",
+                    "name",
+                    "species",
+                    "status",
+                    "tag_count",
+                    "tags"
+                ]
+            },
+            "UpdatePetResponseContent": {
+                "type": "object",
+                "properties": {
+                    "updated": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "updated"
+                ]
+            },
+            "ValidationErrorResponseContent": {
+                "type": "object",
+                "description": "Client supplied invalid input.",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
+                ]
+            }
+        }
+    }
+}

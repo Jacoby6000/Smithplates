@@ -107,14 +107,6 @@ structure Pet {
     updated_at: Timestamp
 }
 
-list StringList {
-    member: String
-}
-
-list PetAttributeList {
-    member: PetAttribute
-}
-
 structure PetTags {
     @required
     items: StringList

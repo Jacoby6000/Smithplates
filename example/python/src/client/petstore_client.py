@@ -1,18 +1,27 @@
-"""HTTP client for the petstore reference API."""
+"""HTTP client for the petstore reference API (OpenAPI Generator asyncio client)."""
 
 from __future__ import annotations
 
 from typing import Any
 
-import httpx
+from petstore_client import ApiClient, Configuration
+from petstore_client.api.default_api import DefaultApi
+from petstore_client.models.create_pet_request_content import CreatePetRequestContent
+from petstore_client.models.place_order_request_content import PlaceOrderRequestContent
+from petstore_client.models.update_pet_body import UpdatePetBody
 
 
 class PetstoreClient:
+    """Thin facade over the generated OpenAPI client with dict-friendly helpers."""
+
     def __init__(self, base_url: str, *, timeout: float = 30.0) -> None:
-        self._client = httpx.AsyncClient(base_url=base_url.rstrip("/"), timeout=timeout)
+        configuration = Configuration(host=base_url.rstrip("/"), ignore_operation_servers=True)
+        self._timeout = timeout
+        self._api_client = ApiClient(configuration=configuration)
+        self._api = DefaultApi(self._api_client)
 
     async def close(self) -> None:
-        await self._client.aclose()
+        await self._api_client.close()
 
     async def __aenter__(self) -> PetstoreClient:
         return self
@@ -21,40 +30,44 @@ class PetstoreClient:
         await self.close()
 
     async def health_check(self) -> dict[str, str]:
-        response = await self._client.get("/health")
-        response.raise_for_status()
-        return response.json()
+        response = await self._api.health_check(_request_timeout=self._timeout)
+        return response.to_dict()
 
     async def create_pet(self, payload: dict[str, Any]) -> str:
-        response = await self._client.post("/pets", json=payload)
-        response.raise_for_status()
-        return response.json()["id"]
+        request = CreatePetRequestContent.from_dict(payload)
+        if request is None:
+            msg = "create_pet payload must be a mapping"
+            raise ValueError(msg)
+        response = await self._api.create_pet(request, _request_timeout=self._timeout)
+        return response.id
 
     async def get_pet(self, pet_id: str) -> dict[str, Any]:
-        response = await self._client.get(f"/pets/{pet_id}")
-        response.raise_for_status()
-        return response.json()["pet"]
+        response = await self._api.get_pet(pet_id, _request_timeout=self._timeout)
+        return response.pet.to_dict()
 
     async def update_pet(self, pet_id: str, payload: dict[str, Any]) -> bool:
-        response = await self._client.put(f"/pets/{pet_id}", json=payload)
-        response.raise_for_status()
-        return response.json()["updated"]
+        body = UpdatePetBody.from_dict(payload)
+        if body is None:
+            msg = "update_pet payload must be a mapping"
+            raise ValueError(msg)
+        response = await self._api.update_pet(pet_id, body, _request_timeout=self._timeout)
+        return response.updated
 
     async def delete_pet(self, pet_id: str) -> None:
-        response = await self._client.delete(f"/pets/{pet_id}")
-        response.raise_for_status()
+        await self._api.delete_pet(pet_id, _request_timeout=self._timeout)
 
     async def get_category(self, category_id: str) -> dict[str, Any]:
-        response = await self._client.get(f"/categories/{category_id}")
-        response.raise_for_status()
-        return response.json()["category"]
+        response = await self._api.get_category(category_id, _request_timeout=self._timeout)
+        return response.category.to_dict()
 
     async def place_order(self, payload: dict[str, Any]) -> str:
-        response = await self._client.post("/orders", json=payload)
-        response.raise_for_status()
-        return response.json()["id"]
+        request = PlaceOrderRequestContent.from_dict(payload)
+        if request is None:
+            msg = "place_order payload must be a mapping"
+            raise ValueError(msg)
+        response = await self._api.place_order(request, _request_timeout=self._timeout)
+        return response.id
 
     async def get_order(self, order_id: str) -> dict[str, Any]:
-        response = await self._client.get(f"/orders/{order_id}")
-        response.raise_for_status()
-        return response.json()["order"]
+        response = await self._api.get_order(order_id, _request_timeout=self._timeout)
+        return response.order.to_dict()

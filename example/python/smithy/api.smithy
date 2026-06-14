@@ -317,18 +317,3 @@ structure HealthCheckOutput {
     @required
     status: String
 }
-
-@httpService
-service Petstore {
-    version: "2024-01-01"
-    operations: [
-        CreatePet
-        GetPet
-        UpdatePet
-        DeletePet
-        GetCategory
-        PlaceOrder
-        GetOrder
-        HealthCheck
-    ]
-}

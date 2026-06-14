@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "sources": [
+    "../smithy/common.smithy",
+    "../smithy/api.smithy",
+    "openapi-service.smithy"
+  ],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:0.1.0",
+      "software.amazon.smithy:smithy-aws-traits:1.71.0",
+      "software.amazon.smithy:smithy-openapi:1.71.0"
+    ]
+  },
+  "plugins": {},
+  "projections": {
+    "openapi": {
+      "transforms": [
+        { "name": "applyHttpProblemHttpError" }
+      ],
+      "plugins": {
+        "openapi": {
+          "service": "petstore#Petstore",
+          "protocol": "aws.protocols#restJson1"
+        }
+      }
+    }
+  }
+}

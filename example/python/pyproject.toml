@@ -4,12 +4,16 @@ version = "0.1.0"
 description = "Smithplates petstore reference implementation (Python)"
 requires-python = ">=3.11"
 dependencies = [
+    "aiohttp>=3.11",
+    "aiohttp-retry>=2.9",
     "aiosqlite>=0.20",
     "fastapi>=0.115",
     "httpx>=0.28",
     "psycopg[binary]>=3.2",
+    "pydantic>=2.10",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",
+    "python-dateutil>=2.9",
     "uvicorn[standard]>=0.32",
 ]
 
@@ -19,6 +23,7 @@ petstore-server = "server.app:run"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = [
+    "src/generated/client",
     "src/generated/db/model",
     "src/generated/db",
     "src/generated/db/sqlite",

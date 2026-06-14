@@ -66,6 +66,14 @@ structure PetAttribute {
     value: PetAttributeValue
 }
 
+list StringList {
+    member: String
+}
+
+list PetAttributeList {
+    member: PetAttribute
+}
+
 /// Delivery progress for a pet order line item.
 union FulfillmentState {
     pending: String
