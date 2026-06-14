@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+  <Appenders>
+    <Console name="TemplateBuildConsole" target="SYSTEM_OUT">
+      <PatternLayout pattern="[template-build] %msg%n"/>
+    </Console>
+  </Appenders>
+  <Loggers>
+    <Logger
+        name="com.jacoby6000.smithplates.plugin.codegentest.template-build"
+        level="INFO"
+        additivity="false">
+      <AppenderRef ref="TemplateBuildConsole"/>
+    </Logger>
+    <Root level="WARN">
+      <AppenderRef ref="TemplateBuildConsole"/>
+    </Root>
+  </Loggers>
+</Configuration>
