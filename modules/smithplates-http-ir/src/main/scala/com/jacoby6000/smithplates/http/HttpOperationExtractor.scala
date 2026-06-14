@@ -15,7 +15,8 @@ private[http] object HttpOperationExtractor {
       model: Model,
       serviceShape: ShapeId,
       operationId: ShapeId,
-      serviceResources: List[HttpResource]
+      serviceResources: List[HttpResource],
+      serialization: HttpSerialization
   ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] =
     model.getShape(operationId).toScala.flatMap(_.asOperationShape.toScala) match {
       case None            =>
@@ -25,14 +26,15 @@ private[http] object HttpOperationExtractor {
           s"operation '${operationId.toString}' is not defined in the model"
         ).invalidNel
       case Some(operation) =>
-        extractOperation(model, serviceShape, operation, serviceResources)
+        extractOperation(model, serviceShape, operation, serviceResources, serialization)
     }
 
   private def extractOperation(
       model: Model,
       serviceShape: ShapeId,
       operation: OperationShape,
-      serviceResources: List[HttpResource]
+      serviceResources: List[HttpResource],
+      serialization: HttpSerialization
   ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] = {
     val operationName = operation.getId.getName
     (
@@ -41,10 +43,10 @@ private[http] object HttpOperationExtractor {
       requireInputShape(serviceShape, operationName, operation),
       validateOutputShape(operation),
       validateErrorShapes(model, serviceShape, operation)
-    ).mapN { (http, tag, inputShape, outputShape, errorShapes) =>
+    ).mapN { (http, tag, inputShape, outputShape, errorShapeIds) =>
       HttpOperationInputMemberExtractor
         .extract(model, serviceShape, operation, inputShape, serviceResources)
-        .map { inputMembers =>
+        .andThen { inputMembers =>
           val uri            = http.getUri.toString
           val warnings       =
             HttpInputMemberOrdering
@@ -53,27 +55,48 @@ private[http] object HttpOperationExtractor {
           val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
           val bodyBinding    = HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
           (
-            HttpOperation(
-              shapeId = operation.getId,
-              name = operationName,
-              method = http.getMethod,
-              uri = uri,
-              successStatusCode = http.getCode,
-              readonly = operation.readonlyOperation,
-              documentation = operation.documentationText,
-              inputShape = inputShape,
-              inputBoundResource = HttpOperationInputMemberExtractor
-                .inputBoundResource(model, inputShape, operation.getId, serviceResources),
-              inputMembers = orderedMembers,
-              bodyBinding = bodyBinding,
-              outputShape = outputShape,
-              errorShapes = errorShapes,
-              tags = List(tag)
-            ),
-            warnings
-          )
+            HttpOperationOutputMemberExtractor.extract(model, serviceShape, operationName, outputShape),
+            HttpOperationErrorExtractor.extract(model, serviceShape, operationName, errorShapeIds)
+          ).mapN { (outputMembers, operationErrors) =>
+            HttpResponseVariantResolver
+              .resolveOperationBinding(
+                model = model,
+                serviceShape = serviceShape,
+                operationName = operationName,
+                successStatusCode = http.getCode,
+                outputShape = outputShape,
+                outputMembers = outputMembers,
+                operationErrors = operationErrors,
+                serialization = serialization
+              )
+              .map { responseBinding =>
+                (
+                  HttpOperation(
+                    shapeId = operation.getId,
+                    name = operationName,
+                    method = http.getMethod,
+                    uri = uri,
+                    successStatusCode = http.getCode,
+                    readonly = operation.readonlyOperation,
+                    documentation = operation.documentationText,
+                    inputShape = inputShape,
+                    inputBoundResource = HttpOperationInputMemberExtractor
+                      .inputBoundResource(model, inputShape, operation.getId, serviceResources),
+                    inputMembers = orderedMembers,
+                    bodyBinding = bodyBinding,
+                    outputShape = outputShape,
+                    outputMembers = outputMembers,
+                    operationErrors = operationErrors,
+                    responseBinding = responseBinding,
+                    tags = List(tag)
+                  ),
+                  warnings
+                )
+              }
+          }
         }
     }.andThen(identity)
+      .andThen(identity)
   }
 
   private def requireHttpBinding(

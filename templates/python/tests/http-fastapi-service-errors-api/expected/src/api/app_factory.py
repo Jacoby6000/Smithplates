@@ -63,7 +63,8 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(
         title="WidgetApi",
-        description=None,
+        description="""Golden case: service-level @httpError codegen (error models, api_exceptions,
+api_exception_handler, app_factory exception registration) and Unit operation input.""",
         version="1",
     )
     configure_services(app, services)

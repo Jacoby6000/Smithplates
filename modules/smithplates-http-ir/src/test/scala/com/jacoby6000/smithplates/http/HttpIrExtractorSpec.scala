@@ -754,7 +754,7 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(service.serviceErrors.map(error => (error.name, error.statusCode)), List(("WidgetNotFound", 404)))
   }
 
-  test("HttpIrExtractor rejects service errors without @httpError") {
+  test("HttpIrExtractor rejects service errors without @httpError or @httpProblem(code)") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -799,6 +799,486 @@ class HttpIrExtractorSpec extends FunSuite {
     )
 
     val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
-    assert(error.getMessage.contains("@httpError"))
+    assert(error.getMessage.contains("@httpProblem(code"))
+  }
+
+  test("HttpIrExtractor rejects service errors when @httpError and @httpProblem(code) disagree") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@httpProblem(title: "Widget not found", code: 404)
+          |@error("client")
+          |@httpError(500)
+          |structure WidgetNotFound {
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
+    assert(error.getMessage.contains("different status codes"))
+  }
+
+  test("HttpIrExtractor resolves service error status from @httpProblem(code) without @httpError") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@httpProblem(title: "Widget not found", code: 404)
+          |@error("client")
+          |structure WidgetNotFound {
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val serviceError = HttpIrExtractor.extractOrThrow(model).services.head.serviceErrors.head
+    assertEquals(serviceError.statusCode, 404)
+    assertEquals(serviceError.problemBinding.map(_.title), Some("Widget not found"))
+  }
+
+  test("HttpIrExtractor resolves operation errors and response binding variants") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: GetWidget200
+          |    errors: [GetWidget404]
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure GetWidget200 {
+          |    @httpPayload
+          |    @required
+          |    body: WidgetOutput
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |@error("client")
+          |@httpError(404)
+          |structure GetWidget404 {
+          |    @required
+          |    message: String
+          |}
+          |""".stripMargin
+    )
+
+    val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
+    assertEquals(operation.operationErrors.map(error => (error.name, error.statusCode)), List(("GetWidget404", 404)))
+    assertEquals(
+      operation.responseBinding.allVariants.map(variant => (variant.variantTypeName, variant.statusCode)),
+      List(("WidgetOutput", 200), ("GetWidget404", 404))
+    )
+  }
+
+  test("HttpIrExtractor resolves output @httpHeader redirect bindings") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#httpHeader
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AssetApi {
+          |    version: "1"
+          |    operations: [GetAssetContent]
+          |}
+          |
+          |@tags(["assets"])
+          |@http(method: "GET", uri: "/assets/{id}/content", code: 302)
+          |operation GetAssetContent {
+          |    input: GetAssetContentInput
+          |    output: Redirect
+          |}
+          |
+          |structure GetAssetContentInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure Redirect {
+          |    @httpHeader("Location")
+          |    @required
+          |    url: String
+          |}
+          |""".stripMargin
+    )
+
+    val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
+    val success   = operation.responseBinding.successVariant.get
+    assertEquals(success.variantTypeName, "Redirect")
+    assertEquals(success.statusCode, 302)
+    assertEquals(success.mediaType, None)
+    assertEquals(success.headerBindings, List(("url", "Location")))
+  }
+
+  test("HttpIrExtractor implies Content-Type from @httpProblem on operation error variants") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AssetApi {
+          |    version: "1"
+          |    operations: [UpdateAssetState]
+          |}
+          |
+          |@tags(["assets"])
+          |@http(method: "PATCH", uri: "/assets/{id}/state", code: 200)
+          |operation UpdateAssetState {
+          |    input: UpdateAssetStateInput
+          |    output: GetAsset200
+          |    errors: [UpdateAssetState409]
+          |}
+          |
+          |structure UpdateAssetStateInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |
+          |    @httpPayload
+          |    @required
+          |    body: AssetStatePatch
+          |}
+          |
+          |structure AssetStatePatch {
+          |    @required
+          |    status: String
+          |}
+          |
+          |structure GetAsset200 {
+          |    @httpPayload
+          |    @required
+          |    body: AssetOutput
+          |}
+          |
+          |structure AssetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure Problem {
+          |    @required
+          |    title: String
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/state-conflict"
+          |    title: "Asset state conflict"
+          |    code: 409
+          |)
+          |@error("client")
+          |structure UpdateAssetState409 {
+          |    @httpPayload
+          |    @required
+          |    body: Problem
+          |}
+          |""".stripMargin
+    )
+
+    val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
+    val problem   = operation.responseBinding.errorVariants.head
+    assertEquals(problem.variantTypeName, "Problem")
+    assertEquals(problem.mediaType, Some("application/json"))
+    assertEquals(problem.staticHeaders, List(("Content-Type", "application/problem+json")))
+  }
+
+  test("HttpIrExtractor resolves output @httpStaticHeader traits on response variants") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpStaticHeader
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AssetApi {
+          |    version: "1"
+          |    operations: [UpdateAssetState]
+          |}
+          |
+          |@tags(["assets"])
+          |@http(method: "PATCH", uri: "/assets/{id}/state", code: 200)
+          |operation UpdateAssetState {
+          |    input: UpdateAssetStateInput
+          |    output: GetAsset200
+          |    errors: [UpdateAssetState409]
+          |}
+          |
+          |structure UpdateAssetStateInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |
+          |    @httpPayload
+          |    @required
+          |    body: AssetStatePatch
+          |}
+          |
+          |structure AssetStatePatch {
+          |    @required
+          |    status: String
+          |}
+          |
+          |structure GetAsset200 {
+          |    @httpPayload
+          |    @required
+          |    body: AssetOutput
+          |}
+          |
+          |structure AssetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |@httpStaticHeader(name: "Content-Type", value: "application/problem+json")
+          |structure Problem {
+          |    @required
+          |    title: String
+          |}
+          |
+          |@error("client")
+          |@httpError(409)
+          |structure UpdateAssetState409 {
+          |    @httpPayload
+          |    @required
+          |    body: Problem
+          |}
+          |""".stripMargin
+    )
+
+    val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
+    val problem   = operation.responseBinding.errorVariants.head
+    assertEquals(problem.variantTypeName, "Problem")
+    assertEquals(problem.mediaType, Some("application/json"))
+    assertEquals(problem.staticHeaders, List(("Content-Type", "application/problem+json")))
+  }
+
+  test("HttpIrExtractor extracts @httpProblem bindings on service errors") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/widget-not-found"
+          |    title: "Widget not found"
+          |    detail: "The requested widget does not exist."
+          |    code: 404
+          |)
+          |@error("client")
+          |structure WidgetNotFound {
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val ir           = HttpIrExtractor.extractOrThrow(model)
+    val serviceError = ir.services.head.serviceErrors.head
+    assertEquals(serviceError.name, "WidgetNotFound")
+    assertEquals(
+      serviceError.problemBinding,
+      Some(
+        com.jacoby6000.smithplates.http.model.HttpProblemBinding(
+          problemType = "https://example.com/errors/widget-not-found",
+          title = "Widget not found",
+          defaultDetail = Some("The requested widget does not exist.")
+        )
+      )
+    )
+    assertEquals(ir.warnings, Nil)
+  }
+
+  test("HttpIrExtractor warns when @httpProblem type is not an HTTPS URL") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@httpProblem(title: "Widget not found", code: 404)
+          |@error("client")
+          |structure WidgetNotFound {
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val ir = HttpIrExtractor.extractOrThrow(model)
+    assertEquals(ir.services.head.serviceErrors.head.problemBinding.map(_.problemType), Some("about:blank"))
+    assertEquals(ir.warnings.length, 1)
+    assert(ir.warnings.head.message.contains("about:blank"))
+    assert(ir.warnings.head.message.contains("HTTPS URL"))
   }
 }

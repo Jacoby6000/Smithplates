@@ -10,7 +10,8 @@ final case class HttpServiceIr(
 final case class HttpServiceError(
     shapeId: ShapeId,
     name: String,
-    statusCode: Int
+    statusCode: Int,
+    problemBinding: Option[HttpProblemBinding] = None
 )
 
 final case class HttpStructureMember(
@@ -82,6 +83,8 @@ final case class HttpOperation(
     inputMembers: List[HttpOperationInputMember],
     bodyBinding: HttpOperationBodyBinding,
     outputShape: Option[ShapeId],
-    errorShapes: List[ShapeId],
+    outputMembers: List[HttpOperationOutputMember],
+    operationErrors: List[HttpOperationError],
+    responseBinding: HttpOperationResponseBinding,
     tags: List[String]
 )

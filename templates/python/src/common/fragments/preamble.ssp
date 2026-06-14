@@ -28,8 +28,24 @@ def pythonTypeName(typeName: String): String =
   }
 
 def pythonStringLiteral(value: String): String =
-  "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+  "\"" +
+    value
+      .replace("\\", "\\\\")
+      .replace("\"", "\\\"")
+      .replace("\r\n", "\\n")
+      .replace("\n", "\\n")
+      .replace("\r", "\\n") +
+    "\""
+
+def pythonMultilineStringLiteral(value: String): String =
+  "\"\"\"" + value + "\"\"\""
 
 def pythonOptionalStringLiteral(value: Option[String]): String =
-  value.map(pythonStringLiteral).getOrElse("None")
+  value match {
+    case None                 => "None"
+    case Some(text) if text.contains('\n') || text.length > 100 =>
+      pythonMultilineStringLiteral(text)
+    case Some(text)           =>
+      pythonStringLiteral(text)
+  }
 %>

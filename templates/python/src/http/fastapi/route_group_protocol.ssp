@@ -25,6 +25,6 @@ class ${protocolClassName(routeGroup.tag)}(Protocol):
 <% for (member <- bodyBindingMembers(operation)) { %>
         ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
 <% } %>
-    ) -> ${responseTypeName(operation)}:
+    ) -> ${operationProtocolReturnType(operation)}:
         ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
 <% } %>

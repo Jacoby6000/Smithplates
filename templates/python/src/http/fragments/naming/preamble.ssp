@@ -31,6 +31,21 @@ def serviceErrorHandlerName(errorName: String): String =
 def serviceErrorRegistrationName(errorName: String): String =
   s"on_${snakeCase(errorName)}_api_error"
 
+def serviceErrorUsesProblem(
+    error: com.jacoby6000.smithplates.http.model.HttpServiceError
+): Boolean =
+  error.problemBinding.isDefined
+
+def serviceErrorsNeedProblemImport(
+    service: com.jacoby6000.smithplates.http.model.HttpService
+): Boolean =
+  service.serviceErrors.exists(_.problemBinding.isDefined)
+
+def problemBindingDefaultDetailLiteral(
+    binding: com.jacoby6000.smithplates.http.model.HttpProblemBinding
+): String =
+  binding.defaultDetail.map(pythonStringLiteral).getOrElse("None")
+
 def httpMemberPythonType(
     typeName: String,
     timestampFormat: Option[com.jacoby6000.smithplates.http.model.HttpTimestampFormat]
@@ -140,14 +155,9 @@ def operationBodyModelNames(operation: com.jacoby6000.smithplates.http.model.Htt
   }
 
 def operationImportedModelNames(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] = {
-  val responseType = responseTypeName(operation)
-  val responseTypes =
-    if (responseType == "None") {
-      Nil
-    } else {
-      List(responseType)
-    }
-  (operationBodyModelNames(operation) ++ responseTypes).distinct.sorted
+  val variantTypes =
+    operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
+  (operationBodyModelNames(operation) ++ variantTypes).distinct.sorted
 }
 
 def bodyParameterBinding(required: Boolean): String =
@@ -188,22 +198,42 @@ def operationServiceCallExpression(
   }
 }
 
-def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
-  val unitShapeId = software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
-  operation.outputShape.filter(_ != unitShapeId).map(_.getName).getOrElse("None")
+def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String =
+  operation.responseBinding.successVariant match {
+    case None                                                    => "None"
+    case Some(variant) if variant.variantTypeName == "__empty__" => "None"
+    case Some(variant)                                           => variant.variantTypeName
+  }
+
+def operationProtocolReturnType(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val types =
+    operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
+  if (types.isEmpty) {
+    "None"
+  } else {
+    types.mkString(" | ")
+  }
 }
 
-def operationBindingTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
-  val unitShapeId = software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
-  operation.outputShape.filter(_ != unitShapeId).map(_.getName).getOrElse("__empty__")
-}
+def responseVariantMediaType(mediaType: Option[String]): String =
+  mediaType.map(value => s"'$value'").getOrElse("None")
 
-def mediaTypeForSerialization(
-    serialization: com.jacoby6000.smithplates.http.model.HttpSerialization
-): String =
-  serialization match {
-    case com.jacoby6000.smithplates.http.model.HttpSerialization.Json => "\"application/json\""
-    case _                                                              => "None"
+def responseVariantHeaderBindings(headerBindings: List[(String, String)]): String =
+  if (headerBindings.isEmpty) {
+    "()"
+  } else {
+    headerBindings.map { case (memberName, headerName) =>
+      s"(\"$memberName\", \"$headerName\")"
+    }.mkString("(", ", ", ")")
+  }
+
+def responseVariantStaticHeaders(staticHeaders: List[(String, String)]): String =
+  if (staticHeaders.isEmpty) {
+    "()"
+  } else {
+    staticHeaders.map { case (headerName, headerValue) =>
+      s"(\"$headerName\", \"$headerValue\")"
+    }.mkString("(", ", ", ")")
   }
 
 def structureMemberPythonType(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from generated.widget_api.models.internal_widget_error import InternalWidgetError
-from generated.widget_api.models.widget_not_found import WidgetNotFound
+from generated.widget_api.models.problem import Problem
 
 
 class NotImplementedApiError(Exception):
@@ -11,10 +11,30 @@ class NotImplementedApiError(Exception):
 
 
 class WidgetNotFoundApiError(Exception):
-    """Raised for Smithy service error WidgetNotFound."""
+    """Raised for Smithy service error WidgetNotFound (RFC 9457 problem)."""
 
-    def __init__(self, payload: WidgetNotFound | None = None) -> None:
-        self.payload = payload
+    _PROBLEM_TYPE: str = "https://example.com/errors/widget-not-found"
+    _PROBLEM_TITLE: str = "Widget not found"
+    _PROBLEM_DETAIL: str | None = None
+
+    def __init__(
+        self,
+        *,
+        detail: str | None = None,
+        instance: str | None = None,
+    ) -> None:
+        self.detail = detail
+        self.instance = instance
+
+    def to_problem(self, status_code: int) -> Problem:
+        resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
+        return Problem(
+            type=self._PROBLEM_TYPE,
+            title=self._PROBLEM_TITLE,
+            status=status_code,
+            detail=resolved_detail,
+            instance=self.instance,
+        )
 
 
 class InternalWidgetErrorApiError(Exception):

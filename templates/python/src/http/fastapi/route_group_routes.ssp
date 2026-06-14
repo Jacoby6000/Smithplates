@@ -40,7 +40,10 @@ router = APIRouter()
 @router.${operation.method.toLowerCase}(
     "${operation.uri}",
     responses={
-        ${operation.successStatusCode}: {"description": "Successful response"},
+<% val responseStatuses = operation.responseBinding.allVariants.map(_.statusCode).distinct.sorted %>
+<% for (statusCode <- responseStatuses) { %>
+        ${statusCode}: {"description": "Response"},
+<% } %>
     },
     response_model_by_alias=True,
 )

@@ -27,15 +27,16 @@ private[http] object HttpServiceExtractor {
     ).mapN { (version, serialization) =>
       HttpServiceErrorExtractor
         .extract(model, serviceShape, service.getErrorsSet.asScala.toList)
-        .andThen { serviceErrors =>
+        .andThen { case (serviceErrors, serviceErrorWarnings) =>
           extractResources(model, service).andThen { resources =>
             val operationIds =
               (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
             operationIds
-              .traverse(operationId => HttpOperationExtractor.extract(model, serviceShape, operationId, resources))
+              .traverse(operationId =>
+                HttpOperationExtractor.extract(model, serviceShape, operationId, resources, serialization))
               .andThen { operationResults =>
                 val operations = operationResults.map(_._1)
-                val warnings   = operationResults.flatMap(_._2)
+                val warnings   = serviceErrorWarnings ++ operationResults.flatMap(_._2)
                 if (operations.isEmpty) {
                   EmptyHttpService(serviceShape).invalidNel
                 } else {

@@ -21,7 +21,7 @@ router = APIRouter()
 @router.post(
     "/projects/{projectId}/tasks",
     responses={
-        201: {"description": "Successful response"},
+        201: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -39,7 +39,7 @@ async def create_project_task(
 @router.get(
     "/projects/{projectId}/tasks/{taskId}",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -57,7 +57,7 @@ async def get_project_task(
 @router.get(
     "/projects/{projectId}/tasks",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

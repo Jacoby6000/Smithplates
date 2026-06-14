@@ -53,9 +53,11 @@ class FallbackApiExceptionHandler(Protocol):
 
 
 def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
+    content = problem.model_dump(mode="json", exclude_none=True)
+    content.setdefault("status", status_code)
     return JSONResponse(
         status_code=status_code,
-        content=problem.model_dump(mode="json", exclude_none=True),
+        content=content,
         media_type="application/problem+json",
     )
 
@@ -74,14 +76,14 @@ class DefaultFallbackApiExceptionHandler:
         request: Request,
         exc: NotImplementedApiError,
     ) -> JSONResponse:
-        return problem_json_response(501, Problem(title="Not implemented"))
+        return problem_json_response(501, Problem(title="Not implemented", status=501))
 
     async def handle_widget_not_found_api_error(
         self,
         request: Request,
         exc: WidgetNotFoundApiError,
     ) -> JSONResponse:
-        return service_error_json_response(404, exc.payload)
+        return problem_json_response(404, exc.to_problem(404))
 
     async def handle_internal_widget_error_api_error(
         self,
@@ -99,6 +101,7 @@ class DefaultFallbackApiExceptionHandler:
             422,
             Problem(
                 title="Request validation failed",
+                status=422,
                 detail=str(exc.errors()),
             ),
         )
@@ -119,6 +122,7 @@ class DefaultFallbackApiExceptionHandler:
             500,
             Problem(
                 title="Internal Server Error",
+                status=500,
                 detail=detail,
             ),
         )

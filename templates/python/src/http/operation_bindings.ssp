@@ -13,6 +13,7 @@ class ResponseVariantBinding:
     status_code: int
     media_type: str | None
     header_bindings: tuple[tuple[str, str], ...]
+    static_headers: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -38,25 +39,29 @@ class OperationHttpBinding:
 
 OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
 <% for (operation <- ctx.service.routeGroups.flatMap(_.operations)) { %>
-<% val bindingTypeName = operationBindingTypeName(operation) %>
-<% val mediaType = if (bindingTypeName == "__empty__") "None" else mediaTypeForSerialization(ctx.service.serialization) %>
     "${operationMethodName(operation.name)}": OperationHttpBinding(
         variants_by_type_name={
-            "${bindingTypeName}": ResponseVariantBinding(
-                status_code=${operation.successStatusCode},
-                media_type=${mediaType},
-                header_bindings=(),
+<% for (variant <- operation.responseBinding.allVariants) { %>
+            "${variant.variantTypeName}": ResponseVariantBinding(
+                status_code=${variant.statusCode},
+                media_type=${responseVariantMediaType(variant.mediaType)},
+                header_bindings=${responseVariantHeaderBindings(variant.headerBindings)},
+                static_headers=${responseVariantStaticHeaders(variant.staticHeaders)},
             ),
+<% } %>
         },
     ),
 <% if (operationMethodName(operation.name) != operation.name) { %>
     "${operation.name}": OperationHttpBinding(
         variants_by_type_name={
-            "${bindingTypeName}": ResponseVariantBinding(
-                status_code=${operation.successStatusCode},
-                media_type=${mediaType},
-                header_bindings=(),
+<% for (variant <- operation.responseBinding.allVariants) { %>
+            "${variant.variantTypeName}": ResponseVariantBinding(
+                status_code=${variant.statusCode},
+                media_type=${responseVariantMediaType(variant.mediaType)},
+                header_bindings=${responseVariantHeaderBindings(variant.headerBindings)},
+                static_headers=${responseVariantStaticHeaders(variant.staticHeaders)},
             ),
+<% } %>
         },
     ),
 <% } %>

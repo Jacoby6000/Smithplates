@@ -3,14 +3,47 @@
 
 from __future__ import annotations
 
-<% for (error <- ctx.service.serviceErrors) { %>
+<% if (serviceErrorsNeedProblemImport(ctx.service)) { %>
+from ${modelsPackageName(ctx.packageName)}.problem import Problem
+<% } %>
+<% for (error <- ctx.service.serviceErrors if !serviceErrorUsesProblem(error)) { %>
 from ${modelsPackageName(ctx.packageName)}.${snakeCase(error.name)} import ${error.name}
 <% } %>
 
 
 class NotImplementedApiError(Exception):
     """Raised by stub service code; converted to 501 by fallback API exception handlers."""
-<% for (error <- ctx.service.serviceErrors) { %>
+<% for (error <- ctx.service.serviceErrors if serviceErrorUsesProblem(error)) { %>
+<% val binding = error.problemBinding.get %>
+
+
+class ${serviceErrorExceptionName(error.name)}(Exception):
+    """Raised for Smithy service error ${error.name} (RFC 9457 problem)."""
+
+    _PROBLEM_TYPE: str = ${pythonStringLiteral(binding.problemType)}
+    _PROBLEM_TITLE: str = ${pythonStringLiteral(binding.title)}
+    _PROBLEM_DETAIL: str | None = ${problemBindingDefaultDetailLiteral(binding)}
+
+    def __init__(
+        self,
+        *,
+        detail: str | None = None,
+        instance: str | None = None,
+    ) -> None:
+        self.detail = detail
+        self.instance = instance
+
+    def to_problem(self, status_code: int) -> Problem:
+        resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
+        return Problem(
+            type=self._PROBLEM_TYPE,
+            title=self._PROBLEM_TITLE,
+            status=status_code,
+            detail=resolved_detail,
+            instance=self.instance,
+        )
+<% } %>
+<% for (error <- ctx.service.serviceErrors if !serviceErrorUsesProblem(error)) { %>
 
 
 class ${serviceErrorExceptionName(error.name)}(Exception):

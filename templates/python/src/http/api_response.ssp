@@ -29,12 +29,12 @@ def _to_http_response(
         msg = "Expected ResponseVariantBinding"
         raise TypeError(msg)
 
-    headers = _response_headers(response, variant.header_bindings)
+    headers, media_type = _response_headers_and_media_type(response, variant)
 
     if response is None:
         return Response(status_code=variant.status_code)
 
-    has_body = variant.media_type is not None
+    has_body = media_type is not None
     if not has_body:
         if _is_redirect_status(variant.status_code) and "Location" in headers:
             return RedirectResponse(url=headers["Location"], status_code=variant.status_code)
@@ -49,30 +49,37 @@ def _to_http_response(
         return JSONResponse(
             status_code=variant.status_code,
             content=body_content,
-            media_type=variant.media_type,
+            media_type=media_type,
             headers=headers,
         )
 
-    if variant.status_code == 200 and variant.header_bindings == ():
+    if variant.status_code == 200 and variant.header_bindings == () and variant.static_headers == ():
         return response
 
     return JSONResponse(
         status_code=variant.status_code,
         content=body_content,
-        media_type=variant.media_type,
+        media_type=media_type,
     )
 
 
-def _response_headers(
+def _response_headers_and_media_type(
     response: BaseModel | None,
-    header_bindings: tuple[tuple[str, str], ...],
-) -> dict[str, str]:
-    if response is None or not header_bindings:
-        return {}
-    result: dict[str, str] = {}
-    for member_name, header_name in header_bindings:
-        result[header_name] = str(getattr(response, member_name))
-    return result
+    variant: object,
+) -> tuple[dict[str, str], str | None]:
+    from ${ctx.packageName}.operation_bindings import ResponseVariantBinding
+
+    if not isinstance(variant, ResponseVariantBinding):
+        msg = "Expected ResponseVariantBinding"
+        raise TypeError(msg)
+
+    headers = {name: value for name, value in variant.static_headers}
+    if response is not None:
+        for member_name, header_name in variant.header_bindings:
+            headers[header_name] = str(getattr(response, member_name))
+
+    media_type = headers.pop("Content-Type", variant.media_type)
+    return headers, media_type
 
 
 def _is_redirect_status(status_code: int) -> bool:

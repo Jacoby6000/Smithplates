@@ -25,6 +25,16 @@ Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
 HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
 
+| Case | What it validates |
+|------|-------------------|
+| `http-fastapi-service-errors-api` | Service-level `@httpError`, `@httpProblem` RFC 9457 exceptions, `Unit` input |
+| `http-fastapi-parameter-order-api` | Canonical route param order (header → path → query), `@timestampFormat` |
+| `http-fastapi-resource-nested-api` | Resources, nested routes, document/member request bodies |
+| `http-fastapi-body-unions-nested-api` | Tagged unions and nested structures in input/output bodies |
+| `http-fastapi-mixed-input-bindings-api` | POST with `@httpHeader`, `@httpLabel`, and `@httpPayload` together |
+| `http-fastapi-operation-errors-api` | Operation-level `@httpError` unions on protocol methods (no exceptions) |
+| `http-fastapi-output-bindings-api` | Output `@httpPayload` flattening, `@httpHeader` redirects, `@httpProblem` implied Content-Type |
+
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy

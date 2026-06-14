@@ -20,7 +20,7 @@ router = APIRouter()
 @router.post(
     "/content",
     responses={
-        201: {"description": "Successful response"},
+        201: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -37,7 +37,7 @@ async def create_content(
 @router.get(
     "/content/{contentId}",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

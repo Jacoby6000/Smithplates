@@ -21,7 +21,7 @@ router = APIRouter()
 @router.get(
     "/v1/widgets/{id}",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -46,7 +46,7 @@ async def inspect_widget(
 @router.get(
     "/v1/widgets",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

@@ -22,7 +22,7 @@ router = APIRouter()
 @router.post(
     "/shelves/{shelfId}/skus",
     responses={
-        201: {"description": "Successful response"},
+        201: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -45,7 +45,7 @@ async def assign_shelf_sku(
 @router.post(
     "/warehouses/{warehouseId}/shelves/{shelfId}/items",
     responses={
-        201: {"description": "Successful response"},
+        201: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

@@ -96,7 +96,9 @@ Example output layout for bundled FastAPI templates (paths relative to `build/sm
 
 Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
 
-Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#httpService`). The trait accepts an optional `serialization` field (default `"json"`). Operations use Smithy `@http` bindings and `@tags` for route grouping.
+Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#httpService`). The trait accepts an optional `serialization` field (default `"json"`). Operations use Smithy `@http` bindings and `@tags` for route grouping. Output structures may declare a fixed response header with `@httpStaticHeader` (`use smithplates.codegen.http#httpStaticHeader`).
+
+Service error structures with `@error` may use `@httpProblem` (`use smithplates.codegen.http#httpProblem`) to emit RFC 9457 `application/problem+json` exception classes and imply `Content-Type: application/problem+json` on operation error response bindings. Set `code` on `@httpProblem` to imply `@httpError` with the same status (otherwise declare `@httpError` separately). Set `type` to an HTTPS URL documenting the error (defaults to `about:blank`; smithplates warns when `type` is not HTTPS). Provide `title` and optional trait `detail` defaults; raise the generated exception with `detail=` and `instance=` to describe a specific occurrence (for example trace identifiers).
 
 #### OpenAPI Generator coordination
 

@@ -22,7 +22,7 @@ router = APIRouter()
 @router.post(
     "/projects",
     responses={
-        201: {"description": "Successful response"},
+        201: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -39,7 +39,7 @@ async def create_project(
 @router.get(
     "/projects/{projectId}",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )
@@ -56,7 +56,7 @@ async def get_project(
 @router.get(
     "/projects",
     responses={
-        200: {"description": "Successful response"},
+        200: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

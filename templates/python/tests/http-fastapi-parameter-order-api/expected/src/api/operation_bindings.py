@@ -12,6 +12,7 @@ class ResponseVariantBinding:
     status_code: int
     media_type: str | None
     header_bindings: tuple[tuple[str, str], ...]
+    static_headers: tuple[tuple[str, str], ...]
 
 
 @dataclass(frozen=True)
@@ -42,6 +43,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
+                static_headers=(),
             ),
         },
     ),
@@ -51,6 +53,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
+                static_headers=(),
             ),
         },
     ),
@@ -60,6 +63,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
+                static_headers=(),
             ),
         },
     ),
@@ -69,6 +73,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
+                static_headers=(),
             ),
         },
     ),

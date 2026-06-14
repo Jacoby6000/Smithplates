@@ -19,3 +19,14 @@ final case class HttpInputMemberOrderWarning(
       s"[${declaredOrder.mkString(", ")}]; expected headers, then URI path labels in URI order, then queries: " +
       s"[${expectedOrder.mkString(", ")}]"
 }
+
+final case class HttpProblemTypeWarning(
+    serviceShape: ShapeId,
+    errorShape: ShapeId,
+    problemType: String
+) extends HttpSchemaWarning {
+  override def message: String =
+    s"@httpProblem on error structure '${errorShape.toString}' in service '${serviceShape.toString}' " +
+      s"uses type '$problemType'; prefer an HTTPS URL to human-readable documentation " +
+      s"(RFC 9457 recommends a URI reference identifying the problem type)"
+}

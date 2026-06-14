@@ -24,7 +24,7 @@ private[http] object HttpStructureExtractor {
       serviceErrors: List[HttpServiceError]
   ): HttpValidated[ExtractedShapes] = {
     val rootShapeIds             =
-      (operations.flatMap(_.outputShape) ++
+      (operations.flatMap(_.responseBinding.allVariants.map(_.modelShapeId)) ++
         serviceErrors.map(_.shapeId) ++
         documentInputShapeIds(operations) ++
         memberPayloadStructureShapeIds(model, operations))
