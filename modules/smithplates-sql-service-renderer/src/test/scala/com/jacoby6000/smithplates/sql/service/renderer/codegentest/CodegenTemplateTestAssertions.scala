@@ -84,9 +84,17 @@ object CodegenTemplateTestAssertions {
     } else if (outputRelativePath.startsWith(variantTestPrefix)) {
       true
     } else if (outputRelativePath.startsWith(dbRoot)) {
-      // Shared protocol modules live directly under src/db/, not under dialect subdirectories.
-      !outputRelativePath.startsWith(s"${dbRoot}sqlite/") &&
-      !outputRelativePath.startsWith(s"${dbRoot}postgres/")
+      variant.serviceTypeId match {
+        case "db"  =>
+          // Shared protocol modules live directly under src/db/, not under dialect subdirectories.
+          !outputRelativePath.startsWith(s"${dbRoot}sqlite/") &&
+          !outputRelativePath.startsWith(s"${dbRoot}postgres/")
+        case "api" =>
+          // HTTP artifacts live under src/api/ (including apis/); fastapi is a template variant only.
+          !outputRelativePath.startsWith(s"${dbRoot}${variant.implementationId}/")
+        case _     =>
+          true
+      }
     } else {
       false
     }

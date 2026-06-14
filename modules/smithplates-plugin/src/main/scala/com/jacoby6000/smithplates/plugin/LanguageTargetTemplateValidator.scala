@@ -3,6 +3,7 @@ package com.jacoby6000.smithplates.plugin
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
+import com.jacoby6000.smithplates.sql.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.sql.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 
@@ -12,7 +13,7 @@ object LanguageTargetTemplateValidator {
   def defaultTemplateDirectory(languageId: String): String =
     languageId match {
       case "python" =>
-        "classpath:"
+        PythonTemplateNamespaces.bundledDbTemplateDirectory
       case other    =>
         s"classpath:templates/$other/src/db"
     }

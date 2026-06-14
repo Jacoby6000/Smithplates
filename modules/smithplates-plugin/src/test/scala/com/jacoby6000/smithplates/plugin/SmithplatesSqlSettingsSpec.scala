@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.plugin
 
+import com.jacoby6000.smithplates.sql.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import software.amazon.smithy.model.node.Node
 
@@ -34,7 +35,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(settings.dialectMigrationDirectories, Map("postgres" -> "db/migrations/postgres"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
-    assertEquals(codegenSettings.templateDirectory, "classpath:")
+    assertEquals(codegenSettings.templateDirectory, PythonTemplateNamespaces.bundledDbTemplateDirectory)
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))
@@ -227,9 +228,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
 }
 
 class SmithplatesSettingsSpec extends munit.FunSuite {
-  test("requires sql object") {
+  test("requires at least one of sql or http") {
     val node   = Node.parse("{}").expectObjectNode()
     val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("sql")))
+    assert(errors.exists(error => error.message.contains("sql") && error.message.contains("http")))
   }
 }

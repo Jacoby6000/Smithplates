@@ -1,0 +1,3 @@
+com.jacoby6000.smithplates.http.traits.HttpServiceTrait$Provider
+com.jacoby6000.smithplates.http.traits.HttpStaticHeaderTrait$Provider
+com.jacoby6000.smithplates.http.traits.HttpProblemTrait$Provider
