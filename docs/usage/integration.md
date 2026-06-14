@@ -100,7 +100,15 @@ Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#ht
 
 Service error structures with `@error` may use `@httpProblem` (`use smithplates.codegen.http#httpProblem`) to emit RFC 9457 `application/problem+json` exception classes and imply `Content-Type: application/problem+json` on operation error response bindings. Set `code` on `@httpProblem` to imply `@httpError` with the same status (otherwise declare `@httpError` separately). Set `type` to an HTTPS URL documenting the error (defaults to `about:blank`; smithplates warns when `type` is not HTTPS). Provide `title` and optional trait `detail` defaults; raise the generated exception with `detail=` and `instance=` to describe a specific occurrence (for example trace identifiers).
 
-Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpError`, that materializes implied `@httpError` traits from `@httpProblem(code: ...)` on structure shapes. The smithplates build plugin applies the same transform before HTTP extraction. Other Smithy build plugins (for example the OpenAPI converter) only see standard Smithy traits, so list this transform in `smithy-build.json` **before** those plugins when your model uses `@httpProblem(code: ...)` without an explicit `@httpError`:
+Smithplates ships Smithy build projection transforms for OpenAPI and other Smithy tooling that only understands standard traits:
+
+| Transform | Purpose |
+|-----------|---------|
+| `applyHttpProblemHttpError` | Materializes implied `@httpError` from `@httpProblem(code: ...)`. The smithplates build plugin applies the same logic before HTTP extraction. |
+| `applyHttpServiceRestJson1` | Adds `@restJson1` to services that declare `@httpService`, so you do not need a separate OpenAPI-only service shape. |
+| `stripSmithplatesHttpCodegenTraits` | Removes smithplates HTTP codegen traits (`@httpService`, `@httpProblem`, `@httpStaticHeader`) from the transformed projection model after implied traits are materialized. Required when the projection also loads the original Smithy sources; otherwise Smithy reports conflicting `@httpService` traits during merge validation. |
+
+List these transforms in `smithy-build.json` **before** the OpenAPI plugin when exporting `@httpService` models that use `@httpProblem` or other smithplates HTTP traits:
 
 ```json
 {
@@ -108,11 +116,14 @@ Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpErro
   "projections": {
     "openapi": {
       "transforms": [
-        { "name": "applyHttpProblemHttpError" }
+        { "name": "applyHttpProblemHttpError" },
+        { "name": "applyHttpServiceRestJson1" },
+        { "name": "stripSmithplatesHttpCodegenTraits" }
       ],
       "plugins": {
         "openapi": {
-          "service": "example.api#ExampleService"
+          "service": "example.api#ExampleService",
+          "protocol": "aws.protocols#restJson1"
         }
       }
     }
@@ -120,7 +131,7 @@ Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpErro
 }
 ```
 
-The transform is registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call `HttpProblemHttpErrorModelTransformer.transform(model)` from the smithplates HTTP IR module.
+The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on the build classpath for `@restJson1`. Transforms are registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call the corresponding `*ModelTransformer.transform(model)` helpers in the smithplates HTTP IR module.
 
 #### OpenAPI Generator coordination
 

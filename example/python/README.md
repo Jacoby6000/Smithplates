@@ -9,8 +9,7 @@ example/python/
   smithy/                  Smithy models (API + SQL repositories)
   smithy-build.json        Smithplates plugin configuration (sql + http)
   openapi/                 Smithy → OpenAPI export + synced openapi.json
-    smithy-build.json      OpenAPI projection with applyHttpProblemHttpError
-    openapi-service.smithy Service shape for OpenAPI (no @httpService)
+    smithy-build.json      OpenAPI projection transforms + openapi plugin
   build-generated.sh       Regenerate codegen from the repo root
   db/migrations/           Versioned schema DDL (generated)
   src/
@@ -41,7 +40,7 @@ example/python/
 
 Generated HTTP routes live under `src/generated/api/`. The build script links that tree at `src/generated/generated/petstore_api/` so imports like `generated.petstore_api.*` resolve (see `packageName` in `smithy-build.json`).
 
-OpenAPI export uses the Smithy OpenAPI plugin with `@restJson1` and the smithplates `applyHttpProblemHttpError` projection transform (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). OpenAPI Generator writes an asyncio client under `src/generated/client/petstore_client/`; `src/client/petstore_client.py` wraps it with dict-friendly helpers.
+OpenAPI export uses the Smithy OpenAPI plugin with projection transforms (`applyHttpProblemHttpError`, `applyHttpServiceRestJson1`, `stripSmithplatesHttpCodegenTraits`) so the same `@httpService` model drives FastAPI codegen and OpenAPI client generation. OpenAPI Generator writes an asyncio client under `src/generated/client/petstore_client/`; `src/client/petstore_client.py` wraps it with dict-friendly helpers.
 
 ## Regenerate codegen
 

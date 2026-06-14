@@ -218,6 +218,7 @@ lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
     version := "0.1.0",
     libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
     libraryDependencies += "software.amazon.smithy" % "smithy-build" % smithyVersion,
+    libraryDependencies += "software.amazon.smithy" % "smithy-aws-traits" % smithyVersion,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 

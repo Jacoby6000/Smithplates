@@ -51,7 +51,7 @@ def create_app(
 ) -> FastAPI:
     app = FastAPI(
         title="Petstore",
-        description="HTTP-facing petstore service wired for smithplates FastAPI codegen and Smithy OpenAPI export.",
+        description="HTTP-facing petstore service for smithplates FastAPI codegen and Smithy OpenAPI export.",
         version="2024-01-01",
     )
     configure_services(app, services)

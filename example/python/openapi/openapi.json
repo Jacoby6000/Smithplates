@@ -3,7 +3,7 @@
     "info": {
         "title": "Petstore",
         "version": "2024-01-01",
-        "description": "OpenAPI export service shape (no @httpService — avoids projection transform conflicts)."
+        "description": "HTTP-facing petstore service for smithplates FastAPI codegen and Smithy OpenAPI export."
     },
     "paths": {
         "/categories/{categoryId}": {

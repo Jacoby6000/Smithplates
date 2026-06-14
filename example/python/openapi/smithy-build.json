@@ -3,7 +3,7 @@
   "sources": [
     "../smithy/common.smithy",
     "../smithy/api.smithy",
-    "openapi-service.smithy"
+    "../smithy/http-service.smithy"
   ],
   "maven": {
     "dependencies": [
@@ -16,7 +16,9 @@
   "projections": {
     "openapi": {
       "transforms": [
-        { "name": "applyHttpProblemHttpError" }
+        { "name": "applyHttpProblemHttpError" },
+        { "name": "applyHttpServiceRestJson1" },
+        { "name": "stripSmithplatesHttpCodegenTraits" }
       ],
       "plugins": {
         "openapi": {
