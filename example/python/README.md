@@ -77,6 +77,14 @@ uv run pytest tests/test_api.py
 uv run pytest tests/db/sqlite -m "integration and sqlite"
 ```
 
+Cross-language HTTP scenarios live under [`../tests/`](../tests/). Run the Python server and client together:
+
+```bash
+../tests/run-tests.sh python python
+```
+
+The shared runner sets `PETSTORE_DATABASE_PATH` for an isolated SQLite file during each run.
+
 Postgres generated tests require Docker (`tests/db/postgres`).
 
 ## Client example

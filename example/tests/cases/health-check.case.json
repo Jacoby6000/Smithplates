@@ -1,0 +1,20 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "health-check",
+  "description": "GET /health returns ok.",
+  "steps": [
+    {
+      "id": "health-check",
+      "request": {
+        "method": "GET",
+        "path": "/health"
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "status": "ok"
+        }
+      }
+    }
+  ]
+}

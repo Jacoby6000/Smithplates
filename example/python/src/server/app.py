@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -58,7 +59,14 @@ def build_app(*, database_path: Path | None = None) -> FastAPI:
     return app
 
 
-app = build_app()
+def _database_path_from_env() -> Path | None:
+    configured = os.environ.get("PETSTORE_DATABASE_PATH")
+    if configured is None or configured == "":
+        return None
+    return Path(configured)
+
+
+app = build_app(database_path=_database_path_from_env())
 
 
 def run() -> None:

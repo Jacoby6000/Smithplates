@@ -1,0 +1,10 @@
+{
+  "name": "python",
+  "description": "Python petstore reference server and httpx-based HTTP case runner.",
+  "server": {
+    "start": "start-server.sh"
+  },
+  "client": {
+    "runCase": "run-case.sh"
+  }
+}
