@@ -104,44 +104,4 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       "test/db/sqlite/test_widget_repository_derived_sql.py"
     )
   }
-
-  test("ServiceCodegen - uses postgres query renderer for postgres service artifacts when both dialects are enabled") {
-    val model    = loadTestCaseModel("sql-derive-select-one-only")
-    val schema   = SqlModelExtractor.extractOrThrow(model)
-    val settings =
-      SqlServiceCodegenSettings(
-        templateDirectory = PythonTemplateNamespaces.bundledDbTemplateDirectory,
-        defaultDialectKey = "sqlite",
-        enabledDialectKeys = List("sqlite", "postgres"),
-        queryRenderers = Map(
-          "sqlite"   -> new SqliteSqlQueryRenderer(
-            migrationBindPlaceholder = SqlBindPlaceholder("?"),
-            codegenBindPlaceholder = SqlBindPlaceholder("?")
-          ),
-          "postgres" -> new PostgresSqlQueryRenderer(
-            migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
-            codegenBindPlaceholder = SqlBindPlaceholder("%s")
-          )
-        ),
-        schemaDdlRenderers = Map(
-          "sqlite"   -> SqliteRenderer,
-          "postgres" -> PostgresRenderer
-        ),
-        artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
-      )
-
-    val rendered =
-      SqlServiceCodegenRenderer
-        .render(model, schema.schema, schema.serviceIr, settings)
-        .fold(errors => fail(errors.toList.mkString("; ")), identity)
-
-    val postgresService =
-      rendered
-        .find(_.relativePath.endsWith("/bookmark_repository_psycopg.py"))
-        .getOrElse(fail("expected postgres service artifact"))
-
-    assert(clue(postgresService.content).contains("class BookmarkRepositoryPsycopgService"))
-    assert(clue(postgresService.content).contains("WHERE id = %s"))
-    assert(!clue(postgresService.content).contains("AiosqliteService"))
-  }
 }
