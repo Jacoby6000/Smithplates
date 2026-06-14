@@ -28,6 +28,7 @@ object ExamplePythonBuild {
         .fold(message => sys.error(message), identity)
 
     syncPluginOutput(outputDirectory, exampleRoot)
+    ensureHttpPackageNamespace(exampleRoot)
     List("src/generated", "tests").foreach { relative =>
       val formatRoot = exampleRoot.resolve(relative)
       if (java.nio.file.Files.isDirectory(formatRoot)) {
@@ -62,4 +63,21 @@ object ExamplePythonBuild {
           Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING); ()
         }
       }
+
+  /** Map `generated.petstore_api` imports to the generated `api/` tree under `src/generated/`. */
+  private def ensureHttpPackageNamespace(exampleRoot: Path): Unit = {
+    val namespaceRoot = exampleRoot.resolve("src/generated/generated")
+    val apiRoot       = exampleRoot.resolve("src/generated/api")
+    if (!Files.isDirectory(apiRoot)) {
+      return
+    }
+    Files.createDirectories(namespaceRoot)
+    val namespaceInit = namespaceRoot.resolve("__init__.py")
+    if (!Files.isRegularFile(namespaceInit)) {
+      Files.writeString(namespaceInit, ""); ()
+    }
+    val packageLink   = namespaceRoot.resolve("petstore_api")
+    Files.deleteIfExists(packageLink)
+    Files.createSymbolicLink(packageLink, apiRoot.toAbsolutePath.normalize); ()
+  }
 }

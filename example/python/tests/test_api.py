@@ -6,19 +6,16 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from server.app import app
-from server.database import repository_lifespan
-from server.services import PetstoreService
+from server.app import build_app
 
 
 @pytest.fixture
 async def api_client(tmp_path) -> AsyncIterator[tuple[AsyncClient, str]]:
     database_path = tmp_path / "petstore.sqlite3"
-    async with repository_lifespan(database_path) as repositories:
-        service = PetstoreService(repositories)
-        _store_id, category_id = await service.seed_reference_data()
-        app.state.service = service
-        transport = ASGITransport(app=app)
+    app = build_app(database_path=database_path)
+    transport = ASGITransport(app=app)
+    async with app.router.lifespan_context(app):
+        category_id = app.state.seed_category_id
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             yield client, category_id
 

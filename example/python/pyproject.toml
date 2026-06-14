@@ -22,6 +22,7 @@ pythonpath = [
     "src/generated/db/model",
     "src/generated/db",
     "src/generated/db/sqlite",
+    "src/generated",
     "src",
 ]
 addopts = ["-v", "--tb=short"]

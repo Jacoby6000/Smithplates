@@ -3,6 +3,7 @@ namespace petstore
 
 use smithy.api#documentation
 use smithy.api#error
+use smithy.api#httpError
 use smithy.api#required
 use smithy.api#timestampFormat
 
@@ -72,6 +73,7 @@ union FulfillmentState {
     delivered: Timestamp
 }
 
+@httpError(404)
 @error("client")
 @documentation("Requested pet was not found.")
 structure PetNotFound {
@@ -79,6 +81,7 @@ structure PetNotFound {
     message: String
 }
 
+@httpError(404)
 @error("client")
 @documentation("Requested order was not found.")
 structure OrderNotFound {
@@ -86,6 +89,7 @@ structure OrderNotFound {
     message: String
 }
 
+@httpError(404)
 @error("client")
 @documentation("Requested category was not found.")
 structure CategoryNotFound {
@@ -93,6 +97,7 @@ structure CategoryNotFound {
     message: String
 }
 
+@httpError(400)
 @error("client")
 @documentation("Client supplied invalid input.")
 structure ValidationError {

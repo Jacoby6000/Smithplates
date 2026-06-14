@@ -1,15 +1,18 @@
 $version: "2.0"
 namespace petstore
 
+use smithplates.codegen.http#httpService
 use smithy.api#http
-use smithy.api#httpError
 use smithy.api#httpLabel
+use smithy.api#httpPayload
 use smithy.api#idempotent
 use smithy.api#readonly
 use smithy.api#required
+use smithy.api#tags
 
-/// HTTP-facing petstore contract. Hand-written server and client implementations
-/// map these operations to generated `@sqlService` repositories under `src/generated`.
+/// HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations
+/// in `src/server` that delegate to generated `@sqlService` repositories.
+@tags(["pets"])
 @http(method: "POST", uri: "/pets", code: 201)
 operation CreatePet {
     input: CreatePetInput
@@ -43,6 +46,7 @@ structure CreatePetOutput {
     id: String
 }
 
+@tags(["pets"])
 @readonly
 @http(method: "GET", uri: "/pets/{petId}")
 operation GetPet {
@@ -132,6 +136,7 @@ structure PetProfileSummary {
     pet_id: String
 }
 
+@tags(["pets"])
 @idempotent
 @http(method: "PUT", uri: "/pets/{petId}")
 operation UpdatePet {
@@ -144,6 +149,13 @@ structure UpdatePetInput {
     @httpLabel
     @required
     petId: String
+
+    @httpPayload
+    @required
+    body: UpdatePetBody
+}
+
+structure UpdatePetBody {
     @required
     name: String
     @required
@@ -169,6 +181,7 @@ structure UpdatePetOutput {
     updated: Boolean
 }
 
+@tags(["pets"])
 @idempotent
 @http(method: "DELETE", uri: "/pets/{petId}", code: 204)
 operation DeletePet {
@@ -183,6 +196,7 @@ structure DeletePetInput {
     petId: String
 }
 
+@tags(["categories"])
 @readonly
 @http(method: "GET", uri: "/categories/{categoryId}")
 operation GetCategory {
@@ -213,6 +227,7 @@ structure CategoryDetail {
     store: StoreSummary
 }
 
+@tags(["orders"])
 @http(method: "POST", uri: "/orders", code: 201)
 operation PlaceOrder {
     input: PlaceOrderInput
@@ -234,6 +249,7 @@ structure PlaceOrderOutput {
     id: String
 }
 
+@tags(["orders"])
 @readonly
 @http(method: "GET", uri: "/orders/{orderId}")
 operation GetOrder {
@@ -289,7 +305,7 @@ structure OrderLineDetail {
     fulfillment: FulfillmentState
 }
 
-@httpError(404)
+@tags(["health"])
 @readonly
 @http(method: "GET", uri: "/health")
 operation HealthCheck {
@@ -302,6 +318,7 @@ structure HealthCheckOutput {
     status: String
 }
 
+@httpService
 service Petstore {
     version: "2024-01-01"
     operations: [

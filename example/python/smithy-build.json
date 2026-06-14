@@ -25,6 +25,16 @@
             "testOutputDir": "tests"
           }
         }
+      },
+      "http": {
+        "python": {
+          "server": {
+            "webFramework": "fastapi",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "packageName": "generated.petstore_api"
+          }
+        }
       }
     }
   }

@@ -49,7 +49,9 @@ final case class HttpService(
     resources: List[HttpResource],
     routeGroups: List[HttpRouteGroup],
     structures: List[HttpStructure],
-    unions: List[HttpUnion]
+    unions: List[HttpUnion],
+    stringEnums: List[HttpStringEnum],
+    intEnums: List[HttpIntEnum]
 )
 
 final case class HttpResource(

@@ -1,41 +1,44 @@
 # Petstore reference (Python)
 
-Reference consumer project for Smithplates SQL codegen and a hand-written HTTP layer that implements the Smithy API contract in [`smithy/api.smithy`](smithy/api.smithy).
+Reference consumer project for Smithplates **SQL** and **HTTP** codegen with thin hand-written adapters that connect generated FastAPI routes to generated repository services.
 
 ## Layout
 
 ```
 example/python/
   smithy/                  Smithy models (API + SQL repositories)
-  smithy-build.json        Smithplates plugin configuration
+  smithy-build.json        Smithplates plugin configuration (sql + http)
   build-generated.sh       Regenerate codegen from the repo root
   db/migrations/           Versioned schema DDL (generated)
   src/
-    generated/             Smithplates Python repository output (generated)
-    server/                FastAPI server calling generated services
-    client/                httpx client for the HTTP API
+    generated/
+      api/                 Generated FastAPI routes, protocols, Pydantic models
+      db/                  Generated repository services
+    server/                Protocol adapters + app wiring
+    client/                Hand-written httpx client for the HTTP API
   tests/                   Generated repository tests + API smoke tests
 ```
 
 ## Features demonstrated
 
-| Smithy / SQL feature | Where |
-|----------------------|--------|
+| Smithy feature | Where |
+|----------------|--------|
 | `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` |
+| `@httpService`, `@http`, `@tags` | `Petstore` service in `smithy/api.smithy` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
-| Timestamps + epoch seconds | `created_at`, `updated_at`, `adopted_at` |
+| Timestamps | `created_at`, `updated_at`, `adopted_at` |
 | `@sqlAutoUuid`, `@sqlVarchar`, indexes | `Pet`, `Store`, … |
 | `@sqlJson` lists/structs/unions | `tags`, `attributes`, `fulfillment` |
 | Blob + Document columns | `photo`, `metadata` |
 | FK joins (many-to-one, optional, transitive) | `GetPetRecord` joins category → store, optional owner/profile |
 | One-to-many join | `GetOrderRecord` → `order_lines` |
-| HTTP contract (hand-implemented) | `smithy/api.smithy` + `src/server` |
+| HTTP + SQL wiring | `src/server/api_adapters.py` implements generated `*ApiServiceProtocol` types |
 
-HTTP service codegen is not available yet; the server and client implement the `@http` operations manually against generated repositories.
+Generated HTTP routes live under `src/generated/api/`. The build script links that tree at `src/generated/generated/petstore_api/` so imports like `generated.petstore_api.*` resolve (see `packageName` in `smithy-build.json`).
 
 ## Regenerate codegen
 
-From the repository root (after `sbtn publishM2` when plugin sources change):
+From the repository root (after plugin source changes):
 
 ```bash
 ./example/python/build-generated.sh
@@ -76,4 +79,4 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-Run with `PYTHONPATH=src/generated/db/model:src/generated/db:src:src/generated/db/sqlite` or via `uv run` from this directory (see `pyproject.toml` `pythonpath` for pytest).
+Run with `uv run` from this directory (see `pyproject.toml` `pythonpath` for pytest).

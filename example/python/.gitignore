@@ -2,6 +2,7 @@ out/
 build/
 .venv/
 data/
+src/generated/generated/petstore_api
 __pycache__/
 *.pyc
 .pytest_cache/

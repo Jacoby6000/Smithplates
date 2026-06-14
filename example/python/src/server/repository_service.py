@@ -1,34 +1,32 @@
-"""Map between HTTP API types and generated repository services."""
+"""Repository-backed petstore operations used by generated HTTP protocol adapters."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
 
+from generated.petstore_api.models.category_detail import CategoryDetail
+from generated.petstore_api.models.category_summary import CategorySummary
+from generated.petstore_api.models.create_pet_input import CreatePetInput
+from generated.petstore_api.models.order_detail import OrderDetail
+from generated.petstore_api.models.order_line_detail import OrderLineDetail
+from generated.petstore_api.models.order_priority import OrderPriority
+from generated.petstore_api.models.order_status import OrderStatus
+from generated.petstore_api.models.owner_summary import OwnerSummary
+from generated.petstore_api.models.pet_attribute import PetAttribute
+from generated.petstore_api.models.pet_attribute_value import PetAttributeValue
+from generated.petstore_api.models.pet_detail import PetDetail
+from generated.petstore_api.models.pet_profile_summary import PetProfileSummary
+from generated.petstore_api.models.pet_species import PetSpecies
+from generated.petstore_api.models.pet_status import PetStatus
+from generated.petstore_api.models.place_order_input import PlaceOrderInput
+from generated.petstore_api.models.postal_address import PostalAddress
+from generated.petstore_api.models.store_summary import StoreSummary
+from generated.petstore_api.models.update_pet_body import UpdatePetBody
 from pet_repository_models import PetHighlight as GeneratedPetHighlight
 from pet_repository_models import PetTags as GeneratedPetTags
 
 from server.database import RepositoryBundle
-from server.types import (
-    CategoryDetail,
-    CategorySummary,
-    OrderDetail,
-    OrderLineDetail,
-    OrderPriority,
-    OrderStatus,
-    OwnerSummary,
-    PetAttribute,
-    PetAttributeValue,
-    PetDetail,
-    PetProfileSummary,
-    PetSpecies,
-    PetStatus,
-    PlaceOrderRequest,
-    PostalAddress,
-    StoreSummary,
-    UpdatePetRequest,
-)
-
 
 
 def _postal_from_generated(address: Any) -> PostalAddress:
@@ -39,25 +37,37 @@ def _postal_from_generated(address: Any) -> PostalAddress:
     )
 
 
-class PetstoreService:
+def _attribute_value_from_union(value: PetAttributeValue) -> GeneratedPetHighlight:
+    if "color" in value:
+        return GeneratedPetHighlight(name="color", color=value["color"])
+    if "weight_kg" in value:
+        return GeneratedPetHighlight(name="weight", color=str(value["weight_kg"]))
+    if "vaccinated" in value:
+        return GeneratedPetHighlight(name="vaccinated", color=str(value["vaccinated"]))
+    return GeneratedPetHighlight(name="unknown", color="")
+
+
+def _attribute_value_to_union(attribute: GeneratedPetHighlight) -> PetAttributeValue:
+    return {"color": attribute.color}
+
+
+class PetstoreRepositoryService:
     def __init__(self, repositories: RepositoryBundle) -> None:
         self._repositories = repositories
 
-    async def create_pet(self, request: dict[str, Any]) -> str:
-        adopted_at = request.get("adopted_at") or datetime.now(tz=UTC)
+    async def create_pet(self, request: CreatePetInput) -> str:
+        adopted_at = request.adopted_at or datetime.now(tz=UTC)
+        featured = _attribute_value_from_union(request.attributes[0].value)
         return await self._repositories.pets.create_pet_record(
-            name=request["name"],
-            status=str(request["status"]),
-            species=int(request["species"]),
-            category_id=request["category_id"],
-            owner_id=request.get("owner_id") or "",
-            tag_count=request["tag_count"],
-            tags=GeneratedPetTags(items=request["tags"]),
-            featured_attribute=GeneratedPetHighlight(
-                name=request["featured_attribute"]["name"],
-                color=request["featured_attribute"]["color"],
-            ),
-            photo=request.get("photo") or b"",
+            name=request.name,
+            status=str(request.status.value),
+            species=int(request.species.value),
+            category_id=request.category_id,
+            owner_id=request.owner_id or "",
+            tag_count=request.tag_count,
+            tags=GeneratedPetTags(items=request.tags),
+            featured_attribute=featured,
+            photo=request.photo or b"",
             adopted_at=adopted_at,
         )
 
@@ -88,7 +98,7 @@ class PetstoreService:
             attributes=[
                 PetAttribute(
                     name=record.featured_attribute.name,
-                    value=PetAttributeValue(color=record.featured_attribute.color),
+                    value=_attribute_value_to_union(record.featured_attribute),
                 )
             ],
             photo=record.photo or None,
@@ -110,20 +120,18 @@ class PetstoreService:
             ),
         )
 
-    async def update_pet(self, pet_id: str, request: UpdatePetRequest) -> bool:
+    async def update_pet(self, pet_id: str, request: UpdatePetBody) -> bool:
         adopted_at = request.adopted_at or datetime.now(tz=UTC)
+        featured = _attribute_value_from_union(request.attributes[0].value)
         return await self._repositories.pets.update_pet_record(
             name=request.name,
-            status=str(request.status),
-            species=int(request.species),
+            status=str(request.status.value),
+            species=int(request.species.value),
             category_id=request.category_id,
             owner_id=request.owner_id or "",
             tag_count=request.tag_count,
             tags=GeneratedPetTags(items=request.tags),
-            featured_attribute=GeneratedPetHighlight(
-                name=request.attributes[0].name,
-                color=request.attributes[0].value.color or "",
-            ),
+            featured_attribute=featured,
             photo=request.photo or b"",
             adopted_at=adopted_at,
             id=pet_id,
@@ -143,11 +151,11 @@ class PetstoreService:
             store=StoreSummary(id=record.store.id, name=record.store.name),
         )
 
-    async def place_order(self, request: PlaceOrderRequest) -> str:
+    async def place_order(self, request: PlaceOrderInput) -> str:
         return await self._repositories.orders.create_order_record(
             label=request.label,
-            status=str(request.status),
-            priority=int(request.priority),
+            status=str(request.status.value),
+            priority=int(request.priority.value),
         )
 
     async def get_order(self, order_id: str) -> OrderDetail | None:
@@ -175,7 +183,6 @@ class PetstoreService:
         )
 
     async def seed_reference_data(self) -> tuple[str, str]:
-        """Insert a default store and category for interactive demos."""
         store_id = await self._seed_store()
         category_id = await self._repositories.categories.create_category_record(
             name="Dogs",
@@ -184,7 +191,6 @@ class PetstoreService:
         return store_id, category_id
 
     async def _seed_store(self) -> str:
-        # Categories require a store; create one directly until a StoreRepository exists.
         connection = self._repositories.connection
         cursor = await connection.execute(
             "INSERT INTO stores (name) VALUES (?) RETURNING id;",
