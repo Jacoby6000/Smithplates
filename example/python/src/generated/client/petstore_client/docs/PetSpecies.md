@@ -1,6 +1,5 @@
 # PetSpecies
 
-Species identifier stored as an integer enum column.
 
 ## Enum
 

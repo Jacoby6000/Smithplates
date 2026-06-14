@@ -1,6 +1,5 @@
 # FulfillmentState
 
-Delivery progress for a pet order line item.
 
 ## Properties
 

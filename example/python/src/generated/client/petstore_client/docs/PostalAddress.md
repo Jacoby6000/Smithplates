@@ -1,6 +1,5 @@
 # PostalAddress
 
-Structured postal address stored as JSON on pets and owners.
 
 ## Properties
 

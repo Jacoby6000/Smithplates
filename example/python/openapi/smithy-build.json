@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "sources": [
-    "../smithy/common.smithy",
+    "../smithy/api-types.smithy",
     "../smithy/api.smithy",
     "../smithy/http-service.smithy"
   ],
@@ -22,7 +22,7 @@
       ],
       "plugins": {
         "openapi": {
-          "service": "petstore#Petstore",
+          "service": "petstore.api#Petstore",
           "protocol": "aws.protocols#restJson1"
         }
       }

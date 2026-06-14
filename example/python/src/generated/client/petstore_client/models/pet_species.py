@@ -20,7 +20,7 @@ from typing import Self
 
 class PetSpecies(int, Enum):
     """
-    Species identifier stored as an integer enum column.
+    PetSpecies
     """
 
     """

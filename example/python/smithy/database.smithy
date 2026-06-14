@@ -1,5 +1,5 @@
 $version: "2.0"
-namespace petstore
+namespace petstore.db
 
 use smithplates.codegen.sql#DerivedStruct
 use smithplates.codegen.sql#sqlAutoUuid
@@ -38,7 +38,7 @@ structure Category {
     @required
     @sqlVarchar(maxLength: 128)
     name: String
-    @sqlForeignKey(references: "petstore#Store")
+    @sqlForeignKey(references: "petstore.db#Store")
     @required
     store_id: String
 }
@@ -66,7 +66,7 @@ structure PetProfile {
     @required
     @sqlVarchar(maxLength: 256)
     biography: String
-    @sqlForeignKey(references: "petstore#Pet")
+    @sqlForeignKey(references: "petstore.db#Pet")
     @sqlUniqueIndex(name: "uidx_pet_profiles_pet_id")
     @required
     pet_id: String
@@ -84,10 +84,10 @@ structure Pet {
     status: PetStatus
     @required
     species: PetSpecies
-    @sqlForeignKey(references: "petstore#Category")
+    @sqlForeignKey(references: "petstore.db#Category")
     @required
     category_id: String
-    @sqlForeignKey(references: "petstore#Owner")
+    @sqlForeignKey(references: "petstore.db#Owner")
     owner_id: String
     @sqlIndex(name: "idx_pets_status")
     @required
@@ -105,11 +105,6 @@ structure Pet {
     created_at: Timestamp
     @sqlUpdatedTimestamp
     updated_at: Timestamp
-}
-
-structure PetTags {
-    @required
-    items: StringList
 }
 
 @sqlTable(name: "orders")
@@ -135,7 +130,7 @@ structure OrderLine {
     @sqlPrimaryKey
     @sqlAutoUuid
     id: String
-    @sqlForeignKey(references: "petstore#Order")
+    @sqlForeignKey(references: "petstore.db#Order")
     @required
     order_id: String
     @required
@@ -149,19 +144,19 @@ structure OrderLine {
     fulfillment: FulfillmentState
 }
 
-@sqlDeriveInsert(targetTable: "petstore#Pet")
+@sqlDeriveInsert(targetTable: "petstore.db#Pet")
 operation CreatePetRecord {
     input: DerivedStruct
     output: String
 }
 
 @sqlDeriveSelectOne(
-    targetTable: "petstore#Pet",
+    targetTable: "petstore.db#Pet",
     joins: [
-        { table: "petstore#Category", tableAlias: "c" },
-        { table: "petstore#Store", tableAlias: "s" },
-        { table: "petstore#Owner", type: "left", tableAlias: "o" },
-        { table: "petstore#PetProfile", type: "left", tableAlias: "pp" }
+        { table: "petstore.db#Category", tableAlias: "c" },
+        { table: "petstore.db#Store", tableAlias: "s" },
+        { table: "petstore.db#Owner", type: "left", tableAlias: "o" },
+        { table: "petstore.db#PetProfile", type: "left", tableAlias: "pp" }
     ]
 )
 operation GetPetRecord {
@@ -169,13 +164,13 @@ operation GetPetRecord {
     output: DerivedStruct
 }
 
-@sqlDeriveUpdate(targetTable: "petstore#Pet")
+@sqlDeriveUpdate(targetTable: "petstore.db#Pet")
 operation UpdatePetRecord {
     input: DerivedStruct
     output: Boolean
 }
 
-@sqlDeriveDelete(targetTable: "petstore#Pet")
+@sqlDeriveDelete(targetTable: "petstore.db#Pet")
 operation DeletePetRecord {
     input: DerivedStruct
     output: Boolean
@@ -187,15 +182,15 @@ service PetRepository {
     operations: [CreatePetRecord, GetPetRecord, UpdatePetRecord, DeletePetRecord]
 }
 
-@sqlDeriveInsert(targetTable: "petstore#Category")
+@sqlDeriveInsert(targetTable: "petstore.db#Category")
 operation CreateCategoryRecord {
     input: DerivedStruct
     output: String
 }
 
 @sqlDeriveSelectOne(
-    targetTable: "petstore#Category",
-    joins: [{ table: "petstore#Store", tableAlias: "s" }]
+    targetTable: "petstore.db#Category",
+    joins: [{ table: "petstore.db#Store", tableAlias: "s" }]
 )
 operation GetCategoryRecord {
     input: DerivedStruct
@@ -208,15 +203,15 @@ service CategoryRepository {
     operations: [CreateCategoryRecord, GetCategoryRecord]
 }
 
-@sqlDeriveInsert(targetTable: "petstore#Order")
+@sqlDeriveInsert(targetTable: "petstore.db#Order")
 operation CreateOrderRecord {
     input: DerivedStruct
     output: String
 }
 
 @sqlDeriveSelectOne(
-    targetTable: "petstore#Order",
-    joins: [{ table: "petstore#OrderLine", tableAlias: "ol" }]
+    targetTable: "petstore.db#Order",
+    joins: [{ table: "petstore.db#OrderLine", tableAlias: "ol" }]
 )
 operation GetOrderRecord {
     input: DerivedStruct

@@ -27,7 +27,7 @@ FULFILLMENTSTATE_ONE_OF_SCHEMAS = ["Delivered", "Pending", "Shipped"]
 
 class FulfillmentState(BaseModel):
     """
-    Delivery progress for a pet order line item.
+    FulfillmentState
     """
     # data type: Pending
     oneof_schema_1_validator: Pending | None = None

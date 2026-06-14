@@ -1,6 +1,5 @@
 # OrderPriority
 
-Numeric priority levels for store orders.
 
 ## Enum
 

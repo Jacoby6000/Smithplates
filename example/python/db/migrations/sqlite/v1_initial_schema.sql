@@ -1,4 +1,4 @@
--- petstore#Store
+-- petstore.db#Store
 CREATE TABLE stores (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     name TEXT CHECK(length(name) <= 128),
@@ -6,7 +6,7 @@ CREATE TABLE stores (
     PRIMARY KEY (id)
 );
 
--- petstore#Category
+-- petstore.db#Category
 CREATE TABLE categories (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     name TEXT CHECK(length(name) <= 128),
@@ -16,7 +16,7 @@ CREATE TABLE categories (
     FOREIGN KEY (store_id) REFERENCES stores (id)
 );
 
--- petstore#Order
+-- petstore.db#Order
 CREATE TABLE orders (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     label TEXT CHECK(length(label) <= 64),
@@ -28,7 +28,7 @@ CREATE TABLE orders (
     PRIMARY KEY (id)
 );
 
--- petstore#OrderLine
+-- petstore.db#OrderLine
 CREATE TABLE order_lines (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     order_id TEXT,
@@ -41,7 +41,7 @@ CREATE TABLE order_lines (
     FOREIGN KEY (order_id) REFERENCES orders (id)
 );
 
--- petstore#Owner
+-- petstore.db#Owner
 CREATE TABLE owners (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     full_name TEXT CHECK(length(full_name) <= 128),
@@ -51,7 +51,7 @@ CREATE TABLE owners (
     PRIMARY KEY (id)
 );
 
--- petstore#Pet
+-- petstore.db#Pet
 CREATE TABLE pets (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     name TEXT CHECK(length(name) <= 64),
@@ -72,10 +72,10 @@ CREATE TABLE pets (
     FOREIGN KEY (owner_id) REFERENCES owners (id)
 );
 
--- petstore#Pet
+-- petstore.db#Pet
 CREATE INDEX idx_pets_status ON pets (tag_count);
 
--- petstore#PetProfile
+-- petstore.db#PetProfile
 CREATE TABLE pet_profiles (
     id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     biography TEXT CHECK(length(biography) <= 256),
@@ -85,5 +85,5 @@ CREATE TABLE pet_profiles (
     FOREIGN KEY (pet_id) REFERENCES pets (id)
 );
 
--- petstore#PetProfile
+-- petstore.db#PetProfile
 CREATE UNIQUE INDEX uidx_pet_profiles_pet_id ON pet_profiles (pet_id);

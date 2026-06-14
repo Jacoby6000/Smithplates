@@ -414,7 +414,6 @@
                 ]
             },
             "FulfillmentState": {
-                "description": "Delivery progress for a pet order line item.",
                 "oneOf": [
                     {
                         "type": "object",
@@ -585,7 +584,6 @@
             },
             "OrderPriority": {
                 "type": "number",
-                "description": "Numeric priority levels for store orders.",
                 "enum": [
                     1,
                     2,
@@ -640,7 +638,6 @@
                 ]
             },
             "PetAttributeValue": {
-                "description": "Union of possible pet attribute payloads stored as JSON.",
                 "oneOf": [
                     {
                         "type": "object",
@@ -796,7 +793,6 @@
             },
             "PetSpecies": {
                 "type": "number",
-                "description": "Species identifier stored as an integer enum column.",
                 "enum": [
                     1,
                     2,
@@ -806,7 +802,6 @@
             },
             "PetStatus": {
                 "type": "string",
-                "description": "Classic pet lifecycle states stored as a Postgres ENUM / SQLite TEXT+CHECK column.",
                 "enum": [
                     "available",
                     "pending",
@@ -845,7 +840,6 @@
             },
             "PostalAddress": {
                 "type": "object",
-                "description": "Structured postal address stored as JSON on pets and owners.",
                 "properties": {
                     "street": {
                         "type": "string"

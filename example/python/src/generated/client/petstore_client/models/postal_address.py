@@ -23,7 +23,7 @@ from pydantic import BaseModel, ConfigDict, StrictStr
 
 class PostalAddress(BaseModel):
     """
-    Structured postal address stored as JSON on pets and owners.
+    PostalAddress
     """
     street: StrictStr
     city: StrictStr

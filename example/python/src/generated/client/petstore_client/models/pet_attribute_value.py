@@ -27,7 +27,7 @@ PETATTRIBUTEVALUE_ONE_OF_SCHEMAS = ["Color", "Vaccinated", "WeightKg"]
 
 class PetAttributeValue(BaseModel):
     """
-    Union of possible pet attribute payloads stored as JSON.
+    PetAttributeValue
     """
     # data type: Color
     oneof_schema_1_validator: Color | None = None

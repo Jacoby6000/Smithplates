@@ -1,5 +1,5 @@
 $version: "2.0"
-namespace petstore
+namespace petstore.api
 
 use smithplates.codegen.http#httpService
 use smithy.api#http

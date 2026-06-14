@@ -1,27 +1,23 @@
 $version: "2.0"
-namespace petstore
+namespace petstore.api
 
 use smithy.api#documentation
 use smithy.api#error
 use smithy.api#httpError
 use smithy.api#required
-use smithy.api#timestampFormat
 
-/// Classic pet lifecycle states stored as a Postgres ENUM / SQLite TEXT+CHECK column.
 enum PetStatus {
     AVAILABLE = "available"
     PENDING = "pending"
     SOLD = "sold"
 }
 
-/// Numeric priority levels for store orders.
 intEnum OrderPriority {
     LOW = 1
     NORMAL = 2
     HIGH = 3
 }
 
-/// Species identifier stored as an integer enum column.
 intEnum PetSpecies {
     DOG = 1
     CAT = 2
@@ -35,7 +31,6 @@ enum OrderStatus {
     DELIVERED = "delivered"
 }
 
-/// Structured postal address stored as JSON on pets and owners.
 structure PostalAddress {
     @required
     street: String
@@ -45,18 +40,10 @@ structure PostalAddress {
     postal_code: String
 }
 
-/// Union of possible pet attribute payloads stored as JSON.
 union PetAttributeValue {
     color: String
     weight_kg: Double
     vaccinated: Boolean
-}
-
-structure PetHighlight {
-    @required
-    name: String
-    @required
-    color: String
 }
 
 structure PetAttribute {
@@ -74,7 +61,6 @@ list PetAttributeList {
     member: PetAttribute
 }
 
-/// Delivery progress for a pet order line item.
 union FulfillmentState {
     pending: String
     shipped: Timestamp

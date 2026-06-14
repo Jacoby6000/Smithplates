@@ -1,6 +1,5 @@
 # PetAttributeValue
 
-Union of possible pet attribute payloads stored as JSON.
 
 ## Properties
 

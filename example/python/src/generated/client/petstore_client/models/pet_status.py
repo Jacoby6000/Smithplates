@@ -20,7 +20,7 @@ from typing import Self
 
 class PetStatus(str, Enum):
     """
-    Classic pet lifecycle states stored as a Postgres ENUM / SQLite TEXT+CHECK column.
+    PetStatus
     """
 
     """

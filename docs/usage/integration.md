@@ -145,6 +145,24 @@ When Smithy OpenAPI export and [OpenAPI Generator `python-fastapi`](https://open
 
 Smithplates HTTP codegen replaces the OpenAPI Generator wiring layer for FastAPI servers: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). OpenAPI Generator (with custom Mustache templates) may still emit Pydantic `models/` and depends on Smithy OpenAPI export extensions such as `x-python-response-type` for protocol response unions. Pin OpenAPI Generator version in the consumer (for example `openapitools.json`) and keep custom templates in sync when upgrading.
 
+### HTTP and SQL model separation
+
+When a project uses both `smithplates.http` and `smithplates.sql`, **keep HTTP API models and database models in separate Smithy namespaces** and avoid coupling them in the Smithy model.
+
+| Layer | Smithy namespace (example) | Traits | Purpose |
+|-------|----------------------------|--------|---------|
+| HTTP API | `example.api` | `@httpService`, `@http`, `@tags` | Wire contract, request/response shapes, HTTP errors |
+| Database | `example.db` | `@sqlTable`, `@sqlService`, `@sqlDerive*` | Tables, repository operations, column/JSON types |
+
+**Conventions:**
+
+- Do **not** put `@httpService` operations and `@sqlTable` / `@sqlService` shapes in the same namespace, and do **not** reuse the same structure or enum shapes across HTTP and SQL (even when field names match). HTTP payloads and persistence models evolve on different schedules; sharing Smithy shapes ties codegen and migrations to the wire format.
+- Duplicate enums and value types per namespace when both layers need similar concepts (for example `PetStatus` in `example.api` and `example.db`). It is fine for them to differ (API `PetAttributeList` vs DB `PetTags`, and so on).
+- Translate between HTTP and SQL in **hand-written application code** (protocol implementations, repository facades, mappers). Generated HTTP route modules should call into generated repository services through that boundary, not by importing one generated model tree from the other.
+- OpenAPI export projections should list **API sources only** (for example `api-types.smithy`, `api.smithy`, `http-service.smithy`) and target the HTTP service shape id (for example `example.api#ExampleService`). Do not include SQL Smithy files in OpenAPI projections.
+
+The [Python petstore reference](../../example/python/) demonstrates this layout: `petstore.api` for HTTP/OpenAPI codegen and `petstore.db` for schema/repository codegen, with mapping in `src/server/repository_service.py`.
+
 ### `smithplates.sql` dialect keys
 
 Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Versioned migration `.sql` files are written at build time; generated migration services apply them at runtime and track schema state in `_smithplates_migrations`.

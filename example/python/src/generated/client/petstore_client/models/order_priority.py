@@ -20,7 +20,7 @@ from typing import Self
 
 class OrderPriority(int, Enum):
     """
-    Numeric priority levels for store orders.
+    OrderPriority
     """
 
     """

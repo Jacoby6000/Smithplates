@@ -6,7 +6,12 @@ Reference consumer project for Smithplates **SQL** and **HTTP** codegen with thi
 
 ```
 example/python/
-  smithy/                  Smithy models (API + SQL repositories)
+  smithy/                  Smithy models in separate API and DB namespaces
+    api-types.smithy       HTTP API enums, errors, and value types (`petstore.api`)
+    api.smithy               HTTP operations and response shapes (`petstore.api`)
+    http-service.smithy      `@httpService` service (`petstore.api`)
+    db-types.smithy          SQL column/value types (`petstore.db`)
+    database.smithy          `@sqlTable` schema and `@sqlService` repositories (`petstore.db`)
   smithy-build.json        Smithplates plugin configuration (sql + http)
   openapi/                 Smithy → OpenAPI export + synced openapi.json
     smithy-build.json      OpenAPI projection transforms + openapi plugin
@@ -25,8 +30,9 @@ example/python/
 
 | Smithy feature | Where |
 |----------------|--------|
-| `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` |
-| `@httpService`, `@http`, `@tags` | `Petstore` service in `smithy/http-service.smithy` |
+| Separate API/DB Smithy namespaces | `petstore.api` (HTTP) and `petstore.db` (SQL); mapped in `src/server/repository_service.py` |
+| `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` in `petstore.db` |
+| `@httpService`, `@http`, `@tags` | `Petstore` service in `smithy/http-service.smithy` (`petstore.api`) |
 | Smithy OpenAPI + OAG Python client | `openapi/smithy-build.json` → `src/generated/client/` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |
@@ -35,11 +41,13 @@ example/python/
 | Blob + Document columns | `photo`, `metadata` |
 | FK joins (many-to-one, optional, transitive) | `GetPetRecord` joins category → store, optional owner/profile |
 | One-to-many join | `GetOrderRecord` → `order_lines` |
-| HTTP + SQL wiring | `src/server/api_adapters.py` implements generated `*ApiServiceProtocol` types |
+| HTTP + SQL wiring | `src/server/api_adapters.py` and `repository_service.py` bridge `petstore.api` to `petstore.db` |
 
 Generated HTTP routes live under `src/generated/api/`. The build script links that tree at `src/generated/generated/petstore_api/` so imports like `generated.petstore_api.*` resolve (see `packageName` in `smithy-build.json`).
 
 OpenAPI export uses the Smithy OpenAPI plugin with projection transforms (`applyHttpProblemHttpError`, `applyHttpServiceRestJson1`, `stripSmithplatesHttpCodegenTraits`) so the same `@httpService` model drives FastAPI codegen and OpenAPI client generation. OpenAPI Generator writes an asyncio client under `src/generated/client/petstore_client/`.
+
+See [Integration — HTTP and SQL model separation](../../docs/usage/integration.md#http-and-sql-model-separation) for the convention this example follows.
 
 ## Regenerate codegen
 
