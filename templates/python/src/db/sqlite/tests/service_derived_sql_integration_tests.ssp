@@ -3,21 +3,25 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 <% if (test.extraImports != "") { %>${test.extraImports}<% } %>
 
 import aiosqlite
 import pytest
 import pytest_asyncio
 <% if (test.localImportBlock != "") { %>
-${test.localImportBlock}<% } %>
+${test.localImportBlock}
+<% } %>
+from sqlite_migrations import SqliteMigrationService
 
-SCHEMA_DDL = """${test.schemaDdl}"""
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
 
 
 @pytest_asyncio.fixture
 async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> AsyncIterator[${implementationClassName(ctx.serviceName, ctx.dialectKey)}]:
     connection = await aiosqlite.connect(":memory:")
-    await connection.executescript(SCHEMA_DDL)
+    migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
     await connection.commit()
     try:
         yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)

@@ -171,7 +171,7 @@ Docker-backed schema-path integration tests (SQL IR → dialect DDL → real dat
 
 ## Schema DDL export
 
-The **schema and migrations** path renders SQL IR to dialect-specific DDL plus derived DML. [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.render`](src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala), which composes dialect [`SqlSchemaDdlRenderer`](../../smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) output with service-IR query units, and writes the result to `migrationLocation`. Per-language migration engines are planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)).
+The **schema and migrations** path renders SQL IR to dialect-specific DDL and writes versioned migration files under `migrationLocation` (initial `v1_initial_schema.sql` for a fresh project). [`SmithplatesBuildPlugin`](src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) calls [`DialectRenderers.renderDdlOnly`](src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala). Per-language migration runners are generated via SQL database service codegen templates (Python today).
 
 ## SQL database service codegen
 
@@ -237,11 +237,11 @@ Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage
     "sql": {
       "sqlite": {
         "enable": true,
-        "migrationLocation": "sqlite.sql"
+        "migrationLocation": "db/migrations/sqlite"
       },
       "postgres": {
         "enable": true,
-        "migrationLocation": "postgres.sql"
+        "migrationLocation": "db/migrations/postgres"
       },
       "languageTargets": {
         "python": {

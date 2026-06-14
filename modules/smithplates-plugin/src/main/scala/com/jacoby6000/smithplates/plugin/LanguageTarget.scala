@@ -18,7 +18,8 @@ final case class LanguageTarget(
       languageId: String,
       enabledDialectKeys: List[String],
       queryRenderers: Map[String, SqlQueryRenderer],
-      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer]
+      schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer],
+      migrationDirectories: Map[String, String]
   ): SqlServiceCodegenSettings = {
     val defaultDialectKey = enabledDialectKeys.headOption.getOrElse("sqlite")
     SqlServiceCodegenSettings(
@@ -27,6 +28,7 @@ final case class LanguageTarget(
       enabledDialectKeys = enabledDialectKeys,
       queryRenderers = queryRenderers,
       schemaDdlRenderers = schemaDdlRenderers,
+      migrationDirectories = migrationDirectories,
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
       artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(enabledDialectKeys)

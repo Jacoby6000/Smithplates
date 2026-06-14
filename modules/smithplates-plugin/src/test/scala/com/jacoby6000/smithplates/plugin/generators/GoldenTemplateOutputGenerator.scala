@@ -37,7 +37,8 @@ object GoldenTemplateOutputGenerator {
 
       val expectedDirectory = testCase.caseDirectory.resolve("expected")
       syncOutputToExpected(outputDirectory, expectedDirectory)
-      PythonCodegenRuffFormatter.formatGeneratedPython(expectedDirectory, repoRoot)
+      val formatStartedAt   = System.nanoTime()
+      PythonCodegenRuffFormatter.formatGeneratedPython(expectedDirectory, repoRoot, caseName, formatStartedAt)
       Console.out.println(s"Wrote golden outputs for '$caseName' ($language)")
     }
   }

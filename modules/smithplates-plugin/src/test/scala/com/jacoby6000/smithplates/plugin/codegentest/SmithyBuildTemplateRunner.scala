@@ -18,12 +18,19 @@ object SmithyBuildTemplateRunner {
   val PluginName = "smithplates"
 
   def run(caseDirectory: Path, classLoader: ClassLoader): Either[String, Path] = {
+    val label                           = caseDirectory.getFileName.toString
+    val startedAt                       = System.nanoTime()
+    def logPhase(message: String): Unit =
+      TemplateBuildLog.phase(label, message, startedAt)
+
+    logPhase("starting")
     val configPath = caseDirectory.resolve("smithy-build.json")
     if (!Files.isRegularFile(configPath)) {
       return Left(s"Missing smithy-build.json in $caseDirectory")
     }
 
     val outputDirectory = caseDirectory.resolve("out")
+    logPhase(s"preparing output directory $outputDirectory")
     deleteRecursively(outputDirectory)
     Files.createDirectories(outputDirectory)
 
@@ -36,9 +43,11 @@ object SmithyBuildTemplateRunner {
         }
 
     try {
+      logPhase(s"loading $configPath")
       val loadedConfig =
         SmithyBuildConfig.load(configPath)
 
+      logPhase("running smithy build")
       val result =
         SmithyBuild
           .create(classLoader, () => modelAssemblerFor(loadedConfig, classLoader))
@@ -47,18 +56,23 @@ object SmithyBuildTemplateRunner {
           .pluginClassLoader(classLoader)
           .pluginFactory(pluginFactory)
           .build()
+      logPhase("smithy build finished")
 
       if (result.anyBroken()) {
         Left(formatBrokenBuild(result))
       } else {
         PythonCodegenRuffFormatter.formatGeneratedPython(
           outputDirectory,
-          PythonCodegenRuffFormatter.inferRepoRoot(caseDirectory)
+          PythonCodegenRuffFormatter.inferRepoRoot(caseDirectory),
+          label,
+          startedAt
         )
+        logPhase("finished")
         Right(outputDirectory)
       }
     } catch {
       case ex: Exception =>
+        logPhase(s"failed: ${ex.getMessage}")
         Left(s"Smithy build failed for $caseDirectory: ${ex.getMessage}")
     }
   }
