@@ -21,7 +21,7 @@ final case class SmithplatesSqlSettings(
   def enabledDialectKeys: List[String] =
     SmithplatesSqlSettings.OrderedDialectKeys.filter(key => dialects.get(key).exists(_.enabled))
 
-  def schemaDialectOutputs: Map[String, String] =
+  def dialectMigrationDirectories: Map[String, String] =
     enabledDialectKeys.flatMap { key =>
       dialects.get(key).flatMap(_.migrationLocation).map(key -> _)
     }.toMap
@@ -33,7 +33,8 @@ final case class SmithplatesSqlSettings(
         languageId = languageId,
         enabledDialectKeys = enabledKeys,
         queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
-        schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys)
+        schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys),
+        migrationDirectories = dialectMigrationDirectories
       )
     }
   }
@@ -112,7 +113,9 @@ object SmithplatesSqlSettings {
     val enabled = optionalBooleanMember(node, "enable").getOrElse(false)
     optionalStringMember(node, "migrationLocation") match {
       case Some(location) if enabled =>
-        SqlDialectSettings(enabled = true, migrationLocation = Some(location)).validNel
+        validateMigrationDirectory(key, location).map { directory =>
+          SqlDialectSettings(enabled = true, migrationLocation = Some(directory))
+        }
       case Some(location)            =>
         SqlDialectSettings(enabled = false, migrationLocation = Some(location)).validNel
       case None if enabled           =>
@@ -125,6 +128,17 @@ object SmithplatesSqlSettings {
         SqlDialectSettings(enabled = false, migrationLocation = None).validNel
     }
   }
+
+  private def validateMigrationDirectory(key: String, location: String): SqlValidated[String] =
+    if (location.endsWith(".sql")) {
+      SqlValidated.invalid(
+        InvalidPluginConfig(
+          s"smithplates sql.$key `migrationLocation` must be a directory path for versioned migrations, not a .sql file: $location"
+        )
+      )
+    } else {
+      location.validNel
+    }
 
   private def optionalBooleanMember(node: ObjectNode, memberName: String): Option[Boolean] =
     Option(node.getMember(memberName).orElse(null)).flatMap {

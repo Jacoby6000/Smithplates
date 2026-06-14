@@ -5,20 +5,23 @@ import java.nio.file.Path
 
 /** Normalizes generated Python sources so golden tests and language-test-harness linters agree. */
 object PythonCodegenRuffFormatter {
-  def formatGeneratedPython(root: Path, repoRoot: Path): Unit = {
+  def formatGeneratedPython(root: Path, repoRoot: Path, label: String, startedAt: Long): Unit = {
     val harnessDir = repoRoot.resolve("language-test-harnesses/python").toAbsolutePath.normalize()
     val pyproject  = harnessDir.resolve("pyproject.toml")
     if (!Files.isRegularFile(pyproject)) {
+      TemplateBuildLog.phase(label, s"skipping ruff (missing $pyproject)", startedAt)
       return
     }
 
     val formatRoot = resolveFormatRoot(root.toAbsolutePath.normalize())
     if (!Files.isDirectory(formatRoot) || !containsPythonFiles(formatRoot)) {
+      TemplateBuildLog.phase(label, s"skipping ruff (no generated Python under $formatRoot)", startedAt)
       return
     }
 
     val command  =
       s"""cd '${harnessDir}' && uv run ruff check --fix --config pyproject.toml '${formatRoot}' && uv run ruff format --config pyproject.toml '${formatRoot}'"""
+    TemplateBuildLog.phase(label, s"running ruff check --fix and ruff format on $formatRoot", startedAt)
     val process  = new ProcessBuilder("bash", "-c", command).redirectErrorStream(true).start()
     val output   = new String(process.getInputStream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
     val exitCode = process.waitFor()
@@ -27,6 +30,7 @@ object PythonCodegenRuffFormatter {
         s"Failed to ruff-format generated Python under $formatRoot (exit $exitCode):\n$output"
       )
     }
+    TemplateBuildLog.phase(label, "ruff finished", startedAt)
   }
 
   def inferRepoRoot(caseDirectory: Path): Path =

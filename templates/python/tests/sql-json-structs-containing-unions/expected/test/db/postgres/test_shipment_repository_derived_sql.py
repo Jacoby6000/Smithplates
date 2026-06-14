@@ -2,10 +2,12 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import psycopg
 import pytest
 import pytest_asyncio
+from psycopg_migrations import PsycopgMigrationService
 from shipment_repository_models import (
     PostalAddress,
     Shipment,
@@ -13,23 +15,7 @@ from shipment_repository_models import (
 from shipment_repository_psycopg import ShipmentRepositoryPsycopgService
 from testcontainers.postgres import PostgresContainer
 
-SCHEMA_DDL = """-- example#Shipment
-CREATE TABLE shipments (
-    id UUID NOT NULL DEFAULT gen_random_uuid(),
-    label TEXT,
-    destination JSONB,
-    state JSONB,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id)
-);"""
-
-
-async def _apply_schema_ddl(connection: psycopg.AsyncConnection, schema_ddl: str) -> None:
-    for statement in schema_ddl.split(";"):
-        ddl_statement = statement.strip()
-        if ddl_statement:
-            _ = await connection.execute(f"{ddl_statement};")
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 
 
 @pytest_asyncio.fixture
@@ -43,7 +29,9 @@ async def shipment_repository_service(
         password=postgres_container.password,
         dbname=postgres_container.dbname,
     )
-    await _apply_schema_ddl(connection, SCHEMA_DDL)
+    migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
+    await connection.commit()
     try:
         yield ShipmentRepositoryPsycopgService(connection)
     finally:

@@ -9,6 +9,7 @@ val catsCoreVersion = "2.12.0"
 val catsEffectVersion = "3.7.0"
 val smithyVersion = "1.71.0"
 val munitVersion = "1.0.2"
+val log4jVersion = "2.24.3"
 val scalateVersion = "1.10.1"
 
 lazy val generateGoldenTemplatesFor = inputKey[Unit](
@@ -292,8 +293,11 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
       "software.amazon.smithy" % "smithy-build" % smithyVersion,
       catsCoreDependency,
       catsEffectDependency,
-      "org.scalameta" %% "munit" % munitVersion % Test
+      "org.scalameta" %% "munit" % munitVersion % Test,
+      "org.apache.logging.log4j" % "log4j-api" % log4jVersion % Test,
+      "org.apache.logging.log4j" % "log4j-core" % log4jVersion % Test
     ),
+    Test / logBuffered := false,
     Compile / packageDoc / publishArtifact := false,
     publishM2Configuration := publishM2Configuration.value.withOverwrite(true),
     Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "templates",

@@ -75,6 +75,7 @@ object SqlServiceCodegenTemplateBackend {
         enabledDialectKeys = List(dialectKey),
         queryRenderers = Map(dialectKey -> queryRenderer),
         schemaDdlRenderers = Map(dialectKey -> schemaDdlRenderer),
+        migrationDirectories = Map(dialectKey -> s"db/migrations/$dialectKey"),
         testOutputDirectory = Some(GoldenTestOutputDirectory),
         artifacts = artifacts
       )

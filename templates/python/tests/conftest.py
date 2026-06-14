@@ -8,7 +8,7 @@ import pytest
 from testcontainers.postgres import PostgresContainer
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def postgres_container() -> Iterator[PostgresContainer]:
     with PostgresContainer("postgres:16-alpine") as container:
         yield container

@@ -21,6 +21,8 @@ object SqlServiceCodegenDbArtifacts {
       serviceOutputFile: String = "db/sqlite/{{serviceFileName}}_aiosqlite.py",
       transactionRunResource: String = "sqlite/sqlite_transaction_run.py",
       transactionRunOutputFile: String = "db/sqlite/sqlite_transaction_run.py",
+      migrationsServiceTemplate: String = "sqlite/migrations_service.ssp",
+      migrationsServiceOutputFile: String = "db/sqlite/sqlite_migrations.py",
       integrationTestTemplate: String = "sqlite/tests/service_derived_sql_integration_tests.ssp",
       integrationTestOutputFile: String = "db/sqlite/test_{{serviceFileName}}_derived_sql.py"
   ): List[SqlServiceCodegenArtifactConfig] =
@@ -30,6 +32,11 @@ object SqlServiceCodegenDbArtifacts {
         template = transactionRunResource,
         outputFile = transactionRunOutputFile,
         bundledResource = true
+      ),
+      SqlServiceCodegenArtifactConfig(
+        kind = SqlServiceCodegenArtifactKind.Src,
+        template = migrationsServiceTemplate,
+        outputFile = migrationsServiceOutputFile
       ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
@@ -48,6 +55,8 @@ object SqlServiceCodegenDbArtifacts {
       serviceOutputFile: String = "db/postgres/{{serviceFileName}}_psycopg.py",
       transactionRunResource: String = "postgres/psycopg_transaction_run.py",
       transactionRunOutputFile: String = "db/postgres/psycopg_transaction_run.py",
+      migrationsServiceTemplate: String = "postgres/migrations_service.ssp",
+      migrationsServiceOutputFile: String = "db/postgres/psycopg_migrations.py",
       integrationTestTemplate: String = "postgres/tests/service_derived_sql_integration_tests_postgres.ssp",
       integrationTestOutputFile: String = "db/postgres/test_{{serviceFileName}}_derived_sql.py",
       testcontainersStubResource: String = "postgres/stubs/testcontainers/postgres.pyi",
@@ -59,6 +68,11 @@ object SqlServiceCodegenDbArtifacts {
         template = transactionRunResource,
         outputFile = transactionRunOutputFile,
         bundledResource = true
+      ),
+      SqlServiceCodegenArtifactConfig(
+        kind = SqlServiceCodegenArtifactKind.Src,
+        template = migrationsServiceTemplate,
+        outputFile = migrationsServiceOutputFile
       ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
@@ -80,6 +94,9 @@ object SqlServiceCodegenDbArtifacts {
 
   def isIntegrationTestTemplate(template: String): Boolean =
     template.contains("service_derived_sql_integration_tests")
+
+  def isMigrationServiceTemplate(template: String): Boolean =
+    template.contains("migrations_service")
 
   def isPostgresTestcontainersStub(template: String): Boolean =
     template.contains("stubs/testcontainers")

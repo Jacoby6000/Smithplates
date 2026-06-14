@@ -90,4 +90,40 @@ def resultFieldAssignmentBindings(
     "rowVar"            -> rowVar,
     "timestampFormat"   -> resultField.timestampFormat
   )
+
+def pythonTypeName(typeName: String): String =
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"list[${pythonTypeName(inner)}]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"dict[str, ${pythonTypeName(inner)}]"
+  } else {
+    typeName match {
+      case "String"                          => "str"
+      case "Integer" | "Long" | "BigInteger" => "int"
+      case "Float" | "Double"                => "float"
+      case "BigDecimal"                      => "Decimal"
+      case "Boolean"                         => "bool"
+      case "Blob"                            => "bytes"
+      case "Timestamp"                       => "datetime"
+      case "Document"                        => "Any"
+      case "Unit"                            => "None"
+      case other                             => other
+    }
+  }
+
+def configuredMigrationsDirectory(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String =
+  ctx.migration.map(_.migrationsDirectory).getOrElse(s"db/migrations/${ctx.dialectKey}")
+
+def migrationsDirectoryFromTestFile(migrationsDirectory: String): String = {
+  val parts = migrationsDirectory
+    .stripPrefix("/")
+    .stripSuffix("/")
+    .stripSuffix("\\")
+    .split("/")
+    .filter(_.nonEmpty)
+  val pathExpr = parts.map(part => s""""$part"""").mkString(" / ")
+  s"Path(__file__).resolve().parents[3] / $pathExpr"
+}
 %>

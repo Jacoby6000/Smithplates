@@ -2,31 +2,25 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import aiosqlite
 import pytest
 import pytest_asyncio
+from sqlite_migrations import SqliteMigrationService
 from widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
 from widget_repository_models import (
     Widget,
 )
 
-SCHEMA_DDL = """-- example#Widget
-CREATE TABLE widgets (
-    id TEXT NOT NULL DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
-    foo TEXT,
-    bar BIGINT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (id)
-);"""
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 
 
 @pytest_asyncio.fixture
 async def widget_repository_service() -> AsyncIterator[WidgetRepositoryAiosqliteService]:
     connection = await aiosqlite.connect(":memory:")
-    await connection.executescript(SCHEMA_DDL)
+    migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
+    await migration_service.migrate_all()
     await connection.commit()
     try:
         yield WidgetRepositoryAiosqliteService(connection)
