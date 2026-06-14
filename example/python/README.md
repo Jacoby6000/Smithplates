@@ -18,7 +18,6 @@ example/python/
       client/              OpenAPI Generator asyncio Python client
       db/                  Generated repository services
     server/                Protocol adapters + app wiring
-    client/                Thin facade over the generated OpenAPI client
   tests/                   Generated repository tests + API smoke tests
 ```
 
@@ -40,7 +39,7 @@ example/python/
 
 Generated HTTP routes live under `src/generated/api/`. The build script links that tree at `src/generated/generated/petstore_api/` so imports like `generated.petstore_api.*` resolve (see `packageName` in `smithy-build.json`).
 
-OpenAPI export uses the Smithy OpenAPI plugin with projection transforms (`applyHttpProblemHttpError`, `applyHttpServiceRestJson1`, `stripSmithplatesHttpCodegenTraits`) so the same `@httpService` model drives FastAPI codegen and OpenAPI client generation. OpenAPI Generator writes an asyncio client under `src/generated/client/petstore_client/`; `src/client/petstore_client.py` wraps it with dict-friendly helpers.
+OpenAPI export uses the Smithy OpenAPI plugin with projection transforms (`applyHttpProblemHttpError`, `applyHttpServiceRestJson1`, `stripSmithplatesHttpCodegenTraits`) so the same `@httpService` model drives FastAPI codegen and OpenAPI client generation. OpenAPI Generator writes an asyncio client under `src/generated/client/petstore_client/`.
 
 ## Regenerate codegen
 
@@ -76,13 +75,21 @@ Postgres generated tests require Docker (`tests/db/postgres`).
 
 ```python
 import asyncio
-from client.petstore_client import PetstoreClient
+
+from petstore_client import ApiClient, Configuration
+from petstore_client.api.default_api import DefaultApi
 
 async def main() -> None:
-    async with PetstoreClient("http://127.0.0.1:8080") as client:
-        print(await client.health_check())
+    configuration = Configuration(host="http://127.0.0.1:8080", ignore_operation_servers=True)
+    api_client = ApiClient(configuration=configuration)
+    api = DefaultApi(api_client)
+    try:
+        response = await api.health_check()
+        print(response.to_dict())
+    finally:
+        await api_client.close()
 
 asyncio.run(main())
 ```
 
-Run with `uv run` from this directory (see `pyproject.toml` `pythonpath` for pytest).
+Run with `PYTHONPATH=src/generated/client:src uv run python -c "..."` from this directory, or add those paths to your environment (see `pyproject.toml` `pythonpath` for pytest).
