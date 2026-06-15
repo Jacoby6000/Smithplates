@@ -62,7 +62,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             "Redirect": ResponseVariantBinding(
                 status_code=302,
                 media_type=None,
-                header_bindings=(("url", "Location")),
+                header_bindings=(("url", "Location"),),
                 static_headers=(),
             ),
             "GetAssetContent404": ResponseVariantBinding(
@@ -78,7 +78,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             "Redirect": ResponseVariantBinding(
                 status_code=302,
                 media_type=None,
-                header_bindings=(("url", "Location")),
+                header_bindings=(("url", "Location"),),
                 static_headers=(),
             ),
             "GetAssetContent404": ResponseVariantBinding(
@@ -101,7 +101,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=409,
                 media_type="application/json",
                 header_bindings=(),
-                static_headers=(("Content-Type", "application/problem+json")),
+                static_headers=(("Content-Type", "application/problem+json"),),
             ),
         },
     ),
@@ -117,7 +117,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=409,
                 media_type="application/json",
                 header_bindings=(),
-                static_headers=(("Content-Type", "application/problem+json")),
+                static_headers=(("Content-Type", "application/problem+json"),),
             ),
         },
     ),

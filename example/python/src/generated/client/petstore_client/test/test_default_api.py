@@ -67,6 +67,12 @@ class TestDefaultApi(unittest.IsolatedAsyncioTestCase):
         """
         pass
 
+    async def test_resolve_pet_location(self) -> None:
+        """Test case for resolve_pet_location
+
+        """
+        pass
+
     async def test_update_pet(self) -> None:
         """Test case for update_pet
 

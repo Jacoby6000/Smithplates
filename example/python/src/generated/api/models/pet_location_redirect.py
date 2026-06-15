@@ -5,6 +5,5 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
-class CreatePetOutput(BaseModel):
-    id: str = Field(...)
-    etag: str = Field(...)
+class PetLocationRedirect(BaseModel):
+    url: str = Field(...)

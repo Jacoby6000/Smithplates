@@ -13,6 +13,7 @@ from generated.petstore_api.app_services import ApiServices, get_api_services
 from generated.petstore_api.models.create_pet_input import CreatePetInput
 from generated.petstore_api.models.create_pet_output import CreatePetOutput
 from generated.petstore_api.models.get_pet_output import GetPetOutput
+from generated.petstore_api.models.pet_location_redirect import PetLocationRedirect
 from generated.petstore_api.models.update_pet_body import UpdatePetBody
 from generated.petstore_api.models.update_pet_output import UpdatePetOutput
 from generated.petstore_api.operation_bindings import OPERATION_HTTP_BINDINGS
@@ -67,6 +68,22 @@ async def get_pet(
     return dispatch_api_response(
         await services.pets_api.get_pet(pet_id=pet_id),
         OPERATION_HTTP_BINDINGS["get_pet"],
+    )
+@router.get(
+    "/pets/{petId}/location",
+    responses={
+        302: {"description": "Response"},
+        404: {"description": "Response"},
+    },
+    response_model_by_alias=True,
+)
+async def resolve_pet_location(
+    services: Annotated[ApiServices, Depends(get_api_services)],
+    pet_id: str = Path(..., alias="petId"),
+) -> PetLocationRedirect:
+    return dispatch_api_response(
+        await services.pets_api.resolve_pet_location(pet_id=pet_id),
+        OPERATION_HTTP_BINDINGS["resolve_pet_location"],
     )
 @router.put(
     "/pets/{petId}",

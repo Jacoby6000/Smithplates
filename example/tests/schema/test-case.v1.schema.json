@@ -87,6 +87,12 @@
         "json": true,
         "body": {
           "type": "string"
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["client", "raw"],
+          "default": "client",
+          "description": "Use `raw` to issue HTTP directly (for example redirect responses that typed clients may follow)."
         }
       }
     },

@@ -151,6 +151,14 @@
                 "responses": {
                     "201": {
                         "description": "CreatePet 201 response",
+                        "headers": {
+                            "ETag": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "required": true
+                            }
+                        },
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -276,6 +284,44 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/ValidationErrorResponseContent"
                                 }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "PetNotFound 404 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PetNotFoundResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pets/{petId}/location": {
+            "get": {
+                "operationId": "ResolvePetLocation",
+                "parameters": [
+                    {
+                        "name": "petId",
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "302": {
+                        "description": "ResolvePetLocation 302 response",
+                        "headers": {
+                            "Location": {
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "required": true
                             }
                         }
                     },

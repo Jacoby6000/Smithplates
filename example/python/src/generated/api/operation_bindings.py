@@ -75,7 +75,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type='application/json',
                 header_bindings=(),
-                static_headers=(),
+                static_headers=(("Cache-Control", "no-store"),),
             ),
         },
     ),
@@ -85,7 +85,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type='application/json',
                 header_bindings=(),
-                static_headers=(),
+                static_headers=(("Cache-Control", "no-store"),),
             ),
         },
     ),
@@ -158,7 +158,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             "CreatePetOutput": ResponseVariantBinding(
                 status_code=201,
                 media_type='application/json',
-                header_bindings=(),
+                header_bindings=(("etag", "ETag"),),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
@@ -174,7 +174,7 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             "CreatePetOutput": ResponseVariantBinding(
                 status_code=201,
                 media_type='application/json',
-                header_bindings=(),
+                header_bindings=(("etag", "ETag"),),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
@@ -239,6 +239,38 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 status_code=200,
                 media_type='application/json',
                 header_bindings=(),
+                static_headers=(),
+            ),
+            "PetNotFound": ResponseVariantBinding(
+                status_code=404,
+                media_type='application/json',
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
+    "resolve_pet_location": OperationHttpBinding(
+        variants_by_type_name={
+            "PetLocationRedirect": ResponseVariantBinding(
+                status_code=302,
+                media_type=None,
+                header_bindings=(("url", "Location"),),
+                static_headers=(),
+            ),
+            "PetNotFound": ResponseVariantBinding(
+                status_code=404,
+                media_type='application/json',
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
+    "ResolvePetLocation": OperationHttpBinding(
+        variants_by_type_name={
+            "PetLocationRedirect": ResponseVariantBinding(
+                status_code=302,
+                media_type=None,
+                header_bindings=(("url", "Location"),),
                 static_headers=(),
             ),
             "PetNotFound": ResponseVariantBinding(

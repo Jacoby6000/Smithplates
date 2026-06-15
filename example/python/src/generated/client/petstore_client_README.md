@@ -72,6 +72,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_pet**](petstore_client/docs/DefaultApi.md#get_pet) | **GET** /pets/{petId} | 
 *DefaultApi* | [**health_check**](petstore_client/docs/DefaultApi.md#health_check) | **GET** /health | 
 *DefaultApi* | [**place_order**](petstore_client/docs/DefaultApi.md#place_order) | **POST** /orders | 
+*DefaultApi* | [**resolve_pet_location**](petstore_client/docs/DefaultApi.md#resolve_pet_location) | **GET** /pets/{petId}/location | 
 *DefaultApi* | [**update_pet**](petstore_client/docs/DefaultApi.md#update_pet) | **PUT** /pets/{petId} | 
 
 

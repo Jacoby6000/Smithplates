@@ -5,6 +5,7 @@ from typing import Annotated, Any, Protocol  # noqa: F401
 from generated.petstore_api.models.create_pet_input import CreatePetInput
 from generated.petstore_api.models.create_pet_output import CreatePetOutput
 from generated.petstore_api.models.get_pet_output import GetPetOutput
+from generated.petstore_api.models.pet_location_redirect import PetLocationRedirect
 from generated.petstore_api.models.pet_not_found import PetNotFound
 from generated.petstore_api.models.update_pet_body import UpdatePetBody
 from generated.petstore_api.models.update_pet_output import UpdatePetOutput
@@ -28,6 +29,11 @@ in `src/server` that delegate to generated `@sqlService` repositories."""
         self,
         pet_id: str,
     ) -> GetPetOutput | PetNotFound:
+        ...
+    async def resolve_pet_location(
+        self,
+        pet_id: str,
+    ) -> PetLocationRedirect | PetNotFound:
         ...
     async def update_pet(
         self,

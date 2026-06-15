@@ -55,7 +55,7 @@ full schema.
 Each step has:
 
 - `request` — required `operationId`, `method`, `path`; optional `pathParameters`,
-  `headers`, `json`, or raw `body`
+  `headers`, `json`, raw `body`, or `transport` (`client` default, `raw` for direct HTTP)
 - `expect` — required `status`; optional `headers`, `json`, or `body`
 - `capture` — optional map of variable name → JSON Pointer (`$.field.nested`)
 
@@ -131,6 +131,7 @@ contract with their generated client or raw HTTP libraries.
 | Case | Description |
 | --- | --- |
 | `health-check` | `GET /health` returns `{"status": "ok"}` |
+| `http-response-bindings` | `@httpStaticHeader`, output `@httpHeader` (`ETag`), and `302` `Location` redirect |
 | `category-lookup` | Read seeded category; missing category returns 404 |
 | `order-lifecycle` | Place order, read back, missing order returns 404 |
 | `order-fulfillment-states` | Each `FulfillmentState` union variant on seeded orders |
@@ -156,9 +157,10 @@ not yet represented in `cases/*.case.json`.
 
 | Operation | Cases |
 | --- | --- |
-| `HealthCheck` | `health-check` |
-| `CreatePet` | `pet-crud-lifecycle`, `pet-attribute-*` |
+| `HealthCheck` | `health-check`, `http-response-bindings` |
+| `CreatePet` | `pet-crud-lifecycle`, `pet-attribute-*`, `http-response-bindings` |
 | `GetPet` | `pet-crud-lifecycle`, `pet-attribute-*`, `pet-not-found` |
+| `ResolvePetLocation` | `http-response-bindings` |
 | `UpdatePet` | `pet-crud-lifecycle`, `pet-attribute-*`, `pet-not-found` |
 | `DeletePet` | `pet-crud-lifecycle`, `pet-not-found` |
 | `GetCategory` | `category-lookup` |
@@ -188,6 +190,14 @@ not yet represented in `cases/*.case.json`.
 | --- | --- |
 | `PetAttributeValue` (`color` / `weight_kg` / `vaccinated`) | `pet-attribute-color`, `pet-attribute-weight`, `pet-attribute-vaccinated` |
 | `FulfillmentState` (`pending` / `shipped` / `delivered`) | `order-fulfillment-states` |
+
+### HTTP binding features — covered
+
+| Feature | Case |
+| --- | --- |
+| `@httpStaticHeader` on output (`Cache-Control` on `HealthCheck`) | `http-response-bindings` |
+| Output `@httpHeader` (`ETag` on `CreatePet`) | `http-response-bindings` |
+| Redirect via output `@httpHeader("Location")` (`ResolvePetLocation` 302) | `http-response-bindings` |
 
 ### Optional / nested response shapes — not covered
 

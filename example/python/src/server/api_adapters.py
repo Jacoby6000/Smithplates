@@ -14,6 +14,7 @@ from generated.petstore_api.models.get_order_output import GetOrderOutput
 from generated.petstore_api.models.get_pet_output import GetPetOutput
 from generated.petstore_api.models.health_check_output import HealthCheckOutput
 from generated.petstore_api.models.order_not_found import OrderNotFound
+from generated.petstore_api.models.pet_location_redirect import PetLocationRedirect
 from generated.petstore_api.models.pet_not_found import PetNotFound
 from generated.petstore_api.models.place_order_input import PlaceOrderInput
 from generated.petstore_api.models.place_order_output import PlaceOrderOutput
@@ -29,7 +30,13 @@ class PetsApiService(PetsApiServiceProtocol):
 
     async def create_pet(self, create_pet_input: CreatePetInput) -> CreatePetOutput:
         pet_id = await self._repository_service.create_pet(create_pet_input)
-        return CreatePetOutput(id=pet_id)
+        return CreatePetOutput(id=pet_id, etag=f'W/"{pet_id}"')
+
+    async def resolve_pet_location(self, pet_id: str) -> PetLocationRedirect | PetNotFound:
+        pet = await self._repository_service.get_pet(pet_id)
+        if pet is None:
+            return PetNotFound(message=f"Pet {pet_id} not found")
+        return PetLocationRedirect(url=f"/pets/{pet_id}")
 
     async def delete_pet(self, pet_id: str) -> PetNotFound | None:
         deleted = await self._repository_service.delete_pet(pet_id)

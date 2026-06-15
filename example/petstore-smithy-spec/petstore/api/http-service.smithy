@@ -10,6 +10,7 @@ service Petstore {
     operations: [
         CreatePet
         GetPet
+        ResolvePetLocation
         UpdatePet
         DeletePet
         GetCategory

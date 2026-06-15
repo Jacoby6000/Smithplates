@@ -243,6 +243,42 @@ OPERATION_HANDLERS: dict[str, OperationHandler] = {
 }
 
 
+def header_value(headers: dict[str, str], name: str) -> str | None:
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if key.lower() == name_lower:
+            return value
+    return None
+
+
+async def execute_raw_request(base_url: str, request_spec: dict[str, Any]) -> StepResult:
+    import httpx
+
+    method = request_spec["method"]
+    path = request_spec["path"]
+    url = f"{base_url.rstrip('/')}{path}"
+    headers = request_spec.get("headers") or {}
+    json_body = request_spec.get("json")
+    async with httpx.AsyncClient(follow_redirects=False) as client:
+        response = await client.request(method, url, headers=headers, json=json_body)
+
+    response_json: dict[str, Any] | None = None
+    if response.content:
+        try:
+            parsed = response.json()
+            if isinstance(parsed, dict):
+                response_json = parsed
+        except json.JSONDecodeError:
+            response_json = None
+
+    return StepResult(
+        status_code=response.status_code,
+        headers=dict(response.headers),
+        response_json=response_json,
+        response_body=response.text if response.text else None,
+    )
+
+
 async def execute_request(api: DefaultApi, request_spec: dict[str, Any]) -> StepResult:
     operation_id = request_spec.get("operationId")
     if not operation_id:
@@ -264,6 +300,50 @@ async def execute_request(api: DefaultApi, request_spec: dict[str, Any]) -> Step
     return step_result_from_api_response(response)
 
 
+def apply_captures(
+    step_id: str,
+    step: dict[str, Any],
+    result: StepResult,
+    variables: dict[str, Any],
+) -> None:
+    for variable_name, pointer in (step.get("capture") or {}).items():
+        if result.response_json is None:
+            raise AssertionError(f"{step_id}: cannot capture from empty response body")
+        captured = json_pointer_get(result.response_json, pointer)
+        variables[variable_name] = captured
+
+
+def assert_step_expectations(
+    step_id: str,
+    expect_spec: dict[str, Any],
+    result: StepResult,
+    variables: dict[str, Any],
+) -> None:
+    expected_status = substitute_value(expect_spec["status"], variables)
+    if result.status_code != expected_status:
+        detail = result.response_body or result.response_json
+        raise AssertionError(f"{step_id}: expected status {expected_status}, got {result.status_code}: {detail}")
+
+    expected_headers = substitute_value(expect_spec.get("headers") or {}, variables)
+    for header_name, expected_value in expected_headers.items():
+        actual_value = header_value(result.headers, header_name)
+        if actual_value != expected_value:
+            raise AssertionError(
+                f"{step_id}: header {header_name}: expected {expected_value!r}, got {actual_value!r}"
+            )
+
+    if "json" in expect_spec:
+        if result.response_json is None:
+            raise AssertionError(f"{step_id}: expected JSON response body, got none")
+        expected_json = substitute_value(expect_spec["json"], variables)
+        matches_expected(result.response_json, expected_json, f"{step_id}.json")
+
+    if "body" in expect_spec:
+        expected_body = substitute_value(expect_spec["body"], variables)
+        if result.response_body != expected_body:
+            raise AssertionError(f"{step_id}: body expected {expected_body!r}, got {result.response_body!r}")
+
+
 async def run_case(case_file: Path, base_url: str, context_file: Path) -> None:
     case = load_json(case_file)
     if case.get("schema") != "smithystache.example.test-case/v1":
@@ -280,41 +360,18 @@ async def run_case(case_file: Path, base_url: str, context_file: Path) -> None:
         for index, step in enumerate(case["steps"], start=1):
             step_id = step.get("id") or f"step-{index}"
             request_spec = substitute_value(step["request"], variables)
-            expect_spec = substitute_value(step.get("expect") or {}, variables)
+            expect_spec = step.get("expect") or {}
 
-            result = await execute_request(api, request_spec)
+            transport = request_spec.get("transport", "client")
+            if transport == "raw":
+                result = await execute_raw_request(base_url, request_spec)
+            elif transport == "client":
+                result = await execute_request(api, request_spec)
+            else:
+                raise ValueError(f"{step_id}: unsupported request transport '{transport}'")
 
-            expected_status = expect_spec["status"]
-            if result.status_code != expected_status:
-                detail = result.response_body or result.response_json
-                raise AssertionError(
-                    f"{step_id}: expected status {expected_status}, got {result.status_code}: {detail}"
-                )
-
-            expected_headers = expect_spec.get("headers") or {}
-            for header_name, expected_value in expected_headers.items():
-                actual_value = result.headers.get(header_name)
-                if actual_value != expected_value:
-                    raise AssertionError(
-                        f"{step_id}: header {header_name}: expected {expected_value!r}, got {actual_value!r}"
-                    )
-
-            if "json" in expect_spec:
-                if result.response_json is None:
-                    raise AssertionError(f"{step_id}: expected JSON response body, got none")
-                matches_expected(result.response_json, expect_spec["json"], f"{step_id}.json")
-
-            if "body" in expect_spec:
-                if result.response_body != expect_spec["body"]:
-                    raise AssertionError(
-                        f"{step_id}: body expected {expect_spec['body']!r}, got {result.response_body!r}"
-                    )
-
-            for variable_name, pointer in (step.get("capture") or {}).items():
-                if result.response_json is None:
-                    raise AssertionError(f"{step_id}: cannot capture from empty response body")
-                captured = json_pointer_get(result.response_json, pointer)
-                variables[variable_name] = captured
+            apply_captures(step_id, step, result, variables)
+            assert_step_expectations(step_id, expect_spec, result, variables)
     finally:
         await api_client.close()
 

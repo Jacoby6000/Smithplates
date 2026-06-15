@@ -2,7 +2,9 @@ $version: "2.0"
 namespace petstore.api
 
 use smithplates.codegen.http#httpService
+use smithplates.codegen.http#httpStaticHeader
 use smithy.api#http
+use smithy.api#httpHeader
 use smithy.api#httpLabel
 use smithy.api#httpPayload
 use smithy.api#idempotent
@@ -47,6 +49,31 @@ structure CreatePetInput {
 structure CreatePetOutput {
     @required
     id: String
+
+    @httpHeader("ETag")
+    @required
+    etag: String
+}
+
+@tags(["pets"])
+@readonly
+@http(method: "GET", uri: "/pets/{petId}/location", code: 302)
+operation ResolvePetLocation {
+    input: ResolvePetLocationInput
+    output: PetLocationRedirect
+    errors: [PetNotFound]
+}
+
+structure ResolvePetLocationInput {
+    @httpLabel
+    @required
+    petId: String
+}
+
+structure PetLocationRedirect {
+    @httpHeader("Location")
+    @required
+    url: String
 }
 
 @tags(["pets"])
@@ -332,6 +359,7 @@ operation HealthCheck {
     output: HealthCheckOutput
 }
 
+@httpStaticHeader(name: "Cache-Control", value: "no-store")
 structure HealthCheckOutput {
     @required
     status: String
