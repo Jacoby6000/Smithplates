@@ -33,13 +33,53 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 
 ## Build and publish
 
+### Local Maven (`publishM2`)
+
 Publish plugin JARs to the local Maven repository (`~/.m2`) before running `smithy build` in a consumer project:
 
 ```bash
 sbtn publishM2
 ```
 
-Consumer `smithy-build.json` files reference `com.jacoby6000:smithplates-plugin`. Version numbers must match [`build.sbt`](../../build.sbt).
+Consumer `smithy-build.json` files reference `com.jacoby6000:smithplates-plugin`. Version numbers must match the current build (see [Maven Central](#maven-central) below for release versioning).
+
+### Maven Central
+
+Releases are automated with [`sbt-ci-release`](https://github.com/sbt/sbt-ci-release) via [`.github/workflows/release.yml`](../../.github/workflows/release.yml):
+
+- **Stable release:** push an annotated tag whose name starts with `v` (for example `v0.1.0`).
+- **Snapshot:** every push to `main` publishes a unique `-SNAPSHOT` version derived from git history (`sbt-dynver`).
+
+Only `smithplatesPlugin` is published (`com.jacoby6000:smithplates-plugin`); all other modules set `publish / skip := true`.
+
+#### GitHub Actions secrets
+
+Configure these under **Settings → Secrets and variables → Actions**:
+
+| Secret | Purpose |
+|--------|---------|
+| `SONATYPE_USERNAME` | Username from a [Central Portal user token](https://central.sonatype.com/usertoken) (not your account login) |
+| `SONATYPE_PASSWORD` | Password from the same user token |
+| `PGP_PASSPHRASE` | Passphrase for the GPG key used to sign artifacts |
+| `PGP_SECRET` | Base64-encoded armored private key (`gpg --armor --export-secret-keys <key-id> \| base64 -w0`) |
+
+Upload the matching **public** key to a keyserver (for example [keys.openpgp.org](https://keys.openpgp.org/)) before the first release.
+
+#### Sonatype namespace
+
+Publishing requires approval for the Maven `groupId` `com.jacoby6000` on [central.sonatype.com](https://central.sonatype.com/). If you do not control that domain, request `io.github.Jacoby6000` instead and update `organization` in [`build.sbt`](../../build.sbt).
+
+#### Manual publish (optional)
+
+For a one-off local release with credentials in `~/.sbt/sonatype_central_credentials`:
+
+```bash
+export SONATYPE_USERNAME=...
+export SONATYPE_PASSWORD=...
+export PGP_PASSPHRASE=...
+export PGP_SECRET=...
+sbtn smithplatesPlugin/publishSigned
+```
 
 ## Lint and format
 
