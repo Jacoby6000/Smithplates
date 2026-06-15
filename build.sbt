@@ -52,6 +52,17 @@ def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   Compile / packageDoc / publishArtifact := false
 )
 
+/**
+ * Published dependency modules of `smithplates-plugin`. The plugin pom references these by Maven coordinate, so every
+ * module in the plugin's transitive compile graph (including the renderer jars carrying precompiled SSP template
+ * classes) must be published. `withOverwrite(true)` lets repeated `publishM2` runs replace the fixed `0.1.0` artifacts.
+ */
+def publishedModuleSettings: Seq[Def.Setting[_]] = Seq(
+  crossPaths := false,
+  Compile / packageDoc / publishArtifact := false,
+  publishM2Configuration := publishM2Configuration.value.withOverwrite(true)
+)
+
 def pythonTemplateNamespace(feature: String): String =
   s"python/src/$feature"
 
@@ -78,6 +89,72 @@ def pythonNamespacedTemplateResources(features: String*): Seq[Def.Setting[_]] = 
   }
 )
 
+val precompiledTemplateClasses = taskKey[Seq[(File, String)]](
+  "Ahead-of-time compile bundled SSP templates into JVM classes packaged into the published renderer jar."
+)
+
+def namespaceDirectory(base: File, namespace: String): File =
+  namespace.split("/").filter(_.nonEmpty).foldLeft(base)(_ / _)
+
+/**
+ * Precompiles bundled Scalate SSP templates to JVM classes at build time and packages them into the renderer jar so
+ * the published plugin loads precompiled templates at `smithy build` time instead of invoking the Scala compiler.
+ *
+ * The precompiler runs in a forked JVM on the module classpath (compiled classes + bundled template resources +
+ * dependencies) and its output classes are added to `packageBin` mappings only, leaving the default compile/test flow
+ * unchanged. The task is cached on the bundled template sources and the module's compiled classes.
+ */
+def scalateTemplatePrecompileSettings(
+    precompileMainClass: String,
+    templateNamespaces: Seq[String]
+): Seq[Def.Setting[_]] = Seq(
+  precompiledTemplateClasses := {
+    val log             = streams.value.log
+    val classDir        = (Compile / classDirectory).value
+    val dependencyFiles = (Compile / dependencyClasspath).value.files
+    val precompiledBase = target.value / "scalate-precompiled"
+    val outputDir       = precompiledBase / "classes"
+    val generatedSrcDir = precompiledBase / "src"
+    val cacheBaseDir    = streams.value.cacheDirectory / "scalate-precompiled"
+    // Force module classes and bundled template resources onto disk/classpath before precompiling.
+    val _compiled       = (Compile / compile).value
+    val _copiedRes      = (Compile / copyResources).value
+
+    val templateSourceFiles =
+      templateNamespaces.flatMap(namespace => (namespaceDirectory(classDir, namespace) ** "*.ssp").get)
+    val moduleClassFiles    = (classDir ** "*.class").get
+    val cacheInputs         = (templateSourceFiles ++ moduleClassFiles).toSet
+
+    val runPrecompile = FileFunction.cached(cacheBaseDir, FilesInfo.hash) { _ =>
+      IO.delete(outputDir)
+      IO.delete(generatedSrcDir)
+      IO.createDirectory(outputDir)
+      IO.createDirectory(generatedSrcDir)
+      val arguments    =
+        Seq(outputDir.getAbsolutePath, generatedSrcDir.getAbsolutePath) ++
+          templateNamespaces.flatMap(namespace =>
+            Seq(namespace, namespaceDirectory(classDir, namespace).getAbsolutePath)
+          )
+      val runClasspath = classDir +: dependencyFiles
+      log.info(s"Precompiling bundled SSP templates via $precompileMainClass")
+      new ForkRun(ForkOptions()).run(precompileMainClass, runClasspath, arguments, log).get
+      (outputDir ** "*.class").get.toSet
+    }
+
+    runPrecompile(cacheInputs).toSeq.map { classFile =>
+      classFile -> outputDir.toPath.relativize(classFile.toPath).toString.replace('\\', '/')
+    }
+  },
+  Compile / packageBin / mappings ++= precompiledTemplateClasses.value,
+  // Make the module's own tests exercise the precompiled classes (production behavior) instead of compiling templates
+  // at runtime. This keeps test output free of Scalate's runtime-compiler diagnostics and validates the precompiled
+  // artifacts end to end.
+  Test / unmanagedClasspath += {
+    val _ = precompiledTemplateClasses.value
+    Attributed.blank(target.value / "scalate-precompiled" / "classes")
+  }
+)
+
 /** Dialect IT modules: integration tests live in src/test only (not src/it or IntegrationTest). */
 def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
   Compile / sources := Nil,
@@ -88,7 +165,7 @@ def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
 lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-ir",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -100,7 +177,7 @@ lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-ser
   .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-ir",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -112,7 +189,7 @@ lazy val smithplatesSqlDdlRendererCommon = (project in file("modules/smithplates
   .dependsOn(smithplatesSqlIr)
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-common",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -124,7 +201,7 @@ lazy val smithplatesSqlDdlRendererPostgres = (project in file("modules/smithplat
   .dependsOn(smithplatesSqlDdlRendererCommon, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-postgres",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -136,7 +213,7 @@ lazy val smithplatesSqlDdlRendererSqlite = (project in file("modules/smithplates
   .dependsOn(smithplatesSqlDdlRendererCommon, smithplatesSqlIr % "test->test")
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-sqlite",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -148,7 +225,7 @@ lazy val smithplatesSqlServiceQueryRenderer = (project in file("modules/smithpla
   .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr, smithplatesSqlDdlRendererCommon)
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -162,7 +239,7 @@ lazy val smithplatesSqlServiceQueryRendererCommon = (project in file(
   .dependsOn(smithplatesSqlServiceQueryRenderer, smithplatesSqlIr, smithplatesSqlServiceIr)
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-common",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -181,7 +258,7 @@ lazy val smithplatesSqlServiceQueryRendererPostgres = (project in file(
   )
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-postgres",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -201,7 +278,7 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
   )
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-sqlite",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -209,10 +286,20 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
+lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-scalate-precompiler"))
+  .settings(
+    strictScala3Settings,
+    publishedModuleSettings,
+    name := "smithplates-scalate-precompiler",
+    organization := "com.jacoby6000",
+    version := "0.1.0",
+    libraryDependencies += "org.scalatra.scalate" % "scalate-core_3" % scalateVersion
+  )
+
 lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-http-ir",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -223,10 +310,10 @@ lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
   )
 
 lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-http-service-renderer"))
-  .dependsOn(smithplatesHttpIr, smithplatesHttpIr % "test->test")
+  .dependsOn(smithplatesHttpIr, smithplatesScalatePrecompiler, smithplatesHttpIr % "test->test")
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-http-service-renderer",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -236,6 +323,10 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     pythonNamespacedTemplateResources("common", "http"),
+    scalateTemplatePrecompileSettings(
+      "com.jacoby6000.smithplates.http.service.renderer.HttpTemplatePrecompilerMain",
+      Seq("python/src/http")
+    ),
     Test / unmanagedResourceDirectories ++= Seq(
       (ThisBuild / baseDirectory).value / "templates"
     )
@@ -245,6 +336,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
   .dependsOn(
     smithplatesSqlServiceIr,
     smithplatesSqlServiceQueryRenderer,
+    smithplatesScalatePrecompiler,
     smithplatesSqlDdlRendererPostgres % "test->compile",
     smithplatesSqlDdlRendererSqlite % "test->compile",
     smithplatesSqlServiceQueryRendererPostgres % "test->compile",
@@ -254,7 +346,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
   )
   .settings(
     strictScala3Settings,
-    unpublishedModuleSettings,
+    publishedModuleSettings,
     name := "smithplates-sql-service-renderer",
     organization := "com.jacoby6000",
     version := "0.1.0",
@@ -264,6 +356,10 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     pythonNamespacedTemplateResources("common", "db"),
+    scalateTemplatePrecompileSettings(
+      "com.jacoby6000.smithplates.sql.service.renderer.SqlTemplatePrecompilerMain",
+      Seq("python/src/db")
+    ),
     Test / unmanagedResourceDirectories ++= Seq(
       (ThisBuild / baseDirectory).value / "templates"
     )
@@ -303,6 +399,19 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
     Compile / packageDoc / publishArtifact := false,
     publishM2Configuration := publishM2Configuration.value.withOverwrite(true),
     Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "templates",
+    // The codegen golden suites render bundled templates through the renderer engines. Put each renderer's precompiled
+    // template classes on the test classpath so those renders load precompiled classes instead of compiling templates
+    // at runtime (avoiding Scalate runtime-compiler diagnostics and exercising the published behavior).
+    Test / unmanagedClasspath ++= {
+      val _ = (
+        (smithplatesSqlServiceRenderer / precompiledTemplateClasses).value,
+        (smithplatesHttpServiceRenderer / precompiledTemplateClasses).value
+      )
+      Seq(
+        Attributed.blank((smithplatesSqlServiceRenderer / target).value / "scalate-precompiled" / "classes"),
+        Attributed.blank((smithplatesHttpServiceRenderer / target).value / "scalate-precompiled" / "classes")
+      )
+    },
     generateGoldenTemplatesFor := {
       import sbt.internal.util.complete.DefaultParsers.*
       Def.inputTaskDyn {
@@ -380,6 +489,7 @@ lazy val root = (project in file("."))
   .aggregate(
     smithplatesSqlIr,
     smithplatesHttpIr,
+    smithplatesScalatePrecompiler,
     smithplatesSqlDdlRendererCommon,
     smithplatesSqlServiceIr,
     smithplatesSqlDdlRendererPostgres,

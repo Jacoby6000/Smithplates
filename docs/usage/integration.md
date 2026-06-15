@@ -7,9 +7,10 @@ Smithplates plugins are consumed as Maven JARs during `smithy build`. Models and
 1. From Smithplates: `sbtn publishM2`
 2. From the consumer Smithy project: `smithy build`
 
-Republish after every plugin source change. JARs are written under:
+Republish after every plugin source change. Consumers reference only the `smithplates-plugin` coordinate, but `publishM2` publishes the plugin **and its full transitive dependency graph** so Maven can resolve the dependency jars — including the renderer jars that carry precompiled SSP template classes (see [Architecture → Template precompilation](../contributing/architecture.md#template-precompilation)). JARs are written under:
 
 - `~/.m2/repository/com/jacoby6000/smithplates-plugin/0.1.0/`
+- `~/.m2/repository/com/jacoby6000/smithplates-*/0.1.0/` (dependency modules)
 
 ## Version alignment
 
