@@ -45,7 +45,7 @@ async def create_project(
 )
 async def get_project(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    project_id: str = Path(...),
+    project_id: str = Path(..., alias="projectId"),
 ) -> ProjectOutput:
     return dispatch_api_response(
         await services.projects_api.get_project(project_id=project_id),

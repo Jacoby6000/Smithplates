@@ -29,7 +29,7 @@ router = APIRouter()
 async def assign_shelf_sku(
     services: Annotated[ApiServices, Depends(get_api_services)],
     request_id: str | None = Header(None, alias="X-Request-Id"),
-    shelf_id: str = Path(...),
+    shelf_id: str = Path(..., alias="shelfId"),
     sku: str = Body(...),
 ) -> ShelfSkuOutput:
     return dispatch_api_response(
@@ -52,8 +52,8 @@ async def assign_shelf_sku(
 async def create_shelf_item(
     services: Annotated[ApiServices, Depends(get_api_services)],
     idempotency_key: str | None = Header(None, alias="X-Idempotency-Key"),
-    warehouse_id: str = Path(...),
-    shelf_id: str = Path(...),
+    warehouse_id: str = Path(..., alias="warehouseId"),
+    shelf_id: str = Path(..., alias="shelfId"),
     details: ItemDetails = Body(...),
 ) -> ShelfItemOutput:
     return dispatch_api_response(

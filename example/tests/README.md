@@ -77,7 +77,10 @@ in later steps via `${variable_name}` substitution in strings anywhere under
 {
   "base_url": "http://127.0.0.1:54321",
   "variables": {
-    "seed_category_id": "…"
+    "seed_category_id": "…",
+    "order_pending_id": "…",
+    "order_shipped_id": "…",
+    "order_delivered_id": "…"
   }
 }
 ```
@@ -128,7 +131,18 @@ contract with their generated client or raw HTTP libraries.
 | Case | Description |
 | --- | --- |
 | `health-check` | `GET /health` returns `{"status": "ok"}` |
+| `category-lookup` | Read seeded category; missing category returns 404 |
+| `order-lifecycle` | Place order, read back, missing order returns 404 |
+| `order-fulfillment-states` | Each `FulfillmentState` union variant on seeded orders |
 | `pet-crud-lifecycle` | Create, read, update, delete a pet |
+| `pet-not-found` | Get/update/delete missing pet returns 404 |
+| `pet-attribute-color` | `PetAttributeValue.color` round-trip; update to `weight_kg` |
+| `pet-attribute-weight` | `PetAttributeValue.weight_kg` round-trip; update to `vaccinated` |
+| `pet-attribute-vaccinated` | `PetAttributeValue.vaccinated` round-trip; update to `color` |
 
-These mirror the pytest smoke tests in
+The pet-attribute cases together exercise every `PetAttributeValue` variant via both
+`CreatePet` and `UpdatePet`. `order-fulfillment-states` reads server-seeded orders
+(one line per `FulfillmentState` variant) via `${server.order_*_id}` context variables.
+
+These mirror and extend the pytest smoke tests in
 [`../python/tests/test_api.py`](../python/tests/test_api.py).

@@ -27,7 +27,7 @@ router = APIRouter()
 )
 async def create_project_task(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    project_id: str = Path(...),
+    project_id: str = Path(..., alias="projectId"),
     title: str = Body(...),
 ) -> TaskOutput:
     return dispatch_api_response(
@@ -45,8 +45,8 @@ async def create_project_task(
 )
 async def get_project_task(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    project_id: str = Path(...),
-    task_id: str = Path(...),
+    project_id: str = Path(..., alias="projectId"),
+    task_id: str = Path(..., alias="taskId"),
 ) -> TaskOutput:
     return dispatch_api_response(
         await services.project_tasks_api.get_project_task(project_id=project_id, task_id=task_id),
@@ -63,7 +63,7 @@ async def get_project_task(
 )
 async def list_project_tasks(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    project_id: str = Path(...),
+    project_id: str = Path(..., alias="projectId"),
     page: str | None = Query(None, alias="page"),
 ) -> TaskListOutput:
     return dispatch_api_response(
