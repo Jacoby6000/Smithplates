@@ -81,20 +81,20 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
     loadEngine.classLoader = new URLClassLoader(Array(emittedClasses.toURI.toURL), getClass.getClassLoader)
     loadEngine.workingDirectory = Files.createTempDirectory("smithplates-precompiled-empty").toFile
 
-    val loaded         = loadEngine.load(templateUri)
-    val loadedLocation = new File(loaded.getClass.getProtectionDomain.getCodeSource.getLocation.toURI)
+    val loaded = loadEngine.load(templateUri)
 
+    // When a precompiled class is resolvable on the classloader, Scalate must load it
+    // rather than recompiling into the (empty) bytecode directory. Asserting on the
+    // bytecode directory is robust to which classloader actually supplies the class:
+    // the freshly-emitted temp directory or the precompiled classes already on the
+    // test classpath (Test / unmanagedClasspath).
+    val recompiled =
+      Option(loadEngine.bytecodeDirectory.listFiles()).map(_.toSeq).getOrElse(Seq.empty).nonEmpty
     assert(
-      isDescendant(emittedClasses, loadedLocation),
-      s"expected ${loaded.getClass.getName} to load from the precompiled directory $emittedClasses, " +
-        s"but it loaded from $loadedLocation"
+      !recompiled,
+      s"expected ${loaded.getClass.getName} to load a precompiled class without recompiling into " +
+        s"${loadEngine.bytecodeDirectory}"
     )
     assert(classOf[Template].isAssignableFrom(loaded.getClass), "loaded class is not a Scalate Template")
-  }
-
-  private def isDescendant(ancestor: File, candidate: File): Boolean = {
-    val ancestorPath  = ancestor.getCanonicalFile.toPath
-    val candidatePath = candidate.getCanonicalFile.toPath
-    candidatePath.startsWith(ancestorPath)
   }
 }
