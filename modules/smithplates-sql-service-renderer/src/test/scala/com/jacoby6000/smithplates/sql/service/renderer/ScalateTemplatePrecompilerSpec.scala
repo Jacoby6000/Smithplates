@@ -5,7 +5,6 @@ import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateSource
 
 import java.io.File
-import java.net.URLClassLoader
 import java.nio.file.Files
 
 /** Guards the precompilation contract: the class name the precompiler generates for a template must equal the class
@@ -70,30 +69,22 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
   test("a precompiled class on the classpath is loaded instead of recompiled") {
     val templateUri = "model/models.ssp"
 
-    val compileEngine  = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
-    compileEngine.workingDirectory = Files.createTempDirectory("smithplates-precompiled-work").toFile
-    // ScalaCompiler emits class files into the engine's bytecode directory.
-    val _              = compileEngine.load(templateUri)
-    val emittedClasses = compileEngine.bytecodeDirectory
-    assert(emittedClasses.exists(), "expected the compile engine to emit class files")
+    val engine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
+    // A fresh, empty working directory so any compilation would be observable here.
+    engine.workingDirectory = Files.createTempDirectory("smithplates-precompiled-load").toFile
 
-    val loadEngine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
-    loadEngine.classLoader = new URLClassLoader(Array(emittedClasses.toURI.toURL), getClass.getClassLoader)
-    loadEngine.workingDirectory = Files.createTempDirectory("smithplates-precompiled-empty").toFile
+    val loaded = engine.load(templateUri)
 
-    val loaded = loadEngine.load(templateUri)
-
-    // When a precompiled class is resolvable on the classloader, Scalate must load it
-    // rather than recompiling into the (empty) bytecode directory. Asserting on the
-    // bytecode directory is robust to which classloader actually supplies the class:
-    // the freshly-emitted temp directory or the precompiled classes already on the
-    // test classpath (Test / unmanagedClasspath).
+    // The precompiled class for this template is published onto the test classpath
+    // (Test / unmanagedClasspath), so Scalate must resolve it directly instead of
+    // recompiling the .ssp source. If recompilation happened, the ScalaCompiler would
+    // have emitted class files into the engine's bytecode directory.
     val recompiled =
-      Option(loadEngine.bytecodeDirectory.listFiles()).map(_.toSeq).getOrElse(Seq.empty).nonEmpty
+      Option(engine.bytecodeDirectory.listFiles()).map(_.toSeq).getOrElse(Seq.empty).nonEmpty
     assert(
       !recompiled,
       s"expected ${loaded.getClass.getName} to load a precompiled class without recompiling into " +
-        s"${loadEngine.bytecodeDirectory}"
+        s"${engine.bytecodeDirectory}"
     )
     assert(classOf[Template].isAssignableFrom(loaded.getClass), "loaded class is not a Scalate Template")
   }
