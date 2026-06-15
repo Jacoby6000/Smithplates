@@ -9,6 +9,7 @@
     {
       "id": "create-pet",
       "request": {
+        "operationId": "CreatePet",
         "method": "POST",
         "path": "/pets",
         "json": {
@@ -39,8 +40,12 @@
     {
       "id": "get-pet",
       "request": {
+        "operationId": "GetPet",
         "method": "GET",
-        "path": "/pets/${pet_id}"
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
       },
       "expect": {
         "status": 200,
@@ -58,8 +63,12 @@
     {
       "id": "update-pet",
       "request": {
+        "operationId": "UpdatePet",
         "method": "PUT",
         "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        },
         "json": {
           "name": "Comet Updated",
           "status": "pending",
@@ -85,8 +94,12 @@
     {
       "id": "delete-pet",
       "request": {
+        "operationId": "DeletePet",
         "method": "DELETE",
-        "path": "/pets/${pet_id}"
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
       },
       "expect": {
         "status": 204
@@ -95,8 +108,12 @@
     {
       "id": "get-missing-pet",
       "request": {
+        "operationId": "GetPet",
         "method": "GET",
-        "path": "/pets/${pet_id}"
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
       },
       "expect": {
         "status": 404

@@ -52,9 +52,9 @@ class TestPetDetail(unittest.TestCase):
                     ],
                 photo = 'YQ==',
                 metadata = None,
-                adopted_at = 1.337,
-                created_at = 1.337,
-                updated_at = 1.337,
+                adopted_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
                 category = petstore_client.models.category_summary.CategorySummary(
                     id = '', 
                     name = '', 
@@ -69,7 +69,7 @@ class TestPetDetail(unittest.TestCase):
                         street = '', 
                         city = '', 
                         postal_code = '', ), 
-                    created_at = 1.337, ),
+                    created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), ),
                 profile = petstore_client.models.pet_profile_summary.PetProfileSummary(
                     id = '', 
                     biography = '', 
@@ -91,8 +91,8 @@ class TestPetDetail(unittest.TestCase):
                         name = '', 
                         value = null, )
                     ],
-                created_at = 1.337,
-                updated_at = 1.337,
+                created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
                 category = petstore_client.models.category_summary.CategorySummary(
                     id = '', 
                     name = '', 

@@ -16,16 +16,17 @@ from __future__ import annotations
 import json
 import pprint
 import re  # noqa: F401
+from datetime import datetime
 from typing import Any, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt
+from pydantic import BaseModel, ConfigDict
 
 
 class Delivered(BaseModel):
     """
     Delivered
     """
-    delivered: StrictFloat | StrictInt
+    delivered: datetime
     __properties: ClassVar[list[str]] = ["delivered"]
 
     model_config = ConfigDict(

@@ -388,8 +388,8 @@
                     },
                     "metadata": {},
                     "adopted_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "required": [
@@ -432,8 +432,8 @@
                         "title": "shipped",
                         "properties": {
                             "shipped": {
-                                "type": "number",
-                                "format": "double"
+                                "type": "string",
+                                "format": "date-time"
                             }
                         },
                         "required": [
@@ -445,8 +445,8 @@
                         "title": "delivered",
                         "properties": {
                             "delivered": {
-                                "type": "number",
-                                "format": "double"
+                                "type": "string",
+                                "format": "date-time"
                             }
                         },
                         "required": [
@@ -515,12 +515,12 @@
                         "$ref": "#/components/schemas/OrderPriority"
                     },
                     "created_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "updated_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "lines": {
                         "type": "array",
@@ -611,8 +611,8 @@
                         "$ref": "#/components/schemas/PostalAddress"
                     },
                     "created_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "required": [
@@ -721,16 +721,16 @@
                     },
                     "metadata": {},
                     "adopted_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "created_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "updated_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     },
                     "category": {
                         "$ref": "#/components/schemas/CategorySummary"
@@ -911,8 +911,8 @@
                     },
                     "metadata": {},
                     "adopted_at": {
-                        "type": "number",
-                        "format": "double"
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "required": [

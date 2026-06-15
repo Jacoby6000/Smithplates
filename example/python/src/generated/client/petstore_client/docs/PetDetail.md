@@ -17,9 +17,9 @@ Name | Type | Description | Notes
 **attributes** | [**List[PetAttribute]**](PetAttribute.md) |  | 
 **photo** | **bytearray** |  | [optional] 
 **metadata** | **object** |  | [optional] 
-**adopted_at** | **float** |  | [optional] 
-**created_at** | **float** |  | 
-**updated_at** | **float** |  | 
+**adopted_at** | **datetime** |  | [optional] 
+**created_at** | **datetime** |  | 
+**updated_at** | **datetime** |  | 
 **category** | [**CategorySummary**](CategorySummary.md) |  | 
 **store** | [**StoreSummary**](StoreSummary.md) |  | 
 **owner** | [**OwnerSummary**](OwnerSummary.md) |  | [optional] 

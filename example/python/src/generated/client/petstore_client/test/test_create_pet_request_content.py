@@ -51,7 +51,7 @@ class TestCreatePetRequestContent(unittest.TestCase):
                     ],
                 photo = 'YQ==',
                 metadata = None,
-                adopted_at = 1.337
+                adopted_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f')
             )
         else:
             return CreatePetRequestContent(

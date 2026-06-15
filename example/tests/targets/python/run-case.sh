@@ -18,5 +18,8 @@ BASE_URL="$(
   uv run python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["base_url"])' "${CONTEXT_FILE}"
 )"
 
+# Generated OpenAPI client lives under src/generated/client; expose it for plain `uv run python`.
+export PYTHONPATH="${EXAMPLE_PYTHON}/src/generated/client:${EXAMPLE_PYTHON}/src${PYTHONPATH:+:${PYTHONPATH}}"
+
 cd "${EXAMPLE_PYTHON}"
 exec uv run python "${TARGET_DIR}/run_case.py" "${CASE_FILE}" "${BASE_URL}" --context "${CONTEXT_FILE}"

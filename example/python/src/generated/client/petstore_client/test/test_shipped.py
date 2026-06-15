@@ -35,11 +35,11 @@ class TestShipped(unittest.TestCase):
         model = Shipped()
         if include_optional:
             return Shipped(
-                shipped = 1.337
+                shipped = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f')
             )
         else:
             return Shipped(
-                shipped = 1.337,
+                shipped = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
         )
         """
 

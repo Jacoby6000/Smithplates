@@ -5,6 +5,12 @@ use smithy.api#documentation
 use smithy.api#error
 use smithy.api#httpError
 use smithy.api#required
+use smithy.api#timestampFormat
+
+// HTTP API timestamps use member-level `@timestampFormat("date-time")` so the Smithy OpenAPI
+// export (RFC3339 strings) matches what the smithplates FastAPI server emits, letting the
+// generated OpenAPI client deserialize responses without a post-export patch. The HTTP codegen
+// only recognizes the prelude `Timestamp`, so we annotate members rather than define a shape.
 
 enum PetStatus {
     AVAILABLE = "available"
@@ -63,7 +69,11 @@ list PetAttributeList {
 
 union FulfillmentState {
     pending: String
+
+    @timestampFormat("date-time")
     shipped: Timestamp
+
+    @timestampFormat("date-time")
     delivered: Timestamp
 }
 

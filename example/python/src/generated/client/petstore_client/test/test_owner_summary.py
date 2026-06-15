@@ -41,7 +41,7 @@ class TestOwnerSummary(unittest.TestCase):
                     street = '', 
                     city = '', 
                     postal_code = '', ),
-                created_at = 1.337
+                created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f')
             )
         else:
             return OwnerSummary(
@@ -51,7 +51,7 @@ class TestOwnerSummary(unittest.TestCase):
                     street = '', 
                     city = '', 
                     postal_code = '', ),
-                created_at = 1.337,
+                created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
         )
         """
 

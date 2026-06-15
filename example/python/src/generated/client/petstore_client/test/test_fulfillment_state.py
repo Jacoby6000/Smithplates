@@ -36,14 +36,14 @@ class TestFulfillmentState(unittest.TestCase):
         if include_optional:
             return FulfillmentState(
                 pending = '',
-                shipped = 1.337,
-                delivered = 1.337
+                shipped = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                delivered = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f')
             )
         else:
             return FulfillmentState(
                 pending = '',
-                shipped = 1.337,
-                delivered = 1.337,
+                shipped = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
+                delivered = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'),
         )
         """
 

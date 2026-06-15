@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **id** | **str** |  | 
 **full_name** | **str** |  | 
 **mailing_address** | [**PostalAddress**](PostalAddress.md) |  | 
-**created_at** | **float** |  | 
+**created_at** | **datetime** |  | 
 
 ## Example
 

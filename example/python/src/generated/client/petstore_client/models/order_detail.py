@@ -16,9 +16,10 @@ from __future__ import annotations
 import json
 import pprint
 import re  # noqa: F401
+from datetime import datetime
 from typing import Any, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictStr
 
 from petstore_client.models.order_line_detail import OrderLineDetail
 from petstore_client.models.order_priority import OrderPriority
@@ -33,8 +34,8 @@ class OrderDetail(BaseModel):
     label: StrictStr
     status: OrderStatus
     priority: OrderPriority
-    created_at: StrictFloat | StrictInt
-    updated_at: StrictFloat | StrictInt
+    created_at: datetime
+    updated_at: datetime
     lines: list[OrderLineDetail]
     __properties: ClassVar[list[str]] = ["id", "label", "status", "priority", "created_at", "updated_at", "lines"]
 

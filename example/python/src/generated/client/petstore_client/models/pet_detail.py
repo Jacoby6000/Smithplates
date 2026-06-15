@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import pprint
 import re  # noqa: F401
+from datetime import datetime
 from typing import Any, ClassVar, Self
 
 from pydantic import BaseModel, ConfigDict, StrictBytes, StrictFloat, StrictInt, StrictStr
@@ -44,9 +45,9 @@ class PetDetail(BaseModel):
     attributes: list[PetAttribute]
     photo: StrictBytes | StrictStr | None = None
     metadata: Any | None = None
-    adopted_at: StrictFloat | StrictInt | None = None
-    created_at: StrictFloat | StrictInt
-    updated_at: StrictFloat | StrictInt
+    adopted_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
     category: CategorySummary
     store: StoreSummary
     owner: OwnerSummary | None = None

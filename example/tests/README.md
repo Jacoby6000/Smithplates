@@ -54,9 +54,16 @@ full schema.
 
 Each step has:
 
-- `request` — `method`, `path`, optional `headers`, `json`, or raw `body`
+- `request` — required `operationId`, `method`, `path`; optional `pathParameters`,
+  `headers`, `json`, or raw `body`
 - `expect` — required `status`; optional `headers`, `json`, or `body`
 - `capture` — optional map of variable name → JSON Pointer (`$.field.nested`)
+
+`operationId` is the Smithy/OpenAPI operation name (e.g. `GetPet`). Typed-client
+runners (like the Python target) dispatch on it and read `pathParameters` (keyed
+by the OpenAPI parameter name, e.g. `petId`) and `json`. `method` and `path` stay
+in every step for readability and so raw-HTTP runners can execute cases without a
+per-operation mapping.
 
 Steps run in order. Variables from `capture` and earlier steps are available
 in later steps via `${variable_name}` substitution in strings anywhere under
@@ -111,9 +118,10 @@ responses, and exit non-zero on failure.
 
 Optional `target.json` documents the target for tooling.
 
-The Python target (`targets/python/`) uses `httpx` for HTTP and boots the
-FastAPI server via `uvicorn`. Other languages should implement the same script
-contract; they may use generated OpenAPI clients or raw HTTP libraries.
+The Python target (`targets/python/`) boots the FastAPI server via `uvicorn` and
+executes cases through the generated OpenAPI Python client
+(`petstore_client.DefaultApi`). Other languages should implement the same script
+contract with their generated client or raw HTTP libraries.
 
 ## Cases
 

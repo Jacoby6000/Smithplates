@@ -55,9 +55,14 @@
     },
     "request": {
       "type": "object",
-      "required": ["method", "path"],
+      "required": ["operationId", "method", "path"],
       "additionalProperties": false,
       "properties": {
+        "operationId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Smithy/OpenAPI operation name (e.g. GetPet). Typed-client runners dispatch on this; raw-HTTP runners may ignore it in favor of method/path."
+        },
         "method": {
           "type": "string",
           "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
@@ -65,6 +70,13 @@
         "path": {
           "type": "string",
           "minLength": 1
+        },
+        "pathParameters": {
+          "type": "object",
+          "description": "Operation path parameters keyed by their OpenAPI name (e.g. petId).",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "headers": {
           "type": "object",

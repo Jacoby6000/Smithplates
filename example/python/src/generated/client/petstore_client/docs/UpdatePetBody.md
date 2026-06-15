@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **attributes** | [**List[PetAttribute]**](PetAttribute.md) |  | 
 **photo** | **bytearray** |  | [optional] 
 **metadata** | **object** |  | [optional] 
-**adopted_at** | **float** |  | [optional] 
+**adopted_at** | **datetime** |  | [optional] 
 
 ## Example
 

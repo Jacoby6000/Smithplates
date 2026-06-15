@@ -6,8 +6,8 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **pending** | **str** |  | 
-**shipped** | **float** |  | 
-**delivered** | **float** |  | 
+**shipped** | **datetime** |  | 
+**delivered** | **datetime** |  | 
 
 ## Example
 

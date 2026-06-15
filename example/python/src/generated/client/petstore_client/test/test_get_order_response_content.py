@@ -40,8 +40,8 @@ class TestGetOrderResponseContent(unittest.TestCase):
                     label = '', 
                     status = 'placed', 
                     priority = 1, 
-                    created_at = 1.337, 
-                    updated_at = 1.337, 
+                    created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
+                    updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     lines = [
                         petstore_client.models.order_line_detail.OrderLineDetail(
                             id = '', 
@@ -59,8 +59,8 @@ class TestGetOrderResponseContent(unittest.TestCase):
                     label = '', 
                     status = 'placed', 
                     priority = 1, 
-                    created_at = 1.337, 
-                    updated_at = 1.337, 
+                    created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
+                    updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     lines = [
                         petstore_client.models.order_line_detail.OrderLineDetail(
                             id = '', 

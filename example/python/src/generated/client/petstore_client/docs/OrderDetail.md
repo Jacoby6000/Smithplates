@@ -9,8 +9,8 @@ Name | Type | Description | Notes
 **label** | **str** |  | 
 **status** | [**OrderStatus**](OrderStatus.md) |  | 
 **priority** | [**OrderPriority**](OrderPriority.md) |  | 
-**created_at** | **float** |  | 
-**updated_at** | **float** |  | 
+**created_at** | **datetime** |  | 
+**updated_at** | **datetime** |  | 
 **lines** | [**List[OrderLineDetail]**](OrderLineDetail.md) |  | 
 
 ## Example

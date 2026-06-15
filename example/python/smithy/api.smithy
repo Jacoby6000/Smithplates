@@ -9,6 +9,7 @@ use smithy.api#idempotent
 use smithy.api#readonly
 use smithy.api#required
 use smithy.api#tags
+use smithy.api#timestampFormat
 
 /// HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations
 /// in `src/server` that delegate to generated `@sqlService` repositories.
@@ -38,6 +39,8 @@ structure CreatePetInput {
     attributes: PetAttributeList
     photo: Blob
     metadata: Document
+
+    @timestampFormat("date-time")
     adopted_at: Timestamp
 }
 
@@ -87,11 +90,18 @@ structure PetDetail {
     attributes: PetAttributeList
     photo: Blob
     metadata: Document
+
+    @timestampFormat("date-time")
     adopted_at: Timestamp
+
     @required
+    @timestampFormat("date-time")
     created_at: Timestamp
+
     @required
+    @timestampFormat("date-time")
     updated_at: Timestamp
+
     @required
     category: CategorySummary
     @required
@@ -123,7 +133,9 @@ structure OwnerSummary {
     full_name: String
     @required
     mailing_address: PostalAddress
+
     @required
+    @timestampFormat("date-time")
     created_at: Timestamp
 }
 
@@ -173,6 +185,8 @@ structure UpdatePetBody {
     attributes: PetAttributeList
     photo: Blob
     metadata: Document
+
+    @timestampFormat("date-time")
     adopted_at: Timestamp
 }
 
@@ -278,10 +292,15 @@ structure OrderDetail {
     status: OrderStatus
     @required
     priority: OrderPriority
+
     @required
+    @timestampFormat("date-time")
     created_at: Timestamp
+
     @required
+    @timestampFormat("date-time")
     updated_at: Timestamp
+
     @required
     lines: OrderLineDetailList
 }

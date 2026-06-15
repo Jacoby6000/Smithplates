@@ -6,6 +6,7 @@
     {
       "id": "health-check",
       "request": {
+        "operationId": "HealthCheck",
         "method": "GET",
         "path": "/health"
       },

@@ -16,9 +16,10 @@ from __future__ import annotations
 import json
 import pprint
 import re  # noqa: F401
+from datetime import datetime
 from typing import Any, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
+from pydantic import BaseModel, ConfigDict, StrictStr
 
 from petstore_client.models.postal_address import PostalAddress
 
@@ -30,7 +31,7 @@ class OwnerSummary(BaseModel):
     id: StrictStr
     full_name: StrictStr
     mailing_address: PostalAddress
-    created_at: StrictFloat | StrictInt
+    created_at: datetime
     __properties: ClassVar[list[str]] = ["id", "full_name", "mailing_address", "created_at"]
 
     model_config = ConfigDict(

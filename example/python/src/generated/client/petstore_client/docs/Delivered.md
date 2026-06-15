@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**delivered** | **float** |  | 
+**delivered** | **datetime** |  | 
 
 ## Example
 
