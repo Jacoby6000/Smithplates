@@ -78,7 +78,7 @@ Run the smoke checks locally:
 |------------|------|
 | `all` (default) | Aggregated `sbtn test` plus Python template pytest suites |
 | `scala` | All SBT aggregated module tests (Docker required for `*RendererIt` and postgres harness variants) |
-| `plugin` | All SBT tests except `SqlServiceCodegenTemplateTestSuite` |
+| `plugin` | All SBT tests except `CodegenTemplateTestSuite` |
 | `templates` | Scala template golden tests plus Python pytest under `templates/python/tests/` |
 
 **Docker** must be installed and running for:
@@ -199,7 +199,7 @@ Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `un
 2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
 3. Add golden cases under `templates/<language>/tests/<test-case>/`.
 4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
-5. Extend [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) backends in [`SqlServiceCodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/SqlServiceCodegenTemplateTestSuite.scala).
+5. Add the new language's [`CodegenTemplateVariant`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/codegentest/CodegenTemplateVariant.scala)s to [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (discovery, build, and comparison registration are grouped by `languageId`).
 
 Consumers can also point `smithplates.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
 

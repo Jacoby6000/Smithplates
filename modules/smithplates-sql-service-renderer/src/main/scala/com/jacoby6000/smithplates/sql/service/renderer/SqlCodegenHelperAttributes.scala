@@ -21,14 +21,21 @@ object SqlCodegenHelperAttributes {
     operations.flatMap { operation =>
       operation.bindParameters.flatMap(bind =>
         Option.when(bind.isJson && bind.jsonTypeName.nonEmpty)(bind.jsonTypeName)) ++
-        operation.resultFields.filter(_.isJson).map(_.typeName)
+        operation.resultFields.filter(_.isJson).map(_.typeName) ++
+        nestedJsonTypeNames(operation)
     }.toSet
 
   def usedJsonTypeNamesCol(operations: List[TemplateOperationView]): Set[String] =
     operations
       .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
-      .flatMap(_.resultFields.filter(_.isJson).map(_.typeName))
+      .flatMap(operation =>
+        operation.resultFields.filter(_.isJson).map(_.typeName) ++
+          nestedJsonTypeNames(operation))
       .toSet
+
+  /** JSON columns on `@sqlDeriveSelectOne` join tables need their `_read_*` helpers emitted too. */
+  private def nestedJsonTypeNames(operation: TemplateOperationView): List[String] =
+    operation.selectOneNestedBindings.flatMap(_.fields.filter(_.isJson).map(_.typeName))
 
   def classRowFactories(operations: List[SqlCodegenOperation]): List[ClassRowFactorySpec] =
     operations

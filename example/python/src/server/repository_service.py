@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -38,17 +39,27 @@ def _postal_from_generated(address: Any) -> PostalAddress:
 
 
 def _attribute_value_from_union(value: PetAttributeValue) -> GeneratedPetHighlight:
+    """Persist the union variant as a (discriminator name, text value) pair in PetHighlight."""
     if "color" in value:
         return GeneratedPetHighlight(name="color", color=value["color"])
     if "weight_kg" in value:
-        return GeneratedPetHighlight(name="weight", color=str(value["weight_kg"]))
+        return GeneratedPetHighlight(name="weight_kg", color=str(value["weight_kg"]))
     if "vaccinated" in value:
-        return GeneratedPetHighlight(name="vaccinated", color=str(value["vaccinated"]))
-    return GeneratedPetHighlight(name="unknown", color="")
+        return GeneratedPetHighlight(name="vaccinated", color="true" if value["vaccinated"] else "false")
+    raise ValueError(f"unsupported PetAttributeValue variant: {value!r}")
 
 
 def _attribute_value_to_union(attribute: GeneratedPetHighlight) -> PetAttributeValue:
-    return {"color": attribute.color}
+    """Reconstruct the union variant from the discriminator persisted in PetHighlight.name."""
+    match attribute.name:
+        case "color":
+            return {"color": attribute.color}
+        case "weight_kg":
+            return {"weight_kg": float(attribute.color)}
+        case "vaccinated":
+            return {"vaccinated": attribute.color == "true"}
+        case other:
+            raise ValueError(f"unsupported PetHighlight discriminator: {other!r}")
 
 
 class PetstoreRepositoryService:
@@ -189,6 +200,43 @@ class PetstoreRepositoryService:
             store_id=store_id,
         )
         return store_id, category_id
+
+    async def seed_fulfillment_orders(self) -> dict[str, str]:
+        """Seed one single-line order per FulfillmentState variant; return their ids by variant."""
+        shipped_at = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC).isoformat()
+        delivered_at = datetime(2026, 2, 3, 4, 5, 6, tzinfo=UTC).isoformat()
+        variants: dict[str, dict[str, str]] = {
+            "pending": {"pending": "awaiting-stock"},
+            "shipped": {"shipped": shipped_at},
+            "delivered": {"delivered": delivered_at},
+        }
+        order_ids: dict[str, str] = {}
+        for variant, fulfillment in variants.items():
+            order_id = await self._seed_single_line_order(
+                label=f"{variant}-order",
+                fulfillment=fulfillment,
+            )
+            order_ids[variant] = order_id
+        return order_ids
+
+    async def _seed_single_line_order(self, label: str, fulfillment: dict[str, str]) -> str:
+        connection = self._repositories.connection
+        order_cursor = await connection.execute(
+            "INSERT INTO orders (label, status, priority) VALUES (?, ?, ?) RETURNING id;",
+            (label, "placed", 1),
+        )
+        order_row = await order_cursor.fetchone()
+        if order_row is None:
+            raise RuntimeError(f"failed to seed order {label!r}")
+        order_id = str(order_row[0])
+        await connection.execute(
+            "INSERT INTO order_lines "
+            "(order_id, pet_id, quantity, unit_price_cents, fulfillment) "
+            "VALUES (?, ?, ?, ?, ?);",
+            (order_id, "seed-pet", 1, 1999, json.dumps(fulfillment)),
+        )
+        await connection.commit()
+        return order_id
 
     async def _seed_store(self) -> str:
         connection = self._repositories.connection

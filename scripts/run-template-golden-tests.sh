@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run Scala template golden tests (SQL + HTTP) with optional variant filter.
+# Run Scala template golden tests (single CodegenTemplateTestSuite).
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -14,35 +14,27 @@ fi
 source "${ROOT}/scripts/lib/validate-target.sh"
 
 target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
-sql_suite='*SqlServiceCodegenTemplateTestSuite*'
-http_suite='*HttpServiceCodegenTemplateTestSuite*'
-munit_filter=""
-run_sql=true
-run_http=true
+suite='*CodegenTemplateTestSuite*'
 
+# All comparison tests share a single per-case `build - <case>` test (one Smithy build per
+# fixture). A munit `-- -o <glob>` name filter would exclude those prerequisite build tests and
+# break the dependency, so every target runs the full suite once; the per-case build dominates
+# runtime regardless, and variant comparisons are effectively free.
 case "${target}" in
   python|python/db)
-    echo "==> Python template golden tests (all db variants)"
-    run_http=false
+    echo "==> Python template golden tests (db variants share the full suite run)"
     ;;
   python/db/sqlite)
-    echo "==> Python template golden tests (db sqlite)"
-    run_http=false
-    munit_filter='*src*db*sqlite*'
+    echo "==> Python template golden tests (db sqlite; full suite run)"
     ;;
   python/db/postgres)
-    echo "==> Python template golden tests (db postgres)"
-    run_http=false
-    munit_filter='*src*db*postgres*'
+    echo "==> Python template golden tests (db postgres; full suite run)"
     ;;
   python/api|python/http)
-    echo "==> Python template golden tests (all http variants)"
-    run_sql=false
+    echo "==> Python template golden tests (http variants share the full suite run)"
     ;;
   python/api/fastapi)
-    echo "==> Python template golden tests (api fastapi)"
-    run_sql=false
-    munit_filter='*src*api*fastapi*'
+    echo "==> Python template golden tests (api fastapi; full suite run)"
     ;;
   all)
     echo "==> Python template golden tests (all variants)"
@@ -57,18 +49,4 @@ case "${target}" in
     ;;
 esac
 
-run_suite() {
-  local suite="$1"
-  if [[ -n "${munit_filter}" ]]; then
-    sbtn "smithplatesPlugin/testOnly ${suite} -- -o ${munit_filter}"
-  else
-    sbtn "smithplatesPlugin/testOnly ${suite}"
-  fi
-}
-
-if [[ "${run_sql}" == true ]]; then
-  run_suite "${sql_suite}"
-fi
-if [[ "${run_http}" == true ]]; then
-  run_suite "${http_suite}"
-fi
+sbtn "smithplatesPlugin/testOnly ${suite}"

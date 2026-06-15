@@ -1,0 +1,112 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "pet-attribute-vaccinated",
+  "description": "Round-trip the PetAttributeValue.vaccinated variant on create, then switch to color on update.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "create-pet-vaccinated",
+      "request": {
+        "operationId": "CreatePet",
+        "method": "POST",
+        "path": "/pets",
+        "json": {
+          "name": "Pepper",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["healthy"],
+          "attributes": [
+            {"name": "vaccinated", "value": {"vaccinated": false}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": {"$type": "string", "$minLength": 1}
+        }
+      },
+      "capture": {
+        "pet_id": "$.id"
+      }
+    },
+    {
+      "id": "get-pet-vaccinated",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"vaccinated": false}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "update-pet-color",
+      "request": {
+        "operationId": "UpdatePet",
+        "method": "PUT",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        },
+        "json": {
+          "name": "Pepper",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["healthy"],
+          "attributes": [
+            {"name": "color", "value": {"color": "speckled"}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "id": "get-pet-color",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"color": "speckled"}}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -2,7 +2,7 @@
 
 Executable linters and test runners for generated artifacts under [`templates/`](../templates/).
 
-Golden **render** comparisons stay in Scala (`./scripts/run-template-golden-tests.sh` / `sbtn smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*`). Harnesses here **lint** and **execute** generated code from `templates/<language>/tests/<case>/expected/`.
+Golden **render** comparisons stay in Scala (`./scripts/run-template-golden-tests.sh` / `sbtn smithplatesPlugin/testOnly *CodegenTemplateTestSuite*`). Harnesses here **lint** and **execute** generated code from `templates/<language>/tests/<case>/expected/`.
 
 ## Python
 

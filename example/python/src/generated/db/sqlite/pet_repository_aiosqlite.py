@@ -13,6 +13,7 @@ from pet_repository_models import (
     PetHighlight,
     PetProfile,
     PetTags,
+    PostalAddress,
     Store,
 )
 from pet_repository_protocol import (
@@ -217,4 +218,17 @@ def _read_PetTags(row: tuple[object, ...] | sqlite3.Row, index: int) -> PetTags:
     data = cast(dict[str, object], json.loads(_read_str(row, index)))
     return PetTags(
         items=cast(list[str], data["items"]),
+    )
+
+def _json_bind_PostalAddress(value: PostalAddress) -> str:
+    payload = { "street": cast(object, value.street), "city": cast(object, value.city), "postal_code": cast(object, value.postal_code) }
+    return json.dumps(payload)
+
+
+def _read_PostalAddress(row: tuple[object, ...] | sqlite3.Row, index: int) -> PostalAddress:
+    data = cast(dict[str, object], json.loads(_read_str(row, index)))
+    return PostalAddress(
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
+        postal_code=cast(str, data["postal_code"]),
     )

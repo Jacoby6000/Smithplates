@@ -216,11 +216,11 @@ Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and pla
 
 `outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
 
-See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`SqlServiceCodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/SqlServiceCodegenTemplateTestSuite.scala) (`python/db/sqlite` and `python/db/postgres` variants). Fixture layout and conventions: [`templates/python/tests/README.md`](../../templates/python/tests/README.md).
+See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`CodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (`python/db/sqlite`, `python/db/postgres`, and `python/api/fastapi` variants). Fixture layout and conventions: [`templates/python/tests/README.md`](../../templates/python/tests/README.md).
 
 ### Python validation
 
-Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*"` or `./scripts/run-template-golden-tests.sh`). Golden **execution** (strict **mypy**, **ruff**, **pytest -m integration**) runs via [`language-test-harnesses/python/`](../../language-test-harnesses/python/) against `templates/python/tests/<case>/expected/`. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. Requires `uv` on `PATH`.
+Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"` or `./scripts/run-template-golden-tests.sh`). Golden **execution** (strict **mypy**, **ruff**, **pytest -m integration**) runs via [`language-test-harnesses/python/`](../../language-test-harnesses/python/) against `templates/python/tests/<case>/expected/`. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. Requires `uv` on `PATH`.
 
 ## Smithy integration
 

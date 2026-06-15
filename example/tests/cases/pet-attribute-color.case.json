@@ -1,0 +1,112 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "pet-attribute-color",
+  "description": "Round-trip the PetAttributeValue.color variant on create, then switch to weight_kg on update.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "create-pet-color",
+      "request": {
+        "operationId": "CreatePet",
+        "method": "POST",
+        "path": "/pets",
+        "json": {
+          "name": "Indigo",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["calm"],
+          "attributes": [
+            {"name": "color", "value": {"color": "indigo"}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": {"$type": "string", "$minLength": 1}
+        }
+      },
+      "capture": {
+        "pet_id": "$.id"
+      }
+    },
+    {
+      "id": "get-pet-color",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"color": "indigo"}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "update-pet-weight",
+      "request": {
+        "operationId": "UpdatePet",
+        "method": "PUT",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        },
+        "json": {
+          "name": "Indigo",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["calm"],
+          "attributes": [
+            {"name": "weight_kg", "value": {"weight_kg": 8.25}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "id": "get-pet-weight",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"weight_kg": 8.25}}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

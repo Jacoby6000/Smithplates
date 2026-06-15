@@ -35,7 +35,7 @@ def pick_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
-def seed_category_id(database_path: Path) -> str:
+def seed_database(database_path: Path) -> dict[str, str]:
     pythonpath_entries = [
         str(SRC_ROOT / "generated"),
         str(SRC_ROOT / "generated" / "db" / "model"),
@@ -53,11 +53,17 @@ def seed_category_id(database_path: Path) -> str:
 
     import asyncio
 
-    async def bootstrap() -> str:
+    async def bootstrap() -> dict[str, str]:
         async with repository_lifespan(database_path) as repositories:
             repository_service = PetstoreRepositoryService(repositories)
             _store_id, category_id = await repository_service.seed_reference_data()
-            return category_id
+            order_ids = await repository_service.seed_fulfillment_orders()
+            return {
+                "seed_category_id": category_id,
+                "order_pending_id": order_ids["pending"],
+                "order_shipped_id": order_ids["shipped"],
+                "order_delivered_id": order_ids["delivered"],
+            }
 
     return asyncio.run(bootstrap())
 
@@ -89,7 +95,7 @@ def main() -> int:
     base_url = f"http://127.0.0.1:{port}"
 
     database_path = Path(tempfile.mkdtemp(prefix="smithystache-example-tests-")) / "petstore.sqlite3"
-    category_id = seed_category_id(database_path)
+    seed_variables = seed_database(database_path)
 
     env = os.environ.copy()
     env["PYTHONPATH"] = ":".join(
@@ -137,9 +143,7 @@ def main() -> int:
         args.context_file,
         {
             "base_url": base_url,
-            "variables": {
-                "seed_category_id": category_id,
-            },
+            "variables": seed_variables,
         },
     )
     print(base_url)

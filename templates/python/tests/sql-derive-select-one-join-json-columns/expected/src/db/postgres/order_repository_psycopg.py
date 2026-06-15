@@ -1,18 +1,18 @@
-# Generated from petstore.db#OrderRepository by sql-service-codegen. Do not edit by hand.
+# Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
 import json
 import uuid
-from datetime import datetime
 from typing import cast, override
 
 import psycopg
 from order_repository_models import (
     FulfillmentState,
     OrderLine,
+    PostalAddress,
 )
 from order_repository_protocol import (
-    GetOrderRecordResult,
+    GetOrderResult,
     OrderRepositoryServiceProtocol,
 )
 from psycopg_transaction_run import run
@@ -24,39 +24,37 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
         self._connection = connection
 
     @override
-    async def create_order_record(
+    async def create_order(
         self,
         label: str,
-        status: OrderStatus,
-        priority: OrderPriority,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:
         async def execute() -> str:
             cur = await self._connection.execute(
-"""INSERT INTO orders (label, status, priority) VALUES (%s, %s, %s) RETURNING id;"""
-,
-                (label, status, priority),
+                """INSERT INTO orders (label) VALUES (%s) RETURNING id;""",
+                (label,),
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return _read_str(row, 0)
+
         return await run(self._connection, transaction, execute)
+
     @override
-    async def get_order_record(
+    async def get_order(
         self,
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> GetOrderRecordResult | None:
-        async def execute() -> GetOrderRecordResult | None:
+    ) -> GetOrderResult | None:
+        async def execute() -> GetOrderResult | None:
             cur = await self._connection.execute(
-"""SELECT orders.id, orders.label, orders.status, orders.priority, orders.created_at, orders.updated_at, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.pet_id AS ol_pet_id, ol.quantity AS ol_quantity, ol.unit_price_cents AS ol_unit_price_cents, ol.fulfillment AS ol_fulfillment
+                """SELECT orders.id, orders.label, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.sku AS ol_sku, ol.fulfillment AS ol_fulfillment, ol.ship_to AS ol_ship_to
 FROM orders AS orders
 LEFT JOIN order_lines AS ol ON orders.id = ol.order_id
-WHERE orders.id = %s;"""
-,
+WHERE orders.id = %s;""",
                 (id,),
             )
             rows = await cur.fetchall()
@@ -65,38 +63,31 @@ WHERE orders.id = %s;"""
             row = rows[0]
             order_lines: list[OrderLine] = []
             for joined_row in rows:
-                if joined_row[6] is not None:
+                if joined_row[2] is not None:
                     order_lines.append(
                         OrderLine(
-                            id=_read_str(joined_row, 6),
-                            order_id=_read_str(joined_row, 7),
-                            pet_id=_read_str(joined_row, 8),
-                            quantity=_read_int(joined_row, 9),
-                            unit_price_cents=_read_int(joined_row, 10),
-                            fulfillment=_read_FulfillmentState(joined_row, 11),
+                            id=_read_str(joined_row, 2),
+                            order_id=_read_str(joined_row, 3),
+                            sku=_read_str(joined_row, 4),
+                            fulfillment=_read_FulfillmentState(joined_row, 5),
+                            ship_to=_read_PostalAddress(joined_row, 6),
                         )
                     )
-            return GetOrderRecordResult(
+            return GetOrderResult(
                 id=_read_str(row, 0),
                 label=_read_str(row, 1),
-                status=_read_str(row, 2),
-                priority=_read_int(row, 3),
-                created_at=_read_datetime(row, 4),
-                updated_at=_read_datetime(row, 5),
                 order_lines=order_lines,
             )
-        return await run(self._connection, transaction, execute)
-def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
-    return cast(datetime, row[index])
 
-def _read_int(row: tuple[object, ...], index: int) -> int:
-    return cast(int, row[index])
+        return await run(self._connection, transaction, execute)
+
 
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)
+
 
 def _json_bind_FulfillmentState(value: FulfillmentState) -> str:
     present = [key for key in ("pending", "shipped", "delivered") if key in value]
@@ -115,3 +106,20 @@ def _read_FulfillmentState(row: tuple[object, ...], index: int) -> FulfillmentSt
     if len(present) != 1:
         raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
     return cast(FulfillmentState, data)
+
+
+def _json_bind_PostalAddress(value: PostalAddress) -> str:
+    payload = {"street": cast(object, value.street), "city": cast(object, value.city)}
+    return json.dumps(payload)
+
+
+def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
+    value = row[index]
+    if isinstance(value, dict):
+        data = cast(dict[str, object], value)
+    else:
+        data = cast(dict[str, object], json.loads(cast(str, value)))
+    return PostalAddress(
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
+    )

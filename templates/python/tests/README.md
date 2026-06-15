@@ -57,8 +57,7 @@ Shared pytest fixtures for postgres integration tests live in [`conftest.py`](co
 ## Run golden render comparison
 
 ```bash
-sbtn "smithplatesPlugin/testOnly *SqlServiceCodegenTemplateTestSuite*"
-sbtn "smithplatesPlugin/testOnly *HttpServiceCodegenTemplateTestSuite*"
+sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"
 # or
 ./scripts/run-template-golden-tests.sh
 ```

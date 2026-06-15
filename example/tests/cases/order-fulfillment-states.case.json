@@ -1,0 +1,78 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "order-fulfillment-states",
+  "description": "Read back the three seeded single-line orders and assert each FulfillmentState union variant.",
+  "variables": {
+    "order_pending_id": "${server.order_pending_id}",
+    "order_shipped_id": "${server.order_shipped_id}",
+    "order_delivered_id": "${server.order_delivered_id}"
+  },
+  "steps": [
+    {
+      "id": "get-order-pending",
+      "request": {
+        "operationId": "GetOrder",
+        "method": "GET",
+        "path": "/orders/${order_pending_id}",
+        "pathParameters": {
+          "orderId": "${order_pending_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "order": {
+            "id": "${order_pending_id}",
+            "lines": [
+              {"fulfillment": {"pending": "awaiting-stock"}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "get-order-shipped",
+      "request": {
+        "operationId": "GetOrder",
+        "method": "GET",
+        "path": "/orders/${order_shipped_id}",
+        "pathParameters": {
+          "orderId": "${order_shipped_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "order": {
+            "id": "${order_shipped_id}",
+            "lines": [
+              {"fulfillment": {"shipped": {"$exists": true}}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "get-order-delivered",
+      "request": {
+        "operationId": "GetOrder",
+        "method": "GET",
+        "path": "/orders/${order_delivered_id}",
+        "pathParameters": {
+          "orderId": "${order_delivered_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "order": {
+            "id": "${order_delivered_id}",
+            "lines": [
+              {"fulfillment": {"delivered": {"$exists": true}}}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
