@@ -140,12 +140,12 @@ jobs:
         if: steps.gate.outputs.proceed == 'true'
         id: version
         run: |
-          VERSION=$(sbtn --no-colors 'print smithplatesPlugin/version')
+          VERSION=$(sbt -no-colors 'print smithplatesPlugin/version')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish snapshot
         if: steps.gate.outputs.proceed == 'true'
-        run: sbtn smithplatesPlugin/publish
+        run: sbt smithplatesPlugin/publish
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
