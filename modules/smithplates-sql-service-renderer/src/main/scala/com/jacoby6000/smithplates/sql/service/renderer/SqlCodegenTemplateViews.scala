@@ -60,6 +60,7 @@ final case class TemplateResultFieldView(
     columnNameLiteral: String,
     columnIndex: Int,
     typeName: String,
+    readTypeName: String,
     isJson: Boolean,
     timestampFormat: String,
     last: Boolean = false
@@ -372,6 +373,7 @@ object SqlCodegenTemplateViews {
       columnNameLiteral = s"\"${resultField.columnName}\"",
       columnIndex = resultField.columnIndex,
       typeName = resultField.typeName,
+      readTypeName = resultField.readTypeName,
       isJson = resultField.isJson,
       timestampFormat = timestampFormatName(resultField.timestampFormat)
     )

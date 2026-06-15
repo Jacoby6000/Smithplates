@@ -2,7 +2,7 @@
 
 Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`). Linters still run per case/dialect; pytest batches all cases per dialect (see Tests below).
+Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`). Linters and pytest both run per case/dialect so generated module names (for example `order_repository_aiosqlite`) never collide across fixtures.
 
 ## Linters (`run-linters.sh`)
 
@@ -18,7 +18,7 @@ Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/sr
 
 4. **pytest** — `@pytest.mark.integration` suites (postgres requires **Docker**)
 
-Suites are batched by dialect (`sqlite`, then `postgres`) in a single pytest process per dialect so startup is not repeated for every golden case. Postgres uses a module-scoped `postgres_container` fixture in [`templates/python/tests/conftest.py`](../../templates/python/tests/conftest.py) so each generated `test_*_derived_sql.py` module gets an isolated database (migration state in `_smithplates_migrations` is not shared across cases). Pytest is configured for live output (`-v`, `--capture=tee-sys`) via [`pyproject.toml`](pyproject.toml).
+Suites run per golden case and dialect so each invocation uses an isolated `PYTHONPATH` (required when multiple cases generate the same repository module names). Postgres uses a module-scoped `postgres_container` fixture in [`templates/python/tests/conftest.py`](../../templates/python/tests/conftest.py) so each generated `test_*_derived_sql.py` module gets an isolated database (migration state in `_smithplates_migrations` is not shared across cases). Pytest is configured for live output (`-v`, `--capture=tee-sys`) via [`pyproject.toml`](pyproject.toml).
 
 ```bash
 ./language-test-harnesses/python/run-tests.sh

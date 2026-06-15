@@ -25,7 +25,8 @@ class SqlCodegenSqlBodyKindSpec extends munit.FunSuite {
       fieldName = name,
       columnName = name,
       columnIndex = index,
-      typeName = "String"
+      typeName = "String",
+      readTypeName = "String"
     )
 
   test("resolve - insert scalar") {

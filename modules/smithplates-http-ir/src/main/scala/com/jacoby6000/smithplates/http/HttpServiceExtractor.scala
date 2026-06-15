@@ -43,6 +43,13 @@ private[http] object HttpServiceExtractor {
                   HttpStructureExtractor
                     .extractForService(model, serviceShape, operations, serviceErrors)
                     .map { extractedShapes =>
+                      val (stringEnums, intEnums) =
+                        HttpEnumExtractor.extractReferenced(
+                          model,
+                          serviceShape,
+                          extractedShapes.structures,
+                          extractedShapes.unions
+                        )
                       (
                         HttpService(
                           shapeId = serviceShape,
@@ -54,7 +61,9 @@ private[http] object HttpServiceExtractor {
                           resources = resources,
                           routeGroups = HttpRouteGroupBuilder.build(operations),
                           structures = extractedShapes.structures,
-                          unions = extractedShapes.unions
+                          unions = extractedShapes.unions,
+                          stringEnums = stringEnums,
+                          intEnums = intEnums
                         ),
                         warnings
                       )

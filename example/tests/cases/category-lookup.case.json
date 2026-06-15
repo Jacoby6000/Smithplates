@@ -1,0 +1,48 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "category-lookup",
+  "description": "Read the seeded category and confirm a missing category returns 404.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "get-seeded-category",
+      "request": {
+        "operationId": "GetCategory",
+        "method": "GET",
+        "path": "/categories/${category_id}",
+        "pathParameters": {
+          "categoryId": "${category_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "category": {
+            "id": "${category_id}",
+            "name": "Dogs",
+            "store_id": {"$type": "string", "$minLength": 1},
+            "store": {
+              "name": "Demo Store"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "get-missing-category",
+      "request": {
+        "operationId": "GetCategory",
+        "method": "GET",
+        "path": "/categories/does-not-exist",
+        "pathParameters": {
+          "categoryId": "does-not-exist"
+        }
+      },
+      "expect": {
+        "status": 404
+      }
+    }
+  ]
+}

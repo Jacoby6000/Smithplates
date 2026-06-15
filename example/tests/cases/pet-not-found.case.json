@@ -1,0 +1,69 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "pet-not-found",
+  "description": "Read, update, and delete operations on a non-existent pet return 404.",
+  "variables": {
+    "missing_pet_id": "999999",
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "get-missing-pet",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${missing_pet_id}",
+        "pathParameters": {
+          "petId": "${missing_pet_id}"
+        }
+      },
+      "expect": {
+        "status": 404,
+        "json": {
+          "message": {"$type": "string", "$minLength": 1}
+        }
+      }
+    },
+    {
+      "id": "update-missing-pet",
+      "request": {
+        "operationId": "UpdatePet",
+        "method": "PUT",
+        "path": "/pets/${missing_pet_id}",
+        "pathParameters": {
+          "petId": "${missing_pet_id}"
+        },
+        "json": {
+          "name": "Ghost",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 0,
+          "tags": [],
+          "attributes": [
+            {"name": "color", "value": {"color": "white"}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 404
+      }
+    },
+    {
+      "id": "delete-missing-pet",
+      "request": {
+        "operationId": "DeletePet",
+        "method": "DELETE",
+        "path": "/pets/${missing_pet_id}",
+        "pathParameters": {
+          "petId": "${missing_pet_id}"
+        }
+      },
+      "expect": {
+        "status": 404
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "python",
+  "description": "Python petstore reference server and generated OpenAPI client case runner.",
+  "server": {
+    "start": "start-server.sh"
+  },
+  "client": {
+    "runCase": "run-case.sh"
+  }
+}

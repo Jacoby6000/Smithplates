@@ -27,6 +27,7 @@ Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/
 ## Modeling conventions
 
 - Annotate **structures** with `@sqlTable`; put `@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlIndex`, and column traits on **members**.
+- Use a **dedicated SQL namespace** (for example `example.db`) separate from HTTP API namespaces. Do not share shapes with `@httpService` models; see [Integration — HTTP and SQL model separation](integration.md#http-and-sql-model-separation).
 - Use flat `operations` lists on `@sqlService` services, not Smithy `resources` (resource properties cannot carry SQL member traits).
 - Derive DML with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` on operations; use `DerivedStruct` as derive input (and derive-select output). `@sqlDeriveSelectOne` accepts optional `joins`; when present, output must be `DerivedStruct` and codegen expands nested joined table structures from `@sqlForeignKey` cardinality (singular member for many-to-one/one-to-one, list member for one-to-many). Singular nested members are optional when the joining FK member is optional in Smithy, required when the FK member is `@required`. Each join after the first resolves its ON clause from the nearest prior joined table when no direct FK exists on the target table.
 - Bind repository SQL to service methods by matching operation shape ids on derive traits.

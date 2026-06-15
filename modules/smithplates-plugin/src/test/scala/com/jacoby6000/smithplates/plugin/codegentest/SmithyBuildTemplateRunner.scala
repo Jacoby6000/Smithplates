@@ -6,6 +6,7 @@ import software.amazon.smithy.build.SmithyBuildPlugin
 import software.amazon.smithy.build.model.SmithyBuildConfig
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.loader.ModelAssembler
+import software.amazon.smithy.openapi.fromsmithy.Smithy2OpenApi
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -110,7 +111,10 @@ object SmithyBuildTemplateRunner {
         .map(plugin => plugin.getName -> plugin)
         .toMap
 
-    fromServiceLoader + (PluginName -> new SmithplatesBuildPlugin())
+    fromServiceLoader ++ Map(
+      PluginName -> new SmithplatesBuildPlugin(),
+      "openapi"  -> new Smithy2OpenApi()
+    )
   }
 
   private def formatBrokenBuild(result: software.amazon.smithy.build.SmithyBuildResult): String =

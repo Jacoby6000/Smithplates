@@ -1,0 +1,68 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "order-lifecycle",
+  "description": "Place an order, read it back, and confirm a missing order returns 404.",
+  "steps": [
+    {
+      "id": "place-order",
+      "request": {
+        "operationId": "PlaceOrder",
+        "method": "POST",
+        "path": "/orders",
+        "json": {
+          "label": "Spring intake",
+          "status": "placed",
+          "priority": 2
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": {"$type": "string", "$minLength": 1}
+        }
+      },
+      "capture": {
+        "order_id": "$.id"
+      }
+    },
+    {
+      "id": "get-order",
+      "request": {
+        "operationId": "GetOrder",
+        "method": "GET",
+        "path": "/orders/${order_id}",
+        "pathParameters": {
+          "orderId": "${order_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "order": {
+            "id": "${order_id}",
+            "label": "Spring intake",
+            "status": "placed",
+            "priority": 2,
+            "created_at": {"$exists": true},
+            "updated_at": {"$exists": true},
+            "lines": []
+          }
+        }
+      }
+    },
+    {
+      "id": "get-missing-order",
+      "request": {
+        "operationId": "GetOrder",
+        "method": "GET",
+        "path": "/orders/does-not-exist",
+        "pathParameters": {
+          "orderId": "does-not-exist"
+        }
+      },
+      "expect": {
+        "status": 404
+      }
+    }
+  ]
+}

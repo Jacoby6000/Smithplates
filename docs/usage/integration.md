@@ -101,7 +101,15 @@ Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#ht
 
 Service error structures with `@error` may use `@httpProblem` (`use smithplates.codegen.http#httpProblem`) to emit RFC 9457 `application/problem+json` exception classes and imply `Content-Type: application/problem+json` on operation error response bindings. Set `code` on `@httpProblem` to imply `@httpError` with the same status (otherwise declare `@httpError` separately). Set `type` to an HTTPS URL documenting the error (defaults to `about:blank`; smithplates warns when `type` is not HTTPS). Provide `title` and optional trait `detail` defaults; raise the generated exception with `detail=` and `instance=` to describe a specific occurrence (for example trace identifiers).
 
-Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpError`, that materializes implied `@httpError` traits from `@httpProblem(code: ...)` on structure shapes. The smithplates build plugin applies the same transform before HTTP extraction. Other Smithy build plugins (for example the OpenAPI converter) only see standard Smithy traits, so list this transform in `smithy-build.json` **before** those plugins when your model uses `@httpProblem(code: ...)` without an explicit `@httpError`:
+Smithplates ships Smithy build projection transforms for OpenAPI and other Smithy tooling that only understands standard traits:
+
+| Transform | Purpose |
+|-----------|---------|
+| `applyHttpProblemHttpError` | Materializes implied `@httpError` from `@httpProblem(code: ...)`. The smithplates build plugin applies the same logic before HTTP extraction. |
+| `applyHttpServiceRestJson1` | Adds `@restJson1` to services that declare `@httpService`, so you do not need a separate OpenAPI-only service shape. |
+| `stripSmithplatesHttpCodegenTraits` | Removes smithplates HTTP codegen traits (`@httpService`, `@httpProblem`, `@httpStaticHeader`) from the transformed projection model after implied traits are materialized. Required when the projection also loads the original Smithy sources; otherwise Smithy reports conflicting `@httpService` traits during merge validation. |
+
+List these transforms in `smithy-build.json` **before** the OpenAPI plugin when exporting `@httpService` models that use `@httpProblem` or other smithplates HTTP traits:
 
 ```json
 {
@@ -109,11 +117,14 @@ Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpErro
   "projections": {
     "openapi": {
       "transforms": [
-        { "name": "applyHttpProblemHttpError" }
+        { "name": "applyHttpProblemHttpError" },
+        { "name": "applyHttpServiceRestJson1" },
+        { "name": "stripSmithplatesHttpCodegenTraits" }
       ],
       "plugins": {
         "openapi": {
-          "service": "example.api#ExampleService"
+          "service": "example.api#ExampleService",
+          "protocol": "aws.protocols#restJson1"
         }
       }
     }
@@ -121,7 +132,7 @@ Smithplates ships a Smithy build projection transform, `applyHttpProblemHttpErro
 }
 ```
 
-The transform is registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call `HttpProblemHttpErrorModelTransformer.transform(model)` from the smithplates HTTP IR module.
+The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on the build classpath for `@restJson1`. Transforms are registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call the corresponding `*ModelTransformer.transform(model)` helpers in the smithplates HTTP IR module.
 
 #### OpenAPI Generator coordination
 
@@ -134,6 +145,24 @@ When Smithy OpenAPI export and [OpenAPI Generator `python-fastapi`](https://open
 | `server.webFramework: fastapi` | `generatorName: python-fastapi` | Selects bundled FastAPI SSP templates under `templates/python/src/http/fastapi/`. |
 
 Smithplates HTTP codegen replaces the OpenAPI Generator wiring layer for FastAPI servers: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). OpenAPI Generator (with custom Mustache templates) may still emit Pydantic `models/` and depends on Smithy OpenAPI export extensions such as `x-python-response-type` for protocol response unions. Pin OpenAPI Generator version in the consumer (for example `openapitools.json`) and keep custom templates in sync when upgrading.
+
+### HTTP and SQL model separation
+
+When a project uses both `smithplates.http` and `smithplates.sql`, **keep HTTP API models and database models in separate Smithy namespaces** and avoid coupling them in the Smithy model.
+
+| Layer | Smithy namespace (example) | Traits | Purpose |
+|-------|----------------------------|--------|---------|
+| HTTP API | `example.api` | `@httpService`, `@http`, `@tags` | Wire contract, request/response shapes, HTTP errors |
+| Database | `example.db` | `@sqlTable`, `@sqlService`, `@sqlDerive*` | Tables, repository operations, column/JSON types |
+
+**Conventions:**
+
+- Do **not** put `@httpService` operations and `@sqlTable` / `@sqlService` shapes in the same namespace, and do **not** reuse the same structure or enum shapes across HTTP and SQL (even when field names match). HTTP payloads and persistence models evolve on different schedules; sharing Smithy shapes ties codegen and migrations to the wire format.
+- Duplicate enums and value types per namespace when both layers need similar concepts (for example `PetStatus` in `example.api` and `example.db`). It is fine for them to differ (API `PetAttributeList` vs DB `PetTags`, and so on).
+- Translate between HTTP and SQL in **hand-written application code** (protocol implementations, repository facades, mappers). Generated HTTP route modules should call into generated repository services through that boundary, not by importing one generated model tree from the other.
+- OpenAPI export projections should list **API sources only** (for example `api-types.smithy`, `api.smithy`, `http-service.smithy`) and target the HTTP service shape id (for example `example.api#ExampleService`). Do not include SQL Smithy files in OpenAPI projections.
+
+The [Python petstore reference](../../example/python/) demonstrates this layout: `petstore.api` for HTTP/OpenAPI codegen and `petstore.db` for schema/repository codegen, with mapping in `src/server/repository_service.py`.
 
 ### `smithplates.sql` dialect keys
 

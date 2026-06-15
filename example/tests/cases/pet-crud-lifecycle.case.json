@@ -1,0 +1,123 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "pet-crud-lifecycle",
+  "description": "Create, read, update, and delete a pet through the HTTP API.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "create-pet",
+      "request": {
+        "operationId": "CreatePet",
+        "method": "POST",
+        "path": "/pets",
+        "json": {
+          "name": "Comet",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 2,
+          "tags": ["friendly", "trained"],
+          "attributes": [
+            {"name": "color", "value": {"color": "golden"}},
+            {"name": "weight", "value": {"weight_kg": 12.5}}
+          ],
+          "metadata": {"notes": "demo pet"}
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": {"$type": "string", "$minLength": 1}
+        }
+      },
+      "capture": {
+        "pet_id": "$.id"
+      }
+    },
+    {
+      "id": "get-pet",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "name": "Comet",
+            "status": "available",
+            "species": 1,
+            "category": {"id": "${category_id}"},
+            "store": {"name": "Demo Store"}
+          }
+        }
+      }
+    },
+    {
+      "id": "update-pet",
+      "request": {
+        "operationId": "UpdatePet",
+        "method": "PUT",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        },
+        "json": {
+          "name": "Comet Updated",
+          "status": "pending",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 2,
+          "tags": ["friendly", "trained"],
+          "attributes": [
+            {"name": "color", "value": {"color": "golden"}},
+            {"name": "weight", "value": {"weight_kg": 12.5}}
+          ],
+          "metadata": {"notes": "demo pet"}
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "id": "delete-pet",
+      "request": {
+        "operationId": "DeletePet",
+        "method": "DELETE",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 204
+      }
+    },
+    {
+      "id": "get-missing-pet",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 404
+      }
+    }
+  ]
+}

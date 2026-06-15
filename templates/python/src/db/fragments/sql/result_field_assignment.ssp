@@ -1,5 +1,6 @@
 <%@ val fieldName: String %>
 <%@ val typeName: String %>
+<%@ val readTypeName: String = typeName %>
 <%@ val isJson: Boolean = false %>
 <%@ val readMode: String %>
 <%@ val columnIndex: Int %>
@@ -8,6 +9,7 @@
 <%@ val timestampFormat: Any = null %>
 ${fieldName}=<% render("fragments/sql/read_result_field", Map(
   "typeName" -> typeName,
+  "readTypeName" -> readTypeName,
   "isJson" -> isJson,
   "readMode" -> readMode,
   "columnIndex" -> columnIndex,

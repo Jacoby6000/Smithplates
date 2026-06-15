@@ -1,0 +1,112 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "pet-attribute-weight",
+  "description": "Round-trip the PetAttributeValue.weight_kg variant on create, then switch to vaccinated on update.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "create-pet-weight",
+      "request": {
+        "operationId": "CreatePet",
+        "method": "POST",
+        "path": "/pets",
+        "json": {
+          "name": "Maple",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["heavy"],
+          "attributes": [
+            {"name": "weight_kg", "value": {"weight_kg": 21.5}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 201,
+        "json": {
+          "id": {"$type": "string", "$minLength": 1}
+        }
+      },
+      "capture": {
+        "pet_id": "$.id"
+      }
+    },
+    {
+      "id": "get-pet-weight",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"weight_kg": 21.5}}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "update-pet-vaccinated",
+      "request": {
+        "operationId": "UpdatePet",
+        "method": "PUT",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        },
+        "json": {
+          "name": "Maple",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["heavy"],
+          "attributes": [
+            {"name": "vaccinated", "value": {"vaccinated": true}}
+          ],
+          "metadata": null
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "updated": true
+        }
+      }
+    },
+    {
+      "id": "get-pet-vaccinated",
+      "request": {
+        "operationId": "GetPet",
+        "method": "GET",
+        "path": "/pets/${pet_id}",
+        "pathParameters": {
+          "petId": "${pet_id}"
+        }
+      },
+      "expect": {
+        "status": 200,
+        "json": {
+          "pet": {
+            "attributes": [
+              {"value": {"vaccinated": true}}
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

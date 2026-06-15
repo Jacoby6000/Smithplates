@@ -1,0 +1,87 @@
+{
+  "schema": "smithystache.example.test-case/v1",
+  "name": "http-response-bindings",
+  "description": "Static response headers, output @httpHeader bindings, and redirect responses.",
+  "variables": {
+    "category_id": "${server.seed_category_id}"
+  },
+  "steps": [
+    {
+      "id": "health-static-header",
+      "request": {
+        "operationId": "HealthCheck",
+        "method": "GET",
+        "path": "/health"
+      },
+      "expect": {
+        "status": 200,
+        "headers": {
+          "Cache-Control": "no-store"
+        },
+        "json": {
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "id": "create-pet-output-header",
+      "request": {
+        "operationId": "CreatePet",
+        "method": "POST",
+        "path": "/pets",
+        "json": {
+          "name": "Header Harness",
+          "status": "available",
+          "species": 1,
+          "category_id": "${category_id}",
+          "owner_id": null,
+          "tag_count": 1,
+          "tags": ["binding-test"],
+          "attributes": [
+            {"name": "color", "value": {"color": "silver"}}
+          ],
+          "metadata": null
+        }
+      },
+      "capture": {
+        "pet_id": "$.id"
+      },
+      "expect": {
+        "status": 201,
+        "headers": {
+          "ETag": "W/\"${pet_id}\""
+        },
+        "json": {
+          "id": "${pet_id}"
+        }
+      }
+    },
+    {
+      "id": "resolve-pet-location-redirect",
+      "request": {
+        "operationId": "ResolvePetLocation",
+        "method": "GET",
+        "path": "/pets/${pet_id}/location",
+        "transport": "raw"
+      },
+      "expect": {
+        "status": 302,
+        "headers": {
+          "Location": "/pets/${pet_id}"
+        }
+      }
+    },
+    {
+      "id": "resolve-missing-pet-location",
+      "request": {
+        "operationId": "ResolvePetLocation",
+        "method": "GET",
+        "path": "/pets/missing-pet-id/location",
+        "transport": "raw"
+      },
+      "expect": {
+        "status": 404
+      }
+    }
+  ]
+}

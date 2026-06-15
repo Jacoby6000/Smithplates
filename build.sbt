@@ -305,6 +305,7 @@ lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
     version := "0.1.0",
     libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
     libraryDependencies += "software.amazon.smithy" % "smithy-build" % smithyVersion,
+    libraryDependencies += "software.amazon.smithy" % "smithy-aws-traits" % smithyVersion,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
@@ -391,7 +392,8 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
       catsEffectDependency,
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion % Test,
-      "org.apache.logging.log4j" % "log4j-core" % log4jVersion % Test
+      "org.apache.logging.log4j" % "log4j-core" % log4jVersion % Test,
+      "software.amazon.smithy" % "smithy-openapi" % smithyVersion % Test
     ),
     Test / logBuffered := false,
     Compile / packageDoc / publishArtifact := false,

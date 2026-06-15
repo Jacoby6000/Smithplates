@@ -43,7 +43,7 @@ async def create_content(
 )
 async def get_content(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    content_id: str = Path(...),
+    content_id: str = Path(..., alias="contentId"),
 ) -> ContentOutput:
     return dispatch_api_response(
         await services.content_api.get_content(content_id=content_id),

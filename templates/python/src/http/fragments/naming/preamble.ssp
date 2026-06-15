@@ -76,10 +76,16 @@ def fastapiParameterBinding(
 ): String =
   member.binding match {
     case _: com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.PathLabel =>
+      val pathAlias =
+        if (snakeCase(member.name) == member.name) {
+          ""
+        } else {
+          s""", alias="${member.name}""""
+        }
       if (member.required) {
-        "Path(...)"
+        s"Path(...$pathAlias)"
       } else {
-        "Path(None)"
+        s"Path(None$pathAlias)"
       }
     case com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Query(queryName) =>
       if (member.required) {
@@ -218,23 +224,21 @@ def operationProtocolReturnType(operation: com.jacoby6000.smithplates.http.model
 def responseVariantMediaType(mediaType: Option[String]): String =
   mediaType.map(value => s"'$value'").getOrElse("None")
 
-def responseVariantHeaderBindings(headerBindings: List[(String, String)]): String =
-  if (headerBindings.isEmpty) {
-    "()"
-  } else {
-    headerBindings.map { case (memberName, headerName) =>
-      s"(\"$memberName\", \"$headerName\")"
-    }.mkString("(", ", ", ")")
+def pythonTupleOfPairs(pairs: List[(String, String)]): String =
+  pairs match {
+    case Nil          => "()"
+    case (a, b) :: Nil => s"""(("$a", "$b"),)"""
+    case _ =>
+      pairs
+        .map { case (left, right) => s"(\"$left\", \"$right\")" }
+        .mkString("(", ", ", ")")
   }
 
+def responseVariantHeaderBindings(headerBindings: List[(String, String)]): String =
+  pythonTupleOfPairs(headerBindings)
+
 def responseVariantStaticHeaders(staticHeaders: List[(String, String)]): String =
-  if (staticHeaders.isEmpty) {
-    "()"
-  } else {
-    staticHeaders.map { case (headerName, headerValue) =>
-      s"(\"$headerName\", \"$headerValue\")"
-    }.mkString("(", ", ", ")")
-  }
+  pythonTupleOfPairs(staticHeaders)
 
 def structureMemberPythonType(
     member: com.jacoby6000.smithplates.http.model.HttpStructureMember

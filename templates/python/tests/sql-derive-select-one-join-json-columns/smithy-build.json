@@ -1,0 +1,31 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:0.1.0"
+    ]
+  },
+  "plugins": {
+    "smithplates": {
+      "sql": {
+        "sqlite": {
+          "enable": true,
+          "migrationLocation": "db/migrations/sqlite"
+        },
+        "postgres": {
+          "enable": true,
+          "migrationLocation": "db/migrations/postgres"
+        },
+        "languageTargets": {
+          "python": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "test"
+          }
+        }
+      }
+    }
+  }
+}

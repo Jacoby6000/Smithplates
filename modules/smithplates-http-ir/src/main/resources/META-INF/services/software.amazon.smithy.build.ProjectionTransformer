@@ -1,1 +1,3 @@
 com.jacoby6000.smithplates.http.transform.ApplyHttpProblemHttpErrorTransformer
+com.jacoby6000.smithplates.http.transform.ApplyHttpServiceRestJson1Transformer
+com.jacoby6000.smithplates.http.transform.StripSmithplatesHttpCodegenTraitsTransformer

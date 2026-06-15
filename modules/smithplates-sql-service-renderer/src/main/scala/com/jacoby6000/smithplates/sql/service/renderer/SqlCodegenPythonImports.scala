@@ -96,7 +96,11 @@ object SqlCodegenPythonImports {
         }
         sql.resultFields.foreach(resultField => reference(resultField.typeName))
         sql.selectOneOutput.foreach { output =>
-          output.nestedBindings.foreach(nested => reference(nested.shapeName))
+          output.nestedBindings.foreach { nested =>
+            reference(nested.shapeName)
+            // JSON columns on join tables produce `_read_<Type>` helpers that reference the model class.
+            nested.fields.foreach(field => reference(field.typeName))
+          }
         }
       }
     }

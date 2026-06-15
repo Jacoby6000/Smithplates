@@ -14,12 +14,20 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
-/** Runs each fixture's `smithy-build.json` once, then compares `out/` to `expected/` per variant. */
-abstract class CodegenTemplateTestSuite(
-    languageId: String,
-    variants: Set[CodegenTemplateVariant]
-) extends FunSuite {
+/** Runs each fixture's `smithy-build.json` once, then compares `out/` to `expected/` per variant.
+  *
+  * Single language-agnostic golden suite covering every codegen variant. Adding a new language (or implementation) is
+  * just adding a [[CodegenTemplateVariant]] to `variants`; discovery, build, and comparison registration are grouped by
+  * `languageId` so no new suite class is required.
+  */
+class CodegenTemplateTestSuite extends FunSuite {
   override val munitTimeout = 120.seconds
+
+  private val variants: Set[CodegenTemplateVariant] = Set(
+    CodegenTemplateVariant("python", "api", "fastapi"),
+    CodegenTemplateVariant("python", "db", "sqlite"),
+    CodegenTemplateVariant("python", "db", "postgres")
+  )
 
   private val buildOutputs =
     new ConcurrentHashMap[String, Either[String, Path]]()
@@ -27,49 +35,57 @@ abstract class CodegenTemplateTestSuite(
   private lazy val repoRoot: Path =
     Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
 
-  private lazy val testCases: List[CodegenTemplateTestCase] =
-    CodegenTemplateTestDiscovery.discover(repoRoot, languageId, variants)
+  private val variantsByLanguage: List[(String, Set[CodegenTemplateVariant])] =
+    variants.groupBy(_.languageId).toList.sortBy(_._1)
 
-  private def hasActiveVariantExpectations(testCase: CodegenTemplateTestCase): Boolean =
-    variants.exists { variant =>
+  private def hasActiveVariantExpectations(
+      testCase: CodegenTemplateTestCase,
+      languageVariants: Set[CodegenTemplateVariant]
+  ): Boolean =
+    languageVariants.exists { variant =>
       val expectedFiles = testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
       !CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant) && expectedFiles.nonEmpty
     }
 
-  private lazy val casesRequiringBuild: List[CodegenTemplateTestCase] =
-    testCases.filter(hasActiveVariantExpectations)
+  variantsByLanguage.foreach { case (languageId, languageVariants) =>
+    val testCases =
+      CodegenTemplateTestDiscovery.discover(repoRoot, languageId, languageVariants)
 
-  casesRequiringBuild.foreach { testCase =>
-    test(s"build - ${testCase.name}") {
-      val result =
-        SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
-      buildOutputs.put(testCase.name, result)
-      result.fold(
-        message => fail(s"Smithy build failed for '${testCase.name}': $message"),
-        _ => ()
-      )
+    val casesRequiringBuild =
+      testCases.filter(testCase => hasActiveVariantExpectations(testCase, languageVariants))
+
+    casesRequiringBuild.foreach { testCase =>
+      test(s"build - ${testCase.name}") {
+        val result =
+          SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
+        buildOutputs.put(testCase.name, result)
+        result.fold(
+          message => fail(s"Smithy build failed for '${testCase.name}': $message"),
+          _ => ()
+        )
+      }
     }
-  }
 
-  variants.foreach { variant =>
-    testCases.foreach { testCase =>
-      CodegenTemplateTestDiscovery.warnMissingVariantExpectations(testCase, variant)
+    languageVariants.toList.sorted.foreach { variant =>
+      testCases.foreach { testCase =>
+        CodegenTemplateTestDiscovery.warnMissingVariantExpectations(testCase, variant)
 
-      val expectedFiles =
-        testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
-      val unsupported   =
-        CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant)
+        val expectedFiles =
+          testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
+        val unsupported   =
+          CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant)
 
-      if (!unsupported && expectedFiles.nonEmpty) {
-        test(s"${testCase.name} - ${variant.resourcePath}") {
-          val outputDirectory = outputDirectoryFor(testCase)
-          val actualOutputs   = readBuildOutputs(outputDirectory)
-          CodegenTemplateTestAssertions.assertRenderedOutputs(
-            testCase,
-            variant,
-            expectedFiles,
-            actualOutputs
-          )
+        if (!unsupported && expectedFiles.nonEmpty) {
+          test(s"${testCase.name} - ${variant.resourcePath}") {
+            val outputDirectory = outputDirectoryFor(testCase)
+            val actualOutputs   = readBuildOutputs(outputDirectory)
+            CodegenTemplateTestAssertions.assertRenderedOutputs(
+              testCase,
+              variant,
+              expectedFiles,
+              actualOutputs
+            )
+          }
         }
       }
     }
