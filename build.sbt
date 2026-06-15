@@ -1,3 +1,28 @@
+import sbt.*
+
+inThisBuild(
+  List(
+    organization := "com.jacoby6000",
+    homepage := Some(url("https://github.com/Jacoby6000/Smithplates")),
+    licenses := List("MIT" -> url("https://opensource.org/licenses/MIT")),
+    developers := List(
+      Developer(
+        "Jacoby6000",
+        "Jacob Barber",
+        "",
+        url("https://github.com/Jacoby6000")
+      )
+    ),
+    versionScheme := Some("early-semver"),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/Jacoby6000/Smithplates"),
+        "scm:git:git@github.com:Jacoby6000/Smithplates.git"
+      )
+    )
+  )
+)
+
 ThisBuild / scalaVersion := "3.3.6"
 ThisBuild / scalafmtOnCompile := false
 ThisBuild / semanticdbEnabled := true
@@ -383,8 +408,6 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   .settings(
     strictScala3Settings,
     name := "smithplates-plugin",
-    organization := "com.jacoby6000",
-    version := "0.1.0",
     crossPaths := false,
     libraryDependencies ++= Seq(
       "software.amazon.smithy" % "smithy-build" % smithyVersion,
