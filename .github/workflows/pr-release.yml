@@ -124,28 +124,20 @@ jobs:
           ref: ${{ steps.gate.outputs.sha }}
           fetch-depth: 0
 
-      - name: Setup Java
+      - name: Setup release tooling
         if: steps.gate.outputs.proceed == 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: sbt
-
-      - name: Setup sbt
-        if: steps.gate.outputs.proceed == 'true'
-        uses: sbt/setup-sbt@v1
+        uses: ./.github/actions/setup-release
 
       - name: Resolve version
         if: steps.gate.outputs.proceed == 'true'
         id: version
         run: |
-          VERSION=$(sbt -no-colors 'print smithplatesPlugin/version')
+          VERSION=$(sbtn --no-colors 'print smithplatesPlugin/version')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish snapshot
         if: steps.gate.outputs.proceed == 'true'
-        run: sbt smithplatesPlugin/publish
+        run: sbtn smithplatesPlugin/publish
         env:
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}

@@ -1,0 +1,20 @@
+name: Setup release
+description: Install Java, sbt, and sbtn for publish workflows (run actions/checkout first).
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 17
+        cache: sbt
+
+    - name: Setup sbt
+      uses: sbt/setup-sbt@v1
+
+    - name: Install sbtn
+      uses: coursier/setup-action@v3
+      with:
+        apps: sbtn

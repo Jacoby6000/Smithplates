@@ -14,18 +14,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-          cache: sbt
-
-      - name: Setup sbt
-        uses: sbt/setup-sbt@v1
+      - name: Setup release tooling
+        uses: ./.github/actions/setup-release
 
       - name: Publish
-        run: sbt ci-release
+        run: sbtn ci-release
         env:
           PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
