@@ -49,7 +49,7 @@ Releases are automated with [`sbt-ci-release`](https://github.com/sbt/sbt-ci-rel
 
 - **Stable release:** push an annotated tag whose name starts with `v` (for example `v0.1.0`).
 - **Snapshot:** every push to `main` publishes a unique `-SNAPSHOT` version derived from git history (`sbt-dynver`).
-- **PR snapshot:** a maintainer can comment exactly `!release` on a pull request whose head branch lives on this repository. CI publishes a hash snapshot of the PR head commit and replies with Maven coordinates.
+- **PR snapshot:** a maintainer can comment exactly `!release` on a pull request whose head branch lives on this repository. CI publishes a hash snapshot of the PR head commit and replies with Maven coordinates. Maintainers can also run the **PR release** workflow manually from the Actions tab (`workflow_dispatch`) and choose the target branch from the **Use workflow from** dropdown.
 
 Only `smithplatesPlugin` is published (`com.jacoby6000:smithplates-plugin`); all other modules set `publish / skip := true`.
 

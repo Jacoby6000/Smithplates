@@ -3,6 +3,7 @@ name: PR release
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -10,10 +11,12 @@ permissions:
 
 jobs:
   pr-release:
-    if: github.event.issue.pull_request && github.event.comment.body == '!release'
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.pull_request && github.event.comment.body == '!release')
     runs-on: ubuntu-latest
     concurrency:
-      group: pr-release-${{ github.event.issue.number }}
+      group: pr-release-${{ github.event.issue.number || github.ref_name }}
       cancel-in-progress: false
     steps:
       - name: Validate trigger
@@ -24,6 +27,66 @@ jobs:
           AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
         with:
           script: |
+            const canonicalRepo = `${context.repo.owner}/${context.repo.repo}`;
+
+            async function rejectPullRequest(pullNumber, body) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullNumber,
+                body
+              });
+              core.setOutput("proceed", "false");
+            }
+
+            async function acceptPullRequest(pullNumber, pr) {
+              core.setOutput("proceed", "true");
+              core.setOutput("sha", pr.head.sha);
+              core.setOutput("ref", pr.head.ref);
+              core.setOutput("pull_number", String(pullNumber));
+            }
+
+            async function validatePullRequest(pullNumber) {
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pullNumber
+              });
+
+              if (pr.head.repo.full_name !== canonicalRepo) {
+                await rejectPullRequest(
+                  pullNumber,
+                  "`!release` cannot publish from fork branches because CI would execute " +
+                    "untrusted code with publish credentials. Push the branch to " +
+                    `\`${canonicalRepo}\` and open or update the pull request from there.`
+                );
+                return;
+              }
+
+              await acceptPullRequest(pullNumber, pr);
+            }
+
+            if (context.eventName === "workflow_dispatch") {
+              const targetBranch = context.ref.replace(/^refs\/heads\//, "");
+              const sha = context.sha;
+
+              core.setOutput("proceed", "true");
+              core.setOutput("sha", sha);
+              core.setOutput("ref", targetBranch);
+
+              const { data: pulls } = await github.rest.pulls.list({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: `${context.repo.owner}:${targetBranch}`,
+                state: "open"
+              });
+              core.setOutput(
+                "pull_number",
+                pulls.length > 0 ? String(pulls[0].number) : ""
+              );
+              return;
+            }
+
             const allowed = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
             const body = process.env.COMMENT_BODY.trim();
             if (body !== "!release") {
@@ -44,26 +107,6 @@ jobs:
             }
 
             const pullNumber = context.issue.number;
-            const { data: pr } = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: pullNumber
-            });
-
-            const canonicalRepo = `${context.repo.owner}/${context.repo.repo}`;
-            if (pr.head.repo.full_name !== canonicalRepo) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pullNumber,
-                body:
-                  "`!release` cannot publish from fork branches because CI would execute " +
-                  "untrusted code with publish credentials. Push the branch to " +
-                  `\`${canonicalRepo}\` and open or update the pull request from there.`
-              });
-              core.setOutput("proceed", "false");
-              return;
-            }
 
             await github.rest.reactions.createForIssueComment({
               owner: context.repo.owner,
@@ -72,12 +115,9 @@ jobs:
               content: "rocket"
             });
 
-            core.setOutput("proceed", "true");
-            core.setOutput("sha", pr.head.sha);
-            core.setOutput("ref", pr.head.ref);
-            core.setOutput("pull_number", String(pullNumber));
+            await validatePullRequest(pullNumber);
 
-      - name: Checkout PR head
+      - name: Checkout branch
         if: steps.gate.outputs.proceed == 'true'
         uses: actions/checkout@v4
         with:
@@ -117,26 +157,38 @@ jobs:
           VERSION: ${{ steps.version.outputs.value }}
           SHA: ${{ steps.gate.outputs.sha }}
           REF: ${{ steps.gate.outputs.ref }}
+          PULL_NUMBER: ${{ steps.gate.outputs.pull_number }}
         with:
           script: |
             const version = process.env.VERSION;
             const sha = process.env.SHA;
             const ref = process.env.REF;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                "Published PR snapshot of `smithplates-plugin`:",
-                "",
-                "```",
-                `com.jacoby6000:smithplates-plugin:${version}`,
-                "```",
-                "",
-                `- Branch: \`${ref}\``,
-                `- Commit: \`${sha.slice(0, 7)}\``,
-                "",
-                "Add the Sonatype Central snapshots resolver, then depend on the exact version above.",
-                "Snapshots are unsigned and expire after roughly 90 days."
-              ].join("\n")
-            });
+            const pullNumber = process.env.PULL_NUMBER;
+            const trigger =
+              context.eventName === "workflow_dispatch"
+                ? "workflow dispatch"
+                : "`!release` comment";
+            const body = [
+              `Published branch snapshot of \`smithplates-plugin\` (triggered by ${trigger}):`,
+              "",
+              "```",
+              `com.jacoby6000:smithplates-plugin:${version}`,
+              "```",
+              "",
+              `- Branch: \`${ref}\``,
+              `- Commit: \`${sha.slice(0, 7)}\``,
+              "",
+              "Add the Sonatype Central snapshots resolver, then depend on the exact version above.",
+              "Snapshots are unsigned and expire after roughly 90 days."
+            ].join("\n");
+
+            if (pullNumber) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: Number(pullNumber),
+                body
+              });
+            } else {
+              await core.summary.addRaw(body).write();
+            }
