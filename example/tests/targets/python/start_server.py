@@ -35,7 +35,28 @@ def pick_free_port() -> int:
         return int(sock.getsockname()[1])
 
 
+def ensure_http_package_namespace() -> None:
+    """Map `generated.petstore_api` imports to the generated `api/` tree.
+
+    `build-generated.sh` creates this symlink locally; CI checkouts omit it because
+    git does not track the symlink target path reliably across environments.
+    """
+    namespace_root = SRC_ROOT / "generated" / "generated"
+    api_root = SRC_ROOT / "generated" / "api"
+    if not api_root.is_dir():
+        raise RuntimeError(f"missing generated HTTP api package at {api_root}")
+    namespace_root.mkdir(parents=True, exist_ok=True)
+    init_file = namespace_root / "__init__.py"
+    if not init_file.is_file():
+        init_file.write_text("", encoding="utf-8")
+    package_link = namespace_root / "petstore_api"
+    if package_link.is_symlink() or package_link.exists():
+        package_link.unlink()
+    package_link.symlink_to(api_root.resolve())
+
+
 def seed_database(database_path: Path) -> dict[str, str]:
+    ensure_http_package_namespace()
     pythonpath_entries = [
         str(SRC_ROOT / "generated"),
         str(SRC_ROOT / "generated" / "db" / "model"),
@@ -91,6 +112,7 @@ def write_context(context_file: Path, payload: dict[str, Any]) -> None:
 
 def main() -> int:
     args = parse_args()
+    ensure_http_package_namespace()
     port = pick_free_port()
     base_url = f"http://127.0.0.1:{port}"
 
