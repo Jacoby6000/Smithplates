@@ -88,12 +88,17 @@ modules/smithplates-plugin (published)
     ├── smithplates-sql-service-query-renderer-common
     ├── smithplates-sql-service-query-renderer-postgres
     ├── smithplates-sql-service-query-renderer-sqlite
-    └── smithplates-sql-service-renderer
+    ├── smithplates-sql-service-renderer
+    ├── smithplates-scalate-precompiler
+    ├── smithplates-http-ir
+    └── smithplates-http-service-renderer
 
-modules/smithplates-testkit (library)
-    ├── smithplates-sql-ddl-renderer-postgres-it (test)
-    └── smithplates-sql-ddl-renderer-sqlite-it (test)
+modules/smithplates-testkit (library, unpublished)
+    ├── smithplates-sql-ddl-renderer-postgres-it (test, unpublished)
+    └── smithplates-sql-ddl-renderer-sqlite-it (test, unpublished)
 ```
+
+`smithplates-plugin` is the only artifact consumers reference by coordinate, but its entire transitive compile graph (every module listed above it) is **published** so Maven can resolve those dependencies — and so the renderer jars carrying precompiled SSP template classes reach consumers. Only `smithplates-testkit` and the dialect IT modules stay unpublished (`unpublishedModuleSettings`); all others use `publishedModuleSettings`. `sbtn publishM2` publishes the full set.
 
 - **smithplates-sql-ir** — schema ADTs, table extraction; Smithy trait IDL and Java `TraitService` SPI.
 - **smithplates-sql-ddl-renderer-common** — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`).
@@ -102,8 +107,10 @@ modules/smithplates-testkit (library)
 - **smithplates-sql-service-query-renderer-common** — shared dialect-neutral query rendering (`SqlQueryRendering`).
 - **smithplates-sql-service-query-renderer-postgres** / **smithplates-sql-service-query-renderer-sqlite** — dialect `SqlQueryRenderer` implementations.
 - **smithplates-sql-ddl-renderer-sqlite** / **smithplates-sql-ddl-renderer-postgres** — dialect schema DDL (`SqlSchemaDdlRenderer`); depend on `smithplates-sql-ddl-renderer-common`; no service-IR dependency.
-- **smithplates-sql-service-renderer** — Scalate SSP service codegen; compile depends on query-renderer base only.
-- **smithplates-plugin** — thin orchestration; only published Maven artifact (`com.jacoby6000:smithplates-plugin`).
+- **smithplates-sql-service-renderer** — Scalate SSP service codegen; compile depends on query-renderer base only. Its published jar bundles precompiled SSP template classes (see [Template precompilation](#template-precompilation)).
+- **smithplates-scalate-precompiler** — shared build/runtime helper that derives the per-template-root Scala `packagePrefix` and ahead-of-time compiles bundled SSP templates to JVM classes. Used by both renderer modules' precompile build tasks and their runtime engines.
+- **smithplates-http-ir** / **smithplates-http-service-renderer** — `@httpService` IR extraction and Scalate SSP HTTP codegen; the renderer jar also bundles precompiled SSP template classes.
+- **smithplates-plugin** — thin orchestration; the only artifact consumers reference by coordinate (`com.jacoby6000:smithplates-plugin`). Its transitive dependency modules are published alongside it.
 - **smithplates-testkit** — shared Smithy fixtures and JDBC DDL helpers in `src/main`.
 - **smithplates-sql-ddl-renderer-postgres-it** / **smithplates-sql-ddl-renderer-sqlite-it** — schema-path integration tests via [testcontainers-scala](https://github.com/testcontainers/testcontainers-scala/).
 
@@ -142,6 +149,30 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 | `com.jacoby6000.smithplates.sql.service.renderer` | Scalate SSP orchestration for `@sqlService` codegen (`smithplates-sql-service-renderer`) |
 | `com.jacoby6000.smithplates.sql.service.renderer.codegentest` | Shared golden-template test infrastructure (`smithplates-sql-service-renderer` tests) |
 | `com.jacoby6000.smithplates.plugin.codegentest` | Plugin-local golden-template runner helpers (`smithplates-plugin` tests) |
+
+## Template precompilation
+
+Bundled Scalate SSP templates are compiled to JVM classes **at build time** and packaged into the published renderer jars, so consumers' `smithy build` runs load precompiled template classes instead of invoking the Scala compiler on first render. This removes the dominant cold-start cost of codegen for end users.
+
+### How it works
+
+- [`ScalateTemplatePrecompiler`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/scalate/precompiler/ScalateTemplatePrecompiler.scala) derives a deterministic Scala `packagePrefix` per template root (for example `scalate.precompiled.python.src.db`), enumerates `.ssp` files (excluding injected `preamble.ssp` fragments), generates Scala sources for **both** URI conventions Scalate uses at load time (root-relative for top-level templates, root-prefixed for `include`/`render` targets), and batch-compiles them with `dotty.tools.dotc.Main`.
+- Each renderer's runtime engine ([`ScalateSspTemplateEngine`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/ScalateSspTemplateEngine.scala)) sets the **same** `packagePrefix`, so the class name Scalate derives at runtime matches the precompiled class on the classpath. With `allowReload=false`, `TemplateEngine.load` finds the precompiled class and skips recompilation. The `packagePrefix` also namespaces template classes per template root, avoiding collisions between `db` and `http` templates that share relative paths (for example `fragments/...`).
+- The build wires this through `scalateTemplatePrecompileSettings` in [`build.sbt`](../../build.sbt): a cached `precompiledTemplateClasses` task (keyed on bundled template sources + module class files) runs each module's `*TemplatePrecompilerMain` in a forked JVM on the module classpath and adds the resulting `.class` files to `Compile / packageBin / mappings`. The default compile flow is unchanged; only the packaged jar gains the extra classes.
+
+### Compiler options for generated templates
+
+Both the build-time precompiler and Scalate's runtime fallback compiler use a single shared option set, [`ScalateTemplatePrecompiler.templateScalacOptions`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/scalate/precompiler/ScalateTemplatePrecompiler.scala) (`-no-indent`). The runtime engines obtain it via [`ConfiguredTemplateEngine`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/scalate/precompiler/ConfiguredTemplateEngine.scala), which overrides `TemplateEngine.createCompiler` to return a `ScalaCompiler` subclass that appends these options (Scalate's `ScalaCompiler` otherwise passes only `-classpath`/`-d`).
+
+`-no-indent` mirrors the project's own build flag and is the one strict option meaningful for machine-generated code: Scalate emits its template wrappers and our injected preamble in mixed brace/significant-indentation style, which the Scala 3 optional-braces checker would otherwise flag as "Line is indented too far to the left" on nearly every line. The remaining strict build options (`-Wunused:all`, `-Wvalue-discard`, `-Werror`) are intentionally **not** applied to generated templates — they would turn unavoidable artifacts of generated code (per-template-unused injected helper defs, discarded render-context appends) into thousands of compile errors. Those checks remain enforced on the hand-written renderer sources by the sbt build.
+
+### Tests load precompiled classes
+
+So the codegen golden suites exercise the published behavior (and stay free of Scalate runtime-compiler diagnostics), each renderer's precompiled class directory (`target/scalate-precompiled/classes`) is added to the relevant `Test / unmanagedClasspath` — the renderer modules for their own tests, and the plugin module (where the golden suites live) for both renderers. With the matching `packagePrefix` and `allowReload=false`, `TemplateEngine.load` then resolves the precompiled class from the classpath and skips runtime compilation entirely; if a precompiled class is ever missing it transparently falls back to compiling that template.
+
+### Distribution
+
+Because precompiled classes live in the renderer jars (not the thin plugin jar), the plugin's full transitive dependency graph is published (`publishedModuleSettings`), letting consumers resolve the renderer jars — and their precompiled templates — via the single `smithplates-plugin` coordinate.
 
 ## Dependencies
 

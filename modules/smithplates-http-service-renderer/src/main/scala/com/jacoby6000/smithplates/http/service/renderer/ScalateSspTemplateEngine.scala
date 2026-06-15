@@ -2,11 +2,11 @@ package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.http.model.HttpRouteGroup
 import com.jacoby6000.smithplates.http.model.HttpStructure
+import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
+import com.jacoby6000.smithplates.scalate.precompiler.ScalateTemplatePrecompiler
 import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateEngine
 
-import java.io.OutputStream
-import java.io.PrintStream
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
@@ -39,10 +39,7 @@ object ScalateSspTemplateEngine {
     val engine                 = templateEngine(resolvedTemplateRoot)
     val template               = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$templateUri",
-      _ =>
-        suppressCompilerOutput {
-          engine.load(templateUri)
-        }
+      _ => engine.load(templateUri)
     )
     val renderedBody           =
       normalizeRenderedOutput(
@@ -84,11 +81,19 @@ object ScalateSspTemplateEngine {
     }
   }
 
+  /** Builds a template engine configured exactly like the runtime engine for ahead-of-time precompilation. Reusing this
+    * factory guarantees the precompiled class names (driven by `packagePrefix`, bindings and template URI) match what
+    * the runtime [[org.fusesource.scalate.TemplateEngine]] resolves.
+    */
+  def precompilationEngine(templateRoot: String): TemplateEngine =
+    templateEngine(normalizeTemplateRoot(templateRoot))
+
   private def templateEngine(normalizedTemplateRoot: String): TemplateEngine = {
-    val created = new TemplateEngine
+    val created = new ConfiguredTemplateEngine
     created.allowCaching = true
     created.allowReload = false
     created.escapeMarkup = false
+    created.packagePrefix = ScalateTemplatePrecompiler.packagePrefix(normalizedTemplateRoot)
     created.resourceLoader = new PreambleTemplateRootResourceLoader(
       getClass.getClassLoader,
       normalizedTemplateRoot,
@@ -143,14 +148,6 @@ object ScalateSspTemplateEngine {
     } else {
       s"/$resourcePath"
     }
-
-  private def suppressCompilerOutput[T](action: => T): T = {
-    val previousErr = System.err
-    try {
-      System.setErr(new PrintStream(OutputStream.nullOutputStream()))
-      action
-    } finally System.setErr(previousErr)
-  }
 
   private def normalizeRenderedOutput(output: String): String = {
     val trimmed = output.stripTrailing()
