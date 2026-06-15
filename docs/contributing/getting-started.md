@@ -49,8 +49,11 @@ Releases are automated with [`sbt-ci-release`](https://github.com/sbt/sbt-ci-rel
 
 - **Stable release:** push an annotated tag whose name starts with `v` (for example `v0.1.0`).
 - **Snapshot:** every push to `main` publishes a unique `-SNAPSHOT` version derived from git history (`sbt-dynver`).
+- **PR snapshot:** a maintainer can comment exactly `!release` on a pull request whose head branch lives on this repository. CI publishes a hash snapshot of the PR head commit and replies with Maven coordinates.
 
 Only `smithplatesPlugin` is published (`com.jacoby6000:smithplates-plugin`); all other modules set `publish / skip := true`.
+
+`!release` is limited to repository collaborators (OWNER, MEMBER, or COLLABORATOR) and does not run for fork-head pull requests.
 
 #### GitHub Actions secrets
 
@@ -64,6 +67,15 @@ Configure these under **Settings → Secrets and variables → Actions**:
 | `PGP_SECRET` | Base64-encoded armored private key (`gpg --armor --export-secret-keys <key-id> \| base64 -w0`) |
 
 Upload the matching **public** key to a keyserver (for example [keys.openpgp.org](https://keys.openpgp.org/)) before the first release.
+
+#### Consuming PR or main snapshots
+
+Add the Central Portal snapshots resolver and pin the exact version string from the publish log or the `!release` bot comment:
+
+```scala
+resolvers += Resolver.sonatypeCentralSnapshots
+libraryDependencies += "com.jacoby6000" % "smithplates-plugin" % "0.1.0+3-abc123def-SNAPSHOT"
+```
 
 #### Sonatype namespace
 

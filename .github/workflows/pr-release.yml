@@ -1,0 +1,142 @@
+name: PR release
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  pr-release:
+    if: github.event.issue.pull_request && github.event.comment.body == '!release'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pr-release-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Validate trigger
+        id: gate
+        uses: actions/github-script@v7
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          AUTHOR_ASSOCIATION: ${{ github.event.comment.author_association }}
+        with:
+          script: |
+            const allowed = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+            const body = process.env.COMMENT_BODY.trim();
+            if (body !== "!release") {
+              core.setOutput("proceed", "false");
+              return;
+            }
+            if (!allowed.has(process.env.AUTHOR_ASSOCIATION)) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body:
+                  "`!release` can only be triggered by repository maintainers " +
+                  `(OWNER, MEMBER, or COLLABORATOR). Your association is \`${process.env.AUTHOR_ASSOCIATION}\`.`
+              });
+              core.setOutput("proceed", "false");
+              return;
+            }
+
+            const pullNumber = context.issue.number;
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber
+            });
+
+            const canonicalRepo = `${context.repo.owner}/${context.repo.repo}`;
+            if (pr.head.repo.full_name !== canonicalRepo) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pullNumber,
+                body:
+                  "`!release` cannot publish from fork branches because CI would execute " +
+                  "untrusted code with publish credentials. Push the branch to " +
+                  `\`${canonicalRepo}\` and open or update the pull request from there.`
+              });
+              core.setOutput("proceed", "false");
+              return;
+            }
+
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: "rocket"
+            });
+
+            core.setOutput("proceed", "true");
+            core.setOutput("sha", pr.head.sha);
+            core.setOutput("ref", pr.head.ref);
+            core.setOutput("pull_number", String(pullNumber));
+
+      - name: Checkout PR head
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.gate.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Setup Java
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: sbt
+
+      - name: Setup sbt
+        if: steps.gate.outputs.proceed == 'true'
+        uses: sbt/setup-sbt@v1
+
+      - name: Resolve version
+        if: steps.gate.outputs.proceed == 'true'
+        id: version
+        run: |
+          VERSION=$(sbtn --no-colors 'print smithplatesPlugin/version')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish snapshot
+        if: steps.gate.outputs.proceed == 'true'
+        run: sbtn smithplatesPlugin/publish
+        env:
+          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+
+      - name: Report published coordinates
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+          SHA: ${{ steps.gate.outputs.sha }}
+          REF: ${{ steps.gate.outputs.ref }}
+        with:
+          script: |
+            const version = process.env.VERSION;
+            const sha = process.env.SHA;
+            const ref = process.env.REF;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                "Published PR snapshot of `smithplates-plugin`:",
+                "",
+                "```",
+                `com.jacoby6000:smithplates-plugin:${version}`,
+                "```",
+                "",
+                `- Branch: \`${ref}\``,
+                `- Commit: \`${sha.slice(0, 7)}\``,
+                "",
+                "Add the Sonatype Central snapshots resolver, then depend on the exact version above.",
+                "Snapshots are unsigned and expire after roughly 90 days."
+              ].join("\n")
+            });
