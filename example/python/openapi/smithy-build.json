@@ -1,10 +1,6 @@
 {
   "version": "1.0",
-  "sources": [
-    "../smithy/api-types.smithy",
-    "../smithy/api.smithy",
-    "../smithy/http-service.smithy"
-  ],
+  "sources": ["../../petstore-smithy-spec/petstore/api"],
   "maven": {
     "dependencies": [
       "com.jacoby6000:smithplates-plugin:0.1.0",

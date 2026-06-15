@@ -146,3 +146,57 @@ The pet-attribute cases together exercise every `PetAttributeValue` variant via 
 
 These mirror and extend the pytest smoke tests in
 [`../python/tests/test_api.py`](../python/tests/test_api.py).
+
+## Coverage gaps (vs [`../petstore-smithy-spec/`](../petstore-smithy-spec/))
+
+All eight HTTP operations have at least one shared case. Gaps below are scenarios
+not yet represented in `cases/*.case.json`.
+
+### Operations — covered
+
+| Operation | Cases |
+| --- | --- |
+| `HealthCheck` | `health-check` |
+| `CreatePet` | `pet-crud-lifecycle`, `pet-attribute-*` |
+| `GetPet` | `pet-crud-lifecycle`, `pet-attribute-*`, `pet-not-found` |
+| `UpdatePet` | `pet-crud-lifecycle`, `pet-attribute-*`, `pet-not-found` |
+| `DeletePet` | `pet-crud-lifecycle`, `pet-not-found` |
+| `GetCategory` | `category-lookup` |
+| `PlaceOrder` | `order-lifecycle` |
+| `GetOrder` | `order-lifecycle`, `order-fulfillment-states` |
+
+### Error responses — not covered
+
+| Error | Operations | Suggested case |
+| --- | --- | --- |
+| `ValidationError` (400) | `CreatePet`, `UpdatePet`, `PlaceOrder` | Invalid/missing required fields or bad enum values |
+| `CategoryNotFound` body | `GetCategory` | Assert `message` on 404 (today only status) |
+| `OrderNotFound` body | `GetOrder` | Assert `message` on 404 (today only status) |
+
+### Enums — partial coverage
+
+| Enum | Covered | Not covered |
+| --- | --- | --- |
+| `PetStatus` | `available`, `pending` | `sold` |
+| `PetSpecies` | `DOG` (1) only | `CAT`, `BIRD`, `REPTILE` |
+| `OrderStatus` | `placed` | `approved`, `delivered` |
+| `OrderPriority` | `NORMAL` (2); seed uses `LOW` (1) | `HIGH` (3) on `PlaceOrder` |
+
+### Unions — covered
+
+| Union | Cases |
+| --- | --- |
+| `PetAttributeValue` (`color` / `weight_kg` / `vaccinated`) | `pet-attribute-color`, `pet-attribute-weight`, `pet-attribute-vaccinated` |
+| `FulfillmentState` (`pending` / `shipped` / `delivered`) | `order-fulfillment-states` |
+
+### Optional / nested response shapes — not covered
+
+| Shape / field | Notes |
+| --- | --- |
+| `CreatePetInput.photo` (`Blob`) | No case sends binary photo data |
+| `CreatePetInput.metadata` (`Document`) | `pet-crud-lifecycle` uses it; attribute cases use `null` |
+| `CreatePetInput.adopted_at` | No case sets an explicit timestamp |
+| `owner_id` + `OwnerSummary` / `PostalAddress` | All cases use `owner_id: null`; joined owner JSON never exercised over HTTP |
+| `PetProfileSummary` | Requires seeded owner/profile data |
+| `OrderLineDetail` scalar fields | `order-fulfillment-states` asserts `fulfillment` only, not `pet_id` / `quantity` / `unit_price_cents` |
+| Multi-line orders | Only single-line seeded orders today |

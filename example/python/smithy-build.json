@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "sources": ["smithy"],
+  "sources": ["../petstore-smithy-spec/petstore"],
   "maven": {
     "dependencies": [
       "com.jacoby6000:smithplates-plugin:0.1.0",

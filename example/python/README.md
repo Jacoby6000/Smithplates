@@ -5,26 +5,24 @@ Reference consumer project for Smithplates **SQL** and **HTTP** codegen with thi
 ## Layout
 
 ```
-example/python/
-  smithy/                  Smithy models in separate API and DB namespaces
-    api-types.smithy       HTTP API enums, errors, and value types (`petstore.api`)
-    api.smithy               HTTP operations and response shapes (`petstore.api`)
-    http-service.smithy      `@httpService` service (`petstore.api`)
-    db-types.smithy          SQL column/value types (`petstore.db`)
-    database.smithy          `@sqlTable` schema and `@sqlService` repositories (`petstore.db`)
-  smithy-build.json        Smithplates plugin configuration (sql + http)
-  openapi/                 Smithy → OpenAPI export + synced openapi.json
-    smithy-build.json      OpenAPI projection transforms + openapi plugin
-  build-generated.sh       Regenerate codegen from the repo root
-  db/migrations/           Versioned schema DDL (generated)
-  src/
-    generated/
-      api/                 Generated FastAPI routes, protocols, Pydantic models
-      client/              OpenAPI Generator asyncio Python client
-      db/                  Generated repository services
-    server/                Protocol adapters + app wiring
-  tests/                   Generated repository tests + API smoke tests
+example/
+  petstore-smithy-spec/    Shared Smithy model (`petstore/api/`, `petstore/db/`)
+  python/                  Python reference implementation (codegen + server)
+    smithy-build.json      Smithplates plugin configuration (sources → ../petstore-smithy-spec/petstore)
+    openapi/                 Smithy → OpenAPI export + synced openapi.json
+    build-generated.sh       Regenerate codegen from the repo root
+    db/migrations/           Versioned schema DDL (generated)
+    src/
+      generated/
+        api/                 Generated FastAPI routes, protocols, Pydantic models
+        client/              OpenAPI Generator asyncio Python client
+        db/                  Generated repository services
+      server/                Protocol adapters + app wiring
+    tests/                   Generated repository tests + API smoke tests
+  tests/                   Cross-language HTTP scenario suite
 ```
+
+Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) (not inside `python/`). Regeneration still writes into this tree via `smithy-build.json` `sourceOutputDir` / `testOutputDir` settings.
 
 ## Features demonstrated
 
@@ -32,7 +30,7 @@ example/python/
 |----------------|--------|
 | Separate API/DB Smithy namespaces | `petstore.api` (HTTP) and `petstore.db` (SQL); mapped in `src/server/repository_service.py` |
 | `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` in `petstore.db` |
-| `@httpService`, `@http`, `@tags` | `Petstore` service in `smithy/http-service.smithy` (`petstore.api`) |
+| `@httpService`, `@http`, `@tags` | `Petstore` service in [`petstore-smithy-spec/petstore/api/http-service.smithy`](../petstore-smithy-spec/petstore/api/http-service.smithy) (`petstore.api`) |
 | Smithy OpenAPI + OAG Python client | `openapi/smithy-build.json` → `src/generated/client/` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |
