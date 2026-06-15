@@ -1,10 +1,10 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
+import com.jacoby6000.smithplates.scalate.precompiler.ScalateTemplatePrecompiler
 import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateEngine
 
-import java.io.OutputStream
-import java.io.PrintStream
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
@@ -37,10 +37,7 @@ object ScalateSspTemplateEngine {
     val engine                 = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template               = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$templateUri",
-      _ =>
-        suppressCompilerOutput {
-          engine.load(templateUri)
-        }
+      _ => engine.load(templateUri)
     )
     val renderedBody           =
       normalizeRenderedOutput(
@@ -84,21 +81,28 @@ object ScalateSspTemplateEngine {
     val engine               = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template             = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$partialUri",
-      _ =>
-        suppressCompilerOutput {
-          engine.load(partialUri)
-        }
+      _ => engine.load(partialUri)
     )
     normalizeRenderedOutput(
       engine.layout(partialUri, template, toObjectMap(attributes))
     )
   }
 
+  /** Builds a template engine configured exactly like the runtime engine for ahead-of-time precompilation. Reusing this
+    * factory guarantees the precompiled class names (driven by `packagePrefix`, bindings and template URI) match what
+    * the runtime [[org.fusesource.scalate.TemplateEngine]] resolves.
+    */
+  def precompilationEngine(templateRoot: String): TemplateEngine = {
+    val normalized = normalizeTemplateRoot(templateRoot)
+    templateEngine(normalized, Some(normalized))
+  }
+
   private def templateEngine(normalizedTemplateRoot: String, templateRoot: Option[String]): TemplateEngine = {
-    val created = new TemplateEngine
+    val created = new ConfiguredTemplateEngine
     created.allowCaching = true
     created.allowReload = false
     created.escapeMarkup = false
+    created.packagePrefix = ScalateTemplatePrecompiler.packagePrefix(normalizedTemplateRoot)
     created.resourceLoader = new PreambleTemplateRootResourceLoader(
       getClass.getClassLoader,
       normalizedTemplateRoot,
@@ -183,14 +187,6 @@ object ScalateSspTemplateEngine {
       scala.io.Source.fromInputStream(stream, "UTF-8").mkString.stripTrailing()
     finally
       stream.close()
-  }
-
-  private def suppressCompilerOutput[T](action: => T): T = {
-    val previousErr = System.err
-    try {
-      System.setErr(new PrintStream(OutputStream.nullOutputStream()))
-      action
-    } finally System.setErr(previousErr)
   }
 
   private def normalizeRenderedOutput(output: String): String = {
