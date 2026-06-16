@@ -6,6 +6,7 @@ For projects that depend on Smithplates plugins via `smithy build`:
 
 - [Integration](usage/integration.md) — wire `smithplates` into `smithy-build.json` (schema DDL and SQL database service codegen paths)
 - [SQL plugin](usage/sql-plugin.md) — traits, SQL IR, service IR, and generated artifacts
+- HTTP service codegen — bundled Python/FastAPI generation is documented in [Integration](usage/integration.md) until a dedicated HTTP guide is split out
 
 ## [Contributing](contributing/)
 

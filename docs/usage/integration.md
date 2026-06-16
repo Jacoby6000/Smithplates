@@ -174,7 +174,7 @@ Each dialect object supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
-| `enable` | No | `false` | When `true`, render SQL IR to DDL and derived DML for this dialect |
+| `enable` | No | `false` | When `true`, render SQL IR to DDL migration files for this dialect and enable dialect-specific SQL service artifacts for configured language targets |
 | `migrationLocation` | When `enable` is `true` | — | Output directory for versioned migration `.sql` files (for example `db/migrations/sqlite`; initial schema is written as `v1_initial_schema.sql`) |
 
 ### `smithplates.sql.languageTargets`

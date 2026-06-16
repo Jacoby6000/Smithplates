@@ -6,7 +6,7 @@ Smithplates is an SBT multi-module project (**Scala 3.3.6**, strict compiler opt
 
 The Mermaid diagram below is generated from [`docs/reusable-components/architecture-pipeline.mmd`](../reusable-components/architecture-pipeline.mmd). Edit that component, then run `scripts/sync_reusable_components.py` to refresh embedded copies in this document and the repository [`README.md`](../../README.md).
 
-The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). SQL IR feeds the **schema and migrations** path directly. **SQL database service codegen** combines service IR with SQL IR, then renders target-language artifacts with Scalate SSP templates.
+The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). It also extracts **HTTP service IR** from `@httpService` models. SQL IR feeds the **schema and migrations** path directly. SQL and HTTP service codegen render target-language artifacts with Scalate SSP templates.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -17,15 +17,15 @@ flowchart TD
     SM --> SSP
 
     SSP --> SQLIR["SQL IR"]
+    SSP --> HTTPIR["HTTP service IR"]
 
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
         SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
         
-        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
-        DDL   -.-> Migration
-        SQLIR -.-> Migration
+        Migration["Generated target-language migration runners<br/>(Python SQLite/Postgres today)"]
+        DDL   --> Migration
     end
 
     subgraph services["SQL Database Service codegen"]
@@ -52,6 +52,15 @@ flowchart TD
         DerivedQueries --> TestImpl
 
     end
+
+    subgraph http["HTTP Service codegen"]
+        HTTPIR --> Routes["FastAPI route modules"]
+        HTTPIR --> Protocols["Target language service protocols"]
+        HTTPIR --> Problems["Problem+JSON error helpers"]
+        MT --> Routes
+        MT --> Protocols
+        MT --> Problems
+    end
 ```
 <!-- architecture-pipeline.mmd:end -->
 
@@ -63,6 +72,7 @@ flowchart TD
 | `smithplates` plugin | Orchestrates extraction and rendering | [`SmithplatesBuildPlugin`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/SmithplatesBuildPlugin.scala) |
 | SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
 | Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceExtractor.scala); `SqlServiceIr` |
+| HTTP service IR | `@httpService` service contracts, route grouping, response bindings, and problem details | `smithplates-http-ir`; HTTP traits and transforms |
 | SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
 | Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models.ssp` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums in versioned migration files | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) in the plugin; `smithplates.sql.<dialect>.migrationLocation` (directory) |
@@ -72,6 +82,7 @@ flowchart TD
 | Derived dialect-specific queries | INSERT, UPDATE, DELETE, and SELECT rendered per dialect from service IR, bound to service operations | `SqlServiceIr.queries`; service IR + SQL IR |
 | Dialect-specific implementations | Driver-specific `@sqlService` implementations | `service_aiosqlite.ssp`, `service_psycopg.ssp`; interfaces + derived queries + templates |
 | Test suite implementations | Pytest lifecycle tests for derived CRUD operations | `service_derived_sql_integration_tests*.ssp`; derived queries + templates + generated migration services |
+| HTTP service artifacts | FastAPI route modules, service protocols, app wiring, response helpers, and problem+json exceptions | `smithplates-http-service-renderer`; bundled `templates/python/src/http/` |
 
 Consumer configuration is documented in [Integration](../usage/integration.md): enabled dialects control DDL export and driver templates; `languageTargets` controls service codegen.
 
@@ -126,7 +137,7 @@ Model extraction and plugin settings validation use Cats **`ValidatedNel[SqlSche
 
 ### Rendering
 
-**Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/DDLStatement.scala) values keyed by Smithy shape id; dialect query renderers expose [`SqlRenderedQuery`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/query/renderer/SqlRenderedQuery.scala). [`DialectRenderers.render`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) composes DDL and query sections into exported `.sql` migration file text.
+**Schema and migrations:** dialect DDL renderers expose [`DDLStatement`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/DDLStatement.scala) values keyed by Smithy shape id. [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) writes the exported `.sql` migration file text. Derived service queries are rendered separately by SQL service codegen.
 
 **SQL database service codegen:** [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) combines service IR, SQL schema context, injected [`SqlQueryRenderer`](../../modules/smithplates-sql-service-query-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/query/renderer/SqlQueryRenderer.scala) instances, and Scalate SSP templates into target-language query models, interfaces, dialect-specific implementations, and test suites. Enabled dialect keys select placeholder style and driver templates.
 

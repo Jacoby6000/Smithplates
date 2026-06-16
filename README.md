@@ -6,7 +6,7 @@ This project was inspired by OpenAPI Generator and some of my work at Disney. Ou
 
 ## Architecture
 
-The `smithplates` plugin extracts **SQL IR** from the Smithy model, then fans out into **schema and migrations** artifacts and **SQL database service codegen**. SQL database service codegen combines **database services and operations IR** (from `@sqlService` contracts plus SQL IR) with **Scalate SSP templates** to produce target-language query models, interfaces, dialect-specific implementations, and test suites.
+The `smithplates` plugin extracts SQL and HTTP IR from the Smithy model, then fans out into schema migrations, SQL database service codegen, and HTTP service codegen. SQL database service codegen combines `@sqlService` contracts with SQL IR and Scalate SSP templates to produce target-language query models, interfaces, dialect-specific implementations, migration runners, and test suites. HTTP service codegen uses `@httpService` contracts and bundled FastAPI templates to produce route modules, service protocols, app wiring, and problem+json helpers.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -17,15 +17,15 @@ flowchart TD
     SM --> SSP
 
     SSP --> SQLIR["SQL IR"]
+    SSP --> HTTPIR["HTTP service IR"]
 
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
         SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
         
-        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
-        DDL   -.-> Migration
-        SQLIR -.-> Migration
+        Migration["Generated target-language migration runners<br/>(Python SQLite/Postgres today)"]
+        DDL   --> Migration
     end
 
     subgraph services["SQL Database Service codegen"]
@@ -52,6 +52,15 @@ flowchart TD
         DerivedQueries --> TestImpl
 
     end
+
+    subgraph http["HTTP Service codegen"]
+        HTTPIR --> Routes["FastAPI route modules"]
+        HTTPIR --> Protocols["Target language service protocols"]
+        HTTPIR --> Problems["Problem+JSON error helpers"]
+        MT --> Routes
+        MT --> Protocols
+        MT --> Problems
+    end
 ```
 <!-- architecture-pipeline.mmd:end -->
 
@@ -66,16 +75,15 @@ higher quality output than the AI would output on its own.
 
 ## What works today
 
-The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build plugin. From a given Smithy specification it emits artifacts along two paths (see [Architecture](#architecture)):
+The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build plugin. From a given Smithy specification it emits schema, SQL service, and HTTP service artifacts (see [Architecture](#architecture)):
 
 | Path | Output | Supported today | Mechanism |
 |------|--------|-----------------|-----------|
 | **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite | SQL IR → dialect renderers |
-| **Schema and migrations** | Derived DML in DDL `-- Queries` section | Postgres, SQLite | SQL IR → dialect renderers; basic SELECT/INSERT/UPDATE/DELETE from derive traits |
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
-| **Schema and migrations** | Per-language migration engines | — | Planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2)) |
-| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
-| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + SSP templates (migration engine planned ([#2](https://github.com/Jacoby6000/Smithplates/issues/2))) |
+| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations, and migration runners | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
+| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + generated migration runners + SSP templates |
+| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, response helpers, and problem+json errors | Python | HTTP IR + SSP templates under [`templates/`](templates/) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
@@ -84,9 +92,9 @@ implementations without overwriting any generated outputs.  These tools never ou
 
 ## Where it is headed
 
-- **HTTP / Smithy Spec aligned service stubs** and server integrations
 - **Additional languages** beyond Python (each with its own `languageTargets` entry and template bundle)
 - **More database backends and access patterns** (sync/async drivers, connection pooling conventions, alternate placeholder styles)
+- **Diff-based incremental migrations** beyond the current generated initial schema files and runtime migration runners
 - **Support for unsupported languages** even if this tool does not support your language, you can define your own templates to add your own support.  Contribute it back to our repo if you do!
 
 
@@ -97,7 +105,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 | **Users** (consume plugins in your Smithy project) | [`docs/usage/`](docs/usage/) |
 | **Contributors** (develop Smithplates) | [`docs/contributing/`](docs/contributing/) |
 
-**Usage:** [Integration](docs/usage/integration.md) · [SQL plugin](docs/usage/sql-plugin.md)
+**Usage:** [Integration](docs/usage/integration.md) · [SQL plugin](docs/usage/sql-plugin.md) · HTTP service codegen coverage is currently in [Integration](docs/usage/integration.md)
 
 **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Integration tests](docs/contributing/integration-tests.md)
 

@@ -5,15 +5,15 @@ flowchart TD
     SM --> SSP
 
     SSP --> SQLIR["SQL IR"]
+    SSP --> HTTPIR["HTTP service IR"]
 
 
     subgraph schema["Schema and migrations"]
         SQLIR --> DDL["Dialect-specific DDL"]
         SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
         
-        Migration["Target language database migration engine<br/>(TODO: [#2](https://github.com/Jacoby6000/Smithplates/issues/2))"]
-        DDL   -.-> Migration
-        SQLIR -.-> Migration
+        Migration["Generated target-language migration runners<br/>(Python SQLite/Postgres today)"]
+        DDL   --> Migration
     end
 
     subgraph services["SQL Database Service codegen"]
@@ -39,4 +39,13 @@ flowchart TD
         MT             --> TestImpl
         DerivedQueries --> TestImpl
 
+    end
+
+    subgraph http["HTTP Service codegen"]
+        HTTPIR --> Routes["FastAPI route modules"]
+        HTTPIR --> Protocols["Target language service protocols"]
+        HTTPIR --> Problems["Problem+JSON error helpers"]
+        MT --> Routes
+        MT --> Protocols
+        MT --> Problems
     end

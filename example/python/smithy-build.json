@@ -3,9 +3,7 @@
   "sources": ["../petstore-smithy-spec/petstore"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:[[0minfo[0m] entering *experimental* thin client - BEEP WHIRR",
-      "com.jacoby6000:smithplates-sql-ir:[[0minfo[0m] entering *experimental* thin client - BEEP WHIRR",
-      "com.jacoby6000:smithplates-sql-service-ir:[[0minfo[0m] entering *experimental* thin client - BEEP WHIRR"
+      "com.jacoby6000:smithplates-plugin:0.1.0+0-bf525302+20260615-2003-SNAPSHOT"
     ]
   },
   "plugins": {

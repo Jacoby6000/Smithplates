@@ -86,7 +86,7 @@ db/
   <implementation>/tests/…        → <testOutputDir>/db/<implementation>/test_*.py
 ```
 
-`dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` in generated Python; `$1`, `$2`, … in migration `-- Queries` SQL).
+`dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` placeholders in generated Python service implementations). Build-time migration files contain dialect DDL.
 
 ### Python row mapping (Postgres vs SQLite)
 
