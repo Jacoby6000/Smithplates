@@ -15,16 +15,16 @@ flowchart TD
     subgraph transform["Smithy Model Transformation"]
         SM["Smithy model"]
         SSP["smithplates-plugin"]
-        HTTPProblem["HTTP problem transform"]
+        ModelTransforms["Model transformations"]
         SQLIR["SQL schema IR"]
         SVCIR["SQL service/query IR"]
         HTTPIR["HTTP service IR"]
 
         SM --> SSP
-        SSP --> HTTPProblem
-        HTTPProblem --> SQLIR
+        SSP --> ModelTransforms
+        ModelTransforms --> SQLIR
         SQLIR --> SVCIR
-        HTTPProblem --> HTTPIR
+        ModelTransforms --> HTTPIR
     end
 
     subgraph sql["SQL Rendering"]
