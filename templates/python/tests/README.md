@@ -38,7 +38,7 @@ HTTP golden cases use `@httpService` services and `smithplates.http.<language>.s
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
-  smithy-build.json                # http.python.server + smithplates-plugin maven dep
+  smithy-build.json                # http.python.server config; no maven block in golden fixtures
   expected/
     src/api/app_factory.py
     src/api/app_services.py
@@ -88,4 +88,4 @@ Lint and run pytest against golden `expected/` trees:
 ./language-test-harnesses/python/run-tests.sh
 ```
 
-Postgres variants require Docker. See [`language-test-harnesses/python/README.md`](../../language-test-harnesses/python/README.md).
+Postgres variants require Docker. See [`language-test-harnesses/python/README.md`](../../../language-test-harnesses/python/README.md).

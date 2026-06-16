@@ -1,6 +1,6 @@
 # Templates
 
-Bundled Scalate SSP templates and golden expected outputs for `@sqlService` codegen.
+Bundled Scalate SSP templates and golden expected outputs for Smithplates SQL and HTTP service codegen.
 
 ## Layout
 
@@ -8,9 +8,9 @@ Bundled Scalate SSP templates and golden expected outputs for `@sqlService` code
 templates/
   <language>/                 # e.g. python
     src/
-      <feature>/              # e.g. db
+      <feature>/              # e.g. db, http
         <feature-templates>   # models.ssp, service_protocol.ssp, …
-        <implementation>/     # e.g. sqlite/, postgres/
+        <implementation>/     # e.g. sqlite/, postgres/, fastapi/
           <impl-templates>
           tests/
         fragments/            # reusable SSP snippets for this feature
@@ -19,18 +19,25 @@ templates/
         smithy/smithy-files.smithy
         smithy-build.json
         expected/
-          db/<dialect>.sql    # golden migration DDL (when dialect enabled)
+          db/migrations/<dialect>/...
           src/<feature>/…     # golden generated src artifacts
           test/<feature>/…    # golden generated test artifacts
 ```
 
-Bundled Python DB templates are packaged from `templates/python/src/db/` into the plugin JAR and loaded via default `classpath:` during `smithy build`. Golden tests compare rendered output against files under `templates/python/tests/<test-case>/expected/`.
+Bundled Python templates are packaged from `templates/python/src/db/` and `templates/python/src/http/` into published renderer jars and loaded via default `classpath:` during `smithy build`. Golden tests compare rendered output against files under `templates/python/tests/<test-case>/expected/`.
+
+## Bundled Python service types
+
+| Service type | Template root | Generated output |
+|--------------|---------------|------------------|
+| SQL DB | `templates/python/src/db/` | DB models, repository protocols, SQLite/Postgres implementations, migration services, transaction helpers, and generated DB tests |
+| HTTP API | `templates/python/src/http/` | FastAPI route modules, route-group protocols, app wiring, response helpers, problem detail helpers, and API models |
 
 ## Contributing
 
-- Edit SSP sources under `templates/python/src/db/` (not under `modules/smithplates-sql-service-renderer/src/main/resources/`).
+- Edit SSP sources under `templates/python/src/db/` or `templates/python/src/http/` (not under renderer module resources).
 - Refresh golden expectations under `templates/python/tests/<test-case>/expected/` when intentional output changes.
 - Run `./scripts/run-template-golden-tests.sh` after template changes (golden render comparison).
 - Run `./language-test-harnesses/python/run-linters.sh` and `./language-test-harnesses/python/run-tests.sh` after template changes.
 
-See [`templates/python/tests/README.md`](python/tests/README.md) for golden-test case conventions.
+See [`templates/python/tests/README.md`](python/tests/README.md) for golden-test case conventions and [`docs/contributing/template-authoring.md`](../docs/contributing/template-authoring.md) for contributor workflow details.

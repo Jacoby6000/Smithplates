@@ -1,10 +1,12 @@
 # smithplates-plugin
 
-Scala/SBT Smithy build plugin that extracts **SQL IR** from a Smithy model, renders dialect-specific DDL and schema integration tests, and runs **SQL database service codegen** by combining service IR, SQL IR, and Scalate SSP templates into target-language repository artifacts and integration tests. See the [codegen pipeline](../docs/contributing/architecture.md) for the full architecture.
+Scala/SBT Smithy build plugin that extracts SQL and HTTP IR from a Smithy model, renders dialect-specific SQL DDL, runs SQL database service codegen, and runs HTTP service codegen. SQL codegen combines service IR, SQL IR, and Scalate SSP templates into target-language repository artifacts and integration tests. HTTP codegen combines `@httpService` IR and Scalate SSP templates into FastAPI route modules, protocols, app wiring, response helpers, and problem detail helpers. See the [codegen pipeline](../../docs/contributing/architecture.md) for the full architecture.
 
 ## Traits
 
-Smithy trait IDL is packaged into the published plugin JAR from [`../smithplates-sql-ir/`](../smithplates-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`) and [`../smithplates-sql-service-ir/`](../smithplates-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`). Overview: [`docs/usage/sql-plugin.md`](../docs/usage/sql-plugin.md).
+Smithy trait IDL is packaged into the published plugin JAR from [`../smithplates-sql-ir/`](../smithplates-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`), [`../smithplates-sql-service-ir/`](../smithplates-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`), and [`../smithplates-http-ir/`](../smithplates-http-ir/) (`META-INF/smithy/smithplates.codegen.http.smithy`). User overviews: [`docs/usage/sql-plugin.md`](../../docs/usage/sql-plugin.md) and [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md).
+
+### SQL traits
 
 | Trait | Target | Maps to |
 |-------|--------|---------|
@@ -29,6 +31,14 @@ Smithy trait IDL is packaged into the published plugin JAR from [`../smithplates
 | `@sqlAutoUuid` | `member` | Database-generated UUID (implies `@sqlUuid`); omit from inserts; include PK on updates |
 | `@sqlCreatedTimestamp` | `member` | Set on insert; omit from insert/update inputs |
 | `@sqlUpdatedTimestamp` | `member` | Set on insert/update; omit from insert/update inputs |
+
+### HTTP traits
+
+| Trait | Target | Maps to |
+|-------|--------|---------|
+| `@httpService(serialization: HttpSerializationFormat = "json")` | `service` | HTTP API service selected for Smithplates HTTP codegen |
+| `@httpStaticHeader(name: String, value: String)` | `structure` | Fixed response header binding for generated HTTP output handling |
+| `@httpProblem(type: String = "about:blank", title: String, detail: String?, code: Integer?)` | `structure[trait|error]` | RFC 9457 problem detail exception and response handling; `code` implies `@httpError` |
 
 `Document` and `Blob` members map to JSON and binary columns respectively. Smithy `enum` shapes map to `SqlColumnType.StringEnum` (Postgres `CREATE TYPE … AS ENUM`, SQLite `TEXT` with `CHECK`); `intEnum` maps to `SqlColumnType.IntEnum` (integer column with `CHECK` on allowed values). Lists, maps, and nested structures require `@sqlJson` on the member to store as JSON.
 
@@ -163,7 +173,10 @@ Tests load the same packaged traits via `SqlTestModelLoader` from the compile cl
 | `com.jacoby6000.smithplates.sql.ddl.renderer.postgres` | Postgres column types |
 | `com.jacoby6000.smithplates.sql.service.codegen` | Resolved operation queries (`SqlOperationQueryResolver`, `smithplates-sql-service-ir`) |
 | `com.jacoby6000.smithplates.sql.service.renderer` | Scalate SSP rendering for `@sqlService` interface/model codegen (`smithplates-sql-service-renderer`) |
-| `com.jacoby6000.smithplates.plugin` | `smithplates` Smithy build plugin (SQL schema export and service codegen) |
+| `com.jacoby6000.smithplates.http` | HTTP IR extraction, traits, warnings, and projection transforms (`smithplates-http-ir`) |
+| `com.jacoby6000.smithplates.http.service.renderer` | Scalate SSP rendering for `@httpService` FastAPI codegen (`smithplates-http-service-renderer`) |
+| `com.jacoby6000.smithplates.scalate.precompiler` | Shared Scalate template precompilation support (`smithplates-scalate-precompiler`) |
+| `com.jacoby6000.smithplates.plugin` | `smithplates` Smithy build plugin (SQL schema export, SQL service codegen, and HTTP service codegen) |
 
 Dialect renderer tests live under `sqlite` and `postgres` test packages (`SqliteRendererSpec`, `PostgresRendererSpec`).
 
@@ -175,7 +188,7 @@ The **schema and migrations** path renders SQL IR to dialect-specific DDL and wr
 
 ## SQL database service codegen
 
-**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
@@ -218,13 +231,19 @@ Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and pla
 
 See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`CodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (`python/db/sqlite`, `python/db/postgres`, and `python/api/fastapi` variants). Fixture layout and conventions: [`templates/python/tests/README.md`](../../templates/python/tests/README.md).
 
+## HTTP service codegen
+
+**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, response helpers, exceptions, and models) is configured under `smithplates.http.<language>.server` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders bundled Python/FastAPI templates from [`../../templates/python/src/http/`](../../templates/python/src/http/).
+
+HTTP golden cases live under `templates/python/tests/http-fastapi-*` and run through the same `CodegenTemplateTestSuite` as SQL service codegen. Runtime example coverage lives in the Python petstore reference and shared HTTP example tests.
+
 ### Python validation
 
 Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"` or `./scripts/run-template-golden-tests.sh`). Golden **execution** (strict **mypy**, **ruff**, **pytest -m integration**) runs via [`language-test-harnesses/python/`](../../language-test-harnesses/python/) against `templates/python/tests/<case>/expected/`. Postgres integration tests spin up `postgres:16-alpine` via `testcontainers[postgres]` (requires Docker). SQLite integration tests use in-memory `aiosqlite`. Requires `uv` on `PATH`.
 
 ## Smithy integration
 
-Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). Use the version from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate:
+Register in `smithy-build.json` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). Use the version from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate:
 
 ```json
 "maven": {
