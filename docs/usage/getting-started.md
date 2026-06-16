@@ -178,7 +178,7 @@ structure HealthCheckOutput {
 
 ### HTTP output
 
-With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers, and Python API models under `src/generated/api/`.
+With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers under `src/generated/http/server/`, and shared Pydantic models under `src/generated/http/models/`.
 
 ## Using SQL and HTTP together
 

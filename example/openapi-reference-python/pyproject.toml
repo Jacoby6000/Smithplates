@@ -1,0 +1,28 @@
+[project]
+name = "petstore-openapi-reference-client"
+version = "0.1.0"
+description = "OpenAPI Generator reference client for the petstore HTTP contract"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.11",
+    "aiohttp-retry>=2.9",
+    "httpx>=0.28",
+    "pydantic>=2.10",
+    "python-dateutil>=2.9",
+    "urllib3>=2.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/generated/**" = ["E501", "F821"]

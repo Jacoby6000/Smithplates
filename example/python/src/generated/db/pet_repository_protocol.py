@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from pet_repository_models import (
+from generated.db.model.pet_repository_models import (
     Category,
     Owner,
     PetHighlight,

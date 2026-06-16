@@ -24,8 +24,8 @@ class CodegenTemplateTestSuite extends FunSuite {
   override val munitTimeout = 120.seconds
 
   private val variants: Set[CodegenTemplateVariant] = Set(
-    CodegenTemplateVariant("python", "api", "fastapi"),
-    CodegenTemplateVariant("python", "api_client", "httpx"),
+    CodegenTemplateVariant("python", "http", "server"),
+    CodegenTemplateVariant("python", "http", "client"),
     CodegenTemplateVariant("python", "db", "sqlite"),
     CodegenTemplateVariant("python", "db", "postgres")
   )

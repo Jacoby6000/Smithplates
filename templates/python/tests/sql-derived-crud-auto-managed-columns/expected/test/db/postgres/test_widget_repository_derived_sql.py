@@ -7,12 +7,12 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from psycopg_migrations import PsycopgMigrationService
-from testcontainers.postgres import PostgresContainer
-from widget_repository_models import (
+from generated.db.model.widget_repository_models import (
     Widget,
 )
-from widget_repository_psycopg import WidgetRepositoryPsycopgService
+from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
+from generated.db.postgres.widget_repository_psycopg import WidgetRepositoryPsycopgService
+from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 

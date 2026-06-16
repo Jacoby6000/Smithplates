@@ -12,7 +12,7 @@ import java.nio.file.Files
   * classes on the classpath must be loaded instead of being recompiled.
   */
 class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
-  private val templateRoot = PythonTemplateNamespaces.Db
+  private val templateRoot = "python/src/db"
 
   private def dbTemplateDirectory: File =
     Option(getClass.getResource(s"/$templateRoot"))

@@ -4,13 +4,13 @@ from __future__ import annotations
 from typing import override
 
 import psycopg
-from bookmark_repository_models import (
+from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.model.bookmark_repository_models import (
     Bookmark,
 )
-from bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.postgres.psycopg_transaction_run import run
 from psycopg.rows import class_row
 from psycopg.types.string import TextLoader
-from psycopg_transaction_run import run
 
 
 class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg.AsyncTransaction]):

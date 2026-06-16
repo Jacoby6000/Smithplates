@@ -11,7 +11,7 @@ from typing import TypedDict
 from datetime import datetime
 <% } %>
 <% for (typeName <- importTypeNames) { %>
-from ${modelsPackageName(packageName)}.${snakeCase(typeName)} import ${typeName}
+from ${packageName}.${snakeCase(typeName)} import ${typeName}
 <% } %>
 
 

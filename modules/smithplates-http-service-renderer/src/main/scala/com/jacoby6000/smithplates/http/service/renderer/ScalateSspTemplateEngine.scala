@@ -10,20 +10,37 @@ import org.fusesource.scalate.TemplateEngine
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
-  private val compiledTemplateCache                                          = new ConcurrentHashMap[String, Template]()
+  private val compiledTemplateCache             = new ConcurrentHashMap[String, Template]()
+  private val CommonPreambleClasspath           = "python/src/common/fragments/preamble.ssp"
+  private val SharedHttpNamingPreambleClasspath = "python/src/http/fragments/naming/preamble.ssp"
+
   private def contextBindingPreamble(normalizedTemplateRoot: String): String = {
     val commonPreamble     =
-      readClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("")
+      readClasspathTemplate(CommonPreambleClasspath).getOrElse("")
     val sharedHttpPreamble =
-      if (PythonTemplateNamespaces.isHttpCodegenTemplateRoot(normalizedTemplateRoot)) {
-        readClasspathTemplate(PythonTemplateNamespaces.sharedHttpNamingPreambleClasspath).getOrElse("")
+      if (isHttpCodegenTemplateRoot(normalizedTemplateRoot)) {
+        readClasspathTemplate(SharedHttpNamingPreambleClasspath).getOrElse("")
       } else {
         ""
       }
     val featurePreamble    =
-      readClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot))
+      readClasspathTemplate(namingPreambleClasspath(normalizedTemplateRoot))
         .getOrElse("")
     commonPreamble + sharedHttpPreamble + featurePreamble
+  }
+
+  private def namingPreambleClasspath(templateRoot: String): String = {
+    val normalized = templateRoot.stripPrefix("/").stripSuffix("/")
+    s"$normalized/fragments/naming/preamble.ssp"
+  }
+
+  private def isHttpCodegenTemplateRoot(normalizedTemplateRoot: String): Boolean = {
+    val segments = normalizedTemplateRoot.split("/").toList.filter(_.nonEmpty)
+    segments match {
+      case "python" :: "src" :: "http" :: ("server" | "client" | "models") :: _         => true
+      case "templates" :: _ :: "src" :: "http" :: ("server" | "client" | "models") :: _ => true
+      case _                                                                            => false
+    }
   }
 
   private def readClasspathTemplate(resourcePath: String): Option[String] =
@@ -133,11 +150,11 @@ object ScalateSspTemplateEngine {
     val segments   = normalized.split("/").toList
     segments match {
       case "python" :: "src" :: "http" :: "server" :: _                =>
-        PythonTemplateNamespaces.HttpServer
+        "python/src/http/server"
       case "python" :: "src" :: "http" :: "client" :: _                =>
-        PythonTemplateNamespaces.HttpClient
+        "python/src/http/client"
       case "python" :: "src" :: "http" :: "models" :: _                =>
-        PythonTemplateNamespaces.HttpModels
+        "python/src/http/models"
       case "python" :: "src" :: feature :: _                           =>
         s"python/src/$feature"
       case "templates" :: language :: "src" :: "http" :: "server" :: _ =>

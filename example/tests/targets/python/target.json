@@ -1,6 +1,6 @@
 {
   "name": "python",
-  "description": "Python petstore reference server and generated OpenAPI client case runner.",
+  "description": "Python petstore reference server and generated Smithplates httpx client case runner.",
   "server": {
     "start": "start-server.sh"
   },

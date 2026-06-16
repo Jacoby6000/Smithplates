@@ -1,11 +1,11 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <% render("fragments/helpers/table_model_imports", Map("ctx" -> ctx)) %><% if (ctx.operationResultModels.nonEmpty) { %>
-from ${serviceModuleBaseName(ctx.serviceName)}_protocol import (
+from ${qualifiedModule(ctx.packageName, protocolModulePath(ctx.serviceName))} import (
 <% for (model <- ctx.operationResultModels) { %>
     ${model.name},
 <% } %>
     ${serviceProtocolName(ctx.serviceName)},
 )
 <% } else { %>
-from ${serviceModuleBaseName(ctx.serviceName)}_protocol import ${serviceProtocolName(ctx.serviceName)}
+from ${qualifiedModule(ctx.packageName, protocolModulePath(ctx.serviceName))} import ${serviceProtocolName(ctx.serviceName)}
 <% } %>

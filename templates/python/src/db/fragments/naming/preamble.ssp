@@ -11,6 +11,31 @@ def operationMethodName(operationName: String): String =
 def serviceModuleBaseName(serviceName: String): String =
   snakeCase(serviceName)
 
+def qualifiedModule(packageName: String, relativeModulePath: String): String = {
+  val suffix = relativeModulePath.stripPrefix("/").split("/").filter(_.nonEmpty).mkString(".")
+  s"$packageName.$suffix"
+}
+
+def protocolModulePath(serviceName: String): String =
+  s"${serviceModuleBaseName(serviceName)}_protocol"
+
+def modelsModulePath(serviceName: String): String =
+  s"model/${serviceModuleBaseName(serviceName)}_models"
+
+def migrationServiceModulePath(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "sqlite/sqlite_migrations"
+    case "postgres" => "postgres/psycopg_migrations"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
+def migrationServiceClassName(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "SqliteMigrationService"
+    case "postgres" => "PsycopgMigrationService"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
 def serviceProtocolName(serviceName: String): String =
   s"${serviceName}ServiceProtocol"
 

@@ -1,5 +1,5 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-from ${serviceModuleBaseName(ctx.serviceName)}_models import (
+from ${qualifiedModule(ctx.packageName, modelsModulePath(ctx.serviceName))} import (
 <% for (model <- ctx.models) { %>
     ${model.name},
 <% } %>

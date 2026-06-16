@@ -7,15 +7,15 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from order_repository_models import (
+from generated.db.model.order_repository_models import (
     FulfillmentState,
     OrderLine,
 )
-from order_repository_protocol import (
+from generated.db.order_repository_protocol import (
     GetOrderRecordResult,
     OrderRepositoryServiceProtocol,
 )
-from sqlite_transaction_run import run
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.Connection]):

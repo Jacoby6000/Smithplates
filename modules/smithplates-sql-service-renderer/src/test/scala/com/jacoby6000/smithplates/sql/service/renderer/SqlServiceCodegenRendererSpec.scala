@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
@@ -84,6 +85,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         namespace = "example",
         version = "1",
         dialectKey = "sqlite",
+        packageName = "generated.db",
         queryRenderer = Some(queryRenderer),
         bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
         hasSqlOperations = true,
@@ -145,14 +147,16 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     val extraction = SqlModelExtractor.extractOrThrow(model)
     val settings   =
       SqlServiceCodegenSettings(
-        templateDirectory = PythonTemplateNamespaces.bundledDbTemplateDirectory,
+        templateDirectory = "classpath:python/src/db",
         defaultDialectKey = SqlServiceCodegenSettings.SharedDialectKey,
         enabledDialectKeys = Nil,
         queryRenderers = Map.empty,
         schemaDdlRenderers = Map.empty,
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = SqlServiceCodegenDbArtifacts.shared
+        artifacts = SqlServiceCodegenDbArtifacts.shared,
+        outputPrefix = TemplateOutputPrefix.fromTemplateDirectory("classpath:python/src/db"),
+        packageName = "generated.db"
       )
 
     val artifacts =

@@ -5,7 +5,7 @@
   ],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:0.1.0+0-bf525302+20260615-2003-SNAPSHOT"
+      "com.jacoby6000:smithplates-plugin:0.1.1+14-a227e8b8+20260616-1004-SNAPSHOT"
     ]
   },
   "plugins": {
@@ -21,14 +21,20 @@
             "migrationLocation": "db/migrations/postgres"
           },
           "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          "testOutputDir": "tests",
+          "rootNamespace": "generated"
         },
         "http": {
+          "rootNamespace": "generated",
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
-            "packageName": "generated.petstore_api"
+            "testOutputDir": "tests"
+          },
+          "client": {
+            "httpLibrary": "httpx",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests"
           }
         }
       }

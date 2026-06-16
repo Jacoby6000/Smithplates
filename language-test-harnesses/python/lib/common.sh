@@ -33,7 +33,7 @@ configure_case_env() {
   local impl="$2"
   local test_dir="$3"
 
-  export PYTHONPATH="${db_root}/model:${db_root}:${db_root}/${impl}"
+  export PYTHONPATH="$(dirname "${db_root}")"
   export PYTHONDONTWRITEBYTECODE=1
   local mypy_path="${PYTHONPATH}"
   if [[ -d "${test_dir}/stubs" ]]; then

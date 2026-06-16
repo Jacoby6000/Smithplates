@@ -37,4 +37,3 @@ render() {
 }
 
 render "${example_root}/smithy-build.json.template" "${example_root}/smithy-build.json"
-render "${example_root}/openapi/smithy-build.json.template" "${example_root}/openapi/smithy-build.json"

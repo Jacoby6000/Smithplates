@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
   private val compiledTemplateCache      = new ConcurrentHashMap[String, Template]()
+  private val CommonPreambleClasspath    = "python/src/common/fragments/preamble.ssp"
   private val baseContextBindingPreamble =
     """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithplates.sql.service.renderer.ScalateTemplateHelpers.isTruthy(value) %>
 """
@@ -114,9 +115,13 @@ object ScalateSspTemplateEngine {
   private def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
     val _ = templateRoot
     baseContextBindingPreamble +
-      readOptionalClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("") +
-      readOptionalClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot))
-        .getOrElse("")
+      readOptionalClasspathTemplate(CommonPreambleClasspath).getOrElse("") +
+      readOptionalClasspathTemplate(namingPreambleClasspath(normalizedTemplateRoot)).getOrElse("")
+  }
+
+  private def namingPreambleClasspath(templateRoot: String): String = {
+    val normalized = templateRoot.stripPrefix("/").stripSuffix("/")
+    s"$normalized/fragments/naming/preamble.ssp"
   }
 
   private def readOptionalClasspathTemplate(resourcePath: String): Option[String] =

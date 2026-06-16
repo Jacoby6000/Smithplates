@@ -8,15 +8,15 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from pet_repository_models import (
+from generated.db.model.pet_repository_models import (
     PetHighlight,
     PetTags,
 )
-from pet_repository_protocol import (
+from generated.db.pet_repository_protocol import (
     GetPetRecordResult,
 )
-from pet_repository_psycopg import PetRepositoryPsycopgService
-from psycopg_migrations import PsycopgMigrationService
+from generated.db.postgres.pet_repository_psycopg import PetRepositoryPsycopgService
+from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"

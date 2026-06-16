@@ -2,9 +2,9 @@ package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
+import com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateSource
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenArtifactConfig
-import com.jacoby6000.smithplates.http.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
@@ -13,16 +13,13 @@ object HttpLanguageTargetTemplateValidator {
   val bundledLanguageIds: Set[String] = Set("python")
 
   def defaultServerTemplateDirectory(languageId: String): String =
-    languageId match {
-      case "python" => PythonTemplateNamespaces.bundledHttpServerTemplateDirectory
-      case other    => s"classpath:templates/$other/src/http/server"
-    }
+    defaultTemplateDirectory(languageId, "http/server")
 
   def defaultClientTemplateDirectory(languageId: String): String =
-    languageId match {
-      case "python" => PythonTemplateNamespaces.bundledHttpClientTemplateDirectory
-      case other    => s"classpath:templates/$other/src/http/client"
-    }
+    defaultTemplateDirectory(languageId, "http/client")
+
+  def defaultModelsTemplateDirectory(languageId: String): String =
+    defaultTemplateDirectory(languageId, "http/models")
 
   def resolveServerTemplateDirectory(target: HttpServerTarget, languageId: String): String =
     target.templateDirectory.getOrElse(defaultServerTemplateDirectory(languageId))
@@ -48,7 +45,7 @@ object HttpLanguageTargetTemplateValidator {
         languageId = languageId,
         defaultTemplateDirectory = resolveServerTemplateDirectory(target, languageId),
         artifacts = HttpServiceCodegenApiArtifacts
-          .forEnabledFrameworks(List(target.webFramework), List("placeholder"))
+          .forEnabledFrameworks(List(target.webFramework), List("placeholder"), emitModels = true)
       )
     }
   }
@@ -76,6 +73,12 @@ object HttpLanguageTargetTemplateValidator {
     }
   }
 
+  private def defaultTemplateDirectory(languageId: String, relativePath: String): String =
+    languageId match {
+      case "python" => s"classpath:$languageId/src/$relativePath"
+      case other    => s"classpath:templates/$other/src/$relativePath"
+    }
+
   private def validateRequiredArtifactsExist(
       languageId: String,
       defaultTemplateDirectory: String,
@@ -84,7 +87,7 @@ object HttpLanguageTargetTemplateValidator {
     val missingTemplates =
       artifacts
         .map { artifact =>
-          val templateDirectory = artifact.templateDirectoryOverride.getOrElse(defaultTemplateDirectory)
+          val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, artifact)
           (templateDirectory, artifact.template)
         }
         .distinct
@@ -105,6 +108,16 @@ object HttpLanguageTargetTemplateValidator {
       )
     }
   }
+
+  private def resolvedArtifactTemplateDirectory(
+      languageId: String,
+      defaultTemplateDirectory: String,
+      artifact: HttpServiceCodegenArtifactConfig
+  ): String =
+    artifact.templateSource match {
+      case HttpCodegenTemplateSource.Service => defaultTemplateDirectory
+      case HttpCodegenTemplateSource.Models  => defaultModelsTemplateDirectory(languageId)
+    }
 
   private def classpathResourcePath(templateDirectory: String, template: String): String = {
     val baseDirectory      = templateDirectory.stripPrefix("classpath:").stripSuffix("/")

@@ -12,8 +12,8 @@ It demonstrates:
 - SQL schema DDL generation for SQLite and Postgres;
 - Python DB model, repository protocol, dialect implementation, migration service, and generated test output;
 - Python/FastAPI HTTP route and service protocol generation;
-- OpenAPI export from Smithy HTTP models;
-- generated Python client code from OpenAPI;
+- Smithplates httpx HTTP client generation from the same `@httpService` model;
+- optional OpenAPI Generator reference client under `example/openapi-reference-python/`;
 - hand-written adapters that map API models to database models.
 
 ## Regenerate artifacts
@@ -24,7 +24,7 @@ From the example directory:
 ./build-generated.sh
 ```
 
-The script runs Smithy build steps, synchronizes generated output from `build/smithy/source/smithplates/`, exports OpenAPI, and runs OpenAPI Generator for the client path.
+The script runs Smithy build steps and synchronizes generated output from `build/smithy/source/smithplates/` (SQL, HTTP server, and HTTP client). OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`.
 
 ## Runtime shape
 
@@ -44,10 +44,10 @@ Use this as the reference pattern for combining SQL and HTTP codegen in one appl
 |------|---------|
 | `example/python/smithy-build.json.template` | Source template for the Smithplates SQL and HTTP plugin config. |
 | `example/python/smithy-build.json` | Rendered config with the current local or published plugin version. |
-| `example/python/openapi/smithy-build.json.template` | Source template for OpenAPI export. |
-| `example/python/build-generated.sh` | End-to-end regeneration script. |
+| `example/openapi-reference-python/` | OpenAPI export + OpenAPI Generator reference client. |
+| `example/python/build-generated.sh` | End-to-end regeneration script for the Python reference. |
 | `example/python/src/server/` | Hand-written app wiring and protocol implementations. |
-| `example/python/src/generated/` | Generated API, DB, and client output. |
+| `example/python/src/generated/` | Generated API, HTTP client, and DB output. |
 | `example/python/tests/` | Generated DB tests plus example API tests. |
 
 ## Typical workflow

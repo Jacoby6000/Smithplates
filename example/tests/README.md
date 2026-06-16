@@ -16,6 +16,7 @@ Examples:
 
 ```bash
 ./run-tests.sh python python
+./run-tests.sh openapi-reference-python python
 ./run-tests.sh python python health-check
 ```
 
@@ -122,9 +123,16 @@ responses, and exit non-zero on failure.
 Optional `target.json` documents the target for tooling.
 
 The Python target (`targets/python/`) boots the FastAPI server via `uvicorn` and
-executes cases through the generated OpenAPI Python client
-(`petstore_client.DefaultApi`). Other languages should implement the same script
-contract with their generated client or raw HTTP libraries.
+executes cases through the generated Smithplates httpx client (`generated.http.client` with
+`parse_client_response` and `OPERATION_HTTP_BINDINGS`).
+
+The OpenAPI reference target (`targets/openapi-reference-python/`) is client-only:
+it runs the same cases through OpenAPI Generator's `petstore_client.DefaultApi`
+against any compatible server target (typically `python`). Use it to compare
+behavior with the Smithplates client when investigating HTTP binding bugs.
+
+Other languages should implement the same script contract with their generated
+client or raw HTTP libraries.
 
 ## Cases
 

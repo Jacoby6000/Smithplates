@@ -22,5 +22,8 @@ uv run pytest tests/db/sqlite -m "integration and sqlite"
 echo "==> example/python pytest (postgres integration)"
 uv run pytest tests/db/postgres -m "integration and postgres"
 
-echo "==> example/python shared HTTP reference tests"
+echo "==> example/python shared HTTP reference tests (Smithplates client)"
 "${REPO_ROOT}/example/tests/run-tests.sh" python python
+
+echo "==> example/openapi-reference-python shared HTTP reference tests"
+"${REPO_ROOT}/example/tests/run-tests.sh" openapi-reference-python python

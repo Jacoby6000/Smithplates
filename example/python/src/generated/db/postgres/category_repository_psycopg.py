@@ -5,14 +5,14 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from category_repository_models import (
+from generated.db.model.category_repository_models import (
     Store,
 )
-from category_repository_protocol import (
+from generated.db.category_repository_protocol import (
     CategoryRepositoryServiceProtocol,
     GetCategoryRecordResult,
 )
-from psycopg_transaction_run import run
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg.AsyncTransaction]):

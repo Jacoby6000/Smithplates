@@ -6,5 +6,6 @@ import com.jacoby6000.smithplates.http.model.HttpService
 final case class HttpCodegenTemplateView(
     service: HttpService,
     packageName: String,
+    modelsPackageName: String,
     routeGroup: Option[HttpRouteGroup] = None
 )

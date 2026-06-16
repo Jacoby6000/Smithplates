@@ -94,6 +94,7 @@ Shared HTTP scenario tests live under `example/tests/`. They run the reference s
 ```bash
 cd example/tests
 ./run-tests.sh python python
+./run-tests.sh openapi-reference-python python
 ./run-tests.sh python python health-check
 ```
 

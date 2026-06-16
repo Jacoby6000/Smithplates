@@ -24,7 +24,9 @@ final case class SqlServiceCodegenSettings(
     migrationDirectories: Map[String, String] = Map.empty,
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
-    artifacts: List[SqlServiceCodegenArtifactConfig]
+    artifacts: List[SqlServiceCodegenArtifactConfig],
+    outputPrefix: String,
+    packageName: String
 )
 
 object SqlServiceCodegenSettings {
@@ -92,21 +94,22 @@ object SqlServiceCodegenRenderer {
         context,
         settings.templateDirectory.stripPrefix("classpath:")
       )
+    val relativeOutputFile = s"${settings.outputPrefix}/$renderedOutputFile"
     val prefixedOutputFile =
       artifactConfig.kind match {
         case SqlServiceCodegenArtifactKind.Src  =>
           settings.sourceOutputDirectory match {
             case Some(sourceOutputDirectory) =>
-              s"${normalizeDirectory(sourceOutputDirectory)}/$renderedOutputFile"
+              s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
             case None                        =>
-              renderedOutputFile
+              relativeOutputFile
           }
         case SqlServiceCodegenArtifactKind.Test =>
           settings.testOutputDirectory match {
             case Some(testOutputDirectory) =>
-              s"${normalizeDirectory(testOutputDirectory)}/$renderedOutputFile"
+              s"${normalizeDirectory(testOutputDirectory)}/$relativeOutputFile"
             case None                      =>
-              renderedOutputFile
+              relativeOutputFile
           }
       }
     prefixedOutputFile

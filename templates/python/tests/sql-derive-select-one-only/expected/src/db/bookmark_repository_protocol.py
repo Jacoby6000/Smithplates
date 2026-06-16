@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from bookmark_repository_models import (
+from generated.db.model.bookmark_repository_models import (
     Bookmark,
 )
 

@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ${modelsPackageName(ctx.packageName)}.problem import Problem
+from ${ctx.modelsPackageName}.problem import Problem
 from ${ctx.packageName}.api_exceptions import NotImplementedApiError
 <% for (error <- ctx.service.serviceErrors) { %>
 from ${ctx.packageName}.api_exceptions import ${serviceErrorExceptionName(error.name)}

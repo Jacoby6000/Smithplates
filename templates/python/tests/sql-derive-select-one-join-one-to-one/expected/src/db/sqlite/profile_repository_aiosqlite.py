@@ -5,14 +5,14 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from profile_repository_models import (
+from generated.db.model.profile_repository_models import (
     Bar,
 )
-from profile_repository_protocol import (
+from generated.db.profile_repository_protocol import (
     GetProfileResult,
     ProfileRepositoryServiceProtocol,
 )
-from sqlite_transaction_run import run
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class ProfileRepositoryAiosqliteService(ProfileRepositoryServiceProtocol[aiosqlite.Connection]):

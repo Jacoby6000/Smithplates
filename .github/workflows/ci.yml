@@ -65,6 +65,8 @@ jobs:
         include:
           - client: python
             server: python
+          - client: openapi-reference-python
+            server: python
 
     steps:
       - name: Checkout
@@ -80,7 +82,9 @@ jobs:
           cache-uv: true
 
       - name: Render example smithy-build configs
-        run: nix develop --accept-flake-config --command ./example/python/render-smithy-build.sh
+        run: |
+          nix develop --accept-flake-config --command ./example/python/render-smithy-build.sh
+          nix develop --accept-flake-config --command ./example/openapi-reference-python/render-smithy-build.sh
 
       - name: Run shared HTTP reference tests
         run: nix develop --accept-flake-config --command ./example/tests/run-tests.sh ${{ matrix.client }} ${{ matrix.server }}
@@ -101,7 +105,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Update example smithy-build configs from CI render
-          file_pattern: example/python/smithy-build.json example/python/openapi/smithy-build.json
+          file_pattern: example/python/smithy-build.json example/openapi-reference-python/smithy-build.json
 
       - name: Comment on pull request
         if: >-
@@ -119,7 +123,7 @@ jobs:
               'CI re-rendered example `smithy-build.json` configs and pushed an update after example tests passed.',
               '',
               '- `example/python/smithy-build.json`',
-              '- `example/python/openapi/smithy-build.json`',
+              '- `example/openapi-reference-python/smithy-build.json`',
               '',
               `Commit: [\`${shaShort}\`](${commitUrl})`,
             ].join('\n');

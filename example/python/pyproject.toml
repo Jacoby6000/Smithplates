@@ -4,8 +4,6 @@ version = "0.1.0"
 description = "Smithplates petstore reference implementation (Python)"
 requires-python = ">=3.11"
 dependencies = [
-    "aiohttp>=3.11",
-    "aiohttp-retry>=2.9",
     "aiosqlite>=0.20",
     "fastapi>=0.115",
     "httpx>=0.28",
@@ -15,7 +13,6 @@ dependencies = [
     "pytest-asyncio>=0.24",
     "python-dateutil>=2.9",
     "uvicorn[standard]>=0.32",
-    "urllib3>=2.0",
 ]
 
 [dependency-groups]
@@ -30,12 +27,6 @@ petstore-server = "server.app:run"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = [
-    "src/generated/client",
-    "src/generated/db/model",
-    "src/generated/db",
-    "src/generated/db/sqlite",
-    "src/generated/db/postgres",
-    "src/generated",
     "src",
 ]
 addopts = ["-v", "--tb=short"]
@@ -54,8 +45,7 @@ warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 mypy_path = [
     "tests/db/postgres/stubs",
-    "src/generated/generated",
-    "src/generated/client",
+    "src/generated",
     "src/generated/db/model",
     "src/generated/db",
     "src/generated/db/sqlite",

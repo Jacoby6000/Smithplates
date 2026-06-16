@@ -14,9 +14,13 @@ final case class SmithplatesHttpSettings(
       target.server.map { serverTarget =>
         val routeGroupTags =
           serviceIr.services.flatMap(_.routeGroups.map(_.tag)).distinct.sorted
+        val rootNamespace  = HttpLanguageTarget.resolvedRootNamespace(languageId, target)
         serverTarget.toCodegenSettings(
           languageId = languageId,
-          routeGroupTags = routeGroupTags
+          routeGroupTags = routeGroupTags,
+          rootNamespace = rootNamespace,
+          modelsPackageName = HttpLanguageTarget.resolvedModelsPackageName(languageId, target),
+          emitModels = true
         )
       }
     }
@@ -26,9 +30,14 @@ final case class SmithplatesHttpSettings(
       target.client.map { clientTarget =>
         val routeGroupTags =
           serviceIr.services.flatMap(_.routeGroups.map(_.tag)).distinct.sorted
+        val emitModels     = target.server.isEmpty
+        val rootNamespace  = HttpLanguageTarget.resolvedRootNamespace(languageId, target)
         clientTarget.toCodegenSettings(
           languageId = languageId,
-          routeGroupTags = routeGroupTags
+          routeGroupTags = routeGroupTags,
+          rootNamespace = rootNamespace,
+          modelsPackageName = HttpLanguageTarget.resolvedModelsPackageName(languageId, target),
+          emitModels = emitModels
         )
       }
     }

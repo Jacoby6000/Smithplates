@@ -100,8 +100,13 @@ object CodegenTemplateTestDiscovery {
     val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
 
     val serviceTypeFiles        =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
-        listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath)
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
+        if (variant.serviceTypeId == "http") {
+          listFilesRelativeToExpectedRoot(expectedRoot, implementationRootPath) ++
+            listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath.resolve("models"))
+        } else {
+          listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath)
+        }
       } else {
         val sharedModelFiles       =
           listFilesRelativeToExpectedRoot(
@@ -116,7 +121,7 @@ object CodegenTemplateTestDiscovery {
         sharedModelFiles ++ sharedServiceTypeFiles
       }
     val implementationFiles     =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
         Nil
       } else {
         listFilesDirectlyInDirectoryRelativeToExpectedRoot(
@@ -130,7 +135,7 @@ object CodegenTemplateTestDiscovery {
         implementationTestOutputPath
       )
     val migrationFiles          =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
         Nil
       } else {
         listDialectMigrationFiles(

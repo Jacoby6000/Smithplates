@@ -4,10 +4,10 @@
 from __future__ import annotations
 
 <% if (serviceErrorsNeedProblemImport(ctx.service)) { %>
-from ${modelsPackageName(ctx.packageName)}.problem import Problem
+from ${ctx.modelsPackageName}.problem import Problem
 <% } %>
 <% for (error <- ctx.service.serviceErrors if !serviceErrorUsesProblem(error)) { %>
-from ${modelsPackageName(ctx.packageName)}.${snakeCase(error.name)} import ${error.name}
+from ${ctx.modelsPackageName}.${snakeCase(error.name)} import ${error.name}
 <% } %>
 
 

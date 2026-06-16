@@ -5,15 +5,15 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from department_repository_models import (
-    Category,
-    Widget,
-)
-from department_repository_protocol import (
+from generated.db.department_repository_protocol import (
     DepartmentRepositoryServiceProtocol,
     GetDepartmentResult,
 )
-from psycopg_transaction_run import run
+from generated.db.model.department_repository_models import (
+    Category,
+    Widget,
+)
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class DepartmentRepositoryPsycopgService(DepartmentRepositoryServiceProtocol[psycopg.AsyncTransaction]):

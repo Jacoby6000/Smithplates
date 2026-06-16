@@ -7,11 +7,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from sqlite_migrations import SqliteMigrationService
-from widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
-from widget_repository_models import (
+from generated.db.model.widget_repository_models import (
     Widget,
 )
+from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
+from generated.db.sqlite.widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

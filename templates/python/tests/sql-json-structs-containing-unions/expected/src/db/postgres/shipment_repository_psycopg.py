@@ -7,14 +7,14 @@ from datetime import datetime
 from typing import cast, override
 
 import psycopg
-from psycopg.rows import dict_row
-from psycopg_transaction_run import run
-from shipment_repository_models import (
+from generated.db.model.shipment_repository_models import (
     DeliveryState,
     PostalAddress,
     Shipment,
 )
-from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
+from generated.db.postgres.psycopg_transaction_run import run
+from generated.db.shipment_repository_protocol import ShipmentRepositoryServiceProtocol
+from psycopg.rows import dict_row
 
 
 class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol[psycopg.AsyncTransaction]):

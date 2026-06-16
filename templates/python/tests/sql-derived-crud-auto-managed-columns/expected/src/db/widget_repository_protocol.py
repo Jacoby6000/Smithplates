@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from widget_repository_models import (
+from generated.db.model.widget_repository_models import (
     Widget,
 )
 

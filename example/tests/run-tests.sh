@@ -34,8 +34,8 @@ CLIENT_TARGET="$1"
 SERVER_TARGET="$2"
 shift 2
 
-SERVER_TARGET_DIR="$(resolve_target_dir "${SERVER_TARGET}")"
-CLIENT_TARGET_DIR="$(resolve_target_dir "${CLIENT_TARGET}")"
+SERVER_TARGET_DIR="$(resolve_server_target_dir "${SERVER_TARGET}")"
+CLIENT_TARGET_DIR="$(resolve_client_target_dir "${CLIENT_TARGET}")"
 
 mapfile -t CASE_FILES < <(filter_case_files "$@")
 if [[ ${#CASE_FILES[@]} -eq 0 ]]; then

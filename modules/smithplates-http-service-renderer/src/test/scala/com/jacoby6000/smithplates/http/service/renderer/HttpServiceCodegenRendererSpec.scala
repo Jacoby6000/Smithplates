@@ -1,12 +1,18 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import cats.data.Validated
+import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.http.HttpIrExtractor
 import com.jacoby6000.smithplates.http.HttpTestModelLoader
 import munit.FunSuite
 
 class HttpServiceCodegenRendererSpec extends FunSuite {
-  test("HttpServiceCodegenRenderer emits configured HTTP service artifacts") {
+  private val PythonServerTemplateDirectory = "classpath:python/src/http/server"
+  private val PythonClientTemplateDirectory = "classpath:python/src/http/client"
+  private val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
+  private val RootNamespace                 = Some("generated")
+
+  test("HttpServiceCodegenRenderer emits configured HTTP server artifacts") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -45,23 +51,33 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val serviceIr = HttpIrExtractor.extractOrThrow(model)
     val settings  =
       HttpServiceCodegenSettings(
-        templateDirectory = PythonTemplateNamespaces.bundledHttpServerTemplateDirectory,
+        templateDirectory = PythonServerTemplateDirectory,
         defaultFrameworkKey = "fastapi",
         enabledFrameworkKeys = List("fastapi"),
-        packageName = "generated.widget_api",
+        packageName = TemplateOutputPrefix.toPackageName(
+          TemplateOutputPrefix.fromTemplateDirectory(PythonServerTemplateDirectory),
+          RootNamespace
+        ),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(List("fastapi"), List("v1_widgets")),
-        modelTemplateDirectory = Some(PythonTemplateNamespaces.bundledHttpModelsTemplateDirectory)
+        artifacts =
+          HttpServiceCodegenApiArtifacts.forEnabledFrameworks(List("fastapi"), List("v1_widgets"), emitModels = true),
+        outputPrefix = TemplateOutputPrefix.fromTemplateDirectory(PythonServerTemplateDirectory),
+        modelsPackageName = TemplateOutputPrefix.toPackageName(
+          TemplateOutputPrefix.fromTemplateDirectory(PythonModelsTemplateDirectory),
+          RootNamespace
+        ),
+        modelsOutputPrefix = TemplateOutputPrefix.fromTemplateDirectory(PythonModelsTemplateDirectory),
+        modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
       )
 
     HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
-        assert(paths.contains("src/generated/api/app_factory.py"))
-        assert(paths.contains("src/generated/api/apis/v1_widgets_api.py"))
-        assert(paths.contains("src/generated/api/apis/v1_widgets_api_base.py"))
-        assert(paths.contains("src/generated/api/models/widget_output.py"))
+        assert(paths.contains("src/generated/http/server/app_factory.py"))
+        assert(paths.contains("src/generated/http/server/apis/v1_widgets_api.py"))
+        assert(paths.contains("src/generated/http/server/apis/v1_widgets_api_base.py"))
+        assert(paths.contains("src/generated/http/models/widget_output.py"))
       case Validated.Invalid(errors)  =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
@@ -106,23 +122,33 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val serviceIr = HttpIrExtractor.extractOrThrow(model)
     val settings  =
       HttpServiceCodegenSettings(
-        templateDirectory = PythonTemplateNamespaces.bundledHttpClientTemplateDirectory,
+        templateDirectory = PythonClientTemplateDirectory,
         defaultFrameworkKey = "httpx",
         enabledFrameworkKeys = List("httpx"),
-        packageName = "generated.widget_api_client",
+        packageName = TemplateOutputPrefix.toPackageName(
+          TemplateOutputPrefix.fromTemplateDirectory(PythonClientTemplateDirectory),
+          RootNamespace
+        ),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List("httpx"), List("v1_widgets")),
-        serviceTypePrefix = "api_client",
-        modelTemplateDirectory = Some(PythonTemplateNamespaces.bundledHttpModelsTemplateDirectory)
+        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List("httpx"), List("v1_widgets")) ++
+          HttpServiceCodegenApiArtifacts.sharedModels,
+        outputPrefix = TemplateOutputPrefix.fromTemplateDirectory(PythonClientTemplateDirectory),
+        modelsPackageName = TemplateOutputPrefix.toPackageName(
+          TemplateOutputPrefix.fromTemplateDirectory(PythonModelsTemplateDirectory),
+          RootNamespace
+        ),
+        modelsOutputPrefix = TemplateOutputPrefix.fromTemplateDirectory(PythonModelsTemplateDirectory),
+        emitModels = true,
+        modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
       )
 
     HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
-        assert(paths.contains("src/generated/api_client/client_registry.py"))
-        assert(paths.contains("src/generated/api_client/clients/v1_widgets_client.py"))
-        assert(paths.contains("src/generated/api_client/models/widget_output.py"))
+        assert(paths.contains("src/generated/http/client/client_registry.py"))
+        assert(paths.contains("src/generated/http/client/clients/v1_widgets_client.py"))
+        assert(paths.contains("src/generated/http/models/widget_output.py"))
       case Validated.Invalid(errors)  =>
         fail(errors.map(_.message).toList.mkString("; "))
     }

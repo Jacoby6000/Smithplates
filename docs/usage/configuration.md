@@ -116,10 +116,11 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
           },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
-        },
-        "http": {
+      "sourceOutputDir": "src/generated",
+      "testOutputDir": "tests",
+      "rootNamespace": "generated"
+    },
+    "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",
@@ -153,7 +154,8 @@ SQL configuration has two independent concerns:
         "migrationLocation": "db/migrations/postgres"
       },
       "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests"
+      "testOutputDir": "tests",
+      "rootNamespace": "generated"
     }
   }
 }
@@ -165,6 +167,8 @@ SQL configuration has two independent concerns:
 | `sqlite.migrationLocation` / `postgres.migrationLocation` | Yes when `enable` is `true` | Directory for versioned migration SQL files, such as `db/migrations/sqlite`. The value must be a directory path, not a `.sql` file. |
 | `sourceOutputDir` | Yes | Base output directory for generated SQL source artifacts. |
 | `testOutputDir` | Yes | Base output directory for generated SQL test artifacts. |
+| `rootNamespace` | No; default `generated` for bundled Python | Prefix for Python import packages derived from the template layout (for example `generated.db`). Filesystem paths are unchanged. |
+| `packageName` | No | Override the derived SQL import package (for example `generated.db`). |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. |
 
 When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
