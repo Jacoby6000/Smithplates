@@ -31,6 +31,60 @@ Consumers should add only the plugin coordinate:
 
 The plugin POM resolves the published transitive modules that contain SQL traits, HTTP traits, renderers, and precompiled bundled templates.
 
+## Common layouts
+
+### SQL only
+
+Use this when a project only wants database schema, repository protocols, dialect implementations, migration services, and generated DB tests:
+
+```json
+{
+  "plugins": {
+    "smithplates": {
+      "sql": {
+        "sqlite": {
+          "enable": true,
+          "migrationLocation": "db/migrations/sqlite"
+        },
+        "languageTargets": {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### HTTP only
+
+Use this when a project only wants generated FastAPI wiring from `@httpService` models:
+
+```json
+{
+  "plugins": {
+    "smithplates": {
+      "http": {
+        "python": {
+          "server": {
+            "webFramework": "fastapi",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "packageName": "generated.api"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### SQL and HTTP together
+
+Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP Smithy namespaces separate, then bridge them in hand-written application code.
+
 ## `smithplates.sql`
 
 SQL configuration has two independent concerns:
@@ -109,5 +163,15 @@ For example, `sourceOutputDir: "src/generated"` writes under:
 ```text
 build/smithy/source/smithplates/src/generated/
 ```
+
+## Generated output ownership
+
+Smithplates writes into Smithy's build output tree. A consumer project can choose one of three ownership patterns:
+
+- Copy or sync generated files into a committed source tree, as the Python petstore example does.
+- Leave generated files under `build/smithy/source/smithplates/` and include that tree in local tooling paths.
+- Regenerate in CI and compare against committed output to catch drift.
+
+Whichever pattern you choose, keep hand-written application code outside generated directories.
 
 See [Integration](integration.md) for a combined SQL and HTTP configuration walkthrough.

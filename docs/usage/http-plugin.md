@@ -14,6 +14,20 @@ Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for cod
 
 Keep HTTP shapes in a namespace dedicated to the API contract. Do not reuse SQL table shapes as HTTP request or response shapes; map between generated API and database models in hand-written application code.
 
+### Route groups
+
+Smithy `@tags` drive generated route modules. For example, operations tagged with `system` render into a system route module:
+
+```smithy
+@tags(["system"])
+@http(method: "GET", uri: "/health", code: 200)
+operation HealthCheck {
+    output: HealthCheckOutput
+}
+```
+
+Group operations around API ownership, not persistence tables. A route group usually maps to a service implementation class in hand-written application code.
+
 ## Configuration
 
 HTTP settings live under `smithplates.http.<language>.server`:
@@ -55,6 +69,17 @@ Generated paths are relative to `build/smithy/source/smithplates/`. For bundled 
 
 Generated route modules depend on generated protocol base classes. Application code implements those protocols and passes implementations into the generated app factory or service registry.
 
+## Application wiring
+
+The generated HTTP layer owns FastAPI routing and wire conversion. Your application owns business behavior:
+
+1. Implement the generated protocol class for each route group.
+2. Construct generated service adapters with your dependencies, such as repositories or configuration.
+3. Pass those implementations to the generated app factory or service registry.
+4. Keep mapping between HTTP models and database models in hand-written code.
+
+This keeps generated files replaceable and avoids editing generated route modules.
+
 ## Problem details
 
 Use `@httpProblem` on Smithy error structures when generated HTTP code should expose problem detail responses.
@@ -65,6 +90,25 @@ Use `@httpProblem` on Smithy error structures when generated HTTP code should ex
 - generate exception classes for application code to raise;
 - emit `application/problem+json` response handling;
 - carry a stable problem `type`, `title`, and optional default `detail`.
+
+Example:
+
+```smithy
+use smithplates.codegen.http#httpProblem
+use smithy.api#error
+
+@error("client")
+@httpProblem(
+    code: 404,
+    type: "https://example.com/problems/widget-not-found",
+    title: "Widget not found"
+)
+structure WidgetNotFound {
+    message: String
+}
+```
+
+Generated application code raises the generated exception type; generated FastAPI handlers serialize the problem response.
 
 Smithplates also ships projection transforms for tools that expect only standard Smithy traits:
 

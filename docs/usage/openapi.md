@@ -34,6 +34,24 @@ Smithplates provides Smithy model transforms that make `@httpService` models com
 
 The OpenAPI projection still needs Smithy OpenAPI dependencies such as `software.amazon.smithy:smithy-openapi` and `software.amazon.smithy:smithy-aws-traits`.
 
+## Build-classpath dependencies
+
+An OpenAPI-only projection still needs the Smithplates plugin on the classpath because Smithplates provides the projection transforms:
+
+```json
+{
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>",
+      "software.amazon.smithy:smithy-aws-traits:<smithy-version>",
+      "software.amazon.smithy:smithy-openapi:<smithy-version>"
+    ]
+  }
+}
+```
+
+Use the same Smithplates version as the codegen build. Use a Smithy toolchain version compatible with the Smithy CLI running the projection.
+
 ## Coordinating with generated code
 
 When combining Smithplates and OpenAPI Generator:
@@ -44,3 +62,7 @@ When combining Smithplates and OpenAPI Generator:
 - Keep generated package names aligned when application code imports both generated trees.
 
 The [Python petstore example](../../example/python/) uses Smithplates for server and database artifacts, then exports OpenAPI and generates a Python client from that OpenAPI document.
+
+## Source separation
+
+OpenAPI projections should target API Smithy files and the API service shape. Do not include SQL Smithy files in OpenAPI projections. SQL traits are persistence concerns and should not leak into the wire contract.
