@@ -52,7 +52,8 @@ object HttpLanguageTargetTemplateValidator {
 
   def validateClient(
       languageId: String,
-      target: HttpClientTarget
+      target: HttpClientTarget,
+      emitModels: Boolean
   ): SqlValidated[Unit] = {
     val normalizedLanguageId = languageId.toLowerCase
     if (!bundledLanguageIds.contains(normalizedLanguageId) && target.templateDirectory.isEmpty) {
@@ -64,11 +65,13 @@ object HttpLanguageTargetTemplateValidator {
         )
       )
     } else {
+      val clientArtifacts = HttpClientCodegenApiArtifacts
+        .forEnabledLibraries(List(target.httpLibrary), List("placeholder"))
+      val modelArtifacts  = if (emitModels) HttpServiceCodegenApiArtifacts.sharedModels else Nil
       validateRequiredArtifactsExist(
         languageId = languageId,
         defaultTemplateDirectory = resolveClientTemplateDirectory(target, languageId),
-        artifacts = HttpClientCodegenApiArtifacts
-          .forEnabledLibraries(List(target.httpLibrary), List("placeholder"))
+        artifacts = clientArtifacts ++ modelArtifacts
       )
     }
   }

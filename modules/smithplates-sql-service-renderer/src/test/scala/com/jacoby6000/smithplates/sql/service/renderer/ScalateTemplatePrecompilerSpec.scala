@@ -58,7 +58,7 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
 
   test("class names are namespaced per template root by package prefix") {
     val engine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
-    val source = TemplateSource.fromUri("model/models.ssp", engine.resourceLoader)
+    val source = TemplateSource.fromUri("models/models.ssp", engine.resourceLoader)
     source.engine = engine
     assert(
       source.className.startsWith(ScalateTemplatePrecompiler.packagePrefix(templateRoot)),
@@ -67,7 +67,7 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
   }
 
   test("a precompiled class on the classpath is loaded instead of recompiled") {
-    val templateUri = "model/models.ssp"
+    val templateUri = "models/models.ssp"
 
     val engine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
     // A fresh, empty working directory so any compilation would be observable here.

@@ -390,7 +390,7 @@ object SqlCodegenIntegrationTestBuilder {
 
     val importBlocks = List.newBuilder[String]
     if (modelImportNames.nonEmpty) {
-      importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"model/${serviceModuleBase}_models")} import ("
+      importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"models/${serviceModuleBase}_models")} import ("
       importBlocks ++= modelImportNames.toList.sorted.map(name => s"    $name,")
       importBlocks += ")"
     }

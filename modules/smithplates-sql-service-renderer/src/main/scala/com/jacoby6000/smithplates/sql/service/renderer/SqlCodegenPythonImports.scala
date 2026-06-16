@@ -153,7 +153,7 @@ object SqlCodegenPythonImports {
       None
     } else {
       val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
-      Some(s"from ${qualifiedModule(packageName, s"model/${moduleBase}_models")} import ($body)")
+      Some(s"from ${qualifiedModule(packageName, s"models/${moduleBase}_models")} import ($body)")
     }
   }
 

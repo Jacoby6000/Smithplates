@@ -5,7 +5,7 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from generated.db.model.category_repository_models import (
+from generated.db.models.category_repository_models import (
     Store,
 )
 from generated.db.category_repository_protocol import (

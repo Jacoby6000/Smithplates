@@ -99,7 +99,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
 
     assertEquals(
       SqlServiceCodegenRenderer.resolveOutputPath(settings, modelArtifact, context),
-      "db/model/widget_repository_models.py"
+      "db/models/widget_repository_models.py"
     )
     assertEquals(
       SqlServiceCodegenRenderer.resolveOutputPath(settings, integrationTestArtifact, context),
@@ -168,7 +168,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(
       artifacts.map(_.relativePath).sorted,
       List(
-        "src/generated/db/model/widget_repository_models.py",
+        "src/generated/db/models/widget_repository_models.py",
         "src/generated/db/widget_repository_protocol.py"
       )
     )

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.order_repository_models import (
+from generated.db.models.order_repository_models import (
     FulfillmentState,
     OrderLine,
 )

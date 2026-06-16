@@ -8,7 +8,7 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.db.model.pet_repository_models import (
+from generated.db.models.pet_repository_models import (
     PetHighlight,
     PetTags,
 )

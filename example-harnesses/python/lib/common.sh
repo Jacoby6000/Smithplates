@@ -37,7 +37,7 @@ collect_example_handwritten_python_files() {
 }
 
 configure_example_env() {
-  export PYTHONPATH="${EXAMPLE_ROOT}/src:${EXAMPLE_ROOT}/src/generated:${EXAMPLE_ROOT}/src/generated/db/model:${EXAMPLE_ROOT}/src/generated/db:${EXAMPLE_ROOT}/src/generated/db/sqlite:${EXAMPLE_ROOT}/src/generated/db/postgres:${EXAMPLE_ROOT}/src"
+  export PYTHONPATH="${EXAMPLE_ROOT}/src:${EXAMPLE_ROOT}/src/generated:${EXAMPLE_ROOT}/src/generated/db/models:${EXAMPLE_ROOT}/src/generated/db:${EXAMPLE_ROOT}/src/generated/db/sqlite:${EXAMPLE_ROOT}/src/generated/db/postgres:${EXAMPLE_ROOT}/src"
   export PYTHONDONTWRITEBYTECODE=1
   export MYPYPATH="${EXAMPLE_ROOT}/tests/db/postgres/stubs:${PYTHONPATH}"
 }

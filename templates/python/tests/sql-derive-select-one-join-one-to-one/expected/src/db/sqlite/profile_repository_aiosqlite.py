@@ -5,7 +5,7 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.profile_repository_models import (
+from generated.db.models.profile_repository_models import (
     Bar,
 )
 from generated.db.profile_repository_protocol import (

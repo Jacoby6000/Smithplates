@@ -5,7 +5,7 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from generated.db.model.profile_repository_models import (
+from generated.db.models.profile_repository_models import (
     Bar,
 )
 from generated.db.postgres.psycopg_transaction_run import run

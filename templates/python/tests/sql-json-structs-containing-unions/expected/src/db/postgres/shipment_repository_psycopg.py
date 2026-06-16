@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import cast, override
 
 import psycopg
-from generated.db.model.shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     DeliveryState,
     PostalAddress,
     Shipment,

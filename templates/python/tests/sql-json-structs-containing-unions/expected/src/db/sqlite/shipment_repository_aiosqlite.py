@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     DeliveryState,
     PostalAddress,
     Shipment,

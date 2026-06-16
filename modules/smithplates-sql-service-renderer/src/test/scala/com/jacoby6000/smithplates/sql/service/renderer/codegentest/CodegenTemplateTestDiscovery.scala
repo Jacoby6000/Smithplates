@@ -100,34 +100,33 @@ object CodegenTemplateTestDiscovery {
     val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
 
     val serviceTypeFiles        =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
-        if (variant.serviceTypeId == "http") {
+      variant.goldenTestLayout match {
+        case GoldenTestLayout.HttpNested =>
           listFilesRelativeToExpectedRoot(expectedRoot, implementationRootPath) ++
-            listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath.resolve("models"))
-        } else {
-          listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath)
-        }
-      } else {
-        val sharedModelFiles       =
-          listFilesRelativeToExpectedRoot(
-            expectedRoot,
-            serviceTypeRootPath.resolve("model")
-          )
-        val sharedServiceTypeFiles =
-          listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-            expectedRoot,
-            serviceTypeRootPath
-          )
-        sharedModelFiles ++ sharedServiceTypeFiles
+            variant.sharedModelsResourcePath.toList.flatMap { modelsPath =>
+              listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
+            }
+        case GoldenTestLayout.SqlDialect =>
+          val sharedModelFiles       =
+            variant.sharedModelsResourcePath.toList.flatMap { modelsPath =>
+              listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
+            }
+          val sharedServiceTypeFiles =
+            listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+              expectedRoot,
+              serviceTypeRootPath
+            )
+          sharedModelFiles ++ sharedServiceTypeFiles
       }
     val implementationFiles     =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
-        Nil
-      } else {
-        listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-          expectedRoot,
-          implementationRootPath
-        )
+      variant.goldenTestLayout match {
+        case GoldenTestLayout.SqlDialect =>
+          listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+            expectedRoot,
+            implementationRootPath
+          )
+        case _                           =>
+          Nil
       }
     val implementationTestFiles =
       listFilesRelativeToExpectedRoot(
@@ -135,14 +134,15 @@ object CodegenTemplateTestDiscovery {
         implementationTestOutputPath
       )
     val migrationFiles          =
-      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client" || variant.serviceTypeId == "http") {
-        Nil
-      } else {
-        listDialectMigrationFiles(
-          caseDirectory,
-          expectedRoot,
-          variant.implementationId
-        )
+      variant.goldenTestLayout match {
+        case GoldenTestLayout.SqlDialect =>
+          listDialectMigrationFiles(
+            caseDirectory,
+            expectedRoot,
+            variant.implementationId
+          )
+        case _                           =>
+          Nil
       }
 
     (serviceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)

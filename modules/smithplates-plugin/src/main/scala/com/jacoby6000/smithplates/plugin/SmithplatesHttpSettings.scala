@@ -83,7 +83,11 @@ object SmithplatesHttpSettings {
           case None         => ().validNel
           case Some(client) =>
             validateHttpLibrary(languageId, client).andThen(_ =>
-              HttpLanguageTargetTemplateValidator.validateClient(languageId, client))
+              HttpLanguageTargetTemplateValidator.validateClient(
+                languageId,
+                client,
+                emitModels = target.server.isEmpty
+              ))
         }
       ).mapN((_, _) => ())
     }

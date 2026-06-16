@@ -5,7 +5,7 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.category_repository_models import (
+from generated.db.models.category_repository_models import (
     Store,
 )
 from generated.db.category_repository_protocol import (

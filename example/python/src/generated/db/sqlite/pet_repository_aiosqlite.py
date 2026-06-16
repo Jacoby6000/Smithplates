@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.pet_repository_models import (
+from generated.db.models.pet_repository_models import (
     Category,
     Owner,
     PetHighlight,

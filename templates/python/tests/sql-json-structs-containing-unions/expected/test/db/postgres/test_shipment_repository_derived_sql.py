@@ -7,7 +7,7 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.db.model.shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     PostalAddress,
     Shipment,
 )

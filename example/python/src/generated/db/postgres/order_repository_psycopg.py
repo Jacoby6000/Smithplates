@@ -7,7 +7,7 @@ from datetime import datetime
 from typing import cast, override
 
 import psycopg
-from generated.db.model.order_repository_models import (
+from generated.db.models.order_repository_models import (
     FulfillmentState,
     OrderLine,
 )

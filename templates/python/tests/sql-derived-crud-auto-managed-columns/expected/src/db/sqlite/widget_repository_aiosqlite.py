@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from generated.db.model.widget_repository_models import (
+from generated.db.models.widget_repository_models import (
     Widget,
 )
 from generated.db.sqlite.sqlite_transaction_run import run

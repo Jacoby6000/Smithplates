@@ -6,8 +6,8 @@ object SqlServiceCodegenDbArtifacts {
     List(
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
-        template = "model/models.ssp",
-        outputFile = "model/{{serviceFileName}}_models.py"
+        template = "models/models.ssp",
+        outputFile = "models/{{serviceFileName}}_models.py"
       ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,

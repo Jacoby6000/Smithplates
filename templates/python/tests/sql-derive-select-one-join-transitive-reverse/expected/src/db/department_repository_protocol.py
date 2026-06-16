@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from generated.db.model.department_repository_models import (
+from generated.db.models.department_repository_models import (
     Category,
     Widget,
 )

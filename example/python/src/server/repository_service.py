@@ -29,8 +29,8 @@ from generated.http.models.place_order_input import PlaceOrderInput
 from generated.http.models.postal_address import PostalAddress
 from generated.http.models.store_summary import StoreSummary
 from generated.http.models.update_pet_body import UpdatePetBody
-from generated.db.model.pet_repository_models import PetHighlight as GeneratedPetHighlight
-from generated.db.model.pet_repository_models import PetTags as GeneratedPetTags
+from generated.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
+from generated.db.models.pet_repository_models import PetTags as GeneratedPetTags
 
 from server.database import RepositoryBundle
 

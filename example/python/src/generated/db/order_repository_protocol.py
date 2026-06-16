@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from generated.db.model.order_repository_models import (
+from generated.db.models.order_repository_models import (
     OrderLine,
 )
 

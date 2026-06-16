@@ -9,7 +9,7 @@ from generated.db.department_repository_protocol import (
     DepartmentRepositoryServiceProtocol,
     GetDepartmentResult,
 )
-from generated.db.model.department_repository_models import (
+from generated.db.models.department_repository_models import (
     Category,
     Widget,
 )

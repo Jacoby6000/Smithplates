@@ -71,33 +71,6 @@ object CodegenTemplateTestAssertions {
     variantMatchesOutputPath(variant, outputRelativePath)
   }
 
-  private def variantMatchesOutputPath(variant: CodegenTemplateVariant, outputRelativePath: String): Boolean = {
-    val dbRoot            = s"${variant.srcOutputRootId}/${variant.serviceTypeId}/"
-    val modelPrefix       = s"${dbRoot}model/"
-    val variantSrcPrefix  = s"${dbRoot}${variant.implementationId}/"
-    val variantTestPrefix = s"${variant.testOutputRootId}/${variant.serviceTypeId}/${variant.implementationId}/"
-
-    if (outputRelativePath.startsWith(modelPrefix)) {
-      true
-    } else if (outputRelativePath.startsWith(variantSrcPrefix)) {
-      true
-    } else if (outputRelativePath.startsWith(variantTestPrefix)) {
-      true
-    } else if (outputRelativePath.startsWith(dbRoot)) {
-      variant.serviceTypeId match {
-        case "db"   =>
-          // Shared protocol modules live directly under src/db/, not under dialect subdirectories.
-          !outputRelativePath.startsWith(s"${dbRoot}sqlite/") &&
-          !outputRelativePath.startsWith(s"${dbRoot}postgres/")
-        case "http" =>
-          val implementationPrefix = s"${dbRoot}${variant.implementationId}/"
-          outputRelativePath.startsWith(implementationPrefix) ||
-          outputRelativePath.startsWith(s"${dbRoot}models/")
-        case _      =>
-          true
-      }
-    } else {
-      false
-    }
-  }
+  private def variantMatchesOutputPath(variant: CodegenTemplateVariant, outputRelativePath: String): Boolean =
+    variant.matchesGeneratedOutputPath(outputRelativePath)
 }

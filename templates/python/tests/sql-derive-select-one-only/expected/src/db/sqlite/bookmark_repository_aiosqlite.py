@@ -6,7 +6,7 @@ from typing import cast, override
 
 import aiosqlite
 from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
-from generated.db.model.bookmark_repository_models import (
+from generated.db.models.bookmark_repository_models import (
     Bookmark,
 )
 from generated.db.sqlite.sqlite_transaction_run import run

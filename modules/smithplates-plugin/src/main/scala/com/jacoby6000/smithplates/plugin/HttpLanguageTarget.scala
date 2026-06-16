@@ -158,11 +158,20 @@ object HttpLanguageTarget {
     )
   }
 
+  private val ServerAllowedMembers: Set[String] =
+    Set("webFramework", "templateDirectory", "packageName")
+
+  private val ClientAllowedMembers: Set[String] =
+    Set("httpLibrary", "templateDirectory", "packageName")
+
   private def parseServer(
       languageId: String,
       node: ObjectNode
   ): SqlValidated[HttpServerTarget] =
-    PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node).map { _ =>
+    (
+      PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node),
+      PluginConfigMembers.rejectUnknownMembers("http.server", languageId, node, ServerAllowedMembers)
+    ).mapN { (_, _) =>
       HttpServerTarget(
         webFramework = PluginConfigMembers.optionalStringMember(node, "webFramework").getOrElse("fastapi"),
         templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
@@ -174,7 +183,10 @@ object HttpLanguageTarget {
       languageId: String,
       node: ObjectNode
   ): SqlValidated[HttpClientTarget] =
-    PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node).map { _ =>
+    (
+      PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node),
+      PluginConfigMembers.rejectUnknownMembers("http.client", languageId, node, ClientAllowedMembers)
+    ).mapN { (_, _) =>
       HttpClientTarget(
         httpLibrary = PluginConfigMembers.optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
         templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),

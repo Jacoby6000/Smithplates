@@ -6,6 +6,8 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import software.amazon.smithy.model.node.ObjectNode
 
+import scala.jdk.CollectionConverters.*
+
 object PluginConfigMembers {
   def optionalStringMember(
       node: ObjectNode,
@@ -32,6 +34,30 @@ object PluginConfigMembers {
       case None                              =>
         SqlValidated.invalid(InvalidPluginConfig(message))
     }
+
+  def rejectUnknownMembers(
+      configPath: String,
+      languageId: String,
+      node: ObjectNode,
+      allowedMembers: Set[String]
+  ): SqlValidated[Unit] = {
+    val allowedNormalized = allowedMembers.map(_.toLowerCase)
+    val unknownKeys       =
+      node.getMembers.asScala.toList.flatMap { case (keyNode, _) =>
+        val key = keyNode.expectStringNode().getValue
+        Option.when(!allowedNormalized.contains(key.toLowerCase))(key)
+      }
+    if (unknownKeys.isEmpty) {
+      ().validNel
+    } else {
+      SqlValidated.invalid(
+        InvalidPluginConfig(
+          s"smithplates.$languageId.$configPath contains unknown key(s) '${unknownKeys.sorted.mkString("', '")}'; " +
+            s"expected ${allowedMembers.toList.sorted.mkString(", ")}"
+        )
+      )
+    }
+  }
 
   def rejectNestedOutputDirectories(
       configPath: String,

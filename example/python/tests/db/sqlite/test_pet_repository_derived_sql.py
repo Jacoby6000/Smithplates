@@ -9,7 +9,7 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.sqlite.pet_repository_aiosqlite import PetRepositoryAiosqliteService
-from generated.db.model.pet_repository_models import (
+from generated.db.models.pet_repository_models import (
     PetHighlight,
     PetTags,
 )

@@ -20,7 +20,7 @@ def protocolModulePath(serviceName: String): String =
   s"${serviceModuleBaseName(serviceName)}_protocol"
 
 def modelsModulePath(serviceName: String): String =
-  s"model/${serviceModuleBaseName(serviceName)}_models"
+  s"models/${serviceModuleBaseName(serviceName)}_models"
 
 def migrationServiceModulePath(dialectKey: String): String =
   dialectKey match {

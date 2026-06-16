@@ -5,7 +5,7 @@ from typing import override
 
 import psycopg
 from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
-from generated.db.model.bookmark_repository_models import (
+from generated.db.models.bookmark_repository_models import (
     Bookmark,
 )
 from generated.db.postgres.psycopg_transaction_run import run

@@ -189,6 +189,77 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
     assert(errors.exists(_.message.contains("aiohttp")))
   }
 
+  test("rejects unknown key under http.server") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "httpLibrary": "httpx"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.server")))
+    assert(errors.exists(_.message.contains("httpLibrary")))
+    assert(errors.exists(_.message.contains("unknown key")))
+  }
+
+  test("rejects unknown key under http.client") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "webFramework": "fastapi"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.client")))
+    assert(errors.exists(_.message.contains("webFramework")))
+    assert(errors.exists(_.message.contains("unknown key")))
+  }
+
+  test("rejects unbundled client-only config when required model templates are missing") {
+    val node =
+      Node
+        .parse("""
+        {
+          "kotlin": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "templateDirectory": "classpath:python/src/http/client"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("missing required templates")))
+    assert(errors.exists(_.message.contains("http/models")))
+  }
+
   test("rejects old feature-first HTTP shape") {
     val node =
       Node
