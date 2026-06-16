@@ -149,5 +149,8 @@ jobs:
       - name: Smoke test
         run: ./scripts/ci-docker-validate.sh
 
+      - name: Free host Nix store before Docker cache export
+        run: nix-collect-garbage -d
+
       - name: Finalize
         uses: ./.github/actions/finalize-docker-validate

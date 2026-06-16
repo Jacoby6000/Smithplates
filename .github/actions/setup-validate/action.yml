@@ -35,15 +35,16 @@ runs:
       uses: actions/cache@v4
       id: docker-image-cache
       with:
-        path: /tmp/smithystache-test-image.tar
-        key: smithystache-docker-${{ hashFiles('Dockerfile', 'flake.lock', 'flake.nix') }}
+        path: /tmp/docker-image-cache
+        key: smithystache-docker-gz-${{ hashFiles('Dockerfile', 'flake.lock', 'flake.nix') }}
         restore-keys: |
+          smithystache-docker-gz-
           smithystache-docker-
 
     - name: Load Docker test image
       if: (inputs.backend == 'docker' || inputs.docker-image-cache == 'true') && steps.docker-image-cache.outputs.cache-hit == 'true'
       shell: bash
-      run: docker load -i /tmp/smithystache-test-image.tar
+      run: ./scripts/ci-docker-load-image.sh
 
     - name: Restore Scala dependency cache (Nix)
       if: inputs.backend == 'nix'

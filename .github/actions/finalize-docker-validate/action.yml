@@ -6,7 +6,4 @@ runs:
   steps:
     - name: Export Docker test image
       shell: bash
-      run: |
-        if docker image inspect smithystache-test:local >/dev/null 2>&1; then
-          docker save smithystache-test:local -o /tmp/smithystache-test-image.tar
-        fi
+      run: ./scripts/ci-docker-export-image.sh

@@ -45,12 +45,14 @@ smithystache_needs_docker_build() {
 }
 
 smithystache_ensure_docker_image() {
+  rm -f "${SMITHYSTACHE_DOCKER_CACHE_DIR}/built-this-run"
   if smithystache_needs_docker_build; then
     mkdir -p "${SMITHYSTACHE_DOCKER_CACHE_DIR}"
     echo "Building Docker test image (${SMITHYSTACHE_TEST_IMAGE})..."
     echo "The first build can take several minutes while Nix downloads dependencies; later builds reuse cached layers and are much faster."
     docker build --platform "${SMITHYSTACHE_DOCKER_PLATFORM}" -t "${SMITHYSTACHE_TEST_IMAGE}" -f Dockerfile .
     smithystache_docker_image_input_hash > "${SMITHYSTACHE_DOCKER_INPUT_HASH_FILE}"
+    touch "${SMITHYSTACHE_DOCKER_CACHE_DIR}/built-this-run"
   else
     echo "Reusing Docker test image (${SMITHYSTACHE_TEST_IMAGE}); rebuilds when Dockerfile or flake inputs change."
   fi
