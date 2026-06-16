@@ -8,9 +8,11 @@ Reference consumer project for Smithplates **SQL** and **HTTP** codegen with thi
 example/
   petstore-smithy-spec/    Shared Smithy model (`petstore/api/`, `petstore/db/`)
   python/                  Python reference implementation (codegen + server)
-    smithy-build.json      Smithplates plugin configuration (sources → ../petstore-smithy-spec/petstore)
+    smithy-build.json.template  Smithplates plugin config (render to smithy-build.json; CI commits version bumps)
+    smithy-build.json           Rendered plugin config (do not edit; run render-smithy-build.sh)
+    render-smithy-build.sh      Inject current plugin version into smithy-build.json files
     openapi/                 Smithy → OpenAPI export + synced openapi.json
-    build-generated.sh       Regenerate codegen from the repo root
+    build-generated.sh       publishM2, render configs, smithy build, OpenAPI Generator
     db/migrations/           Versioned schema DDL (generated)
     src/
       generated/
@@ -49,13 +51,24 @@ See [Integration — HTTP and SQL model separation](../../docs/usage/integration
 
 ## Regenerate codegen
 
-From the repository root (after plugin source changes):
+This project is a **consumer** reference: the Smithy CLI resolves `smithplates-plugin` and its dependencies from Maven (`publishM2` locally, or Central for releases). Golden template fixtures under `templates/python/tests/` omit `maven` because they run the plugin from the sbt test classpath instead.
+
+From the Smithplates repository root (after plugin source changes):
 
 ```bash
 ./example/python/build-generated.sh
 ```
 
-This runs the Smithy build for SQL/HTTP codegen, exports OpenAPI from `example/python/openapi/`, runs OpenAPI Generator, and syncs output into `src/generated/`, `tests/`, and `db/migrations/`.
+That script runs `sbtn publishM2`, renders `smithy-build.json` from [`smithy-build.json.template`](smithy-build.json.template) (and the OpenAPI template) using the current `smithplatesPlugin/version`, then runs `smithy build` for SQL/HTTP codegen and OpenAPI export, OpenAPI Generator, and syncs into `src/generated/`, `tests/`, and `db/migrations/`. Edit the `.template` files for config changes; run `render-smithy-build.sh` locally after `publishM2`. CI re-renders before example tests and commits `smithy-build.json` updates when the plugin version changes.
+
+To render configs only (for example before a manual `smithy build`):
+
+```bash
+sbtn publishM2
+./example/python/render-smithy-build.sh
+cd example/python && smithy build
+cd openapi && smithy build
+```
 
 ## Run the server
 

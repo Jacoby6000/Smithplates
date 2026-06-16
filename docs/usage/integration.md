@@ -7,24 +7,21 @@ Smithplates plugins are consumed as Maven JARs during `smithy build`. Models and
 1. From Smithplates: `sbtn publishM2`
 2. From the consumer Smithy project: `smithy build`
 
-Republish after every plugin source change. Consumers reference only the `smithplates-plugin` coordinate, but `publishM2` publishes the plugin **and its full transitive dependency graph** so Maven can resolve the dependency jars — including the renderer jars that carry precompiled SSP template classes (see [Architecture → Template precompilation](../contributing/architecture.md#template-precompilation)). JARs are written under:
-
-- `~/.m2/repository/com/jacoby6000/smithplates-plugin/0.1.0/`
-- `~/.m2/repository/com/jacoby6000/smithplates-*/0.1.0/` (dependency modules)
+Republish after every plugin source change. Consumers reference only the `smithplates-plugin` coordinate, but `publishM2` publishes the plugin **and its full transitive dependency graph** so Maven can resolve the dependency jars — including the renderer jars that carry precompiled SSP template classes (see [Architecture → Template precompilation](../contributing/architecture.md#template-precompilation)). JARs are written under `~/.m2/repository/com/jacoby6000/` using the current build version from `sbtn print smithplatesPlugin/version`.
 
 ## Version alignment
 
-Keep these in sync across Smithplates and every consumer:
+Keep the Smithplates plugin version in the consumer `smithy-build.json` aligned with the build you installed (`sbtn print smithplatesPlugin/version` after `publishM2`, or the exact coordinate from a release or snapshot publish):
 
-| Artifact | Version in `build.sbt` | `smithy-build.json` coordinate |
-|----------|----------------------|--------------------------------|
-| SQL plugin | `0.1.0` | `com.jacoby6000:smithplates-plugin:0.1.0` |
+| Artifact | Version source | `smithy-build.json` coordinate |
+|----------|----------------|----------------------------------|
+| SQL plugin | `sbtn print smithplatesPlugin/version` | `com.jacoby6000:smithplates-plugin:<version>` |
 | Smithy toolchain | `1.71.0` (in plugin `libraryDependencies`) | Matching Smithy CLI |
-| HTTP service trait | `0.1.0` (bundled in `smithplates-plugin`) | `com.jacoby6000:smithplates-plugin:0.1.0` supplies `@httpService` via classpath trait discovery |
+| HTTP service trait | bundled in `smithplates-plugin` | `@httpService` via classpath trait discovery |
 
 ## `smithy-build.json` example
 
-Configure Smithplates under the `smithplates` plugin key. SQL settings live under `sql`.
+Configure Smithplates under the `smithplates` plugin key. SQL settings live under `sql`. Set the Maven dependency version to the output of `sbtn print smithplatesPlugin/version` (after `publishM2`) or the exact release/snapshot coordinate you depend on.
 
 ```json
 {
@@ -32,7 +29,7 @@ Configure Smithplates under the `smithplates` plugin key. SQL settings live unde
   "sources": ["example"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:0.1.0"
+      "com.jacoby6000:smithplates-plugin:<version>"
     ]
   },
   "plugins": {

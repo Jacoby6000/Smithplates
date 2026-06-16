@@ -80,7 +80,7 @@ def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
 /**
  * Published dependency modules of `smithplates-plugin`. The plugin pom references these by Maven coordinate, so every
  * module in the plugin's transitive compile graph (including the renderer jars carrying precompiled SSP template
- * classes) must be published. `withOverwrite(true)` lets repeated `publishM2` runs replace the fixed `0.1.0` artifacts.
+ * classes) must be published with the same version as the plugin (`sbt-dynver` via `sbt-ci-release`).
  */
 def publishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   crossPaths := false,
@@ -193,7 +193,6 @@ lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
     publishedModuleSettings,
     name := "smithplates-sql-ir",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -205,7 +204,6 @@ lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-ser
     publishedModuleSettings,
     name := "smithplates-sql-service-ir",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -217,7 +215,6 @@ lazy val smithplatesSqlDdlRendererCommon = (project in file("modules/smithplates
     publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-common",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -229,7 +226,6 @@ lazy val smithplatesSqlDdlRendererPostgres = (project in file("modules/smithplat
     publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-postgres",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -241,7 +237,6 @@ lazy val smithplatesSqlDdlRendererSqlite = (project in file("modules/smithplates
     publishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-sqlite",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -253,7 +248,6 @@ lazy val smithplatesSqlServiceQueryRenderer = (project in file("modules/smithpla
     publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -267,7 +261,6 @@ lazy val smithplatesSqlServiceQueryRendererCommon = (project in file(
     publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-common",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency
   )
 
@@ -286,7 +279,6 @@ lazy val smithplatesSqlServiceQueryRendererPostgres = (project in file(
     publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-postgres",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -306,7 +298,6 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
     publishedModuleSettings,
     name := "smithplates-sql-service-query-renderer-sqlite",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += catsCoreDependency,
     libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
@@ -317,7 +308,6 @@ lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-s
     publishedModuleSettings,
     name := "smithplates-scalate-precompiler",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies += "org.scalatra.scalate" % "scalate-core_3" % scalateVersion
   )
 
@@ -327,7 +317,6 @@ lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
     publishedModuleSettings,
     name := "smithplates-http-ir",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
     libraryDependencies += "software.amazon.smithy" % "smithy-build" % smithyVersion,
     libraryDependencies += "software.amazon.smithy" % "smithy-aws-traits" % smithyVersion,
@@ -341,7 +330,6 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
     publishedModuleSettings,
     name := "smithplates-http-service-renderer",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies ++= Seq(
       catsCoreDependency,
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
@@ -374,7 +362,6 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
     publishedModuleSettings,
     name := "smithplates-sql-service-renderer",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     libraryDependencies ++= Seq(
       catsCoreDependency,
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
@@ -458,8 +445,7 @@ lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
     withCatsEffect,
     unpublishedModuleSettings,
     name := "smithplates-testkit",
-    organization := "com.jacoby6000",
-    version := "0.1.0"
+    organization := "com.jacoby6000"
   )
 
 lazy val smithplatesSqlDdlRendererPostgresIt = (project in file("modules/smithplates-sql-ddl-renderer-postgres-it"))
@@ -470,7 +456,6 @@ lazy val smithplatesSqlDdlRendererPostgresIt = (project in file("modules/smithpl
     unpublishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-postgres-it",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     dialectIntegrationTestModuleSettings,
     Test / parallelExecution := false,
     Test / fork := true,
@@ -490,7 +475,6 @@ lazy val smithplatesSqlDdlRendererSqliteIt = (project in file("modules/smithplat
     unpublishedModuleSettings,
     name := "smithplates-sql-ddl-renderer-sqlite-it",
     organization := "com.jacoby6000",
-    version := "0.1.0",
     dialectIntegrationTestModuleSettings,
     Test / parallelExecution := false,
     Test / fork := true,

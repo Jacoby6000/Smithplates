@@ -3,11 +3,6 @@
   "sources": [
     "smithy"
   ],
-  "maven": {
-    "dependencies": [
-      "com.jacoby6000:smithplates-plugin:0.1.0"
-    ]
-  },
   "plugins": {
     "smithplates": {
       "sql": {

@@ -1,6 +1,6 @@
 # SQL plugin
 
-Maven coordinate: `com.jacoby6000:smithplates-plugin:0.1.0`
+Maven coordinate: `com.jacoby6000:smithplates-plugin:<version>` (from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate)
 
 Smithy build plugin (`smithplates`) and trait namespace for relational schema and repository codegen from Smithy models.
 

@@ -3,9 +3,9 @@
   "sources": ["../petstore-smithy-spec/petstore"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:0.1.0",
-      "com.jacoby6000:smithplates-sql-ir:0.1.0",
-      "com.jacoby6000:smithplates-sql-service-ir:0.1.0"
+      "com.jacoby6000:smithplates-plugin:0.0.0+144-4d391c59+20260615-1708-SNAPSHOT",
+      "com.jacoby6000:smithplates-sql-ir:0.0.0+144-4d391c59+20260615-1708-SNAPSHOT",
+      "com.jacoby6000:smithplates-sql-service-ir:0.0.0+144-4d391c59+20260615-1708-SNAPSHOT"
     ]
   },
   "plugins": {

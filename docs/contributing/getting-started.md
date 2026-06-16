@@ -16,7 +16,7 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 
 | SBT project | Directory | Maven coordinate | Role |
 |-------------|-----------|------------------|------|
-| `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin:0.1.0` | Published `smithplates` build plugin (orchestration only) |
+| `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin` (version from `sbtn print smithplatesPlugin/version`) | Published `smithplates` build plugin (orchestration only) |
 | `smithplatesSqlIr` | [`modules/smithplates-sql-ir/`](../../modules/smithplates-sql-ir/) | — | Schema IR, table extraction |
 | `smithplatesSqlDdlRendererCommon` | [`modules/smithplates-sql-ddl-renderer-common/`](../../modules/smithplates-sql-ddl-renderer-common/) | — | Shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) |
 | `smithplatesSqlServiceIr` | [`modules/smithplates-sql-service-ir/`](../../modules/smithplates-sql-service-ir/) | — | Query/service IR, extractors |
@@ -47,11 +47,11 @@ Consumer `smithy-build.json` files reference `com.jacoby6000:smithplates-plugin`
 
 Releases are automated with [`sbt-ci-release`](https://github.com/sbt/sbt-ci-release) via [`.github/workflows/release.yml`](../../.github/workflows/release.yml):
 
-- **Stable release:** push an annotated tag whose name starts with `v` (for example `v0.1.0`).
+- **Stable release:** push an annotated tag whose name starts with `v` (for example `v1.0.0`).
 - **Snapshot:** every push to `main` publishes a unique `-SNAPSHOT` version derived from git history (`sbt-dynver`).
 - **PR snapshot:** a maintainer can comment exactly `!release` on a pull request whose head branch lives on this repository. CI publishes a hash snapshot of the PR head commit and replies with Maven coordinates. Maintainers can also run the **PR release** workflow manually from the Actions tab (`workflow_dispatch`) and choose the target branch from the **Use workflow from** dropdown.
 
-Only `smithplatesPlugin` is published (`com.jacoby6000:smithplates-plugin`); all other modules set `publish / skip := true`.
+Only `smithplates-plugin` is the consumer-facing artifact (`com.jacoby6000:smithplates-plugin`); its compile dependency modules are also published so the plugin POM resolves on Maven Central. Test and integration modules set `publish / skip := true`.
 
 `!release` is limited to repository collaborators (OWNER, MEMBER, or COLLABORATOR) and does not run for fork-head pull requests.
 
@@ -74,7 +74,7 @@ Add the Central Portal snapshots resolver and pin the exact version string from 
 
 ```scala
 resolvers += Resolver.sonatypeCentralSnapshots
-libraryDependencies += "com.jacoby6000" % "smithplates-plugin" % "0.1.0+3-abc123def-SNAPSHOT"
+libraryDependencies += "com.jacoby6000" % "smithplates-plugin" % "0.0.0+3-abc123def-SNAPSHOT"
 ```
 
 #### Sonatype namespace

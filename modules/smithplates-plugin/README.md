@@ -224,12 +224,12 @@ Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *C
 
 ## Smithy integration
 
-Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage/integration.md)):
+Register in `smithy-build.json` (see [`docs/usage/integration.md`](../docs/usage/integration.md)). Use the version from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate:
 
 ```json
 "maven": {
   "dependencies": [
-    "com.jacoby6000:smithplates-plugin:0.1.0"
+    "com.jacoby6000:smithplates-plugin:<version>"
   ]
 },
 "plugins": {
