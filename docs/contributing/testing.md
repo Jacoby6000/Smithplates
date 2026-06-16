@@ -15,6 +15,23 @@ Use `./validate` from the repository root:
 
 `./validate` uses Nix when available and falls back to Docker when needed.
 
+## Choosing what to run
+
+| Change type | Minimum focused checks | Broader checks before PR |
+|-------------|------------------------|--------------------------|
+| SQL trait or schema extraction | `sbtn smithplatesSqlIr/test` | `./validate test --target plugin` |
+| SQL service/query extraction | `sbtn smithplatesSqlServiceIr/test` | `./validate test --target plugin` |
+| DDL renderer behavior | affected renderer unit tests | affected dialect IT module with Docker |
+| Query renderer behavior | affected query-renderer module tests | SQL golden tests and Python harness for affected dialect |
+| SQL service renderer Scala logic | focused `smithplatesSqlServiceRenderer/testOnly ...` | `./validate lint,test --target python/db/<dialect>` |
+| Python DB SSP templates | golden render test for affected case | Python harness linters and pytest |
+| HTTP IR or transforms | `sbtn smithplatesHttpIr/test` | HTTP golden tests and example HTTP tests |
+| HTTP SSP templates | HTTP golden case | `./validate --target examples/python` |
+| Plugin settings or orchestration | focused plugin spec | `./validate test --target plugin` plus affected generated-output tests |
+| Docs only | `git diff --check`, reusable component check if relevant | pre-commit docs hook |
+
+When in doubt, choose the smallest test that exercises the changed contract first, then run the harness that validates generated output.
+
 ## Scala tests
 
 Run focused module tests with `sbtn`:
@@ -70,6 +87,18 @@ Language harnesses run ruff, mypy, and pytest against golden `expected/` trees:
 
 Postgres variants require Docker.
 
+## HTTP shared example tests
+
+Shared HTTP scenario tests live under `example/tests/`. They run the reference server and generated client together:
+
+```bash
+cd example/tests
+./run-tests.sh python python
+./run-tests.sh python python health-check
+```
+
+Use these when HTTP route behavior, generated app wiring, OpenAPI export/client coordination, or example adapters change.
+
 ## Example tests
 
 The Python petstore reference has separate validation:
@@ -79,3 +108,15 @@ The Python petstore reference has separate validation:
 ```
 
 Use this when changing example wiring, generated HTTP integration, OpenAPI export, or generated-client coordination.
+
+## Troubleshooting `sbtn`
+
+Always use `sbtn` from the repository root. If the thin client hangs or stops responding, clear stale processes and retry:
+
+```bash
+ps aux | rg -i 'sbtn|sbt-launch'
+pkill -f 'sbtn-x86_64-pc-linux' || true
+pkill -f 'sbt-launch\.jar' || true
+```
+
+Prefer one focused `sbtn` command at a time over long chained reload/test sequences.

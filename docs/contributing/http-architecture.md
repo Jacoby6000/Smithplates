@@ -25,6 +25,13 @@ Smithy model
 
 Start here when changing how Smithy HTTP models are interpreted.
 
+Typical changes:
+
+- Add or change an HTTP codegen trait.
+- Change route-group extraction from Smithy `@tags`.
+- Change request/response binding interpretation.
+- Change warning or validation behavior around problem details.
+
 ## HTTP transforms
 
 Smithplates ships transforms for compatibility with standard Smithy tools:
@@ -34,6 +41,8 @@ Smithplates ships transforms for compatibility with standard Smithy tools:
 - `stripSmithplatesHttpCodegenTraits`
 
 The build plugin applies the HTTP problem transform before extraction. Consumer OpenAPI projections can use the same transform names in `smithy-build.json`.
+
+Transform changes should be tested both as direct model transforms and through OpenAPI-oriented fixtures when they affect exported Smithy models.
 
 ## HTTP renderer
 
@@ -45,6 +54,13 @@ The build plugin applies the HTTP problem transform before extraction. Consumer 
 - bundled HTTP template precompilation.
 
 Bundled templates currently target Python/FastAPI.
+
+Typical changes:
+
+- Add generated route, protocol, response, model, or exception attributes.
+- Change FastAPI app wiring.
+- Change problem+json exception output.
+- Add generated tests or support for another framework.
 
 ## Plugin orchestration
 
@@ -59,3 +75,15 @@ Bundled templates currently target Python/FastAPI.
 ## Test coverage
 
 HTTP golden cases live under `templates/python/tests/http-fastapi-*` and are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is covered by the Python petstore example and shared example tests.
+
+## Change map
+
+| Goal | Primary modules | Tests to start with |
+|------|-----------------|---------------------|
+| Add or change an HTTP trait | `smithplates-http-ir` | HTTP IR tests, HTTP golden case |
+| Change OpenAPI compatibility transforms | `smithplates-http-ir` transforms | transform tests, OpenAPI projection example |
+| Change generated FastAPI output | `smithplates-http-service-renderer`, `templates/python/src/http` | HTTP golden case, example HTTP tests |
+| Change HTTP plugin settings | `smithplates-plugin` HTTP settings | plugin settings specs, HTTP golden case |
+| Add another HTTP framework | HTTP renderer artifact config, templates, validators | new golden variant and example coverage |
+
+HTTP codegen should keep generated route modules thin. Business behavior belongs behind generated protocol boundaries in hand-written application code.
