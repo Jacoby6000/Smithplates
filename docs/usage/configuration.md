@@ -7,6 +7,8 @@ Smithplates settings live under the `smithplates` plugin key in `smithy-build.js
   "plugins": {
     "smithplates": {
       "<language>": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {},
         "http": {}
       }
@@ -15,7 +17,7 @@ Smithplates settings live under the `smithplates` plugin key in `smithy-build.js
 }
 ```
 
-At least one language entry must contain `sql` or `http`. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
+Each language entry requires `sourceOutputDir` and `testOutputDir` once at the language level. SQL and HTTP codegen for that language share those output roots. At least one language entry must contain `sql` or `http`. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
 
 ## Maven dependency
 
@@ -51,13 +53,13 @@ Use this when a project only wants database schema, repository protocols, dialec
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
-          },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          }
         }
       }
     }
@@ -81,11 +83,11 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "http": {
           "server": {
             "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "packageName": "generated.api"
           }
         }
@@ -111,20 +113,19 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
           },
-      "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests",
-      "rootNamespace": "generated"
-    },
-    "http": {
+          "rootNamespace": "generated"
+        },
+        "http": {
+          "rootNamespace": "generated",
           "server": {
             "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "packageName": "generated.api"
           }
         }
@@ -134,16 +135,27 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
 }
 ```
 
+## Language-level output directories
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `sourceOutputDir` | Yes | Base output directory for generated source artifacts (SQL and HTTP). |
+| `testOutputDir` | Yes | Base output directory for generated test artifacts (SQL and HTTP). |
+
+Do not set `sourceOutputDir` or `testOutputDir` under `sql`, `http.server`, or `http.client`; configure them once on `smithplates.<language>`.
+
 ## `smithplates.<language>.sql`
 
 SQL configuration has two independent concerns:
 
 - Dialect keys (`sqlite`, `postgres`) control build-time migration DDL and dialect-specific generated implementations.
-- `sourceOutputDir`, `testOutputDir`, and `templateDirectory` control generated source and test artifacts for `@sqlService` models in that language.
+- `templateDirectory`, `rootNamespace`, and `packageName` control generated source layout and Python import packages for `@sqlService` models in that language.
 
 ```json
 {
   "python": {
+    "sourceOutputDir": "src/generated",
+    "testOutputDir": "tests",
     "sql": {
       "sqlite": {
         "enable": true,
@@ -153,8 +165,6 @@ SQL configuration has two independent concerns:
         "enable": true,
         "migrationLocation": "db/migrations/postgres"
       },
-      "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests",
       "rootNamespace": "generated"
     }
   }
@@ -165,8 +175,6 @@ SQL configuration has two independent concerns:
 |-------|----------|---------|
 | `sqlite.enable` / `postgres.enable` | No; default `false` | Enables that dialect's DDL migration files and dialect-specific generated implementation artifacts. |
 | `sqlite.migrationLocation` / `postgres.migrationLocation` | Yes when `enable` is `true` | Directory for versioned migration SQL files, such as `db/migrations/sqlite`. The value must be a directory path, not a `.sql` file. |
-| `sourceOutputDir` | Yes | Base output directory for generated SQL source artifacts. |
-| `testOutputDir` | Yes | Base output directory for generated SQL test artifacts. |
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for Python import packages derived from the template layout (for example `generated.db`). Filesystem paths are unchanged. |
 | `packageName` | No | Override the derived SQL import package (for example `generated.db`). |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. |
@@ -175,17 +183,21 @@ When a language `sql` block is configured with no enabled dialects, Smithplates 
 
 ## `smithplates.<language>.http`
 
-HTTP configuration lives beside SQL under the language entry and contains a `server` object:
+HTTP configuration lives beside SQL under the language entry and contains `server` and/or `client` objects:
 
 ```json
 {
   "python": {
+    "sourceOutputDir": "src/generated",
+    "testOutputDir": "tests",
     "http": {
       "server": {
         "webFramework": "fastapi",
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "packageName": "generated.api"
+      },
+      "client": {
+        "httpLibrary": "httpx",
+        "packageName": "generated.api_client"
       }
     }
   }
@@ -195,9 +207,10 @@ HTTP configuration lives beside SQL under the language entry and contains a `ser
 | Field | Required | Meaning |
 |-------|----------|---------|
 | `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled implementation today. |
-| `sourceOutputDir` | Yes | Base output directory for generated HTTP source artifacts. |
-| `testOutputDir` | Yes | Base output directory for generated HTTP test artifacts. |
-| `packageName` | No; default `generated.api` | Python import root for generated HTTP modules. |
+| `httpLibrary` | No; default `httpx` | HTTP client library for generated client artifacts. Python/httpx is the bundled implementation today. |
+| `packageName` | No | Override the derived import package for server or client output. |
+| `rootNamespace` | No; default `generated` for bundled Python | Prefix for shared HTTP model import packages. |
+| `modelsPackageName` | No | Override the derived shared models import package. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root for custom HTTP templates. |
 
 ## Output root

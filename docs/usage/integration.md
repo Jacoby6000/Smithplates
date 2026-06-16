@@ -37,6 +37,8 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -45,9 +47,7 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
           "postgres": {
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
-          },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          }
         }
       }
     }
@@ -61,11 +61,11 @@ Unlike SQL, HTTP settings do **not** use per-dialect `enable` flags. Each langua
 
 ```json
 "python": {
+  "sourceOutputDir": "src/generated",
+  "testOutputDir": "tests",
   "http": {
     "server": {
       "webFramework": "fastapi",
-      "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests",
       "packageName": "generated.rendering_pipeline_api"
     }
   }
@@ -80,9 +80,9 @@ Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templ
 |-------|----------|---------|---------|
 | `webFramework` | No | `fastapi` | Python web framework for generated route and protocol templates. Only `fastapi` is supported today; additional frameworks (for example `flask`) will use the same field when added. |
 | `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/http/`](../../templates/python/src/http/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all templates required by `webFramework`. |
-| `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
-| `testOutputDir` | Yes | — | Base directory for generated test artifacts |
 | `packageName` | No | `generated.api` | Python import root for generated modules (for example `generated.rendering_pipeline_api`) |
+
+Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
 
 Example output layout for bundled FastAPI templates (paths relative to `build/smithy/source/smithplates/`; sources under `templates/python/src/http/`):
 
@@ -187,8 +187,8 @@ Controls **SQL database service codegen** (database services and operations IR +
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
 | `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/db/`](../../templates/python/src/db/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `fragments/` tree referenced from main templates via `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`. |
-| `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
-| `testOutputDir` | Yes | — | Base directory for generated test artifacts |
+
+Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
 
 When a language target is configured, bundled `db` service-type templates are selected automatically from enabled dialects. Users do not list individual `artifacts` entries.
 

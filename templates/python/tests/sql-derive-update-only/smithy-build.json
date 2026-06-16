@@ -6,6 +6,8 @@
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src",
+        "testOutputDir": "test",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -14,9 +16,7 @@
           "postgres": {
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
-          },
-          "sourceOutputDir": "src",
-          "testOutputDir": "test"
+          }
         }
       }
     }

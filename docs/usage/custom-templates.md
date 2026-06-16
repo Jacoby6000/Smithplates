@@ -9,9 +9,9 @@ Configure SQL templates per language target:
 ```json
 {
   "python": {
+    "sourceOutputDir": "src/generated",
+    "testOutputDir": "tests",
     "sql": {
-      "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests",
       "templateDirectory": "classpath:custom-templates/python/src/db"
     }
   }
@@ -34,11 +34,11 @@ Configure HTTP templates under each language's `server` settings:
 ```json
 {
   "python": {
+    "sourceOutputDir": "src/generated",
+    "testOutputDir": "tests",
     "http": {
       "server": {
         "webFramework": "fastapi",
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "templateDirectory": "classpath:custom-templates/python/src/http/server"
       }
     }

@@ -6,15 +6,12 @@ import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArti
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
 import com.jacoby6000.smithplates.sql.SqlValidated
-import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import software.amazon.smithy.model.node.ObjectNode
 
 final case class HttpServerTarget(
     webFramework: String,
     templateDirectory: Option[String],
-    sourceOutputDir: String,
-    testOutputDir: String,
     packageName: Option[String]
 ) {
   def toCodegenSettings(
@@ -22,7 +19,9 @@ final case class HttpServerTarget(
       routeGroupTags: List[String],
       rootNamespace: Option[String],
       modelsPackageName: String,
-      emitModels: Boolean
+      emitModels: Boolean,
+      sourceOutputDir: String,
+      testOutputDir: String
   ): HttpServiceCodegenSettings = {
     val templateDirectory      = HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId)
     val modelTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
@@ -52,8 +51,6 @@ final case class HttpServerTarget(
 final case class HttpClientTarget(
     httpLibrary: String,
     templateDirectory: Option[String],
-    sourceOutputDir: String,
-    testOutputDir: String,
     packageName: Option[String]
 ) {
   def toCodegenSettings(
@@ -61,7 +58,9 @@ final case class HttpClientTarget(
       routeGroupTags: List[String],
       rootNamespace: Option[String],
       modelsPackageName: String,
-      emitModels: Boolean
+      emitModels: Boolean,
+      sourceOutputDir: String,
+      testOutputDir: String
   ): HttpServiceCodegenSettings = {
     val templateDirectory      = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId)
     val modelTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
@@ -131,8 +130,8 @@ object HttpLanguageTarget {
         HttpLanguageTarget(
           server = server,
           client = client,
-          rootNamespace = optionalStringMember(node, "rootNamespace"),
-          modelsPackageName = optionalStringMember(node, "modelsPackageName")
+          rootNamespace = PluginConfigMembers.optionalStringMember(node, "rootNamespace"),
+          modelsPackageName = PluginConfigMembers.optionalStringMember(node, "modelsPackageName")
         )
       }
     }
@@ -163,24 +162,11 @@ object HttpLanguageTarget {
       languageId: String,
       node: ObjectNode
   ): SqlValidated[HttpServerTarget] =
-    (
-      requiredStringMember(
-        node,
-        "sourceOutputDir",
-        s"smithplates.$languageId.http.server requires `sourceOutputDir`"
-      ),
-      requiredStringMember(
-        node,
-        "testOutputDir",
-        s"smithplates.$languageId.http.server requires `testOutputDir`"
-      )
-    ).mapN { (sourceOutputDir, testOutputDir) =>
+    PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node).map { _ =>
       HttpServerTarget(
-        webFramework = optionalStringMember(node, "webFramework").getOrElse("fastapi"),
-        templateDirectory = optionalStringMember(node, "templateDirectory"),
-        sourceOutputDir = sourceOutputDir,
-        testOutputDir = testOutputDir,
-        packageName = optionalStringMember(node, "packageName")
+        webFramework = PluginConfigMembers.optionalStringMember(node, "webFramework").getOrElse("fastapi"),
+        templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
+        packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
       )
     }
 
@@ -188,50 +174,11 @@ object HttpLanguageTarget {
       languageId: String,
       node: ObjectNode
   ): SqlValidated[HttpClientTarget] =
-    (
-      requiredStringMember(
-        node,
-        "sourceOutputDir",
-        s"smithplates.$languageId.http.client requires `sourceOutputDir`"
-      ),
-      requiredStringMember(
-        node,
-        "testOutputDir",
-        s"smithplates.$languageId.http.client requires `testOutputDir`"
-      )
-    ).mapN { (sourceOutputDir, testOutputDir) =>
+    PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node).map { _ =>
       HttpClientTarget(
-        httpLibrary = optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
-        templateDirectory = optionalStringMember(node, "templateDirectory"),
-        sourceOutputDir = sourceOutputDir,
-        testOutputDir = testOutputDir,
-        packageName = optionalStringMember(node, "packageName")
+        httpLibrary = PluginConfigMembers.optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
+        templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
+        packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
       )
-    }
-
-  private def optionalStringMember(
-      node: ObjectNode,
-      memberName: String
-  ): Option[String] =
-    Option(node.getMember(memberName).orElse(null)).flatMap {
-      case value if value.isStringNode => SqlShared.trimmedNonEmpty(value.expectStringNode().getValue)
-      case _                           => None
-    }
-
-  private def requiredStringMember(
-      node: ObjectNode,
-      memberName: String,
-      message: String
-  ): SqlValidated[String] =
-    Option(node.getMember(memberName).orElse(null)) match {
-      case Some(value) if value.isStringNode =>
-        SqlShared
-          .trimmedNonEmpty(value.expectStringNode().getValue)
-          .map(SqlValidated.valid)
-          .getOrElse(SqlValidated.invalid(InvalidPluginConfig(s"$memberName must be a non-empty string")))
-      case Some(_)                           =>
-        SqlValidated.invalid(InvalidPluginConfig(s"$memberName must be a string"))
-      case None                              =>
-        SqlValidated.invalid(InvalidPluginConfig(message))
     }
 }

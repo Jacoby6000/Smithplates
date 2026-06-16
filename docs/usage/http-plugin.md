@@ -37,17 +37,15 @@ HTTP settings live under `smithplates.<language>.http`. Configure `server`, `cli
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "http": {
           "rootNamespace": "generated",
           "server": {
-            "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
+            "webFramework": "fastapi"
           },
           "client": {
-            "httpLibrary": "httpx",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
+            "httpLibrary": "httpx"
           }
         }
       }

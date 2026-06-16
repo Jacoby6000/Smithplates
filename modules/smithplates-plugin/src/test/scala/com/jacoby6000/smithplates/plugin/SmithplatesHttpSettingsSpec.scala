@@ -11,10 +11,10 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {
               "server": {
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests",
                 "packageName": "generated.rendering_pipeline_api"
               }
             }
@@ -26,12 +26,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
     SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         assertEquals(settings.languageTargets.keySet, Set("python"))
-        val target = settings.languageTargets("python")
+        val languageTarget = settings.languageTargets("python")
+        assertEquals(languageTarget.sourceOutputDir, "src/generated")
+        assertEquals(languageTarget.testOutputDir, "tests")
+        val target         = languageTarget.target
         assertEquals(target.server.map(_.webFramework), Some("fastapi"))
         assertEquals(target.client, None)
-        val server = target.server.getOrElse(fail("expected server target"))
-        assertEquals(server.sourceOutputDir, "src/generated")
-        assertEquals(server.testOutputDir, "tests")
+        val server         = target.server.getOrElse(fail("expected server target"))
         assertEquals(server.packageName, Some("generated.rendering_pipeline_api"))
       case Validated.Invalid(errors) =>
         fail(errors.map(_.message).toList.mkString("; "))
@@ -44,10 +45,10 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {
               "client": {
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests",
                 "packageName": "generated.warehouse_api_client"
               }
             }
@@ -58,12 +59,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
 
     SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
-        val target = settings.languageTargets("python")
+        val languageTarget = settings.languageTargets("python")
+        assertEquals(languageTarget.sourceOutputDir, "src/generated")
+        assertEquals(languageTarget.testOutputDir, "tests")
+        val target         = languageTarget.target
         assertEquals(target.server, None)
         assertEquals(target.client.map(_.httpLibrary), Some("httpx"))
-        val client = target.client.getOrElse(fail("expected client target"))
-        assertEquals(client.sourceOutputDir, "src/generated")
-        assertEquals(client.testOutputDir, "tests")
+        val client         = target.client.getOrElse(fail("expected client target"))
         assertEquals(client.packageName, Some("generated.warehouse_api_client"))
       case Validated.Invalid(errors) =>
         fail(errors.map(_.message).toList.mkString("; "))
@@ -76,15 +78,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {
               "server": {
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests",
                 "packageName": "generated.api"
               },
               "client": {
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests",
                 "packageName": "generated.api_client"
               }
             }
@@ -95,12 +95,34 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
 
     SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
-        val target = settings.languageTargets("python")
+        val target = settings.languageTargets("python").target
         assert(target.server.isDefined)
         assert(target.client.isDefined)
       case Validated.Invalid(errors) =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
+  }
+
+  test("rejects nested sourceOutputDir under http.server") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "sourceOutputDir": "src/generated"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.server must not set sourceOutputDir")))
   }
 
   test("rejects missing server and client objects") {
@@ -109,6 +131,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {}
           }
         }
@@ -125,11 +149,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {
               "server": {
-                "webFramework": "flask",
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests"
+                "webFramework": "flask"
               }
             }
           }
@@ -148,11 +172,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "http": {
               "client": {
-                "httpLibrary": "aiohttp",
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests"
+                "httpLibrary": "aiohttp"
               }
             }
           }
@@ -172,10 +196,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         {
           "http": {
             "python": {
-              "server": {
-                "sourceOutputDir": "src/generated",
-                "testOutputDir": "tests"
-              }
+              "server": {}
             }
           }
         }
@@ -183,6 +204,6 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .expectObjectNode()
 
     val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("expected `sql` or `http`")))
+    assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
   }
 }

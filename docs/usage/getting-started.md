@@ -47,13 +47,13 @@ Enable one or more dialects for migration DDL and set output directories for gen
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
-          },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          }
         }
       }
     }
@@ -130,11 +130,11 @@ Configure HTTP generation under the language entry:
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "http": {
           "server": {
             "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "packageName": "generated.api"
           }
         }
