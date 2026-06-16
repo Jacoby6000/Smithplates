@@ -25,6 +25,7 @@ class CodegenTemplateTestSuite extends FunSuite {
 
   private val variants: Set[CodegenTemplateVariant] = Set(
     CodegenTemplateVariant("python", "api", "fastapi"),
+    CodegenTemplateVariant("python", "api_client", "httpx"),
     CodegenTemplateVariant("python", "db", "sqlite"),
     CodegenTemplateVariant("python", "db", "postgres")
   )

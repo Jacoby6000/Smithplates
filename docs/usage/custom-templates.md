@@ -39,7 +39,7 @@ Configure HTTP templates under each language's `server` settings:
         "webFramework": "fastapi",
         "sourceOutputDir": "src/generated",
         "testOutputDir": "tests",
-        "templateDirectory": "classpath:custom-templates/python/src/http"
+        "templateDirectory": "classpath:custom-templates/python/src/http/server"
       }
     }
   }

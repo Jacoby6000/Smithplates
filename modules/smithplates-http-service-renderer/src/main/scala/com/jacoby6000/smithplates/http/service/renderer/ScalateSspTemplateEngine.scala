@@ -11,9 +11,20 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
   private val compiledTemplateCache                                          = new ConcurrentHashMap[String, Template]()
-  private def contextBindingPreamble(normalizedTemplateRoot: String): String =
-    readClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("") +
-      readClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot)).getOrElse("")
+  private def contextBindingPreamble(normalizedTemplateRoot: String): String = {
+    val commonPreamble     =
+      readClasspathTemplate(PythonTemplateNamespaces.commonPreambleClasspath).getOrElse("")
+    val sharedHttpPreamble =
+      if (PythonTemplateNamespaces.isHttpCodegenTemplateRoot(normalizedTemplateRoot)) {
+        readClasspathTemplate(PythonTemplateNamespaces.sharedHttpNamingPreambleClasspath).getOrElse("")
+      } else {
+        ""
+      }
+    val featurePreamble    =
+      readClasspathTemplate(PythonTemplateNamespaces.namingPreambleClasspath(normalizedTemplateRoot))
+        .getOrElse("")
+    commonPreamble + sharedHttpPreamble + featurePreamble
+  }
 
   private def readClasspathTemplate(resourcePath: String): Option[String] =
     readClasspathTemplateOptional(normalizeResourcePath(resourcePath))
@@ -121,13 +132,23 @@ object ScalateSspTemplateEngine {
     val normalized = normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
-      case "python" :: "src" :: feature :: _               =>
+      case "python" :: "src" :: "http" :: "server" :: _                =>
+        PythonTemplateNamespaces.HttpServer
+      case "python" :: "src" :: "http" :: "client" :: _                =>
+        PythonTemplateNamespaces.HttpClient
+      case "python" :: "src" :: "http" :: "models" :: _                =>
+        PythonTemplateNamespaces.HttpModels
+      case "python" :: "src" :: feature :: _                           =>
         s"python/src/$feature"
-      case "templates" :: language :: "src" :: "http" :: _ =>
-        s"templates/$language/src/http"
-      case _ if segments.length >= 2                       =>
+      case "templates" :: language :: "src" :: "http" :: "server" :: _ =>
+        s"templates/$language/src/http/server"
+      case "templates" :: language :: "src" :: "http" :: "client" :: _ =>
+        s"templates/$language/src/http/client"
+      case "templates" :: language :: "src" :: "http" :: "models" :: _ =>
+        s"templates/$language/src/http/models"
+      case _ if segments.length >= 2                                   =>
         segments.take(2).mkString("/")
-      case _                                               =>
+      case _                                                           =>
         normalized
     }
   }

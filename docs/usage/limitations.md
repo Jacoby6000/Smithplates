@@ -6,6 +6,7 @@ This page separates current shipped behavior from roadmap work.
 
 - Bundled SQL service templates are Python-only.
 - Bundled HTTP service templates are Python/FastAPI-only.
+- Bundled HTTP client templates are Python/httpx-only.
 - Non-bundled languages and frameworks require explicit `templateDirectory` support.
 
 ## Migrations
@@ -33,9 +34,11 @@ HTTP golden tests currently focus on render output. Application behavior should 
 
 ## HTTP service generation
 
-HTTP service generation currently targets server-side Python/FastAPI wiring. It does not generate a client. Use OpenAPI export and a client generator when you need clients.
+HTTP service generation targets server-side Python/FastAPI wiring. Generated route modules call generated protocol boundaries. Application behavior still belongs in hand-written protocol implementations.
 
-Generated route modules call generated protocol boundaries. Application behavior still belongs in hand-written protocol implementations.
+## HTTP client generation
+
+HTTP client generation targets Python/httpx async clients that mirror the server-side route groups and wire bindings. Configure `smithplates.<language>.http.client` alongside or instead of `server`. OpenAPI Generator remains useful for external consumers and non-Python clients.
 
 ## OpenAPI coordination
 

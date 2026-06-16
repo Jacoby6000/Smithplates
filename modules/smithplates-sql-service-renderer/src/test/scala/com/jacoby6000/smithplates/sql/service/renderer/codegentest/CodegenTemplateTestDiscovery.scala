@@ -100,7 +100,7 @@ object CodegenTemplateTestDiscovery {
     val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
 
     val serviceTypeFiles        =
-      if (variant.serviceTypeId == "api") {
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
         listFilesRelativeToExpectedRoot(expectedRoot, serviceTypeRootPath)
       } else {
         val sharedModelFiles       =
@@ -116,7 +116,7 @@ object CodegenTemplateTestDiscovery {
         sharedModelFiles ++ sharedServiceTypeFiles
       }
     val implementationFiles     =
-      if (variant.serviceTypeId == "api") {
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
         Nil
       } else {
         listFilesDirectlyInDirectoryRelativeToExpectedRoot(
@@ -130,7 +130,7 @@ object CodegenTemplateTestDiscovery {
         implementationTestOutputPath
       )
     val migrationFiles          =
-      if (variant.serviceTypeId == "api") {
+      if (variant.serviceTypeId == "api" || variant.serviceTypeId == "api_client") {
         Nil
       } else {
         listDialectMigrationFiles(

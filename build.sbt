@@ -338,7 +338,7 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
     pythonNamespacedTemplateResources("common", "http"),
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.http.service.renderer.HttpTemplatePrecompilerMain",
-      Seq("python/src/http")
+      Seq("python/src/http/server", "python/src/http/client", "python/src/http/models")
     ),
     Test / unmanagedResourceDirectories ++= Seq(
       (ThisBuild / baseDirectory).value / "templates"

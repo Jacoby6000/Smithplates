@@ -61,10 +61,14 @@ object HttpServiceCodegenRenderer {
       artifactConfig: HttpServiceCodegenArtifactConfig,
       view: HttpCodegenTemplateView
   ): HttpValidated[List[HttpCodegenArtifact]] = {
-    val templatePath = resolveTemplatePath(settings, artifactConfig.template)
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
-    val content      = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
-    val relativePath = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
+    val templateSettings = artifactConfig.templateDirectoryOverride match {
+      case Some(templateDirectory) => settings.copy(templateDirectory = templateDirectory)
+      case None                    => settings
+    }
+    val templatePath     = resolveTemplatePath(templateSettings, artifactConfig.template)
+    val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
+    val content          = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
+    val relativePath     = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
     List(
       HttpCodegenArtifact(
         relativePath = relativePath,
@@ -115,7 +119,7 @@ object HttpServiceCodegenRenderer {
       structure: HttpStructure,
       enumNames: Set[String]
   ): HttpCodegenArtifact = {
-    val templateRoot    = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val structureNames  = service.structures.map(_.name).toSet
     val unionNames      = service.unions.map(_.name).toSet
     val importTypeNames =
@@ -124,7 +128,9 @@ object HttpServiceCodegenRenderer {
     val needsAny        = HttpModelTypeNames.needsAnyImport(structure.members)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/structure.ssp"),
+        resolveTemplatePath(
+          settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
+          "structure.ssp"),
         Map(
           "structure"           -> structure,
           "packageName"         -> settings.packageName,
@@ -149,14 +155,14 @@ object HttpServiceCodegenRenderer {
       union: HttpUnion,
       enumNames: Set[String]
   ): HttpCodegenArtifact = {
-    val templateRoot    = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val structureNames  = service.structures.map(_.name).toSet
     val unionNames      = service.unions.map(_.name).toSet
     val importTypeNames = HttpModelTypeNames.unionReferencedTypeNames(union, structureNames, unionNames, enumNames)
     val needsDatetime   = HttpModelTypeNames.unionNeedsDatetimeImport(union.members)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/union.ssp"),
+        resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "union.ssp"),
         Map(
           "union"               -> union,
           "packageName"         -> settings.packageName,
@@ -177,19 +183,21 @@ object HttpServiceCodegenRenderer {
   private def modelArtifactRelativePath(settings: HttpServiceCodegenSettings, moduleName: String): String =
     settings.sourceOutputDirectory match {
       case Some(sourceOutputDirectory) =>
-        s"${normalizeDirectory(sourceOutputDirectory)}/api/models/$moduleName.py"
+        s"${normalizeDirectory(sourceOutputDirectory)}/${settings.serviceTypePrefix}/models/$moduleName.py"
       case None                        =>
-        s"api/models/$moduleName.py"
+        s"${settings.serviceTypePrefix}/models/$moduleName.py"
     }
 
   private def renderStringEnumModelArtifact(
       settings: HttpServiceCodegenSettings,
       stringEnum: HttpStringEnum
   ): HttpCodegenArtifact = {
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val content      =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/string_enum.ssp"),
+        resolveTemplatePath(
+          settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
+          "string_enum.ssp"),
         Map("stringEnum" -> stringEnum),
         Some(templateRoot)
       )
@@ -204,10 +212,10 @@ object HttpServiceCodegenRenderer {
       settings: HttpServiceCodegenSettings,
       intEnum: HttpIntEnum
   ): HttpCodegenArtifact = {
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val content      =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/int_enum.ssp"),
+        resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "int_enum.ssp"),
         Map("intEnum" -> intEnum),
         Some(templateRoot)
       )

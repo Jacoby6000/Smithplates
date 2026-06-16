@@ -31,7 +31,9 @@ Bundled Python templates are packaged from `templates/python/src/db/` and `templ
 | Service type | Template root | Generated output |
 |--------------|---------------|------------------|
 | SQL DB | `templates/python/src/db/` | DB models, repository protocols, SQLite/Postgres implementations, migration services, transaction helpers, and generated DB tests |
-| HTTP API | `templates/python/src/http/` | FastAPI route modules, route-group protocols, app wiring, response helpers, problem detail helpers, and API models |
+| HTTP API server | `templates/python/src/http/server/` | FastAPI route modules, route-group protocols, app wiring, response helpers, and problem detail helpers |
+| HTTP API client | `templates/python/src/http/client/` | httpx route-group clients, client registry, response parsing, and operation bindings |
+| HTTP API models | `templates/python/src/http/models/` | Shared Pydantic models used by server and client codegen |
 
 ## Contributing
 

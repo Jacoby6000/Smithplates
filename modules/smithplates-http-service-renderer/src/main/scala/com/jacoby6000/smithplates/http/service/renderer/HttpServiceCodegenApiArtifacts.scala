@@ -48,15 +48,17 @@ object HttpServiceCodegenApiArtifacts {
       ),
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
-        template = "models/__init__.ssp",
+        template = "__init__.ssp",
         outputFile = "api/models/__init__.py",
-        scope = HttpCodegenArtifactScope.Service
+        scope = HttpCodegenArtifactScope.Service,
+        templateDirectoryOverride = Some(PythonTemplateNamespaces.bundledHttpModelsTemplateDirectory)
       ),
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
-        template = "models/problem.ssp",
+        template = "problem.ssp",
         outputFile = "api/models/problem.py",
-        scope = HttpCodegenArtifactScope.Service
+        scope = HttpCodegenArtifactScope.Service,
+        templateDirectoryOverride = Some(PythonTemplateNamespaces.bundledHttpModelsTemplateDirectory)
       )
     )
 
@@ -102,7 +104,8 @@ final case class HttpServiceCodegenArtifactConfig(
     kind: HttpServiceCodegenArtifactKind,
     template: String,
     outputFile: String,
-    scope: HttpCodegenArtifactScope
+    scope: HttpCodegenArtifactScope,
+    templateDirectoryOverride: Option[String] = None
 )
 
 final case class HttpServiceCodegenSettings(
@@ -112,5 +115,10 @@ final case class HttpServiceCodegenSettings(
     packageName: String,
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
-    artifacts: List[HttpServiceCodegenArtifactConfig]
-)
+    artifacts: List[HttpServiceCodegenArtifactConfig],
+    serviceTypePrefix: String = "api",
+    modelTemplateDirectory: Option[String] = None
+) {
+  def resolvedModelTemplateDirectory: String =
+    modelTemplateDirectory.getOrElse(templateDirectory)
+}

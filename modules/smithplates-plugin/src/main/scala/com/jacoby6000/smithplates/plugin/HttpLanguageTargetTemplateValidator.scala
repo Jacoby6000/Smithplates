@@ -1,7 +1,9 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
+import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenArtifactConfig
 import com.jacoby6000.smithplates.http.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
@@ -10,62 +12,95 @@ import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 object HttpLanguageTargetTemplateValidator {
   val bundledLanguageIds: Set[String] = Set("python")
 
-  def defaultTemplateDirectory(languageId: String): String =
+  def defaultServerTemplateDirectory(languageId: String): String =
     languageId match {
-      case "python" => PythonTemplateNamespaces.bundledHttpTemplateDirectory
-      case other    => s"classpath:templates/$other/src/http"
+      case "python" => PythonTemplateNamespaces.bundledHttpServerTemplateDirectory
+      case other    => s"classpath:templates/$other/src/http/server"
     }
 
-  def resolveTemplateDirectory(target: HttpLanguageTarget, languageId: String): String =
-    target.templateDirectory.getOrElse(defaultTemplateDirectory(languageId))
+  def defaultClientTemplateDirectory(languageId: String): String =
+    languageId match {
+      case "python" => PythonTemplateNamespaces.bundledHttpClientTemplateDirectory
+      case other    => s"classpath:templates/$other/src/http/client"
+    }
 
-  def validate(
+  def resolveServerTemplateDirectory(target: HttpServerTarget, languageId: String): String =
+    target.templateDirectory.getOrElse(defaultServerTemplateDirectory(languageId))
+
+  def resolveClientTemplateDirectory(target: HttpClientTarget, languageId: String): String =
+    target.templateDirectory.getOrElse(defaultClientTemplateDirectory(languageId))
+
+  def validateServer(
       languageId: String,
-      target: HttpLanguageTarget
+      target: HttpServerTarget
   ): SqlValidated[Unit] = {
     val normalizedLanguageId = languageId.toLowerCase
     if (!bundledLanguageIds.contains(normalizedLanguageId) && target.templateDirectory.isEmpty) {
       SqlValidated.invalid(
         InvalidPluginConfig(
-          s"smithplates.$languageId.http requires `templateDirectory` " +
+          s"smithplates.$languageId.http.server requires `templateDirectory` " +
             s"because bundled templates are not available for '$languageId'; " +
             s"supported bundled languages: ${bundledLanguageIds.toList.sorted.mkString(", ")}"
         )
       )
     } else {
-      validateRequiredTemplatesExist(
+      validateRequiredArtifactsExist(
         languageId = languageId,
-        templateDirectory = resolveTemplateDirectory(target, languageId),
-        webFramework = target.webFramework
+        defaultTemplateDirectory = resolveServerTemplateDirectory(target, languageId),
+        artifacts = HttpServiceCodegenApiArtifacts
+          .forEnabledFrameworks(List(target.webFramework), List("placeholder"))
       )
     }
   }
 
-  private def validateRequiredTemplatesExist(
+  def validateClient(
       languageId: String,
-      templateDirectory: String,
-      webFramework: String
+      target: HttpClientTarget
   ): SqlValidated[Unit] = {
-    val requiredTemplates =
-      HttpServiceCodegenApiArtifacts
-        .forEnabledFrameworks(List(webFramework), List("placeholder"))
-        .map(_.template)
-        .distinct
-
-    val missingTemplates =
-      requiredTemplates.filterNot { template =>
-        ScalateSspTemplateEngine.classpathResourceExists(
-          classpathResourcePath(templateDirectory, template)
+    val normalizedLanguageId = languageId.toLowerCase
+    if (!bundledLanguageIds.contains(normalizedLanguageId) && target.templateDirectory.isEmpty) {
+      SqlValidated.invalid(
+        InvalidPluginConfig(
+          s"smithplates.$languageId.http.client requires `templateDirectory` " +
+            s"because bundled templates are not available for '$languageId'; " +
+            s"supported bundled languages: ${bundledLanguageIds.toList.sorted.mkString(", ")}"
         )
-      }
+      )
+    } else {
+      validateRequiredArtifactsExist(
+        languageId = languageId,
+        defaultTemplateDirectory = resolveClientTemplateDirectory(target, languageId),
+        artifacts = HttpClientCodegenApiArtifacts
+          .forEnabledLibraries(List(target.httpLibrary), List("placeholder"))
+      )
+    }
+  }
+
+  private def validateRequiredArtifactsExist(
+      languageId: String,
+      defaultTemplateDirectory: String,
+      artifacts: List[HttpServiceCodegenArtifactConfig]
+  ): SqlValidated[Unit] = {
+    val missingTemplates =
+      artifacts
+        .map { artifact =>
+          val templateDirectory = artifact.templateDirectoryOverride.getOrElse(defaultTemplateDirectory)
+          (templateDirectory, artifact.template)
+        }
+        .distinct
+        .filterNot { case (templateDirectory, template) =>
+          ScalateSspTemplateEngine.classpathResourceExists(
+            classpathResourcePath(templateDirectory, template)
+          )
+        }
 
     if (missingTemplates.isEmpty) {
       ().validNel
     } else {
       SqlValidated.invalid(
         InvalidPluginConfig(
-          s"smithplates.$languageId.http templateDirectory '$templateDirectory' " +
-            s"is missing required templates: ${missingTemplates.sorted.mkString(", ")}"
+          s"smithplates.$languageId.http is missing required templates: " +
+            missingTemplates.map { case (directory, template) => s"$directory/$template" }.sorted.mkString(", ")
         )
       )
     }

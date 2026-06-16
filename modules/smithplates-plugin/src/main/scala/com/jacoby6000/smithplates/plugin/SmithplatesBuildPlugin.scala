@@ -106,28 +106,39 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
     serviceIr.warnings.foreach(warning => logger.warning(warning.message))
 
     httpSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
-      httpSettings.toCodegenSettings(languageId, serviceIr) match {
-        case Some(codegenSettings) =>
-          if (serviceIr.services.isEmpty) {
-            logger.info(
-              s"Skipping $languageId HTTP service codegen: Smithy model contains no @httpService services"
-            )
-          } else {
-            HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {
-              case Validated.Valid(artifacts) =>
-                artifacts.foreach { artifact =>
-                  writeArtifact(context, "HTTP service", artifact.relativePath, artifact.content)
-                }
-              case Validated.Invalid(errors)  =>
-                throw new IllegalArgumentException(
-                  s"smithplates plugin failed $languageId HTTP codegen validation: ${HttpValidated.toPluginExceptionMessage(errors)}"
-                )
-            }
-          }
-        case None                  => ()
+      if (serviceIr.services.isEmpty) {
+        logger.info(
+          s"Skipping $languageId HTTP codegen: Smithy model contains no @httpService services"
+        )
+      } else {
+        httpSettings.toServerCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
+          renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
+        }
+        httpSettings.toClientCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
+          renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
+        }
       }
     }
   }
+
+  private def renderHttpArtifacts(
+      context: PluginContext,
+      model: Model,
+      serviceIr: com.jacoby6000.smithplates.http.model.HttpServiceIr,
+      languageId: String,
+      label: String,
+      codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
+  ): Unit =
+    HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {
+      case Validated.Valid(artifacts) =>
+        artifacts.foreach { artifact =>
+          writeArtifact(context, label, artifact.relativePath, artifact.content)
+        }
+      case Validated.Invalid(errors)  =>
+        throw new IllegalArgumentException(
+          s"smithplates plugin failed $languageId $label codegen validation: ${HttpValidated.toPluginExceptionMessage(errors)}"
+        )
+    }
 
   private def writeArtifact(
       context: PluginContext,

@@ -30,7 +30,7 @@ Group operations around API ownership, not persistence tables. A route group usu
 
 ## Configuration
 
-HTTP settings live under `smithplates.<language>.http.server`:
+HTTP settings live under `smithplates.<language>.http`. Configure `server`, `client`, or both:
 
 ```json
 {
@@ -43,6 +43,12 @@ HTTP settings live under `smithplates.<language>.http.server`:
             "sourceOutputDir": "src/generated",
             "testOutputDir": "tests",
             "packageName": "generated.api"
+          },
+          "client": {
+            "httpLibrary": "httpx",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "packageName": "generated.api_client"
           }
         }
       }
@@ -51,9 +57,9 @@ HTTP settings live under `smithplates.<language>.http.server`:
 }
 ```
 
-Python/FastAPI is the bundled HTTP target today. Non-bundled languages or frameworks require an explicit `templateDirectory`.
+Python/FastAPI is the bundled HTTP server target today. Python/httpx is the bundled HTTP client target. Non-bundled languages or frameworks require an explicit `templateDirectory`.
 
-## Generated output
+## Generated server output
 
 Generated paths are relative to `build/smithy/source/smithplates/`. For bundled FastAPI templates, Smithplates emits files such as:
 
@@ -69,6 +75,20 @@ Generated paths are relative to `build/smithy/source/smithplates/`. For bundled 
 
 Generated route modules depend on generated protocol base classes. Application code implements those protocols and passes implementations into the generated app factory or service registry.
 
+## Generated client output
+
+For bundled httpx templates, Smithplates emits files such as:
+
+```text
+<sourceOutputDir>/api_client/client_registry.py
+<sourceOutputDir>/api_client/client_response.py
+<sourceOutputDir>/api_client/operation_bindings.py
+<sourceOutputDir>/api_client/clients/<route_group>_client.py
+<sourceOutputDir>/api_client/models/*.py
+```
+
+Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the same generated Pydantic models used by the server.
+
 ## Application wiring
 
 The generated HTTP layer owns FastAPI routing and wire conversion. Your application owns business behavior:
@@ -79,6 +99,12 @@ The generated HTTP layer owns FastAPI routing and wire conversion. Your applicat
 4. Keep mapping between HTTP models and database models in hand-written code.
 
 This keeps generated files replaceable and avoids editing generated route modules.
+
+### Client wiring
+
+1. Create an `httpx.AsyncClient` (or reuse an existing client).
+2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
+3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
 
 ## Problem details
 
