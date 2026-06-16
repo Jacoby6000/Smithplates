@@ -21,14 +21,29 @@ During local Smithplates development, run `sbtn publishM2` from this repository 
 
 Consumers reference only `com.jacoby6000:smithplates-plugin`; its published transitive dependencies carry the trait IDL, renderers, and precompiled bundled templates.
 
-## 2. Configure `smithplates`
+## 2. Choose a path
 
 Configure Smithplates under `plugins.smithplates`. At least one of `sql` or `http` must be present.
 
-For SQL, enable one or more dialects for migration DDL and add `languageTargets` for generated repository artifacts:
+- Use [SQL quickstart](#sql-quickstart) when you want database schema, repositories, migration services, and generated DB tests.
+- Use [HTTP quickstart](#http-quickstart) when you want FastAPI route wiring, service protocols, response helpers, and API models.
+- Use both sections when the same consumer project generates SQL and HTTP artifacts. Keep the Smithy namespaces separate and bridge them in hand-written code.
+
+## SQL quickstart
+
+### Configure SQL generation
+
+Enable one or more dialects for migration DDL and add `languageTargets` for generated repository artifacts:
 
 ```json
 {
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>"
+    ]
+  },
   "plugins": {
     "smithplates": {
       "sql": {
@@ -48,39 +63,9 @@ For SQL, enable one or more dialects for migration DDL and add `languageTargets`
 }
 ```
 
-For HTTP, configure a language entry directly under `http`:
+### Author a SQL model
 
-```json
-{
-  "plugins": {
-    "smithplates": {
-      "http": {
-        "python": {
-          "server": {
-            "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
-            "packageName": "generated.api"
-          }
-        }
-      }
-    }
-  }
-}
-```
-
-See [Configuration](configuration.md) for the full settings model.
-
-## 3. Author Smithy models
-
-Use separate Smithy namespaces for persistence and wire contracts:
-
-- SQL models use traits such as `@sqlTable`, `@sqlService`, and `@sqlDeriveInsert`.
-- HTTP models use `@httpService`, standard Smithy `@http`, `@tags`, and optional Smithplates HTTP traits such as `@httpProblem`.
-
-Keeping these namespaces separate lets generated repositories and generated HTTP routes evolve independently.
-
-### Minimal SQL model
+SQL models use persistence traits such as `@sqlTable`, `@sqlService`, and `@sqlDeriveInsert`.
 
 ```smithy
 $version: "2.0"
@@ -121,13 +106,49 @@ service WidgetRepository {
 }
 ```
 
+### SQL output
+
 With the SQL configuration above, this model generates:
 
 - a `v1_initial_schema.sql` migration file under `db/migrations/sqlite`;
 - shared Python model and repository protocol files under `src/generated/db/`;
 - a SQLite implementation, migration service, transaction helper, and generated pytest file under dialect-specific paths.
 
-### Minimal HTTP model
+## HTTP quickstart
+
+### Configure HTTP generation
+
+Configure a language entry directly under `http`:
+
+```json
+{
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>"
+    ]
+  },
+  "plugins": {
+    "smithplates": {
+      "http": {
+        "python": {
+          "server": {
+            "webFramework": "fastapi",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "packageName": "generated.api"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Author an HTTP model
+
+HTTP models use `@httpService`, standard Smithy `@http`, `@tags`, and optional Smithplates HTTP traits such as `@httpProblem`.
 
 ```smithy
 $version: "2.0"
@@ -157,9 +178,22 @@ structure HealthCheckOutput {
 }
 ```
 
+### HTTP output
+
 With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers, and Python API models under `src/generated/api/`.
 
-## 4. Run `smithy build`
+## Using SQL and HTTP together
+
+When one project uses both SQL and HTTP codegen, keep the Smithy namespaces separate:
+
+- SQL persistence namespace, for example `example.db`.
+- HTTP wire-contract namespace, for example `example.api`.
+
+Do not reuse SQL table shapes as HTTP request or response shapes. Generated repositories and generated HTTP routes should meet in hand-written application code that maps API models to DB models.
+
+See [Configuration](configuration.md) for the full settings model and [Examples](examples.md) for the Python petstore reference.
+
+## Run `smithy build`
 
 Run `smithy build` from the consumer project. Smithy writes plugin artifacts under:
 

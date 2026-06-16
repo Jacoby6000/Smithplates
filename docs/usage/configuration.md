@@ -39,6 +39,13 @@ Use this when a project only wants database schema, repository protocols, dialec
 
 ```json
 {
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>"
+    ]
+  },
   "plugins": {
     "smithplates": {
       "sql": {
@@ -64,6 +71,13 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
 
 ```json
 {
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>"
+    ]
+  },
   "plugins": {
     "smithplates": {
       "http": {
@@ -83,7 +97,45 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
 
 ### SQL and HTTP together
 
-Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP Smithy namespaces separate, then bridge them in hand-written application code.
+Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP Smithy namespaces separate, then bridge them in hand-written application code. A combined copy/paste example:
+
+```json
+{
+  "version": "1.0",
+  "sources": ["model"],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:<version>"
+    ]
+  },
+  "plugins": {
+    "smithplates": {
+      "sql": {
+        "sqlite": {
+          "enable": true,
+          "migrationLocation": "db/migrations/sqlite"
+        },
+        "languageTargets": {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests"
+          }
+        }
+      },
+      "http": {
+        "python": {
+          "server": {
+            "webFramework": "fastapi",
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "packageName": "generated.api"
+          }
+        }
+      }
+    }
+  }
+}
+```
 
 ## `smithplates.sql`
 
