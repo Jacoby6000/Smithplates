@@ -489,6 +489,7 @@ lazy val root = (project in file("."))
   .settings(
     strictScala3Settings,
     withCatsEffect,
+    unpublishedModuleSettings,
     Compile / sources := Nil,
     Compile / resources := Nil,
     generateGoldenTemplatesFor := (smithplatesPlugin / generateGoldenTemplatesFor).evaluated
