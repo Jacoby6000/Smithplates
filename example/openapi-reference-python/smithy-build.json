@@ -3,7 +3,7 @@
   "sources": ["../petstore-smithy-spec/petstore/api"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:0.1.1+14-a227e8b8+20260616-1004-SNAPSHOT",
+      "com.jacoby6000:smithplates-plugin:0.1.0+26-db885f3e-SNAPSHOT",
       "software.amazon.smithy:smithy-aws-traits:1.71.0",
       "software.amazon.smithy:smithy-openapi:1.71.0"
     ]
