@@ -2,7 +2,7 @@
 
 Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case uses `PYTHONPATH=expected/src` so generated modules import as `generated.db.*` (see `rootNamespace` in plugin config). Linters and pytest both run per case/dialect so generated module names (for example `order_repository_aiosqlite`) never collide across fixtures.
+Each golden case uses `PYTHONPATH=expected/src` with a runtime `expected/src/generated/db` symlink to `../db`, so generated modules import as `generated.db.*` while golden files stay under `expected/src/db/`.
 
 ## Linters (`run-linters.sh`)
 
