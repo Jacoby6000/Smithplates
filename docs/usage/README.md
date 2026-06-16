@@ -2,12 +2,29 @@
 
 Guides for **consuming** Smithplates plugins in your Smithy project.
 
+## Start here
+
 | Document | Topic |
 |----------|-------|
-| [Integration](integration.md) | Maven coordinates, `smithy-build.json`, SQL and HTTP configuration, output paths, OpenAPI coordination, and HTTP/SQL namespace separation |
-| [SQL plugin](sql-plugin.md) | Trait conventions, pipeline outputs, and modeling examples |
+| [Getting started](getting-started.md) | Minimal consumer path from Maven coordinate to generated output |
+| [Configuration](configuration.md) | `smithplates` settings for SQL, HTTP, output roots, dialects, language targets, and templates |
+| [Examples](examples.md) | Python petstore reference project and generated-artifact workflow |
 
-HTTP service codegen is implemented today for bundled Python/FastAPI templates and is currently documented in [Integration](integration.md). A dedicated HTTP guide is part of the docs overhaul plan.
+## Feature guides
+
+| Document | Topic |
+|----------|-------|
+| [SQL plugin](sql-plugin.md) | SQL traits, generated repositories, migration services, transactions, and Python DB behavior |
+| [HTTP plugin](http-plugin.md) | `@httpService`, FastAPI output, route groups, protocols, and problem details |
+| [OpenAPI](openapi.md) | Smithplates HTTP projection transforms and OpenAPI Generator coordination |
+| [Custom templates](custom-templates.md) | Bundled templates, custom `templateDirectory`, and template validation |
+| [Limitations](limitations.md) | Current support boundaries and roadmap distinctions |
+
+## Deep reference
+
+| Document | Topic |
+|----------|-------|
+| [Integration](integration.md) | Full configuration walkthrough, output layout, OpenAPI coordination, and HTTP/SQL namespace separation |
 
 Trait tables, Scalate SSP template context, and SPI details:
 

@@ -27,6 +27,9 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | `smithplatesSqlDdlRendererPostgres` | [`modules/smithplates-sql-ddl-renderer-postgres/`](../../modules/smithplates-sql-ddl-renderer-postgres/) | — | Postgres DDL renderer |
 | `smithplatesSqlDdlRendererSqlite` | [`modules/smithplates-sql-ddl-renderer-sqlite/`](../../modules/smithplates-sql-ddl-renderer-sqlite/) | — | SQLite DDL renderer |
 | `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Scalate SSP service codegen (Python templates) |
+| `smithplatesScalatePrecompiler` | [`modules/smithplates-scalate-precompiler/`](../../modules/smithplates-scalate-precompiler/) | — | Shared Scalate template precompilation support |
+| `smithplatesHttpIr` | [`modules/smithplates-http-ir/`](../../modules/smithplates-http-ir/) | — | HTTP service IR, traits, and projection transforms |
+| `smithplatesHttpServiceRenderer` | [`modules/smithplates-http-service-renderer/`](../../modules/smithplates-http-service-renderer/) | — | Scalate SSP HTTP service codegen (Python/FastAPI templates) |
 | `smithplatesTestkit` | [`modules/smithplates-testkit/`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
 | `smithplatesSqlDdlRendererPostgresIt` | [`modules/smithplates-sql-ddl-renderer-postgres-it/`](../../modules/smithplates-sql-ddl-renderer-postgres-it/) | — | Postgres renderer integration tests |
 | `smithplatesSqlDdlRendererSqliteIt` | [`modules/smithplates-sql-ddl-renderer-sqlite-it/`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) | — | SQLite renderer integration tests |

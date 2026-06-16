@@ -150,6 +150,9 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 | Query rendering | `modules/smithplates-sql-service-query-renderer*` | `sbtn smithplatesSqlServiceQueryRenderer/test`, … |
 | DDL rendering | `modules/smithplates-sql-ddl-renderer-*/` | `sbtn smithplatesSqlDdlRendererPostgres/test`, … |
 | SSP rendering engine | `modules/smithplates-sql-service-renderer/` | `sbtn smithplatesSqlServiceRenderer/test` |
+| HTTP IR and transforms | `modules/smithplates-http-ir/` | `sbtn smithplatesHttpIr/test` |
+| HTTP SSP rendering | `modules/smithplates-http-service-renderer/` | `sbtn smithplatesHttpServiceRenderer/test` |
+| Template precompilation | `modules/smithplates-scalate-precompiler/` | covered by renderer compile/test tasks |
 | Published plugin | `modules/smithplates-plugin/` | `sbtn smithplatesPlugin/test` |
 | Dialect IT | `modules/smithplates-sql-ddl-renderer-*-it/` | `sbtn smithplatesSqlDdlRendererPostgresIt/test`, … |
 

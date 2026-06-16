@@ -2,6 +2,8 @@
 
 Smithplates plugins are consumed as Maven JARs during `smithy build`. Models and `smithy-build.json` live in the **consumer** repository, not in Smithplates.
 
+For the task-oriented user guide, start with [Getting started](getting-started.md), [Configuration](configuration.md), [SQL plugin](sql-plugin.md), and [HTTP plugin](http-plugin.md). This page remains the combined integration reference.
+
 ## Local development
 
 1. From Smithplates: `sbtn publishM2`

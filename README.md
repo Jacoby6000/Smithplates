@@ -105,9 +105,9 @@ implementations without overwriting any generated outputs.  These tools never ou
 | **Users** (consume plugins in your Smithy project) | [`docs/usage/`](docs/usage/) |
 | **Contributors** (develop Smithplates) | [`docs/contributing/`](docs/contributing/) |
 
-**Usage:** [Integration](docs/usage/integration.md) · [SQL plugin](docs/usage/sql-plugin.md) · HTTP service codegen coverage is currently in [Integration](docs/usage/integration.md)
+**Usage:** [Getting started](docs/usage/getting-started.md) · [Configuration](docs/usage/configuration.md) · [SQL plugin](docs/usage/sql-plugin.md) · [HTTP plugin](docs/usage/http-plugin.md) · [Examples](docs/usage/examples.md)
 
-**Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Integration tests](docs/contributing/integration-tests.md)
+**Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Testing](docs/contributing/testing.md) · [Template authoring](docs/contributing/template-authoring.md)
 
 Conventions: [`AGENTS.md`](AGENTS.md)
 
