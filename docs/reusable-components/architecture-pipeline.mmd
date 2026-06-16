@@ -1,52 +1,68 @@
-%%{init: {"flowchart": {"curve": "linear"}}}%%
+%%{init: {"flowchart": {"curve": "step"}}}%%
 flowchart TD
-    SM["Smithy model"]
-    SSP["smithplates-plugin"]
+    subgraph transform["Smithy Model Transformation"]
+        SM["Smithy model"]
+        SSP["smithplates-plugin"]
+        HTTPProblem["HTTP problem transform"]
+        SQLIR["SQL schema IR"]
+        SVCIR["SQL service/query IR"]
+        HTTPIR["HTTP service IR"]
 
-    SM --> SSP
-
-    SSP --> SQLIR["SQL IR"]
-    SSP --> HTTPIR["HTTP service IR"]
-
-
-    subgraph schema["Schema and migrations"]
-        SQLIR --> DDL["Dialect-specific DDL"]
-        SQLIR --> SchemaIT["Schema-path integration tests<br/>(contributor IT modules)"]
-        
-        Migration["Generated target-language migration runners<br/>(Python SQLite/Postgres today)"]
-        DDL   --> Migration
-    end
-
-    subgraph services["SQL Database Service codegen"]
-        SSP   --> SVCIR["Database services and operations IR"]
+        SM --> SSP
+        SSP --> HTTPProblem
+        HTTPProblem --> SQLIR
         SQLIR --> SVCIR
-        
-        MT["Scalate SSP templates"]
-        SVCIR --> TLQM["Target Language Query Models"]
-        MT    --> TLQM
-
-        SVCIR --> Interfaces["Target language interfaces"]
-        MT    --> Interfaces   
-        TLQM  --> Interfaces
-
-        SVCIR --> DerivedQueries["Derived dialect-specific queries"]
-        SQLIR --> DerivedQueries
-
-        Interfaces     --> Impl["Dialect Specific Implementation"]
-        MT             --> Impl        
-        DerivedQueries --> Impl
-
-        Migration      --> TestImpl["Target language test suite implementations"]
-        MT             --> TestImpl
-        DerivedQueries --> TestImpl
-
+        HTTPProblem --> HTTPIR
     end
 
-    subgraph http["HTTP Service codegen"]
-        HTTPIR --> Routes["FastAPI route modules"]
-        HTTPIR --> Protocols["Target language service protocols"]
-        HTTPIR --> Problems["Problem+JSON error helpers"]
-        MT --> Routes
-        MT --> Protocols
-        MT --> Problems
+    subgraph sql["SQL Rendering"]
+        DDL["Dialect-specific DDL"]
+        Queries["Derived SQL query rendering"]
+        Templates["DB Scalate SSP templates"]
+
+        SQLIR --> DDL
+        SVCIR --> Queries
+
+        subgraph migration["Migration Engine"]
+            MigrationSvc["Generated migration service"]
+            PostgresMigrations["Postgres Migrations"]
+            SqliteMigrations["SQLite Migrations"]
+
+            DDL --> PostgresMigrations
+            DDL --> SqliteMigrations
+            PostgresMigrations --> MigrationSvc
+            SqliteMigrations --> MigrationSvc
+        end
+
+        subgraph interfaces["SQL Service interfaces"]
+            Models["DB models"]
+            Protocols["Repository protocols"]
+            PostgresImpl["SQL Service Postgres Implementations"]
+            SqliteImpl["SQL Service SQLite Implementations"]
+
+            SQLIR --> Models
+            SVCIR --> Protocols
+            Templates --> Models
+            Templates --> Protocols
+            Queries --> PostgresImpl
+            Queries --> SqliteImpl
+            Protocols --> PostgresImpl
+            Protocols --> SqliteImpl
+            MigrationSvc --> PostgresImpl
+            MigrationSvc --> SqliteImpl
+        end
+    end
+
+    subgraph http["HTTP Rendering (interfaces)"]
+        HttpTemplates["HTTP Scalate SSP templates"]
+        Routes["FastAPI route modules"]
+        HttpProtocols["Target language service protocols"]
+        Problems["Problem+JSON error helpers"]
+
+        HTTPIR --> Routes
+        HTTPIR --> HttpProtocols
+        HTTPIR --> Problems
+        HttpTemplates --> Routes
+        HttpTemplates --> HttpProtocols
+        HttpTemplates --> Problems
     end
