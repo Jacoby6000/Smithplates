@@ -15,11 +15,12 @@ SMITHPLATES_VERSION_OUTPUT="$(
 )"
 SMITHPLATES_VERSION="$(
   printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
+    | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
     | awk '{
         line = $0
         sub(/^\[/, "", line)
-        if (line ~ /^[0-9]+([.][0-9]+){1,2}([-+][[:alnum:]._+-]+)?$/) {
-          version = line
+        if (match(line, /[0-9]+(\.[0-9]+){1,2}[-+][[:alnum:]._+-]+/)) {
+          version = substr(line, RSTART, RLENGTH)
         }
       } END { print version }'
 )"
