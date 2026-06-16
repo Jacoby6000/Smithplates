@@ -17,6 +17,12 @@ jobs:
       - name: Setup release tooling
         uses: ./.github/actions/setup-release
 
+      - name: Import PGP signing key
+        run: ./scripts/ci-import-pgp-key.sh
+        env:
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+
       - name: Publish
         run: sbtn ci-release
         env:
