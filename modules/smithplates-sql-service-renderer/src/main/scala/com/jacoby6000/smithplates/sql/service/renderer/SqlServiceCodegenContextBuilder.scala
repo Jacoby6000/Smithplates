@@ -19,7 +19,7 @@ object SqlServiceCodegenContextBuilder {
       schema: SqlSchema,
       queries: SqlQueries,
       service: SqlService,
-      queryRenderer: SqlQueryRenderer,
+      queryRenderer: Option[SqlQueryRenderer],
       bindPlaceholderStyle: SqlBindPlaceholder,
       settings: SqlServiceCodegenSettings
   ): SqlValidated[SqlCodegenServiceContext] = {
@@ -51,7 +51,7 @@ object SqlServiceCodegenContextBuilder {
               name = service.shapeId.getName,
               namespace = service.shapeId.getNamespace,
               version = service.version,
-              dialectKey = queryRenderer.key,
+              dialectKey = queryRenderer.map(_.key).getOrElse(SqlServiceCodegenSettings.SharedDialectKey),
               queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
@@ -60,16 +60,18 @@ object SqlServiceCodegenContextBuilder {
               operations = resolvedOperations
             )
 
-          val migrationDirectory = settings.migrationDirectories.get(queryRenderer.key)
+          val migrationDirectory = queryRenderer.flatMap(renderer => settings.migrationDirectories.get(renderer.key))
           baseContext.copy(
-            integrationTest = SqlCodegenIntegrationTestBuilder.build(
-              baseContext,
-              schema,
-              queries,
-              settings.schemaDdlRenderers
-            ),
+            integrationTest = queryRenderer.flatMap(_ =>
+              SqlCodegenIntegrationTestBuilder.build(
+                baseContext,
+                schema,
+                queries,
+                settings.schemaDdlRenderers
+              )),
             migration = migrationDirectory.flatMap(directory =>
-              SqlCodegenMigrationBuilder.build(schema, queryRenderer.key, settings.schemaDdlRenderers, directory))
+              queryRenderer.flatMap(renderer =>
+                SqlCodegenMigrationBuilder.build(schema, renderer.key, settings.schemaDdlRenderers, directory)))
           )
         }
     }
@@ -111,7 +113,7 @@ object SqlServiceCodegenContextBuilder {
       shapeIr: SqlShapeIr,
       queries: SqlQueries,
       operation: SqlOperation,
-      queryRenderer: SqlQueryRenderer
+      queryRenderer: Option[SqlQueryRenderer]
   ): SqlValidated[SqlCodegenOperation] = {
     val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
     val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
@@ -125,10 +127,10 @@ object SqlServiceCodegenContextBuilder {
       }
 
     val sqlBinding =
-      resolvedQuery match {
-        case Some(query) =>
-          SqlOperationBindingBuilder.build(operation, query, queryRenderer).map(Some(_))
-        case None        =>
+      (resolvedQuery, queryRenderer) match {
+        case (Some(query), Some(renderer)) =>
+          SqlOperationBindingBuilder.build(operation, query, renderer).map(Some(_))
+        case _                             =>
           None.validNel
       }
 
@@ -161,6 +163,7 @@ object SqlServiceCodegenContextBuilder {
         outputShapeId = outputShapeId,
         outputTypeName = outputTypeName,
         errors = errors,
+        isSelectOne = isSelectOne,
         sql = resolvedSql
       )
     }

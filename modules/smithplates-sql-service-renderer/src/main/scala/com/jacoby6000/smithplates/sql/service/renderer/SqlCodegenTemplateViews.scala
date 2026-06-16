@@ -289,15 +289,14 @@ object SqlCodegenTemplateViews {
       dialectKey: String,
       operation: SqlCodegenOperation
   ): TemplateOperationView = {
-    val sqlFields                                                                                    = operation.sql match {
+    val sqlFields                                                                       = operation.sql match {
       case None      =>
         (
           "",
           "",
           List.empty[TemplateBindParameterView],
           null: java.lang.Integer,
-          List.empty[TemplateResultFieldView],
-          false
+          List.empty[TemplateResultFieldView]
         )
       case Some(sql) =>
         (
@@ -306,12 +305,11 @@ object SqlCodegenTemplateViews {
           withLastFlag(sql.bindParameters.map(bindParameterView(dialectKey, _)))((bindParameter, last) =>
             bindParameter.copy(last = last)),
           sql.returningColumnIndex.map(Integer.valueOf).orNull,
-          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last)),
-          sql.queryKind == "selectOne"
+          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
         )
     }
-    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields, isSelectOne) = sqlFields
-    val selectOneNestedBindings                                                                      =
+    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields) = sqlFields
+    val selectOneNestedBindings                                                         =
       operation.sql.flatMap(_.selectOneOutput).toList.flatMap { output =>
         output.nestedBindings.map { nested =>
           TemplateSelectOneNestedBindingView(
@@ -334,7 +332,7 @@ object SqlCodegenTemplateViews {
       outputShapeName = operation.outputShapeId.map(_.getName).getOrElse(""),
       outputTypeName = operation.outputTypeName.getOrElse(""),
       errors = withLastFlag(operation.errors.map(errorView))((error, last) => error.copy(last = last)),
-      isSelectOne = isSelectOne,
+      isSelectOne = operation.isSelectOne,
       sqlBodyKind = sqlBodyKind,
       sqlStatement = sqlStatement,
       bindParameters = bindParameters,

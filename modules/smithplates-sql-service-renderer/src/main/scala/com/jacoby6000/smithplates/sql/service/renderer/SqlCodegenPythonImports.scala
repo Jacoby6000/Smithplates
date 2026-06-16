@@ -36,7 +36,9 @@ object SqlCodegenPythonImports {
     val blocks = List.newBuilder[String]
     renderModelsImport(moduleBase, tableModels, unions).foreach(blocks += _)
     renderProtocolImport(moduleBase, operationResultNames, context.name).foreach(blocks += _)
-    blocks += s"from ${transactionRunModuleName(context.dialectKey)} import run"
+    if (context.hasSqlOperations) {
+      blocks += s"from ${transactionRunModuleName(context.dialectKey)} import run"
+    }
 
     blocks.result().sortBy(extractImportModuleName).mkString("\n")
   }

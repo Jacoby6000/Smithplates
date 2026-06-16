@@ -84,7 +84,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         namespace = "example",
         version = "1",
         dialectKey = "sqlite",
-        queryRenderer = queryRenderer,
+        queryRenderer = Some(queryRenderer),
         bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
         hasSqlOperations = true,
         models = Nil,
@@ -102,6 +102,82 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(
       SqlServiceCodegenRenderer.resolveOutputPath(settings, integrationTestArtifact, context),
       "test/db/sqlite/test_widget_repository_derived_sql.py"
+    )
+  }
+
+  test("renders shared model and protocol artifacts without an enabled dialect") {
+    val model      =
+      SqlTestModelBuilder.assemble(
+        """
+          |use smithplates.codegen.sql#DerivedStruct
+          |use smithplates.codegen.sql#sqlDeriveInsert
+          |use smithplates.codegen.sql#sqlDeriveSelectOne
+          |use smithplates.codegen.sql#sqlPrimaryKey
+          |use smithplates.codegen.sql#sqlService
+          |use smithplates.codegen.sql#sqlTable
+          |
+          |@sqlTable(name: "widgets")
+          |structure Widget {
+          |    @sqlPrimaryKey
+          |    id: String
+          |    name: String
+          |}
+          |
+          |@sqlDeriveInsert(targetTable: "example#Widget")
+          |operation CreateWidget {
+          |    input: DerivedStruct
+          |    output: String
+          |}
+          |
+          |@sqlDeriveSelectOne(targetTable: "example#Widget")
+          |operation GetWidget {
+          |    input: DerivedStruct
+          |    output: Widget
+          |}
+          |
+          |@sqlService
+          |service WidgetRepository {
+          |    version: "1"
+          |    operations: [CreateWidget, GetWidget]
+          |}
+          |""".stripMargin
+      )
+    val extraction = SqlModelExtractor.extractOrThrow(model)
+    val settings   =
+      SqlServiceCodegenSettings(
+        templateDirectory = PythonTemplateNamespaces.bundledDbTemplateDirectory,
+        defaultDialectKey = SqlServiceCodegenSettings.SharedDialectKey,
+        enabledDialectKeys = Nil,
+        queryRenderers = Map.empty,
+        schemaDdlRenderers = Map.empty,
+        sourceOutputDirectory = Some("src/generated"),
+        testOutputDirectory = Some("tests"),
+        artifacts = SqlServiceCodegenDbArtifacts.shared
+      )
+
+    val artifacts =
+      SqlServiceCodegenRenderer
+        .render(model, extraction.schema, extraction.serviceIr, settings)
+        .toEither
+        .getOrElse(fail("expected shared-only render to succeed"))
+
+    assertEquals(
+      artifacts.map(_.relativePath).sorted,
+      List(
+        "src/generated/db/model/widget_repository_models.py",
+        "src/generated/db/widget_repository_protocol.py"
+      )
+    )
+    assert(artifacts.forall(!_.relativePath.contains("/sqlite/")))
+    assert(artifacts.forall(!_.relativePath.contains("/postgres/")))
+    val artifactContentByPath = artifacts.map(artifact => artifact.relativePath -> artifact.content).toMap
+    assert(
+      artifactContentByPath("src/generated/db/widget_repository_protocol.py")
+        .contains("async def get_widget(")
+    )
+    assert(
+      artifactContentByPath("src/generated/db/widget_repository_protocol.py")
+        .contains(") -> Widget | None:")
     )
   }
 }

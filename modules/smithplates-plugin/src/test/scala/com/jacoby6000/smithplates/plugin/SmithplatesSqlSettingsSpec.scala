@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.plugin
 
 import com.jacoby6000.smithplates.sql.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
+import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 import software.amazon.smithy.model.node.Node
 
 class SmithplatesSqlSettingsSpec extends munit.FunSuite {
@@ -110,6 +111,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     val settings        = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python/src/db")
+    assertEquals(codegenSettings.defaultDialectKey, SqlServiceCodegenSettings.SharedDialectKey)
+    assertEquals(codegenSettings.enabledDialectKeys, Nil)
+    assertEquals(codegenSettings.queryRenderers, Map.empty)
+    assertEquals(codegenSettings.schemaDdlRenderers, Map.empty)
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.shared)
   }
 

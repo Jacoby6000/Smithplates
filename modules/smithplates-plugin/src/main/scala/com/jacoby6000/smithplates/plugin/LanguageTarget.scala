@@ -21,7 +21,7 @@ final case class LanguageTarget(
       schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer],
       migrationDirectories: Map[String, String]
   ): SqlServiceCodegenSettings = {
-    val defaultDialectKey = enabledDialectKeys.headOption.getOrElse("sqlite")
+    val defaultDialectKey = enabledDialectKeys.headOption.getOrElse(SqlServiceCodegenSettings.SharedDialectKey)
     SqlServiceCodegenSettings(
       templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId),
       defaultDialectKey = defaultDialectKey,

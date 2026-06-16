@@ -4,6 +4,7 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 
@@ -26,6 +27,10 @@ final case class SqlServiceCodegenSettings(
     artifacts: List[SqlServiceCodegenArtifactConfig]
 )
 
+object SqlServiceCodegenSettings {
+  val SharedDialectKey: String = "shared"
+}
+
 object SqlServiceCodegenRenderer {
   def render(
       model: Model,
@@ -38,7 +43,9 @@ object SqlServiceCodegenRenderer {
         settings.artifacts
           .traverse { artifactConfig =>
             val queryRenderer        = queryRendererForArtifact(artifactConfig, settings)
-            val bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder
+            val bindPlaceholderStyle = queryRenderer
+              .map(_.codegenBindPlaceholder)
+              .getOrElse(SqlBindPlaceholder("?"))
             SqlServiceCodegenContextBuilder
               .build(model, schema, serviceIr.queries, service, queryRenderer, bindPlaceholderStyle, settings)
               .map { context =>
@@ -108,12 +115,15 @@ object SqlServiceCodegenRenderer {
   private def queryRendererForArtifact(
       artifactConfig: SqlServiceCodegenArtifactConfig,
       settings: SqlServiceCodegenSettings
-  ): SqlQueryRenderer = {
+  ): Option[SqlQueryRenderer] = {
     val dialectKey = dialectKeyForArtifact(artifactConfig, settings)
-    settings.queryRenderers.getOrElse(
-      dialectKey,
-      throw new IllegalStateException(s"query renderer for dialect '$dialectKey' is required")
-    )
+    settings.queryRenderers.get(dialectKey) match {
+      case some @ Some(_)                                                   => some
+      case None if dialectKey == SqlServiceCodegenSettings.SharedDialectKey =>
+        None
+      case None                                                             =>
+        throw new IllegalStateException(s"query renderer for dialect '$dialectKey' is required")
+    }
   }
 
   private def dialectKeyForArtifact(

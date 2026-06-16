@@ -27,6 +27,7 @@ final case class SqlCodegenOperation(
     outputShapeId: Option[ShapeId],
     outputTypeName: Option[String],
     errors: List[SqlCodegenErrorType],
+    isSelectOne: Boolean = false,
     sql: Option[SqlCodegenSqlBinding] = None
 )
 
@@ -80,7 +81,7 @@ final case class SqlCodegenServiceContext(
     namespace: String,
     version: String,
     dialectKey: String,
-    queryRenderer: SqlQueryRenderer,
+    queryRenderer: Option[SqlQueryRenderer],
     bindPlaceholderStyle: SqlBindPlaceholder,
     hasSqlOperations: Boolean,
     models: List[SqlStructure],
