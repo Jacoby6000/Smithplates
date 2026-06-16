@@ -10,8 +10,7 @@ This project does **not** include a server. Shared HTTP tests run it against the
 openapi-reference-python/
   smithy-build.json.template   OpenAPI export projection config
   smithy-build.json              Rendered config (CI may commit version bumps)
-  render-smithy-build.sh         Inject current plugin / Smithy versions
-  build-generated.sh             publishM2, Smithy OpenAPI export, OpenAPI Generator
+  build-generated.sh             Wrapper for scripts/run-example-build.sh openapi-reference-python
   openapi/openapi.json           Exported OpenAPI document
   src/generated/client/          OpenAPI Generator asyncio client (`petstore_client`)
 ```
@@ -21,7 +20,13 @@ openapi-reference-python/
 From the Smithplates repository root:
 
 ```bash
-./example/openapi-reference-python/build-generated.sh
+./scripts/run-example-build.sh openapi-reference-python
+```
+
+Or from this directory:
+
+```bash
+./build-generated.sh
 ```
 
 ## Run shared HTTP tests

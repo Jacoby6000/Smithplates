@@ -9,6 +9,8 @@ cd "${ROOT}"
 
 run_example_harness_tests() {
   local project="$1"
+  local build_target="$2"
+  "${ROOT}/scripts/run-example-build.sh" "${build_target}"
   local runner="${ROOT}/example-harnesses/${project}/run-tests.sh"
   if [[ ! -x "${runner}" ]]; then
     echo "error: missing example test script: ${runner}" >&2
@@ -19,24 +21,13 @@ run_example_harness_tests() {
 }
 
 run_all() {
-  local found=0
-  shopt -s nullglob
-  for runner in example-harnesses/*/run-tests.sh; do
-    found=1
-    local project
-    project="$(basename "$(dirname "${runner}")")"
-    run_example_harness_tests "${project}"
-  done
-  if [[ ${found} -eq 0 ]]; then
-    echo "error: no example-harnesses/*/run-tests.sh scripts found" >&2
-    exit 1
-  fi
+  run_example_harness_tests python all
 }
 
 mode="${1:-all}"
 case "${mode}" in
   all) run_all ;;
-  python) run_example_harness_tests python ;;
+  python) run_example_harness_tests python python ;;
   *)
     echo "usage: $0 [all|python]" >&2
     exit 2

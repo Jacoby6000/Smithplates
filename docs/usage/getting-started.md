@@ -199,7 +199,7 @@ Run `smithy build` from the consumer project. Smithy writes plugin artifacts und
 build/smithy/source/smithplates/
 ```
 
-Copy, sync, or otherwise project those files into your application layout. The [Python petstore example](../../example/python/) demonstrates this with `build-generated.sh`.
+Copy, sync, or otherwise project those files into your application layout. The [Python petstore example](../../example/python/) demonstrates this with [`scripts/run-example-build.sh`](../../scripts/run-example-build.sh).
 
 For a first inspection, run:
 

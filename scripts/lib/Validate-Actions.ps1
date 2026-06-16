@@ -1,13 +1,31 @@
+function Invoke-SmithplatesValidateRunExampleBuild {
+  param([string]$Target)
+
+  switch ($Target) {
+    { $_ -in @('all', 'examples') } { & ./scripts/run-example-build.sh all; break }
+    'examples/python' { & ./scripts/run-example-build.sh python; break }
+  }
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
+
 function Invoke-SmithplatesValidateRunLintForTarget {
   $target = if ($env:SMITHYSTACHE_VALIDATE_TARGET) { $env:SMITHYSTACHE_VALIDATE_TARGET } else { 'all' }
   switch ($target) {
-    'all' { & ./scripts/run-linters.sh all; break }
+    'all' {
+      & ./scripts/run-linters.sh all
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      Invoke-SmithplatesValidateRunExampleBuild -Target $target
+      & ./scripts/run-example-linters.sh all
+      break
+    }
     'plugin' { & ./scripts/run-linters.sh scala; break }
     { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
       & ./scripts/run-linters.sh templates
       break
     }
     { $_ -in @('examples', 'examples/python') } {
+      Invoke-SmithplatesValidateRunExampleBuild -Target $target
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       $project = Get-SmithplatesValidateExampleProject -Target $target
       & ./scripts/run-example-linters.sh $project
       break
@@ -23,7 +41,12 @@ function Invoke-SmithplatesValidateRunLintForTarget {
 function Invoke-SmithplatesValidateRunTestForTarget {
   $target = if ($env:SMITHYSTACHE_VALIDATE_TARGET) { $env:SMITHYSTACHE_VALIDATE_TARGET } else { 'all' }
   switch ($target) {
-    'all' { & ./scripts/run-tests.sh all; break }
+    'all' {
+      & ./scripts/run-tests.sh all
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      & ./scripts/run-example-tests.sh all
+      break
+    }
     'plugin' { & ./scripts/run-tests.sh plugin; break }
     { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
       & ./scripts/run-tests.sh templates

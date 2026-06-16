@@ -4,13 +4,27 @@
 # shellcheck source=scripts/lib/validate-target.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate-target.sh"
 
+smithystache_validate_run_example_build() {
+  local target="$1"
+  case "${target}" in
+    all|examples) ./scripts/run-example-build.sh all ;;
+    examples/python) ./scripts/run-example-build.sh python ;;
+    *) return 0 ;;
+  esac
+}
+
 smithystache_validate_run_lint_for_target() {
   local target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
   case "${target}" in
-    all) ./scripts/run-linters.sh all ;;
+    all)
+      ./scripts/run-linters.sh all
+      smithystache_validate_run_example_build "${target}"
+      ./scripts/run-example-linters.sh all
+      ;;
     plugin) ./scripts/run-linters.sh scala ;;
     python|python/db|python/db/sqlite|python/db/postgres) ./scripts/run-linters.sh templates ;;
     examples|examples/python)
+      smithystache_validate_run_example_build "${target}"
       ./scripts/run-example-linters.sh "$(smithystache_validate_example_project "${target}")"
       ;;
     *)
@@ -23,7 +37,10 @@ smithystache_validate_run_lint_for_target() {
 smithystache_validate_run_test_for_target() {
   local target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
   case "${target}" in
-    all) ./scripts/run-tests.sh all ;;
+    all)
+      ./scripts/run-tests.sh all
+      ./scripts/run-example-tests.sh all
+      ;;
     plugin) ./scripts/run-tests.sh plugin ;;
     python|python/db|python/db/sqlite|python/db/postgres) ./scripts/run-tests.sh templates ;;
     examples|examples/python)

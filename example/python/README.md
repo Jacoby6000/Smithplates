@@ -9,9 +9,8 @@ example/
   petstore-smithy-spec/    Shared Smithy model (`petstore/api/`, `petstore/db/`)
   python/                  Python reference implementation (codegen + server)
     smithy-build.json.template  Smithplates plugin config (render to smithy-build.json; CI commits version bumps)
-    smithy-build.json           Rendered plugin config (do not edit; run render-smithy-build.sh)
-    render-smithy-build.sh      Inject current plugin version into smithy-build.json
-    build-generated.sh       publishM2, render configs, smithy build (SQL + HTTP server + HTTP client)
+    smithy-build.json           Rendered plugin config (do not edit; run scripts/render-smithy-build.sh)
+    build-generated.sh       Wrapper for scripts/run-example-build.sh python
     db/migrations/           Versioned schema DDL (generated)
     src/
       generated/
@@ -57,16 +56,22 @@ This project is a **consumer** reference: the Smithy CLI resolves `smithplates-p
 From the Smithplates repository root (after plugin source changes):
 
 ```bash
-./example/python/build-generated.sh
+./scripts/run-example-build.sh python
 ```
 
-That script runs `sbtn publishM2`, renders `smithy-build.json` from [`smithy-build.json.template`](smithy-build.json.template) using the current `smithplatesPlugin/version`, then runs `smithy build` for SQL and HTTP server/client codegen and syncs into `src/generated/`, `tests/`, and `db/migrations/`. Edit the `.template` files for config changes; run `render-smithy-build.sh` locally after `publishM2`. CI re-renders before example tests and commits `smithy-build.json` updates when the plugin version changes.
+Or from this directory:
+
+```bash
+./build-generated.sh
+```
+
+That runs `publishM2`, renders `smithy-build.json`, runs `smithy build`, syncs generated output, and formats Python with `uv run ruff format` from this project's `pyproject.toml`. Edit the `.template` files for config changes. CI and `./validate` regenerate before example lint/test.
 
 To render configs only (for example before a manual `smithy build`):
 
 ```bash
 sbtn publishM2
-./example/python/render-smithy-build.sh
+./scripts/render-smithy-build.sh example/python
 cd example/python && smithy build
 ```
 

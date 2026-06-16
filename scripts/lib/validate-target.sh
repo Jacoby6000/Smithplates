@@ -10,8 +10,8 @@ Targets (--target):
   python/db           db service type only
   python/db/sqlite    db sqlite dialect + shared db files
   python/db/postgres  db postgres dialect + shared db files
-  examples            all example reference projects
-  examples/python     Python petstore reference (ruff, mypy, pytest, HTTP tests)
+  examples            all example reference projects (regenerate, lint, test)
+  examples/python     Python petstore reference (regenerate, ruff, mypy, pytest, HTTP tests)
 EOF
 }
 

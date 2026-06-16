@@ -18,13 +18,19 @@ It demonstrates:
 
 ## Regenerate artifacts
 
-From the example directory:
+From the repository root:
+
+```bash
+./scripts/run-example-build.sh all
+```
+
+Or from an example directory:
 
 ```bash
 ./build-generated.sh
 ```
 
-The script runs Smithy build steps and synchronizes generated output from `build/smithy/source/smithplates/` (SQL, HTTP server, and HTTP client). OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`.
+The build script runs `publishM2`, renders `smithy-build.json`, runs Smithy build, syncs generated output, and formats Python with `uv run ruff format` using each example's `pyproject.toml`. OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`.
 
 ## Runtime shape
 
@@ -45,7 +51,8 @@ Use this as the reference pattern for combining SQL and HTTP codegen in one appl
 | `example/python/smithy-build.json.template` | Source template for the Smithplates SQL and HTTP plugin config. |
 | `example/python/smithy-build.json` | Rendered config with the current local or published plugin version. |
 | `example/openapi-reference-python/` | OpenAPI export + OpenAPI Generator reference client. |
-| `example/python/build-generated.sh` | End-to-end regeneration script for the Python reference. |
+| `scripts/run-example-build.sh` | End-to-end regeneration for example reference projects. |
+| `example/python/build-generated.sh` | Thin wrapper for the Python petstore reference. |
 | `example/python/src/server/` | Hand-written app wiring and protocol implementations. |
 | `example/python/src/generated/` | Generated API, HTTP client, and DB output. |
 | `example/python/tests/` | Generated DB tests plus example API tests. |
@@ -56,8 +63,8 @@ When changing Smithplates itself:
 
 ```bash
 sbtn publishM2
-bash example/python/render-smithy-build.sh
-bash example/python/build-generated.sh
+bash scripts/render-smithy-build.sh example/python
+bash scripts/run-example-build.sh python
 ```
 
 When inspecting only the generated consumer project:

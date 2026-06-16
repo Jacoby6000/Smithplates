@@ -73,6 +73,7 @@
             echo "  ./validate                    # lint + test (Nix or Docker)"
             echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"
+            echo "  ./scripts/run-example-build.sh # regenerate example reference projects"
             echo "  nix run .#run-linters         # linters via flake app"
             echo "  nix run .#run-tests           # tests via flake app"
           '';

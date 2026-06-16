@@ -9,14 +9,15 @@ smithystache_validate_usage() {
 usage: ./validate [lint,test|build|test|...] [--target TARGET]
 
 Actions (comma-separated):
-  build, lint   linters and compile (Scala + template harnesses)
-  test          test suites (Scala + template harnesses)
+  build, lint   linters and compile (Scala + template harnesses + example regeneration/lint)
+  test          test suites (Scala + template harnesses + example tests)
 
 Default: lint,test
 
 Optional --target scopes lint/test to plugin, python, python/db, a dialect path, or example projects.
 Uses Nix when available (preferred), otherwise Docker. Override with SMITHYSTACHE_VALIDATE_BACKEND=nix|docker.
 When multiple actions are requested, Nix/Docker is entered once for the full run.
+Example projects are regenerated once per validate invocation before example lint/test.
 EOF
   smithystache_validate_target_usage
 }

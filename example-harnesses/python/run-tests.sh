@@ -6,9 +6,6 @@ source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/common.sh"
 
 export PYTHONUNBUFFERED=1
 
-echo "==> example/python render smithy-build configs"
-"${REPO_ROOT}/example/python/render-smithy-build.sh"
-
 ensure_example_env
 configure_example_env
 cd "${EXAMPLE_ROOT}"
