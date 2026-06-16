@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -41,7 +42,7 @@ def build_app(*, database_path: Path | None = None) -> FastAPI:
         app.state.database_path = database_path
 
     @asynccontextmanager
-    async def lifespan(fastapi_app: FastAPI):
+    async def lifespan(fastapi_app: FastAPI) -> AsyncIterator[None]:
         db_path = getattr(fastapi_app.state, "database_path", DEFAULT_DATABASE_PATH)
         async with repository_lifespan(db_path) as repositories:
             repository_service = PetstoreRepositoryService(repositories)

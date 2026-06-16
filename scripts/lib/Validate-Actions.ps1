@@ -7,6 +7,11 @@ function Invoke-SmithplatesValidateRunLintForTarget {
       & ./scripts/run-linters.sh templates
       break
     }
+    { $_ -in @('examples', 'examples/python') } {
+      $project = Get-SmithplatesValidateExampleProject -Target $target
+      & ./scripts/run-example-linters.sh $project
+      break
+    }
     default {
       Write-Error "unknown validate target for lint: $target"
       exit 2
@@ -22,6 +27,11 @@ function Invoke-SmithplatesValidateRunTestForTarget {
     'plugin' { & ./scripts/run-tests.sh plugin; break }
     { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
       & ./scripts/run-tests.sh templates
+      break
+    }
+    { $_ -in @('examples', 'examples/python') } {
+      $project = Get-SmithplatesValidateExampleProject -Target $target
+      & ./scripts/run-example-tests.sh $project
       break
     }
     default {

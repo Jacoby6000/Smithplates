@@ -38,7 +38,7 @@ class PetsApiService(PetsApiServiceProtocol):
             return PetNotFound(message=f"Pet {pet_id} not found")
         return PetLocationRedirect(url=f"/pets/{pet_id}")
 
-    async def delete_pet(self, pet_id: str) -> PetNotFound | None:
+    async def delete_pet(self, pet_id: str) -> PetNotFound | None:  # type: ignore[override]
         deleted = await self._repository_service.delete_pet(pet_id)
         if not deleted:
             return PetNotFound(message=f"Pet {pet_id} not found")

@@ -3,9 +3,9 @@
   "sources": ["../../petstore-smithy-spec/petstore/api"],
   "maven": {
     "dependencies": [
-      "com.jacoby6000:smithplates-plugin:[[0minfo[0m] entering *experimental* thin client - BEEP WHIRR",
-      "software.amazon.smithy:smithy-aws-traits:1.71.0",
-      "software.amazon.smithy:smithy-openapi:1.71.0"
+      "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}",
+      "software.amazon.smithy:smithy-aws-traits:${SMITHY_VERSION}",
+      "software.amazon.smithy:smithy-openapi:${SMITHY_VERSION}"
     ]
   },
   "plugins": {},

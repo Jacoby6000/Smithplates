@@ -10,6 +10,8 @@ Targets (--target):
   python/db           db service type only
   python/db/sqlite    db sqlite dialect + shared db files
   python/db/postgres  db postgres dialect + shared db files
+  examples            all example reference projects
+  examples/python     Python petstore reference (ruff, mypy, pytest, HTTP tests)
 EOF
 }
 
@@ -23,11 +25,20 @@ smithystache_validate_normalize_target() {
     python/db) echo python/db ;;
     python/db/sqlite) echo python/db/sqlite ;;
     python/db/postgres) echo python/db/postgres ;;
+    examples) echo examples ;;
+    examples/python) echo examples/python ;;
     *)
       echo "error: unknown validate target: ${target}" >&2
       smithystache_validate_target_usage
       return 2
       ;;
+  esac
+}
+
+smithystache_validate_target_is_examples() {
+  case "${1:-all}" in
+    examples|examples/python) return 0 ;;
+    *) return 1 ;;
   esac
 }
 
@@ -40,8 +51,17 @@ smithystache_validate_target_is_python() {
 
 smithystache_validate_target_needs_postgres_docker() {
   case "${1:-all}" in
-    all|plugin|python|python/db|python/db/postgres) return 0 ;;
+    all|plugin|python|python/db|python/db/postgres|examples|examples/python) return 0 ;;
     *) return 1 ;;
+  esac
+}
+
+smithystache_validate_example_project() {
+  local target="$1"
+  case "${target}" in
+    examples/python) echo python ;;
+    examples) echo all ;;
+    *) echo "" ;;
   esac
 }
 

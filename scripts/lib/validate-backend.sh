@@ -14,7 +14,7 @@ Actions (comma-separated):
 
 Default: lint,test
 
-Optional --target scopes lint/test to plugin, python, python/db, or a dialect path.
+Optional --target scopes lint/test to plugin, python, python/db, a dialect path, or example projects.
 Uses Nix when available (preferred), otherwise Docker. Override with SMITHYSTACHE_VALIDATE_BACKEND=nix|docker.
 When multiple actions are requested, Nix/Docker is entered once for the full run.
 EOF

@@ -7,6 +7,8 @@ Targets (--target / -Target):
   python/db           db service type only
   python/db/sqlite    db sqlite dialect + shared db files
   python/db/postgres  db postgres dialect + shared db files
+  examples            all example reference projects
+  examples/python     Python petstore reference (ruff, mypy, pytest, HTTP tests)
 '@
 }
 
@@ -21,12 +23,20 @@ function Normalize-SmithplatesValidateTarget {
     'python/db' { return 'python/db' }
     'python/db/sqlite' { return 'python/db/sqlite' }
     'python/db/postgres' { return 'python/db/postgres' }
+    'examples' { return 'examples' }
+    'examples/python' { return 'examples/python' }
     default {
       Write-Error "unknown validate target: $Target"
       Write-Host (Get-SmithplatesValidateTargetUsage)
       exit 2
     }
   }
+}
+
+function Test-SmithplatesValidateTargetIsExamples {
+  param([Parameter(Mandatory = $true)][string]$Target)
+
+  return $Target -in @('examples', 'examples/python')
 }
 
 function Test-SmithplatesValidateTargetIsPython {
@@ -38,7 +48,17 @@ function Test-SmithplatesValidateTargetIsPython {
 function Test-SmithplatesValidateTargetNeedsPostgresDocker {
   param([Parameter(Mandatory = $true)][string]$Target)
 
-  return $Target -in @('all', 'plugin', 'python', 'python/db', 'python/db/postgres')
+  return $Target -in @('all', 'plugin', 'python', 'python/db', 'python/db/postgres', 'examples', 'examples/python')
+}
+
+function Get-SmithplatesValidateExampleProject {
+  param([Parameter(Mandatory = $true)][string]$Target)
+
+  switch ($Target) {
+    'examples/python' { return 'python' }
+    'examples' { return 'all' }
+    default { return '' }
+  }
 }
 
 function Get-SmithplatesValidateTargetServiceType {

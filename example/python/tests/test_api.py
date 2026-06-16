@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from server.app import build_app
 
 
 @pytest.fixture
-async def api_client(tmp_path) -> AsyncIterator[tuple[AsyncClient, str]]:
+async def api_client(tmp_path: Path) -> AsyncIterator[tuple[AsyncClient, str]]:
     database_path = tmp_path / "petstore.sqlite3"
     app = build_app(database_path=database_path)
     transport = ASGITransport(app=app)

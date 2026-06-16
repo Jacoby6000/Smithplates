@@ -5,7 +5,9 @@ layout mirrors namespace layout: `petstore.api` under `petstore/api/`, `petstore
 under `petstore/db/`.
 
 Reference implementations consume this tree from their own `smithy-build.json`
-files. The Python project at [`../python/`](../python/) runs Smithy build with
+files. The Python project at [`../python/`](../python/) renders
+[`../python/smithy-build.json.template`](../python/smithy-build.json.template) with the
+current `smithplatesPlugin/version`, then runs the Smithy CLI (`smithy build`) with
 `sources` pointing at `petstore/` and writes generated artifacts under
 `../python/src/generated/`, `../python/tests/`, and `../python/db/migrations/`.
 

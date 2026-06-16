@@ -20,7 +20,9 @@ object ExamplePythonBuild {
     val exampleRoot =
       args.headOption.map(Paths.get(_)).getOrElse(repoRoot.resolve("example/python")).toAbsolutePath.normalize
     if (!Files.isRegularFile(exampleRoot.resolve("smithy-build.json"))) {
-      sys.error(s"Missing smithy-build.json in $exampleRoot")
+      sys.error(
+        s"Missing smithy-build.json in $exampleRoot (run ./example/python/render-smithy-build.sh after publishM2)"
+      )
     }
 
     val classLoader     = getClass.getClassLoader

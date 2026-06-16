@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import aiosqlite
-
 from category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from pet_repository_aiosqlite import PetRepositoryAiosqliteService

@@ -4,18 +4,23 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from generated.petstore_api.models.category_detail import CategoryDetail
 from generated.petstore_api.models.category_summary import CategorySummary
 from generated.petstore_api.models.create_pet_input import CreatePetInput
+from generated.petstore_api.models.fulfillment_state import FulfillmentState
 from generated.petstore_api.models.order_detail import OrderDetail
 from generated.petstore_api.models.order_line_detail import OrderLineDetail
 from generated.petstore_api.models.order_priority import OrderPriority
 from generated.petstore_api.models.order_status import OrderStatus
 from generated.petstore_api.models.owner_summary import OwnerSummary
 from generated.petstore_api.models.pet_attribute import PetAttribute
-from generated.petstore_api.models.pet_attribute_value import PetAttributeValue
+from generated.petstore_api.models.pet_attribute_value import (
+    PetAttributeValue,
+    PetAttributeValueColor,
+    PetAttributeValueWeight_kg,
+)
 from generated.petstore_api.models.pet_detail import PetDetail
 from generated.petstore_api.models.pet_profile_summary import PetProfileSummary
 from generated.petstore_api.models.pet_species import PetSpecies
@@ -41,11 +46,16 @@ def _postal_from_generated(address: Any) -> PostalAddress:
 def _attribute_value_from_union(value: PetAttributeValue) -> GeneratedPetHighlight:
     """Persist the union variant as a (discriminator name, text value) pair in PetHighlight."""
     if "color" in value:
-        return GeneratedPetHighlight(name="color", color=value["color"])
+        color_item = cast(PetAttributeValueColor, value)
+        return GeneratedPetHighlight(name="color", color=color_item["color"])
     if "weight_kg" in value:
-        return GeneratedPetHighlight(name="weight_kg", color=str(value["weight_kg"]))
+        weight_item = cast(PetAttributeValueWeight_kg, value)
+        return GeneratedPetHighlight(name="weight_kg", color=str(weight_item["weight_kg"]))
     if "vaccinated" in value:
-        return GeneratedPetHighlight(name="vaccinated", color="true" if value["vaccinated"] else "false")
+        return GeneratedPetHighlight(
+            name="vaccinated",
+            color="true" if value["vaccinated"] else "false",
+        )
     raise ValueError(f"unsupported PetAttributeValue variant: {value!r}")
 
 
@@ -187,7 +197,7 @@ class PetstoreRepositoryService:
                     pet_id=line.pet_id,
                     quantity=line.quantity,
                     unit_price_cents=line.unit_price_cents,
-                    fulfillment=dict(line.fulfillment),
+                    fulfillment=cast(FulfillmentState, dict(line.fulfillment)),
                 )
                 for line in record.order_lines
             ],

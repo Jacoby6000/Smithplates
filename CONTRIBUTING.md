@@ -25,6 +25,8 @@ Optional `--target` scopes lint and test to a subset:
 | `python/db` | `db` service type | Golden tests + pytest for `db` |
 | `python/db/sqlite` | Shared `db` + sqlite | Golden tests (sqlite variants) + pytest sqlite |
 | `python/db/postgres` | Shared `db` + postgres | Golden tests (postgres variants) + pytest postgres |
+| `examples` | All example harness linters | All example harness tests |
+| `examples/python` | Python petstore reference (ruff, mypy) | pytest (API + sqlite + postgres) + shared HTTP tests |
 
 On Windows (PowerShell):
 

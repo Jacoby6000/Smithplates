@@ -6,6 +6,8 @@
 #   ./validate test                         # tests only
 #   ./validate lint,test                    # explicit default
 #   ./validate lint --target python/db/sqlite
+#   ./validate --target examples/python test
+#   ./validate --target examples lint,test
 #   ./validate --target plugin test
 set -euo pipefail
 
