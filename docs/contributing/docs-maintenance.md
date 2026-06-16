@@ -46,3 +46,19 @@ Pre-commit checks verify reusable component sync when relevant files change.
 - Prefer one canonical explanation for a behavior, then link to it.
 - Keep roadmap items out of current-behavior guides unless they are clearly labeled as limitations or future work.
 - Treat `example/python/` as the canonical full-stack consumer reference.
+
+## Change checklist
+
+Before merging behavior changes, ask:
+
+| Change | Docs to check |
+|--------|---------------|
+| New or changed plugin setting | `docs/usage/configuration.md`, `docs/usage/integration.md`, relevant settings specs |
+| SQL modeling or generated DB behavior | `docs/usage/sql-plugin.md`, `docs/contributing/sql-architecture.md`, `modules/smithplates-plugin/README.md` |
+| HTTP modeling or generated API behavior | `docs/usage/http-plugin.md`, `docs/contributing/http-architecture.md`, OpenAPI docs if transforms are affected |
+| Template layout or bundled artifacts | `docs/usage/custom-templates.md`, `docs/contributing/template-authoring.md`, `templates/README.md` when relevant |
+| Example workflow or generated config | `docs/usage/examples.md`, `example/python/README.md`, rendered `smithy-build.json` files |
+| Test command, CI target, or harness behavior | `CONTRIBUTING.md`, `docs/contributing/testing.md`, harness README files |
+| Public support boundary or future work | `docs/usage/limitations.md`, `docs/contributing/roadmap.md` |
+
+If a behavior is documented in more than one place, choose one page as the canonical explanation and make other pages link to it.

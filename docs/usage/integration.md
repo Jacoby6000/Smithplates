@@ -135,15 +135,17 @@ The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on
 
 #### OpenAPI Generator coordination
 
-When Smithy OpenAPI export and [OpenAPI Generator `python-fastapi`](https://openapi-generator.tech/docs/generators/python-fastapi) also run in the consumer pipeline (as in the rendering-pipeline reference layout under `extra-context/generated-db-schemas-and-models/`), keep these settings aligned:
+Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). Use OpenAPI export when you also need an OpenAPI document or generated clients.
 
-| Smithplates `http` field | OpenAPI Generator / consumer setting | Notes |
-|--------------------------|--------------------------------------|-------|
-| `server.packageName` | `additionalProperties.packageName` in `openapi-generator-server-config.yaml` | Must match so imports resolve across hand-written server code, OAG output, and smithplates wiring. Example: `generated.rendering_pipeline_api`. |
-| `server.sourceOutputDir` | `outputDir` + `sourceFolder` in OAG config | Smithplates writes under `build/smithy/source/smithplates/<sourceOutputDir>/`. OAG typically uses `outputDir: src` with `sourceFolder: .`, placing modules under `src/<package path>/`. Copy smithplates artifacts into the same tree after `smithy build`. |
-| `server.webFramework: fastapi` | `generatorName: python-fastapi` | Selects bundled FastAPI SSP templates under `templates/python/src/http/fastapi/`. |
+The Python petstore reference uses this split:
 
-Smithplates HTTP codegen replaces the OpenAPI Generator wiring layer for FastAPI servers: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). OpenAPI Generator (with custom Mustache templates) may still emit Pydantic `models/` and depends on Smithy OpenAPI export extensions such as `x-python-response-type` for protocol response unions. Pin OpenAPI Generator version in the consumer (for example `openapitools.json`) and keep custom templates in sync when upgrading.
+| Concern | Tool | Output |
+|---------|------|--------|
+| FastAPI server wiring and API models | Smithplates HTTP codegen | `src/generated/api/` |
+| OpenAPI document | Smithy OpenAPI plugin with Smithplates transforms | `openapi/openapi.json` |
+| Python client | OpenAPI Generator `python` client generator | `src/generated/client/petstore_client/` |
+
+Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL Smithy files in the OpenAPI projection, and keep hand-written adapters responsible for mapping generated API models to generated DB models.
 
 ### HTTP and SQL model separation
 
