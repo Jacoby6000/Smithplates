@@ -64,7 +64,7 @@ Typical changes:
 
 ## Plugin orchestration
 
-`smithplates-plugin` wires `smithplates.http` settings to the HTTP pipeline:
+`smithplates-plugin` wires `smithplates.<language>.http` settings to the HTTP pipeline:
 
 - validates HTTP language targets;
 - extracts HTTP IR;

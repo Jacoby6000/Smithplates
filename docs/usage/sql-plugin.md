@@ -10,8 +10,8 @@ The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smi
 
 | Path | `smithy-build.json` config | Generated artifacts |
 |------|---------------------------|---------------------|
-| **Schema and migrations** | `smithplates.sql.<dialect>` with `enable: true` | Versioned migration `.sql` files under `migrationLocation` (initial `v1_initial_schema.sql` is full schema DDL) and generated per-dialect migration services (Python today) |
-| **SQL database service codegen** | `smithplates.sql.languageTargets` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
+| **Schema and migrations** | `smithplates.<language>.sql.<dialect>` with `enable: true` | Versioned migration `.sql` files under `migrationLocation` (initial `v1_initial_schema.sql` is full schema DDL) and generated per-dialect migration services (Python today) |
+| **SQL database service codegen** | `smithplates.<language>.sql` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
 
 See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping.
 
@@ -20,7 +20,7 @@ See [Architecture](../contributing/architecture.md) for the full pipeline diagra
 | Config | Output |
 |--------|--------|
 | Enabled dialects (`sqlite`, `postgres`) | Versioned migration `.sql` files under `migrationLocation` (SQL IR → dialect DDL); initial `v1_initial_schema.sql` contains full schema DDL (`CREATE TABLE`, indexes, enums) |
-| `languageTargets` | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
+| Language `sql` targets | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
 
 Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithplates-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithplates-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithplates-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithplates-sql-service-ir`).
 
@@ -64,7 +64,7 @@ service FooRepository {
 
 ## SQL database service codegen
 
-**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/). Configure `smithplates.sql.languageTargets` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/). Configure `smithplates.<language>.sql` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
 
 | Artifact | Pipeline stage |
 |----------|----------------|

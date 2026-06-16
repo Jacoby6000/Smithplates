@@ -206,7 +206,7 @@ Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `un
 4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
 5. Add the new language's [`CodegenTemplateVariant`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/codegentest/CodegenTemplateVariant.scala)s to [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (discovery, build, and comparison registration are grouped by `languageId`).
 
-Consumers can also point `smithplates.sql.languageTargets.<lang>.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
+Consumers can also point `smithplates.<language>.sql.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
 
 ### Postgres mypy stubs
 

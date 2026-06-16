@@ -23,7 +23,7 @@ Consumers reference only `com.jacoby6000:smithplates-plugin`; its published tran
 
 ## 2. Choose a path
 
-Configure Smithplates under `plugins.smithplates`. At least one of `sql` or `http` must be present.
+Configure Smithplates under `plugins.smithplates.<language>`. At least one language must contain `sql` or `http`.
 
 - Use [SQL quickstart](#sql-quickstart) when you want database schema, repositories, migration services, and generated DB tests.
 - Use [HTTP quickstart](#http-quickstart) when you want FastAPI route wiring, service protocols, response helpers, and API models.
@@ -33,7 +33,7 @@ Configure Smithplates under `plugins.smithplates`. At least one of `sql` or `htt
 
 ### Configure SQL generation
 
-Enable one or more dialects for migration DDL and add `languageTargets` for generated repository artifacts:
+Enable one or more dialects for migration DDL and set output directories for generated repository artifacts:
 
 ```json
 {
@@ -46,16 +46,14 @@ Enable one or more dialects for migration DDL and add `languageTargets` for gene
   },
   "plugins": {
     "smithplates": {
-      "sql": {
-        "sqlite": {
-          "enable": true,
-          "migrationLocation": "db/migrations/sqlite"
-        },
-        "languageTargets": {
-          "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
-          }
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "sourceOutputDir": "src/generated",
+          "testOutputDir": "tests"
         }
       }
     }
@@ -118,7 +116,7 @@ With the SQL configuration above, this model generates:
 
 ### Configure HTTP generation
 
-Configure a language entry directly under `http`:
+Configure HTTP generation under the language entry:
 
 ```json
 {
@@ -131,8 +129,8 @@ Configure a language entry directly under `http`:
   },
   "plugins": {
     "smithplates": {
-      "http": {
-        "python": {
+      "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",

@@ -109,7 +109,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 
 ## Where it is headed
 
-- **Additional languages** beyond Python (each with its own `languageTargets` entry and template bundle)
+- **Additional languages** beyond Python (each with its own language entry and template bundle)
 - **More database backends and access patterns** (sync/async drivers, connection pooling conventions, alternate placeholder styles)
 - **Diff-based incremental migrations** beyond the current generated initial schema files and runtime migration runners
 - **Support for unsupported languages** even if this tool does not support your language, you can define your own templates to add your own support.  Contribute it back to our repo if you do!

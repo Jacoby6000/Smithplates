@@ -5,23 +5,25 @@ import munit.FunSuite
 import software.amazon.smithy.model.node.Node
 
 class SmithplatesHttpSettingsSpec extends FunSuite {
-  test("parses language target with default fastapi web framework") {
+  test("parses language-first HTTP target with default fastapi web framework") {
     val node =
       Node
         .parse("""
         {
           "python": {
-            "server": {
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests",
-              "packageName": "generated.rendering_pipeline_api"
+            "http": {
+              "server": {
+                "sourceOutputDir": "src/generated",
+                "testOutputDir": "tests",
+                "packageName": "generated.rendering_pipeline_api"
+              }
             }
           }
         }
       """)
         .expectObjectNode()
 
-    SmithplatesHttpSettings.fromNode(node) match {
+    SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         assertEquals(settings.languageTargets.keySet, Set("python"))
         val target = settings.languageTargets("python")
@@ -40,14 +42,16 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
+            "http": {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
           }
         }
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesHttpSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `server`")))
   }
 
@@ -57,18 +61,41 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parse("""
         {
           "python": {
-            "server": {
-              "webFramework": "flask",
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests"
+            "http": {
+              "server": {
+                "webFramework": "flask",
+                "sourceOutputDir": "src/generated",
+                "testOutputDir": "tests"
+              }
             }
           }
         }
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesHttpSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("webFramework")))
     assert(errors.exists(_.message.contains("flask")))
+  }
+
+  test("rejects old feature-first HTTP shape") {
+    val node =
+      Node
+        .parse("""
+        {
+          "http": {
+            "python": {
+              "server": {
+                "sourceOutputDir": "src/generated",
+                "testOutputDir": "tests"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("expected `sql` or `http`")))
   }
 }

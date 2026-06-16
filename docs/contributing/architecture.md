@@ -90,9 +90,9 @@ flowchart TD
 | SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
 | Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceExtractor.scala); `SqlServiceIr` |
 | HTTP service IR | `@httpService` service contracts, route grouping, response bindings, and problem details | `smithplates-http-ir`; HTTP traits and transforms |
-| SSP templates | Language- and dialect-specific codegen templates | `languageTargets.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
+| SSP templates | Language- and dialect-specific codegen templates | `smithplates.<language>.sql.templateDirectory` / `smithplates.<language>.http.server.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
 | Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models.ssp` |
-| Dialect-specific DDL | `CREATE TABLE`, indexes, enums in versioned migration files | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) in the plugin; `smithplates.sql.<dialect>.migrationLocation` (directory) |
+| Dialect-specific DDL | `CREATE TABLE`, indexes, enums in versioned migration files | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) in the plugin; `smithplates.<language>.sql.<dialect>.migrationLocation` (directory) |
 | Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/), [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) |
 | Migration engine | Per-language migration runner: applies versioned `.sql` files one at a time, records version + schema hash in `_smithplates_migrations`; hash is computed from live database catalog metadata after each migration and validated before applying pending migrations | Bundled Python `sqlite_migrations.py` / `psycopg_migrations.py`; `migrations_service.ssp` |
 | Target language interfaces | Repository `Protocol` per `@sqlService` | `service_protocol.ssp`; service IR + query models + templates |
@@ -101,7 +101,7 @@ flowchart TD
 | Test suite implementations | Pytest lifecycle tests for derived CRUD operations | `service_derived_sql_integration_tests*.ssp`; derived queries + templates + generated migration services |
 | HTTP service artifacts | FastAPI route modules, service protocols, app wiring, response helpers, and problem+json exceptions | `smithplates-http-service-renderer`; bundled `templates/python/src/http/` |
 
-Consumer configuration is documented in [Integration](../usage/integration.md): enabled dialects control DDL export and driver templates; `languageTargets` controls service codegen.
+Consumer configuration is documented in [Integration](../usage/integration.md): each language entry controls SQL and HTTP codegen, enabled dialects control DDL export and driver templates, and output directories stay explicit.
 
 ## Module graph
 

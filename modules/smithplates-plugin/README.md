@@ -147,7 +147,7 @@ operation FindFoo {
 }
 ```
 
-`@sqlService` operations model repository methods (`input` → `output | errors`). The `smithplates` plugin renders Scalate SSP templates into interface and model artifacts from each `@sqlService` when a `languageTargets` entry is configured. Annotate operations with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` to derive SQL from the target table.
+`@sqlService` operations model repository methods (`input` → `output | errors`). The `smithplates` plugin renders Scalate SSP templates into interface and model artifacts from each `@sqlService` when a language `sql` block is configured. Annotate operations with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` to derive SQL from the target table.
 
 `@sqlService` services use flat `operations` lists, not Smithy `resources`. The natural mapping would be one table per resource, but resource `properties` cannot carry SQL traits on members (`@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlColumn`, …). Tables stay as annotated `@sqlTable` structures; duplicating that metadata elsewhere for resources would hurt authoring UX without much gain.
 
@@ -188,7 +188,7 @@ The **schema and migrations** path renders SQL IR to dialect-specific DDL and wr
 
 ## SQL database service codegen
 
-**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.sql.languageTargets` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.<language>.sql` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
 
 Template and output layout for the bundled `db` service type:
 
@@ -233,7 +233,7 @@ See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/te
 
 ## HTTP service codegen
 
-**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, response helpers, exceptions, and models) is configured under `smithplates.http.<language>.server` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders bundled Python/FastAPI templates from [`../../templates/python/src/http/`](../../templates/python/src/http/).
+**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, response helpers, exceptions, and models) is configured under `smithplates.<language>.http.server` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders bundled Python/FastAPI templates from [`../../templates/python/src/http/`](../../templates/python/src/http/).
 
 HTTP golden cases live under `templates/python/tests/http-fastapi-*` and run through the same `CodegenTemplateTestSuite` as SQL service codegen. Runtime example coverage lives in the Python petstore reference and shared HTTP example tests.
 
@@ -253,20 +253,18 @@ Register in `smithy-build.json` (see [`docs/usage/integration.md`](../../docs/us
 },
 "plugins": {
   "smithplates": {
-    "sql": {
-      "sqlite": {
-        "enable": true,
-        "migrationLocation": "db/migrations/sqlite"
-      },
-      "postgres": {
-        "enable": true,
-        "migrationLocation": "db/migrations/postgres"
-      },
-      "languageTargets": {
-        "python": {
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
-        }
+    "python": {
+      "sql": {
+        "sqlite": {
+          "enable": true,
+          "migrationLocation": "db/migrations/sqlite"
+        },
+        "postgres": {
+          "enable": true,
+          "migrationLocation": "db/migrations/postgres"
+        },
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests"
       }
     }
   }

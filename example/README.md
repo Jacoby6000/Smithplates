@@ -1,6 +1,6 @@
 # Reference implementations
 
-Each subdirectory corresponds to a Smithplates `languageTargets` entry (for example `python`).
+Each subdirectory corresponds to a Smithplates language entry (for example `python`).
 
 Shared Smithy models for all reference implementations live under [`petstore-smithy-spec/`](petstore-smithy-spec/).
 

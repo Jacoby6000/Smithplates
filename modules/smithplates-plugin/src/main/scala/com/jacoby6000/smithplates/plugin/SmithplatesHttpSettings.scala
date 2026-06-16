@@ -5,9 +5,6 @@ import com.jacoby6000.smithplates.http.model.HttpServiceIr
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
-import software.amazon.smithy.model.node.ObjectNode
-
-import scala.jdk.CollectionConverters.*
 
 final case class SmithplatesHttpSettings(
     languageTargets: Map[String, HttpLanguageTarget]
@@ -26,21 +23,8 @@ final case class SmithplatesHttpSettings(
 object SmithplatesHttpSettings {
   val SupportedWebFrameworks: Set[String] = Set("fastapi")
 
-  def fromNode(node: ObjectNode): SqlValidated[SmithplatesHttpSettings] =
-    node.getMembers.asScala.toList
-      .traverse { case (keyNode, memberNode) =>
-        val languageId = keyNode.expectStringNode().getValue
-        if (memberNode.isObjectNode) {
-          HttpLanguageTarget.parse(languageId, memberNode.expectObjectNode()).map(languageId -> _)
-        } else {
-          SqlValidated.invalid(
-            InvalidPluginConfig(s"smithplates http.$languageId must be an object")
-          )
-        }
-      }
-      .map(_.toMap)
-      .map(SmithplatesHttpSettings(_))
-      .andThen(validateLanguageTargets)
+  def validate(settings: SmithplatesHttpSettings): SqlValidated[SmithplatesHttpSettings] =
+    validateLanguageTargets(settings)
 
   private def validateLanguageTargets(
       settings: SmithplatesHttpSettings
@@ -61,7 +45,7 @@ object SmithplatesHttpSettings {
     } else {
       SqlValidated.invalid(
         InvalidPluginConfig(
-          s"smithplates http.$languageId.server.webFramework '${target.webFramework}' is not supported; " +
+          s"smithplates.$languageId.http.server.webFramework '${target.webFramework}' is not supported; " +
             s"supported values: ${SupportedWebFrameworks.toList.sorted.mkString(", ")}"
         )
       )

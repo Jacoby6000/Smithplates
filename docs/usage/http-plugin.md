@@ -30,14 +30,14 @@ Group operations around API ownership, not persistence tables. A route group usu
 
 ## Configuration
 
-HTTP settings live under `smithplates.http.<language>.server`:
+HTTP settings live under `smithplates.<language>.http.server`:
 
 ```json
 {
   "plugins": {
     "smithplates": {
-      "http": {
-        "python": {
+      "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",

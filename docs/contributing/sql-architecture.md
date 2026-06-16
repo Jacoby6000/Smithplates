@@ -105,7 +105,7 @@ Typical changes:
 
 `smithplates-plugin` wires settings to the SQL pipeline:
 
-- validates `smithplates.sql`;
+- validates `smithplates.<language>.sql`;
 - extracts schema and service IR;
 - writes enabled dialect migration files;
 - renders configured SQL language targets;

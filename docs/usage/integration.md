@@ -23,7 +23,7 @@ Keep the Smithplates plugin version in the consumer `smithy-build.json` aligned 
 
 ## `smithy-build.json` example
 
-Configure Smithplates under the `smithplates` plugin key. SQL settings live under `sql`. Set the Maven dependency version to the output of `sbtn print smithplatesPlugin/version` (after `publishM2`) or the exact release/snapshot coordinate you depend on.
+Configure Smithplates under the `smithplates` plugin key. Each top-level entry under `smithplates` is a language id, such as `python`. Set the Maven dependency version to the output of `sbtn print smithplatesPlugin/version` (after `publishM2`) or the exact release/snapshot coordinate you depend on.
 
 ```json
 {
@@ -36,20 +36,18 @@ Configure Smithplates under the `smithplates` plugin key. SQL settings live unde
   },
   "plugins": {
     "smithplates": {
-      "sql": {
-        "sqlite": {
-          "enable": true,
-          "migrationLocation": "db/migrations/sqlite"
-        },
-        "postgres": {
-          "enable": true,
-          "migrationLocation": "db/migrations/postgres"
-        },
-        "languageTargets": {
-          "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
-          }
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "postgres": {
+            "enable": true,
+            "migrationLocation": "db/migrations/postgres"
+          },
+          "sourceOutputDir": "src/generated",
+          "testOutputDir": "tests"
         }
       }
     }
@@ -57,13 +55,13 @@ Configure Smithplates under the `smithplates` plugin key. SQL settings live unde
 }
 ```
 
-HTTP service codegen is configured under `http` (parallel to `sql`). At least one of `sql` or `http` must be present in plugin settings.
+HTTP service codegen is configured under the same language entry as SQL. At least one language must contain `sql` or `http`.
 
-Unlike SQL, HTTP settings do **not** use a nested `languageTargets` map or per-dialect `enable` flags. Top-level keys under `http` are **language ids** (for example `python`); each language entry contains a `server` object with web-framework and output settings.
+Unlike SQL, HTTP settings do **not** use per-dialect `enable` flags. Each language's `http` entry contains a `server` object with web-framework and output settings.
 
 ```json
-"http": {
-  "python": {
+"python": {
+  "http": {
     "server": {
       "webFramework": "fastapi",
       "sourceOutputDir": "src/generated",
@@ -74,9 +72,9 @@ Unlike SQL, HTTP settings do **not** use a nested `languageTargets` map or per-d
 }
 ```
 
-### `smithplates.http.<language>.server`
+### `smithplates.<language>.http.server`
 
-Map of language id → HTTP language configuration (for example `python`). Each language entry requires a `server` object. Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers). The `server` object supports:
+Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers) for a language entry. The `server` object supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
@@ -149,7 +147,7 @@ Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL S
 
 ### HTTP and SQL model separation
 
-When a project uses both `smithplates.http` and `smithplates.sql`, **keep HTTP API models and database models in separate Smithy namespaces** and avoid coupling them in the Smithy model.
+When a project uses both `smithplates.<language>.http` and `smithplates.<language>.sql`, **keep HTTP API models and database models in separate Smithy namespaces** and avoid coupling them in the Smithy model.
 
 | Layer | Smithy namespace (example) | Traits | Purpose |
 |-------|----------------------------|--------|---------|
@@ -165,7 +163,7 @@ When a project uses both `smithplates.http` and `smithplates.sql`, **keep HTTP A
 
 The [Python petstore reference](../../example/python/) demonstrates this layout: `petstore.api` for HTTP/OpenAPI codegen and `petstore.db` for schema/repository codegen, with mapping in `src/server/repository_service.py`.
 
-### `smithplates.sql` dialect keys
+### `smithplates.<language>.sql` dialect keys
 
 Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Versioned migration `.sql` files are written at build time; generated migration services apply them at runtime and track schema state in `_smithplates_migrations`.
 
@@ -181,9 +179,9 @@ Each dialect object supports:
 | `enable` | No | `false` | When `true`, render SQL IR to DDL migration files for this dialect and enable dialect-specific SQL service artifacts for configured language targets |
 | `migrationLocation` | When `enable` is `true` | — | Output directory for versioned migration `.sql` files (for example `db/migrations/sqlite`; initial schema is written as `v1_initial_schema.sql`) |
 
-### `smithplates.sql.languageTargets`
+### `smithplates.<language>.sql`
 
-Map of language id → language target configuration (for example `python`). Controls **SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and test suites). Each entry supports:
+Controls **SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and test suites) for a language entry. In addition to dialect keys, each `sql` object supports:
 
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|

@@ -40,11 +40,11 @@ object HttpLanguageTarget {
         parseServer(languageId, serverNode.expectObjectNode())
       case Some(_)                                     =>
         SqlValidated.invalid(
-          InvalidPluginConfig(s"smithplates http.$languageId.server must be an object")
+          InvalidPluginConfig(s"smithplates.$languageId.http.server must be an object")
         )
       case None                                        =>
         SqlValidated.invalid(
-          InvalidPluginConfig(s"smithplates http.$languageId requires `server`")
+          InvalidPluginConfig(s"smithplates.$languageId.http requires `server`")
         )
     }
 
@@ -56,12 +56,12 @@ object HttpLanguageTarget {
       requiredStringMember(
         node,
         "sourceOutputDir",
-        s"smithplates http.$languageId.server requires `sourceOutputDir`"
+        s"smithplates.$languageId.http.server requires `sourceOutputDir`"
       ),
       requiredStringMember(
         node,
         "testOutputDir",
-        s"smithplates http.$languageId.server requires `testOutputDir`"
+        s"smithplates.$languageId.http.server requires `testOutputDir`"
       )
     ).mapN { (sourceOutputDir, testOutputDir) =>
       HttpLanguageTarget(

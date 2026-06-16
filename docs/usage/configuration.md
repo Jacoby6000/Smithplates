@@ -6,14 +6,16 @@ Smithplates settings live under the `smithplates` plugin key in `smithy-build.js
 {
   "plugins": {
     "smithplates": {
-      "sql": {},
-      "http": {}
+      "<language>": {
+        "sql": {},
+        "http": {}
+      }
     }
   }
 }
 ```
 
-At least one of `sql` or `http` must be present. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
+At least one language entry must contain `sql` or `http`. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
 
 ## Maven dependency
 
@@ -48,16 +50,14 @@ Use this when a project only wants database schema, repository protocols, dialec
   },
   "plugins": {
     "smithplates": {
-      "sql": {
-        "sqlite": {
-          "enable": true,
-          "migrationLocation": "db/migrations/sqlite"
-        },
-        "languageTargets": {
-          "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
-          }
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "sourceOutputDir": "src/generated",
+          "testOutputDir": "tests"
         }
       }
     }
@@ -80,8 +80,8 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
   },
   "plugins": {
     "smithplates": {
-      "http": {
-        "python": {
+      "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",
@@ -97,7 +97,7 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
 
 ### SQL and HTTP together
 
-Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP Smithy namespaces separate, then bridge them in hand-written application code. A combined copy/paste example:
+Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy namespaces separate, then bridge them in hand-written application code. A combined copy/paste example:
 
 ```json
 {
@@ -110,20 +110,16 @@ Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP S
   },
   "plugins": {
     "smithplates": {
-      "sql": {
-        "sqlite": {
-          "enable": true,
-          "migrationLocation": "db/migrations/sqlite"
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "sourceOutputDir": "src/generated",
+          "testOutputDir": "tests"
         },
-        "languageTargets": {
-          "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
-          }
-        }
-      },
-      "http": {
-        "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",
@@ -137,29 +133,27 @@ Use the same `smithplates` block with both `sql` and `http`. Keep SQL and HTTP S
 }
 ```
 
-## `smithplates.sql`
+## `smithplates.<language>.sql`
 
 SQL configuration has two independent concerns:
 
 - Dialect keys (`sqlite`, `postgres`) control build-time migration DDL and dialect-specific generated implementations.
-- `languageTargets` controls generated source and test artifacts for `@sqlService` models.
+- `sourceOutputDir`, `testOutputDir`, and `templateDirectory` control generated source and test artifacts for `@sqlService` models in that language.
 
 ```json
 {
-  "sql": {
-    "sqlite": {
-      "enable": true,
-      "migrationLocation": "db/migrations/sqlite"
-    },
-    "postgres": {
-      "enable": true,
-      "migrationLocation": "db/migrations/postgres"
-    },
-    "languageTargets": {
-      "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests"
-      }
+  "python": {
+    "sql": {
+      "sqlite": {
+        "enable": true,
+        "migrationLocation": "db/migrations/sqlite"
+      },
+      "postgres": {
+        "enable": true,
+        "migrationLocation": "db/migrations/postgres"
+      },
+      "sourceOutputDir": "src/generated",
+      "testOutputDir": "tests"
     }
   }
 }
@@ -169,20 +163,20 @@ SQL configuration has two independent concerns:
 |-------|----------|---------|
 | `sqlite.enable` / `postgres.enable` | No; default `false` | Enables that dialect's DDL migration files and dialect-specific generated implementation artifacts. |
 | `sqlite.migrationLocation` / `postgres.migrationLocation` | Yes when `enable` is `true` | Directory for versioned migration SQL files, such as `db/migrations/sqlite`. The value must be a directory path, not a `.sql` file. |
-| `languageTargets.<language>.sourceOutputDir` | Yes | Base output directory for generated source artifacts. |
-| `languageTargets.<language>.testOutputDir` | Yes | Base output directory for generated test artifacts. |
-| `languageTargets.<language>.templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. |
+| `sourceOutputDir` | Yes | Base output directory for generated SQL source artifacts. |
+| `testOutputDir` | Yes | Base output directory for generated SQL test artifacts. |
+| `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. |
 
-When `languageTargets` is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
+When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
 
-## `smithplates.http`
+## `smithplates.<language>.http`
 
-HTTP configuration is organized by language id. Each language entry contains a `server` object:
+HTTP configuration lives beside SQL under the language entry and contains a `server` object:
 
 ```json
 {
-  "http": {
-    "python": {
+  "python": {
+    "http": {
       "server": {
         "webFramework": "fastapi",
         "sourceOutputDir": "src/generated",

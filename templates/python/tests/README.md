@@ -7,7 +7,7 @@ Golden cases live under `templates/python/tests/<case-name>/`. Each case runs `s
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy       # Smithy model for the case
-  smithy-build.json                # plugin config (dialects, languageTargets); no maven block
+  smithy-build.json                # plugin config (language sql/http blocks); no maven block
   expected/
     db/migrations/postgres/        # golden versioned migration SQL (when dialect enabled)
     db/migrations/sqlite/
@@ -23,7 +23,7 @@ Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
 
 ## HTTP cases
 
-HTTP golden cases use `@httpService` services and `smithplates.http.<language>.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
+HTTP golden cases use `@httpService` services and `smithplates.<language>.http.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
 
 | Case | What it validates |
 |------|-------------------|

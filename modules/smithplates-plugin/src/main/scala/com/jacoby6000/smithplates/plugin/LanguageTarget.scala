@@ -8,12 +8,19 @@ import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
+import software.amazon.smithy.model.node.ObjectNode
+
+import scala.jdk.CollectionConverters.*
 
 final case class LanguageTarget(
+    dialects: Map[String, SqlDialectSettings],
     templateDirectory: Option[String],
     sourceOutputDir: String,
     testOutputDir: String
 ) {
+  def enabledDialectKeys: List[String] =
+    SmithplatesSqlSettings.OrderedDialectKeys.filter(key => dialects.get(key).exists(_.enabled))
+
   def toCodegenSettings(
       languageId: String,
       enabledDialectKeys: List[String],
@@ -39,29 +46,58 @@ final case class LanguageTarget(
 object LanguageTarget {
   def parse(
       languageId: String,
-      node: software.amazon.smithy.model.node.ObjectNode
-  ): SqlValidated[LanguageTarget] =
+      node: ObjectNode
+  ): SqlValidated[LanguageTarget] = {
+    val parsedMembers =
+      node.getMembers.asScala.toList.traverse { case (keyNode, memberNode) =>
+        val key = keyNode.expectStringNode().getValue
+        key.toLowerCase match {
+          case dialectKey if SmithplatesSqlSettings.DialectKeys.contains(dialectKey) =>
+            if (memberNode.isObjectNode) {
+              SmithplatesSqlSettings
+                .parseDialect(dialectKey, memberNode.expectObjectNode())
+                .map(settings => Left(dialectKey -> settings))
+            } else {
+              SqlValidated.invalid(
+                InvalidPluginConfig(s"smithplates.$languageId.sql.$dialectKey must be an object")
+              )
+            }
+          case "sourceoutputdir" | "testoutputdir" | "templatedirectory"             =>
+            SqlValidated.valid(Right(()))
+          case other                                                                 =>
+            SqlValidated.invalid(
+              InvalidPluginConfig(
+                s"smithplates.$languageId.sql contains unknown key '$other'; expected dialect (sqlite, postgres), " +
+                  "`sourceOutputDir`, `testOutputDir`, or `templateDirectory`"
+              )
+            )
+        }
+      }
+
     (
+      parsedMembers.map(_.collect { case Left(dialect) => dialect }.toMap),
       requiredStringMember(
         node,
         "sourceOutputDir",
-        s"smithplates sql.languageTargets.$languageId requires `sourceOutputDir`"
+        s"smithplates.$languageId.sql requires `sourceOutputDir`"
       ),
       requiredStringMember(
         node,
         "testOutputDir",
-        s"smithplates sql.languageTargets.$languageId requires `testOutputDir`"
+        s"smithplates.$languageId.sql requires `testOutputDir`"
       )
-    ).mapN { (sourceOutputDir, testOutputDir) =>
+    ).mapN { (dialects, sourceOutputDir, testOutputDir) =>
       LanguageTarget(
+        dialects = dialects,
         templateDirectory = optionalStringMember(node, "templateDirectory"),
         sourceOutputDir = sourceOutputDir,
         testOutputDir = testOutputDir
       )
     }
+  }
 
   private def optionalStringMember(
-      node: software.amazon.smithy.model.node.ObjectNode,
+      node: ObjectNode,
       memberName: String
   ): Option[String] =
     Option(node.getMember(memberName).orElse(null)).flatMap {
@@ -70,7 +106,7 @@ object LanguageTarget {
     }
 
   private def requiredStringMember(
-      node: software.amazon.smithy.model.node.ObjectNode,
+      node: ObjectNode,
       memberName: String,
       message: String
   ): SqlValidated[String] =

@@ -1,6 +1,8 @@
 {
   "version": "1.0",
-  "sources": ["../petstore-smithy-spec/petstore"],
+  "sources": [
+    "../petstore-smithy-spec/petstore"
+  ],
   "maven": {
     "dependencies": [
       "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}"
@@ -8,24 +10,20 @@
   },
   "plugins": {
     "smithplates": {
-      "sql": {
-        "sqlite": {
-          "enable": true,
-          "migrationLocation": "db/migrations/sqlite"
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "postgres": {
+            "enable": true,
+            "migrationLocation": "db/migrations/postgres"
+          },
+          "sourceOutputDir": "src/generated",
+          "testOutputDir": "tests"
         },
-        "postgres": {
-          "enable": true,
-          "migrationLocation": "db/migrations/postgres"
-        },
-        "languageTargets": {
-          "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests"
-          }
-        }
-      },
-      "http": {
-        "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src/generated",

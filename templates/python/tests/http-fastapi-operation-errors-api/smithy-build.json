@@ -5,8 +5,8 @@
   ],
   "plugins": {
     "smithplates": {
-      "http": {
-        "python": {
+      "python": {
+        "http": {
           "server": {
             "webFramework": "fastapi",
             "sourceOutputDir": "src",

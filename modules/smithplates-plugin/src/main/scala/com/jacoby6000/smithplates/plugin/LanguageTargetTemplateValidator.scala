@@ -30,7 +30,7 @@ object LanguageTargetTemplateValidator {
     if (!bundledLanguageIds.contains(normalizedLanguageId) && target.templateDirectory.isEmpty) {
       SqlValidated.invalid(
         InvalidPluginConfig(
-          s"smithplates sql.languageTargets.$languageId requires `templateDirectory` " +
+          s"smithplates.$languageId.sql requires `templateDirectory` " +
             s"because bundled templates are not available for '$languageId'; " +
             s"supported bundled languages: ${bundledLanguageIds.toList.sorted.mkString(", ")}"
         )
@@ -67,7 +67,7 @@ object LanguageTargetTemplateValidator {
     } else {
       SqlValidated.invalid(
         InvalidPluginConfig(
-          s"smithplates sql.languageTargets.$languageId templateDirectory '$templateDirectory' " +
+          s"smithplates.$languageId.sql templateDirectory '$templateDirectory' " +
             s"is missing required templates: ${missingTemplates.sorted.mkString(", ")}"
         )
       )

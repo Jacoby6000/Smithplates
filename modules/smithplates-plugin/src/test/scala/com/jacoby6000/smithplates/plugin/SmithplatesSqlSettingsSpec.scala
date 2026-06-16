@@ -6,17 +6,17 @@ import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 import software.amazon.smithy.model.node.Node
 
 class SmithplatesSqlSettingsSpec extends munit.FunSuite {
-  test("parses enabled dialect and languageTargets settings") {
+  test("parses enabled dialect and language-first SQL settings") {
     val node =
       Node
         .parse("""
         {
-          "postgres": {
-            "enable": true,
-            "migrationLocation": "db/migrations/postgres"
-          },
-          "languageTargets": {
-            "python": {
+          "python": {
+            "sql": {
+              "postgres": {
+                "enable": true,
+                "migrationLocation": "db/migrations/postgres"
+              },
               "sourceOutputDir": "src/generated",
               "testOutputDir": "tests"
             }
@@ -25,10 +25,13 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val settings = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings =
+      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
+        fail("expected SQL settings")
+      }
     assertEquals(settings.enabledDialectKeys, List("postgres"))
     assertEquals(
-      settings.dialects.get("postgres").map(_.migrationLocation),
+      settings.languageTargets.get("python").flatMap(_.dialects.get("postgres")).map(_.migrationLocation),
       Some(Some("db/migrations/postgres"))
     )
     assertEquals(settings.languageTargets.keySet, Set("python"))
@@ -47,14 +50,23 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "sqlite": {
-            "migrationLocation": "db/migrations/sqlite"
+          "python": {
+            "sql": {
+              "sqlite": {
+                "migrationLocation": "db/migrations/sqlite"
+              },
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
           }
         }
       """)
         .expectObjectNode()
 
-    val settings = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings =
+      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
+        fail("expected SQL settings")
+      }
     assertEquals(settings.enabledDialectKeys, Nil)
     assertEquals(settings.dialectMigrationDirectories, Map.empty)
   }
@@ -64,15 +76,21 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "sqlite": {
-            "enable": true,
-            "migrationLocation": "db/sqlite.sql"
+          "python": {
+            "sql": {
+              "sqlite": {
+                "enable": true,
+                "migrationLocation": "db/sqlite.sql"
+              },
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
           }
         }
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("directory path")))
   }
 
@@ -81,14 +99,20 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "sqlite": {
-            "enable": true
+          "python": {
+            "sql": {
+              "sqlite": {
+                "enable": true
+              },
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
           }
         }
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("migrationLocation")))
   }
 
@@ -97,8 +121,8 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "languageTargets": {
-            "python": {
+          "python": {
+            "sql": {
               "templateDirectory": "classpath:custom-templates/python/src/db",
               "sourceOutputDir": "out/src",
               "testOutputDir": "out/test"
@@ -108,7 +132,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val settings        = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings        =
+      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
+        fail("expected SQL settings")
+      }
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python/src/db")
     assertEquals(codegenSettings.defaultDialectKey, SqlServiceCodegenSettings.SharedDialectKey)
@@ -123,16 +150,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "sqlite": {
-            "enable": true,
-            "migrationLocation": "db/migrations/sqlite"
-          },
-          "postgres": {
-            "enable": true,
-            "migrationLocation": "db/migrations/postgres"
-          },
-          "languageTargets": {
-            "python": {
+          "python": {
+            "sql": {
+              "sqlite": {
+                "enable": true,
+                "migrationLocation": "db/migrations/sqlite"
+              },
+              "postgres": {
+                "enable": true,
+                "migrationLocation": "db/migrations/postgres"
+              },
               "sourceOutputDir": "src",
               "testOutputDir": "tests"
             }
@@ -141,7 +168,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val settings        = SmithplatesSqlSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings"))
+    val settings        =
+      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
+        fail("expected SQL settings")
+      }
     assertEquals(settings.enabledDialectKeys, List("sqlite", "postgres"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(
@@ -150,21 +180,25 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     )
   }
 
-  test("rejects language keys at sql root") {
+  test("rejects old feature-first SQL shape") {
     val node =
       Node
         .parse("""
         {
-          "python": {
-            "sourceOutputDir": "src",
-            "testOutputDir": "tests"
+          "sql": {
+            "languageTargets": {
+              "python": {
+                "sourceOutputDir": "src",
+                "testOutputDir": "tests"
+              }
+            }
           }
         }
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("languageTargets")))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("expected `sql` or `http`")))
   }
 
   test("rejects unbundled language without templateDirectory") {
@@ -172,8 +206,8 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "languageTargets": {
-            "kotlin": {
+          "kotlin": {
+            "sql": {
               "sourceOutputDir": "src",
               "testOutputDir": "tests"
             }
@@ -182,7 +216,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("templateDirectory")))
     assert(errors.exists(_.message.contains("kotlin")))
   }
@@ -192,8 +226,8 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "languageTargets": {
-            "kotlin": {
+          "kotlin": {
+            "sql": {
               "templateDirectory": "classpath:missing-templates/kotlin",
               "sourceOutputDir": "src",
               "testOutputDir": "tests"
@@ -203,7 +237,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("missing required templates")))
   }
 
@@ -212,12 +246,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       Node
         .parse("""
         {
-          "postgres": {
-            "enable": true,
-            "migrationLocation": "db/migrations/postgres"
-          },
-          "languageTargets": {
-            "python": {
+          "python": {
+            "sql": {
+              "postgres": {
+                "enable": true,
+                "migrationLocation": "db/migrations/postgres"
+              },
               "templateDirectory": "classpath:custom-templates/python/src/db",
               "sourceOutputDir": "src",
               "testOutputDir": "tests"
@@ -227,8 +261,42 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       """)
         .expectObjectNode()
 
-    val errors = SmithplatesSqlSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("postgres/service_psycopg.ssp")))
+  }
+
+  test("rejects conflicting migration locations for the same dialect across languages") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sql": {
+              "sqlite": {
+                "enable": true,
+                "migrationLocation": "db/migrations/sqlite"
+              },
+              "sourceOutputDir": "src/python",
+              "testOutputDir": "tests/python"
+            }
+          },
+          "kotlin": {
+            "sql": {
+              "sqlite": {
+                "enable": true,
+                "migrationLocation": "db/migrations/kotlin-sqlite"
+              },
+              "templateDirectory": "classpath:custom-templates/kotlin/src/db",
+              "sourceOutputDir": "src/kotlin",
+              "testOutputDir": "tests/kotlin"
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("conflicting sqlite migrationLocation")))
   }
 }
 
