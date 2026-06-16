@@ -17,3 +17,4 @@ templates/**/tests/**/out/
 .xdg-runtime
 result
 .direnv
+metals.sbt
