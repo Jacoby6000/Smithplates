@@ -4,6 +4,8 @@ Pulling the AI Slop Machine lever to non-deterministically generate deterministi
 
 This project was inspired by OpenAPI Generator and some of my work at Disney. Outputs are built from smithy specifications, rendered with Scalate SSP templates.
 
+> **Heavy construction.** Smithplates is early and actively evolving. APIs, plugin configuration, generated output, module layout, and documentation are all subject to frequent change — sometimes without a long deprecation window. If you try it today, expect churn: breaking changes, moving docs, and shifting golden-test expectations are normal for now. Pin versions if you experiment, and treat anything outside the documented quick-start paths as provisional.
+
 ## Architecture
 
 The `smithplates` plugin extracts SQL and HTTP IR from the Smithy model, then fans out into schema migrations, SQL database service codegen, and HTTP service codegen. SQL database service codegen combines `@sqlService` contracts with SQL IR and Scalate SSP templates to produce target-language query models, interfaces, dialect-specific implementations, migration runners, and test suites. HTTP service codegen uses `@httpService` contracts and bundled FastAPI templates to produce route modules, service protocols, app wiring, and problem+json helpers.

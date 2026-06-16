@@ -10,13 +10,26 @@ if ! command -v sbtn >/dev/null 2>&1; then
   exit 1
 fi
 
-SMITHPLATES_VERSION_OUTPUT="$(sbtn --no-colors 'print smithplatesPlugin/version' 2>/dev/null | tr -d '\r' || true)"
+SMITHPLATES_VERSION_OUTPUT="$(
+  sbtn --no-colors 'print smithplatesPlugin/version' | tr -d '\r' || true
+)"
 SMITHPLATES_VERSION="$(
   printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
-    | awk '/^[0-9]+([.][0-9]+){1,2}([-+][[:alnum:]._+-]+)?$/ { version = $0 } END { print version }'
+    | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
+    | awk '{
+        line = $0
+        sub(/^\[/, "", line)
+        if (match(line, /[0-9]+(\.[0-9]+){1,2}[-+][[:alnum:]._+-]+/)) {
+          version = substr(line, RSTART, RLENGTH)
+        }
+      } END { print version }'
 )"
 if [[ -z "${SMITHPLATES_VERSION}" ]]; then
   echo "error: could not resolve smithplatesPlugin/version via sbtn" >&2
+  if [[ -n "${SMITHPLATES_VERSION_OUTPUT}" ]]; then
+    echo "sbtn output:" >&2
+    printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" >&2
+  fi
   exit 1
 fi
 SMITHY_VERSION="$(
