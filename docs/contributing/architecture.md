@@ -10,6 +10,7 @@ The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR*
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
+%%{init: {"flowchart": {"curve": "linear"}}}%%
 flowchart TD
     SM["Smithy model"]
     SSP["smithplates-plugin"]
