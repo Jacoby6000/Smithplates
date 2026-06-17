@@ -410,7 +410,7 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion % Test,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion % Test,
-      "software.amazon.smithy" % "smithy-openapi" % smithyVersion % Test
+      "software.amazon.smithy" % "smithy-openapi" % smithyVersion
     ),
     Test / logBuffered := false,
     Compile / packageDoc / publishArtifact := true,

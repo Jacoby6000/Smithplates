@@ -31,7 +31,7 @@ class ${clientClassName(routeGroup.tag)}:
 <% } %>
     ) -> ${clientMethodReturnType(operation)}:
 <% operation.documentation.foreach { doc => %>
-        """${doc}"""
+        """${doc.linesIterator.mkString("\n        ")}"""
 <% } %>
 ${clientRequestHeadersBlock(operation)}
         response = await self._client.request(

@@ -26,5 +26,10 @@ class ${protocolClassName(routeGroup.tag)}(Protocol):
         ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
 <% } %>
     ) -> ${operationProtocolReturnType(operation)}:
-        ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
+<% operation.documentation match {
+  case Some(doc) => %>
+        """<%= doc.linesIterator.mkString("\n        ") %>"""
+<% case None => %>
+        ...
+<% } %>
 <% } %>

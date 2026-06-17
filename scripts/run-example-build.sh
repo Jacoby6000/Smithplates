@@ -42,11 +42,10 @@ require_sbtn() {
   fi
 }
 
-require_smithy() {
-  if ! command -v smithy >/dev/null 2>&1; then
-    echo "error: smithy CLI not on PATH (see docs/contributing/getting-started.md)" >&2
-    exit 1
-  fi
+run_consumer_smithy_build() {
+  local example_dir=$1
+  echo "==> ${example_dir#"${ROOT}/"} smithy build"
+  sbtn "smithplatesPlugin/runMain com.jacoby6000.smithplates.plugin.ConsumerSmithyBuildMain ${example_dir}"
 }
 
 format_generated_python() {
@@ -84,13 +83,8 @@ sync_smithplates_output() {
 
 build_python_example() {
   local example_dir="${ROOT}/example/python"
-  require_smithy
 
-  echo "==> example/python smithy build"
-  (
-    cd "${example_dir}"
-    smithy build
-  )
+  run_consumer_smithy_build "${example_dir}"
   sync_smithplates_output "${example_dir}"
   format_generated_python "${example_dir}" src/generated tests
 }
@@ -132,13 +126,8 @@ find_openapi_spec() {
 
 build_openapi_reference_example() {
   local example_dir="${ROOT}/example/openapi-reference-python"
-  require_smithy
 
-  echo "==> example/openapi-reference-python smithy build (OpenAPI projection)"
-  (
-    cd "${example_dir}"
-    smithy build
-  )
+  run_consumer_smithy_build "${example_dir}"
 
   local open_api_spec
   open_api_spec="$(find_openapi_spec "${example_dir}")"

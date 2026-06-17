@@ -1,7 +1,5 @@
-package com.jacoby6000.smithplates.plugin.codegentest
+package com.jacoby6000.smithplates.plugin
 
-import com.jacoby6000.smithplates.plugin.SmithyBuildModelSupport
-import com.jacoby6000.smithplates.plugin.SmithyBuildPluginSupport
 import software.amazon.smithy.build.SmithyBuild
 import software.amazon.smithy.build.SmithyBuildPlugin
 import software.amazon.smithy.build.model.SmithyBuildConfig
@@ -12,27 +10,20 @@ import java.util.Optional
 import java.util.function.Function
 import scala.jdk.CollectionConverters.*
 
-object SmithyBuildTemplateRunner {
-  val PluginName = SmithyBuildPluginSupport.SmithplatesPluginName
-
-  def run(caseDirectory: Path, classLoader: ClassLoader): Either[String, Path] = {
-    val label                           = caseDirectory.getFileName.toString
-    val startedAt                       = System.nanoTime()
-    def logPhase(message: String): Unit =
-      TemplateBuildLog.phase(label, message, startedAt)
-
-    logPhase("starting")
-    val configPath = caseDirectory.resolve("smithy-build.json")
+object ConsumerSmithyBuild {
+  def run(projectDirectory: Path, classLoader: ClassLoader): Either[String, Unit] = {
+    val configPath = projectDirectory.resolve("smithy-build.json")
     if (!Files.isRegularFile(configPath)) {
-      return Left(s"Missing smithy-build.json in $caseDirectory")
+      return Left(s"Missing smithy-build.json in $projectDirectory")
     }
 
-    val outputDirectory = caseDirectory.resolve("out")
-    logPhase(s"preparing output directory $outputDirectory")
-    deleteRecursively(outputDirectory)
+    val outputDirectory = projectDirectory.resolve("build/smithy")
+    if (Files.exists(outputDirectory)) {
+      deleteRecursively(outputDirectory)
+    }
     Files.createDirectories(outputDirectory)
 
-    val pluginsByName                                                = loadPlugins(classLoader)
+    val pluginsByName                                                = SmithyBuildModelSupport.loadPlugins(classLoader)
     val pluginFactory: Function[String, Optional[SmithyBuildPlugin]] =
       (name: String) =>
         pluginsByName.get(name) match {
@@ -41,12 +32,8 @@ object SmithyBuildTemplateRunner {
         }
 
     try {
-      logPhase(s"loading $configPath")
-      val loadedConfig =
-        SmithyBuildConfig.load(configPath)
-
-      logPhase("running smithy build")
-      val result =
+      val loadedConfig = SmithyBuildConfig.load(configPath)
+      val result       =
         SmithyBuild
           .create(classLoader, () => SmithyBuildModelSupport.modelAssemblerFor(loadedConfig, classLoader))
           .config(loadedConfig)
@@ -54,29 +41,17 @@ object SmithyBuildTemplateRunner {
           .pluginClassLoader(classLoader)
           .pluginFactory(pluginFactory)
           .build()
-      logPhase("smithy build finished")
 
       if (result.anyBroken()) {
         Left(formatBrokenBuild(result))
       } else {
-        PythonCodegenRuffFormatter.formatGeneratedPython(
-          outputDirectory,
-          PythonCodegenRuffFormatter.inferRepoRoot(caseDirectory),
-          label,
-          startedAt
-        )
-        logPhase("finished")
-        Right(outputDirectory)
+        Right(())
       }
     } catch {
       case ex: Exception =>
-        logPhase(s"failed: ${ex.getMessage}")
-        Left(s"Smithy build failed for $caseDirectory: ${ex.getMessage}")
+        Left(s"Smithy build failed for $projectDirectory: ${ex.getMessage}")
     }
   }
-
-  private def loadPlugins(classLoader: ClassLoader): Map[String, SmithyBuildPlugin] =
-    SmithyBuildModelSupport.loadPlugins(classLoader)
 
   private def formatBrokenBuild(result: software.amazon.smithy.build.SmithyBuildResult): String =
     result.getProjectionResults.asScala
