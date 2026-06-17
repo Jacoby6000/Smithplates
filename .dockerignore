@@ -1,5 +1,6 @@
-# Docker build only copies flake.nix and flake.lock; sources are bind-mounted at run time.
+# Docker build only copies dev-shell inputs; sources are bind-mounted at run time.
 *
 
 !flake.nix
 !flake.lock
+!build.sbt

@@ -10,7 +10,8 @@ RUN mkdir -p /etc/nix && \
 WORKDIR /smithystache
 
 # Warm the Nix store with dev-shell tooling only; sources are bind-mounted at run time.
-COPY flake.nix flake.lock ./
+# build.sbt is needed because flake.nix derives the Smithy CLI version from it.
+COPY flake.nix flake.lock build.sbt ./
 
 RUN nix develop --accept-flake-config -c true
 

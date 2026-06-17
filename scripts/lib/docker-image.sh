@@ -7,7 +7,7 @@ SMITHYSTACHE_DOCKER_CACHE_DIR="${ROOT}/target/docker-test"
 SMITHYSTACHE_DOCKER_INPUT_HASH_FILE="${SMITHYSTACHE_DOCKER_CACHE_DIR}/image-input.hash"
 
 smithystache_docker_image_input_hash() {
-  sha256sum Dockerfile flake.nix flake.lock | sha256sum | awk '{print $1}'
+  sha256sum Dockerfile .dockerignore flake.nix flake.lock build.sbt | sha256sum | awk '{print $1}'
 }
 
 smithystache_docker_image_exists() {
