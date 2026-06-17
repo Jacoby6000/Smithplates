@@ -63,5 +63,8 @@ object SmithyHttpTraitAccess {
 
     def deleteOperationId: Option[software.amazon.smithy.model.shapes.ShapeId] =
       resource.getDelete.toScala
+
+    def allOperationIds: List[software.amazon.smithy.model.shapes.ShapeId] =
+      resource.getAllOperations.asScala.toList
   }
 }

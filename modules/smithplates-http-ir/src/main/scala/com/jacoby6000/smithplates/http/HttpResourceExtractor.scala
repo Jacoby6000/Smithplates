@@ -50,23 +50,15 @@ private[http] object HttpResourceExtractor {
       listOperation = resource.listOperationId,
       updateOperation = resource.updateOperationId,
       deleteOperation = resource.deleteOperationId,
+      operationIds = resource.allOperationIds,
       childResourceIds = resource.getResources.asScala.toList
     ).validNel
   }
 
   def collectOperationIds(resources: List[HttpResource]): List[ShapeId] = {
-    def walk(resource: HttpResource): List[ShapeId] = {
-      val lifecycle =
-        List(
-          resource.createOperation,
-          resource.readOperation,
-          resource.listOperation,
-          resource.updateOperation,
-          resource.deleteOperation
-        ).flatten
-      lifecycle ++ resource.childResourceIds.flatMap(childId =>
+    def walk(resource: HttpResource): List[ShapeId] =
+      resource.operationIds ++ resource.childResourceIds.flatMap(childId =>
         resources.find(_.shapeId == childId).toList.flatMap(walk))
-    }
 
     resources.flatMap(walk).distinct
   }

@@ -29,15 +29,7 @@ private[http] object HttpOperationInputMemberExtractor {
 
   def operationBoundResource(operationId: ShapeId, serviceResources: List[HttpResource]): Option[ShapeId] =
     serviceResources
-      .find { resource =>
-        List(
-          resource.createOperation,
-          resource.readOperation,
-          resource.listOperation,
-          resource.updateOperation,
-          resource.deleteOperation
-        ).flatten.contains(operationId)
-      }
+      .find(resource => resource.operationIds.contains(operationId))
       .map(_.shapeId)
 
   private def structureBoundResource(model: Model, inputShapeId: ShapeId): Option[ShapeId] =
