@@ -107,6 +107,39 @@ final class PostgresDDLRendererSpec extends FunSuite {
     assert(ddl.indexOf("CREATE TABLE aaa_parent") < ddl.indexOf("CREATE TABLE zzz_child"))
   }
 
+  test("Create Table - renders self-referential foreign keys inline") {
+    val model = SqlTestModelBuilder.assemble(
+      """use smithplates.codegen.sql#sqlForeignKey
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "tree_nodes")
+        |structure TreeNode {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    label: String
+        |    @sqlForeignKey(references: "example#TreeNode")
+        |    parent_node_id: String
+        |}""".stripMargin
+    )
+
+    val schema = SqlIrExtractor.extractOrThrow(model)
+    val ddl    = SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(schema))
+
+    assertEquals(
+      ddl,
+      """-- example#TreeNode
+        |CREATE TABLE tree_nodes (
+        |    id TEXT NOT NULL,
+        |    label TEXT,
+        |    parent_node_id TEXT,
+        |
+        |    PRIMARY KEY (id),
+        |    FOREIGN KEY (parent_node_id) REFERENCES tree_nodes (id)
+        |);""".stripMargin
+    )
+  }
+
   test("Create Table - fails to render when schema has no tables") {
     val thrown = intercept[IllegalStateException] {
       SqlShared.formatDdlStatements(PostgresRenderer.renderSchemaDdlStatements(SqlSchema(tables = Nil)))

@@ -13,7 +13,7 @@ final case class SqlTableTreeNode(
 
 object SqlTableTree {
 
-  /** One node per @sqlTable structure; dependencies are in-schema FK targets. */
+  /** One node per @sqlTable structure; dependencies are in-schema FK targets (excluding self-references). */
   def forest(schema: SqlSchema): List[SqlTableTreeNode] = {
     val tableByShapeId = schema.tables.map(table => table.shapeId -> table).toMap
     val memo           = mutable.Map.empty[String, SqlTableTreeNode]
@@ -51,6 +51,7 @@ object SqlTableTree {
         val dependencies =
           table.foreignKeys
             .flatMap(foreignKey => tableByShapeId.get(foreignKey.referencesShape))
+            .filter(_.shapeId != table.shapeId)
             .distinctBy(_.name)
             .sortBy(_.name)
             .map(dependencyTable => nodeFor(dependencyTable, tableByShapeId, memo))

@@ -55,4 +55,43 @@ final class SqlTableTreeSpec extends FunSuite {
     assertEquals(childNode.dependencies.map(_.table.name), List("parent"))
     assertEquals(childNode.dependencies.head.dependencies, Nil)
   }
+
+  test("forest - self-referential foreign keys do not create dependency cycles") {
+    val nodeShape = ShapeId.from("example#TreeNode")
+
+    val treeNode = SqlTable(
+      "tree_nodes",
+      nodeShape,
+      Nil,
+      List("id"),
+      List(SqlForeignKey("parent_node_id", nodeShape, "id")),
+      Nil
+    )
+
+    val forest = SqlTableTree.forest(SqlSchema(List(treeNode)))
+    val node   = forest.find(_.table.name == "tree_nodes").get
+    assertEquals(node.dependencies, Nil)
+  }
+
+  test("tablesInRenderOrder - self-referential table appears once") {
+    val nodeShape = ShapeId.from("example#TreeNode")
+
+    val schema = SqlSchema(
+      tables = List(
+        SqlTable(
+          name = "tree_nodes",
+          shapeId = nodeShape,
+          columns = Nil,
+          primaryKeys = List("id"),
+          foreignKeys = List(
+            SqlForeignKey(column = "parent_node_id", referencesShape = nodeShape, referencesColumn = "id")
+          ),
+          indexes = Nil
+        )
+      )
+    )
+
+    val ordered = SqlTableTree.tablesInRenderOrder(schema).map(_.name)
+    assertEquals(ordered, List("tree_nodes"))
+  }
 }
