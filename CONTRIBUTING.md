@@ -109,7 +109,7 @@ Flake app equivalent:
 nix run .#run-tests
 ```
 
-The dev shell provides **Java 11**, **sbtn**, **uv**, and the **docker** client. It does not start a Docker daemon — use your host Docker service.
+The dev shell provides **Java 11**, **sbtn**, **Smithy CLI**, **uv**, and the **docker** client. It does not start a Docker daemon — use your host Docker service.
 
 ### With Docker (no Nix on the host)
 
@@ -126,7 +126,7 @@ The Docker path builds `smithystache-test:local` (override with `SMITHYSTACHE_TE
 
 ### Manual setup
 
-If you prefer installing tools yourself, see [`docs/contributing/getting-started.md`](docs/contributing/getting-started.md). You need **sbtn**, **Java 11**, **uv**, and **Docker** (for integration tests).
+If you prefer installing tools yourself, see [`docs/contributing/getting-started.md`](docs/contributing/getting-started.md). You need **sbtn**, **Java 11**, **Smithy CLI**, **uv**, and **Docker** (for integration tests).
 
 ### Lint before pushing
 

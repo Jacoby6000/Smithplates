@@ -19,9 +19,19 @@
         };
 
         java = pkgs.jdk11_headless;
+        smithyVersionMatch =
+          builtins.match ".*val smithyVersion = \"([^\"]+)\".*" (builtins.readFile ./build.sbt);
+        smithyVersion =
+          if smithyVersionMatch == null
+          then throw "Could not read smithyVersion from build.sbt"
+          else builtins.elemAt smithyVersionMatch 0;
 
         sbtn = pkgs.writeShellScriptBin "sbtn" ''
           exec ${pkgs.sbt}/bin/sbt --client "$@"
+        '';
+
+        smithy = pkgs.writeShellScriptBin "smithy" ''
+          exec ${pkgs.coursier}/bin/cs launch "software.amazon.smithy:smithy-cli:${smithyVersion}" -- "$@"
         '';
 
         runTestsScript = pkgs.writeShellScriptBin "smithystache-run-tests" ''
@@ -56,6 +66,7 @@
             java
             sbtn
             sbt
+            smithy
             uv
             docker
             git
@@ -69,7 +80,7 @@
 
           shellHook = ''
             export JAVA_HOME="${java}"
-            echo "Smithplates dev shell (Java 11, sbtn, uv, docker client)"
+            echo "Smithplates dev shell (Java 11, sbtn, smithy, uv, docker client)"
             echo "  ./validate                    # lint + test (Nix or Docker)"
             echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"

@@ -12,6 +12,17 @@ cd "${ROOT}"
 
 OPENAPI_GENERATOR_VERSION="7.12.0"
 
+enter_nix_shell_if_available() {
+  if [[ -n "${IN_NIX_SHELL:-}" ]]; then
+    return 0
+  fi
+  if ! command -v nix >/dev/null 2>&1 || [[ ! -f "${ROOT}/flake.nix" ]]; then
+    return 0
+  fi
+
+  exec nix develop "${ROOT}" --accept-flake-config --command "$0" "$@"
+}
+
 usage() {
   cat <<'EOF' >&2
 usage: scripts/run-example-build.sh all
@@ -157,6 +168,8 @@ fi
 if [[ $# -ne 1 ]]; then
   usage
 fi
+
+enter_nix_shell_if_available "$@"
 
 require_sbtn
 echo "==> publishM2"

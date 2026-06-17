@@ -14,7 +14,7 @@
 # See CONTRIBUTING.md § "Docker dev-shell parity (CI)".
 set -euo pipefail
 
-for cmd in java sbtn sbt uv docker git pre-commit python3 nix; do
+for cmd in java sbtn sbt smithy uv docker git pre-commit python3 nix; do
   if command -v "${cmd}" >/dev/null 2>&1; then
     printf '%s=present\n' "${cmd}"
   else
@@ -23,6 +23,7 @@ for cmd in java sbtn sbt uv docker git pre-commit python3 nix; do
 done
 
 java -version 2>&1 | head -1 | sed 's/^/java-version=/'
+smithy --version 2>/dev/null | head -1 | sed 's/^/smithy-version=/'
 uv --version 2>/dev/null | head -1 | sed 's/^/uv-version=/'
 docker --version 2>/dev/null | head -1 | sed 's/^/docker-version=/'
 python3 --version 2>/dev/null | head -1 | sed 's/^/python-version=/'
