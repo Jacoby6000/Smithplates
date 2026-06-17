@@ -32,3 +32,10 @@ repos:
         language: system
         files: ^(docs/reusable-components/|scripts/sync_reusable_components\.py|.*\.md)$
         pass_filenames: false
+
+      - id: codegen-template-discovery
+        name: Codegen template discovery
+        entry: sbtn 'smithplatesSqlServiceRenderer/testOnly *CodegenTemplateTestDiscoverySpec'
+        language: system
+        files: ^templates/[^/]+/tests/
+        pass_filenames: false
