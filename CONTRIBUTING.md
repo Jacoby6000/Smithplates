@@ -15,6 +15,8 @@ From the repository root, run linters and tests with Nix when available, otherwi
 ./validate lint,test --target python/db/postgres
 ```
 
+`./validate` runs `sbtn publishM2` once per invocation (before lint/test) so local example `smithy build` can resolve `smithplates-plugin` from `~/.m2`. Standalone `./build-generated.sh` / `scripts/run-example-build.sh` publish as well; re-use the same shell or set `SMITHYSTACHE_PUBLISH_M2_DONE=1` to skip a second publish in the same session.
+
 Optional `--target` scopes lint and test to a subset:
 
 | Target | Lint | Test |

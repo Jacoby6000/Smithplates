@@ -16,6 +16,20 @@ Consumer `smithy-build.json` files should reference the version printed by:
 sbtn print smithplatesPlugin/version
 ```
 
+### Smithy CLI and `+` in dependency versions
+
+`sbt-dynver` snapshot versions often contain `+` (for example `0.2.0+1-14e56739+20260616-2305-SNAPSHOT`). That string is valid for sbt and Maven, but the **Smithy CLI rejects any `+` in `maven.dependencies` version coordinates** before it resolves artifacts — it treats them as unsupported Gradle-style dynamic versions (`1.+`). You may see:
+
+```text
+'+' dependencies are not supported: com.jacoby6000:smithplates-plugin:jar:0.2.0+1-...
+```
+
+This is not Maven refusing to download; Smithy fails validation first. It also means Smithy will not resolve a dynver `+` snapshot from Maven Central even when that exact snapshot was published there.
+
+For local example regeneration, always run `publishM2` before `smithy build` so `~/.m2` contains the plugin at the rendered version. [`./validate`](../../CONTRIBUTING.md#quick-validate) runs `publishM2` once at the start of each invocation; use [`scripts/run-example-build.sh`](../../scripts/run-example-build.sh) (or `./build-generated.sh` under `example/python/`), which shares the same once-per-session publish guard, when regenerating examples outside `./validate`. Do not run `smithy build` alone against a stale or hand-edited `smithy-build.json` without publishing first.
+
+Golden template fixtures under `templates/python/tests/` omit `maven.dependencies` and load the plugin from the sbt test classpath instead.
+
 ## Maven Central
 
 Releases are automated with `sbt-ci-release`.

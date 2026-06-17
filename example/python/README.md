@@ -67,6 +67,8 @@ Or from this directory:
 
 That runs `publishM2`, renders `smithy-build.json`, runs `smithy build`, syncs generated output, and formats Python with `uv run ruff format` from this project's `pyproject.toml`. Edit the `.template` files for config changes. CI and `./validate` regenerate before example lint/test.
 
+**Local plugin required:** Smithy resolves `smithplates-plugin` from `~/.m2` using the version in rendered `smithy-build.json`. Run the full script above — not `smithy build` alone — after plugin changes. The Smithy CLI also rejects `+` in `maven.dependencies` versions (sbt-dynver's default format), so dynver snapshot coordinates fail before Maven resolution; see [Release — Smithy CLI and `+` in dependency versions](../../docs/contributing/release.md#smithy-cli-and-in-dependency-versions).
+
 To render configs only (for example before a manual `smithy build`):
 
 ```bash

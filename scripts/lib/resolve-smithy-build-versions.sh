@@ -1,4 +1,5 @@
 # Resolve Smithplates and Smithy versions for smithy-build.json templates.
+# Smithy CLI rejects '+' in maven.dependencies versions; see docs/contributing/release.md.
 # Usage: source "${ROOT}/scripts/lib/resolve-smithy-build-versions.sh" "${ROOT}"
 
 _resolve_repo_root="${1:?repo root required}"

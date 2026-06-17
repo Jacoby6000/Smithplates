@@ -1,3 +1,20 @@
+function Invoke-SmithplatesPublishM2Once {
+  if ($env:SMITHYSTACHE_PUBLISH_M2_DONE -eq '1') {
+    Write-Host '==> publishM2 skipped (already completed)'
+    return
+  }
+
+  if (-not (Get-Command sbtn -ErrorAction SilentlyContinue)) {
+    Write-Error 'sbtn not on PATH (required for publishM2)'
+    exit 1
+  }
+
+  Write-Host '==> publishM2'
+  & sbtn publishM2
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  $env:SMITHYSTACHE_PUBLISH_M2_DONE = '1'
+}
+
 function Invoke-SmithplatesValidateRunExampleBuild {
   param([string]$Target)
 
@@ -75,6 +92,8 @@ function Invoke-SmithplatesValidateActions {
     Write-Error 'no validate actions to run'
     exit 2
   }
+
+  Invoke-SmithplatesPublishM2Once
 
   foreach ($action in $Actions) {
     switch ($action) {

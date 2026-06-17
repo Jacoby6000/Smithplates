@@ -17,6 +17,7 @@ Default: lint,test
 Optional --target scopes lint/test to plugin, python, python/db, a dialect path, or example projects.
 Uses Nix when available (preferred), otherwise Docker. Override with SMITHYSTACHE_VALIDATE_BACKEND=nix|docker.
 When multiple actions are requested, Nix/Docker is entered once for the full run.
+Each validate invocation runs sbtn publishM2 once (skipped on repeat) so example smithy build can resolve the local plugin.
 Example projects are regenerated once per validate invocation before example lint/test.
 EOF
   smithystache_validate_target_usage

@@ -10,6 +10,9 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "${ROOT}"
 
+# shellcheck source=lib/publish-m2-once.sh
+source "${ROOT}/scripts/lib/publish-m2-once.sh"
+
 OPENAPI_GENERATOR_VERSION="7.12.0"
 
 enter_nix_shell_if_available() {
@@ -172,8 +175,7 @@ fi
 enter_nix_shell_if_available "$@"
 
 require_sbtn
-echo "==> publishM2"
-sbtn publishM2
+smithystache_publish_m2_once
 
 case "$1" in
   all)

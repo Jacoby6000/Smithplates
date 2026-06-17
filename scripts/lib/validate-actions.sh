@@ -3,6 +3,8 @@
 
 # shellcheck source=scripts/lib/validate-target.sh
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/validate-target.sh"
+# shellcheck source=scripts/lib/publish-m2-once.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/publish-m2-once.sh"
 
 smithystache_validate_run_example_build() {
   local target="$1"
@@ -58,6 +60,8 @@ smithystache_validate_run_actions() {
     echo "error: no validate actions to run" >&2
     return 2
   fi
+
+  smithystache_publish_m2_once
 
   local action
   for action in "$@"; do
