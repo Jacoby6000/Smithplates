@@ -61,6 +61,7 @@ object SqlIrExtractor {
                     parseForeignKeyReference(
                       model,
                       structure,
+                      member.getId,
                       member.sqlColumnName(memberName),
                       foreignKeyTrait.getReferences,
                       foreignKeyTrait.getColumn.toScala,
@@ -167,7 +168,7 @@ object SqlIrExtractor {
         SqlColumn(
           name = columnName,
           columnType = columnType,
-          nullable = !member.sqlPrimaryKey && autoGeneration.isEmpty,
+          nullable = !member.sqlPrimaryKey && !member.isRequired && autoGeneration.isEmpty,
           autoGeneration = autoGeneration
         )
       }
@@ -209,6 +210,7 @@ object SqlIrExtractor {
   private def parseForeignKeyReference(
       model: Model,
       sourceShape: StructureShape,
+      sourceMember: ShapeId,
       columnName: String,
       reference: String,
       explicitColumn: Option[String],
@@ -225,6 +227,7 @@ object SqlIrExtractor {
                           }
     } yield SqlForeignKey(
       column = columnName,
+      sourceMember = sourceMember,
       referencesShape = targetId,
       referencesColumn = referencesColumn,
       cardinality =

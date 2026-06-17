@@ -303,6 +303,184 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
+  test("Derive CRUD - supports foreign-key cycles with one required edge and one optional edge") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#DerivedStruct
+        |use smithplates.codegen.sql#sqlDeriveDelete
+        |use smithplates.codegen.sql#sqlDeriveInsert
+        |use smithplates.codegen.sql#sqlDeriveSelectOne
+        |use smithplates.codegen.sql#sqlDeriveUpdate
+        |use smithplates.codegen.sql#sqlForeignKey
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlTable
+        |use smithy.api#required
+        |
+        |@sqlTable(name: "a_table")
+        |structure A {
+        |    @required
+        |    @sqlPrimaryKey
+        |    id: String
+        |    @required
+        |    @sqlForeignKey(references: "example#B")
+        |    b_id: String
+        |    @required
+        |    label: String
+        |}
+        |
+        |@sqlTable(name: "b_table")
+        |structure B {
+        |    @required
+        |    @sqlPrimaryKey
+        |    id: String
+        |    @sqlForeignKey(references: "example#A")
+        |    a_id: String
+        |    @required
+        |    label: String
+        |}
+        |
+        |@sqlDeriveInsert(targetTable: "example#A")
+        |operation CreateA {
+        |    input: DerivedStruct
+        |    output: String
+        |}
+        |
+        |@sqlDeriveSelectOne(targetTable: "example#A")
+        |operation GetA {
+        |    input: DerivedStruct
+        |    output: A
+        |}
+        |
+        |@sqlDeriveUpdate(targetTable: "example#A")
+        |operation UpdateA {
+        |    input: DerivedStruct
+        |    output: Boolean
+        |}
+        |
+        |@sqlDeriveDelete(targetTable: "example#A")
+        |operation DeleteA {
+        |    input: DerivedStruct
+        |    output: Boolean
+        |}
+        |
+        |@sqlDeriveInsert(targetTable: "example#B")
+        |operation CreateB {
+        |    input: DerivedStruct
+        |    output: String
+        |}
+        |
+        |@sqlDeriveSelectOne(targetTable: "example#B")
+        |operation GetB {
+        |    input: DerivedStruct
+        |    output: B
+        |}
+        |
+        |@sqlDeriveUpdate(targetTable: "example#B")
+        |operation UpdateB {
+        |    input: DerivedStruct
+        |    output: Boolean
+        |}
+        |
+        |@sqlDeriveDelete(targetTable: "example#B")
+        |operation DeleteB {
+        |    input: DerivedStruct
+        |    output: Boolean
+        |}
+        |""".stripMargin
+    )
+
+    val schema = SqlModelExtractor.extractOrThrow(model)
+    assertEquals(
+      schema.queries.inserts.sortBy(_.shapeId.toString).map(query => query.shapeId.toString -> query.table.name),
+      List("example#CreateA" -> "a_table", "example#CreateB" -> "b_table")
+    )
+    assertEquals(
+      schema.queries.inserts
+        .sortBy(_.shapeId.toString)
+        .map(query => query.table.name -> query.columns.map(_.memberName)),
+      List("a_table" -> List("id", "b_id", "label"), "b_table" -> List("id", "a_id", "label"))
+    )
+    assertEquals(
+      schema.queries.selectOnes.sortBy(_.shapeId.toString).map(query => query.shapeId.toString -> query.table.name),
+      List("example#GetA" -> "a_table", "example#GetB" -> "b_table")
+    )
+    assertEquals(
+      schema.queries.selectOnes
+        .sortBy(_.shapeId.toString)
+        .map(query => query.table.name -> query.selectColumns.map(_.memberName)),
+      List("a_table" -> List("id", "b_id", "label"), "b_table" -> List("id", "a_id", "label"))
+    )
+    assertEquals(
+      schema.queries.updates.sortBy(_.shapeId.toString).map(query => query.shapeId.toString -> query.table.name),
+      List("example#UpdateA" -> "a_table", "example#UpdateB" -> "b_table")
+    )
+    assertEquals(
+      schema.queries.updates
+        .sortBy(_.shapeId.toString)
+        .map(query => query.table.name -> query.setColumns.map(_.memberName)),
+      List("a_table" -> List("b_id", "label"), "b_table" -> List("a_id", "label"))
+    )
+    assertEquals(
+      schema.queries.deletes.sortBy(_.shapeId.toString).map(query => query.shapeId.toString -> query.table.name),
+      List("example#DeleteA" -> "a_table", "example#DeleteB" -> "b_table")
+    )
+    assertEquals(
+      schema.queries.deletes
+        .sortBy(_.shapeId.toString)
+        .map(query => query.table.name -> query.whereColumns.map(_.memberName)),
+      List("a_table" -> List("id"), "b_table" -> List("id"))
+    )
+  }
+
+  test("DeriveInsert - rejects required foreign-key cycles") {
+    val result = SqlModelExtractor.extract(
+      SqlTestModelBuilder.assemble(
+        """
+          |use smithplates.codegen.sql#DerivedStruct
+          |use smithplates.codegen.sql#sqlDeriveInsert
+          |use smithplates.codegen.sql#sqlForeignKey
+          |use smithplates.codegen.sql#sqlPrimaryKey
+          |use smithplates.codegen.sql#sqlTable
+          |use smithy.api#required
+          |
+          |@sqlTable(name: "a_table")
+          |structure A {
+          |    @required
+          |    @sqlPrimaryKey
+          |    id: String
+          |    @required
+          |    @sqlForeignKey(references: "example#B")
+          |    b_id: String
+          |}
+          |
+          |@sqlTable(name: "b_table")
+          |structure B {
+          |    @required
+          |    @sqlPrimaryKey
+          |    id: String
+          |    @required
+          |    @sqlForeignKey(references: "example#A")
+          |    a_id: String
+          |}
+          |
+          |@sqlDeriveInsert(targetTable: "example#A")
+          |operation CreateA {
+          |    input: DerivedStruct
+          |    output: String
+          |}
+          |""".stripMargin
+      )
+    )
+
+    assert(result.isInvalid)
+    assert(
+      result.swap.toOption.get.exists {
+        case InvalidDeriveInsert(_, reason) if reason.contains("required foreign-key cycle") => true
+        case _                                                                               => false
+      }
+    )
+  }
+
   test("DeriveUpdate - derives whereClause from primary keys and updateFields from updatable columns") {
     val model = SqlTestModelBuilder.assemble(
       """

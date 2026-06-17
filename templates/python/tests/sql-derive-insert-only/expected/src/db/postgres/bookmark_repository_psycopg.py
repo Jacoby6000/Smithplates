@@ -17,7 +17,7 @@ class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg
     @override
     async def create_bookmark(
         self,
-        title: str,
+        title: str | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:

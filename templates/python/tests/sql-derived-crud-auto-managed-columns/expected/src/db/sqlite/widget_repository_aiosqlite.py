@@ -21,8 +21,8 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol[aiosqlite
     @override
     async def create_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:
@@ -62,8 +62,8 @@ WHERE id = ?;""",
     @override
     async def update_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,

@@ -11,10 +11,11 @@
   ```
   Prefer single commands over chained `sbtn 'reload; …'` when possible. Use `sbtn --client shutdown` only when the client still responds.
 * CI (`.github/workflows/ci.yml`) runs on push/PR to `main`: `validate-plugin-build`, `validate-language-templates`, and `validate-example-tests` (Nix on Linux), plus `validate-docker` smoke checks via [`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh) (dev-shell parity and Docker backend auto-detection). When extending `devShells.default` in `flake.nix`, update [`scripts/lib/dev-shell-fingerprint.sh`](scripts/lib/dev-shell-fingerprint.sh) per [`CONTRIBUTING.md`](CONTRIBUTING.md). Requires **Docker** on the runner for testcontainers-backed tests.
-* Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`. Re-stage if fmt/fix modify sources.
+* PR test plans should be exactly `./validate` unless the user explicitly asks for a different format.
+* Git pre-commit hooks (`.pre-commit-config.yaml`, `scripts/pre-commit-scala.sh`): after `pre-commit install`, commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then `compile`; commits touching golden template fixtures under `templates/<language>/tests/` run `CodegenTemplateTestDiscoverySpec`. Re-stage if fmt/fix modify sources.
 * Assume **`sbtn` is on `PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap SBT through Coursier per invocation.
 * **Module layout** under `modules/`:
-  * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`); `SqlTableTree` / `SqlTableMemberOrdering` / `SqlText` live in `sql`
+  * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`); `SqlTableTree` / `SqlTableMemberOrdering` / `SqlText` live in `sql`. `SqlTableTree` skips self-referential `@sqlForeignKey` edges when computing render order so a table can reference itself inline in `CREATE TABLE`.
   * `smithplates-sql-ddl-renderer-common` — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) under `sql.ddl.renderer.common`
   * `smithplates-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors
   * `smithplates-sql-service-query-renderer` — `SqlQueryRenderer` trait, `SqlParameterizedStatement`, dialect-neutral query output types

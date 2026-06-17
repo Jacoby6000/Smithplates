@@ -9,7 +9,7 @@ T = TypeVar("T", contravariant=True)
 class BookmarkRepositoryServiceProtocol(Protocol[T]):
     async def update_bookmark(
         self,
-        title: str,
+        title: str | None,
         id: str,
         *,
         transaction: T | None = None,

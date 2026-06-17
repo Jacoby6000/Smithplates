@@ -19,7 +19,7 @@ See [Architecture](../contributing/architecture.md) for the full pipeline diagra
 
 | Config | Output |
 |--------|--------|
-| Enabled dialects (`sqlite`, `postgres`) | Versioned migration `.sql` files under `migrationLocation` (SQL IR → dialect DDL); initial `v1_initial_schema.sql` contains full schema DDL (`CREATE TABLE`, indexes, enums) |
+| Enabled dialects (`sqlite`, `postgres`) | Versioned migration `.sql` files under `migrationLocation` (SQL IR → dialect DDL); initial `v1_initial_schema.sql` contains full schema DDL (`CREATE TABLE`, indexes, enums, foreign-key constraints) |
 | Language `sql` targets | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
 
 Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithplates-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithplates-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithplates-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithplates-sql-service-ir`).
@@ -29,7 +29,8 @@ Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/
 - Annotate **structures** with `@sqlTable`; put `@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlIndex`, and column traits on **members**.
 - Use a **dedicated SQL namespace** (for example `example.db`) separate from HTTP API namespaces. Do not share shapes with `@httpService` models; see [Integration — HTTP and SQL model separation](integration.md#http-and-sql-model-separation).
 - Use flat `operations` lists on `@sqlService` services, not Smithy `resources` (resource properties cannot carry SQL member traits).
-- Derive DML with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` on operations; use `DerivedStruct` as derive input (and derive-select output). `@sqlDeriveSelectOne` accepts optional `joins`; when present, output must be `DerivedStruct` and codegen expands nested joined table structures from `@sqlForeignKey` cardinality (singular member for many-to-one/one-to-one, list member for one-to-many). Singular nested members are optional when the joining FK member is optional in Smithy, required when the FK member is `@required`. Each join after the first resolves its ON clause from the nearest prior joined table when no direct FK exists on the target table.
+- Derive DML with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` on operations; use `DerivedStruct` as derive input (and derive-select output). `@sqlDeriveInsert` rejects target tables that participate in a cycle made entirely of `@required` foreign-key members, because safely inserting those rows requires deferred constraint evaluation. Cycles with at least one optional FK remain derivable.
+- `@sqlDeriveSelectOne` accepts optional `joins`; when present, output must be `DerivedStruct` and codegen expands nested joined table structures from `@sqlForeignKey` cardinality (singular member for many-to-one/one-to-one, list member for one-to-many). Singular nested members are optional when the joining FK member is optional in Smithy, required when the FK member is `@required`. Each join after the first resolves its ON clause from the nearest prior joined table when no direct FK exists on the target table.
 - Bind repository SQL to service methods by matching operation shape ids on derive traits.
 
 ### Quick example
@@ -86,7 +87,7 @@ db/
   <implementation>/tests/…        → <testOutputDir>/db/<implementation>/test_*.py
 ```
 
-`dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` placeholders in generated Python service implementations). Build-time migration files contain dialect DDL.
+`dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` placeholders in generated Python service implementations). Build-time migration files contain dialect DDL. Generated column definitions include an `FK -> table (column)` comment for foreign-key columns. Postgres migrations emit foreign-key constraints as trailing `ALTER TABLE ... ADD CONSTRAINT` statements after table and index creation; SQLite migrations keep foreign keys inline in `CREATE TABLE` because SQLite cannot add table constraints after creation.
 
 ### Python row mapping (Postgres vs SQLite)
 

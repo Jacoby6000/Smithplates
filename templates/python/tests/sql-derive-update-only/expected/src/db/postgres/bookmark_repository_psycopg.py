@@ -16,7 +16,7 @@ class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg
     @override
     async def update_bookmark(
         self,
-        title: str,
+        title: str | None,
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,

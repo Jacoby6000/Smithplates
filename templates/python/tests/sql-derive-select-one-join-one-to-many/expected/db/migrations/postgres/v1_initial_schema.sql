@@ -9,9 +9,13 @@ CREATE TABLE orders (
 -- example#OrderLine
 CREATE TABLE order_lines (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
-    order_id UUID,
+    order_id UUID /* FK -> orders (id) */,
     sku TEXT,
 
-    PRIMARY KEY (id),
-    FOREIGN KEY (order_id) REFERENCES orders (id)
+    PRIMARY KEY (id)
 );
+
+-- example#OrderLine
+ALTER TABLE order_lines
+    ADD CONSTRAINT fk_order_lines_order_id
+    FOREIGN KEY (order_id) REFERENCES orders (id);

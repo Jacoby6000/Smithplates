@@ -6,12 +6,19 @@ import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.NoSqlTables
 import com.jacoby6000.smithplates.sql.model.SqlColumn
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlForeignKey
 import com.jacoby6000.smithplates.sql.model.SqlSchema
+import com.jacoby6000.smithplates.sql.model.SqlTable
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */
 object SqlShared {
   private val StatementSeparator: String = "\n\n"
+
+  enum ForeignKeyRendering {
+    case Inline
+    case Separate(renderStatement: (SqlTable, SqlForeignKey, SqlTable) => String)
+  }
 
   def requireTables(schema: SqlSchema): Unit =
     if (schema.tables.isEmpty) {
@@ -37,24 +44,26 @@ object SqlShared {
   def renderDdlStatements(
       schema: SqlSchema,
       renderColumn: SqlColumn => String,
-      preTableStatements: SqlSchema => List[DDLStatement] = _ => Nil
+      preTableStatements: SqlSchema => List[DDLStatement] = _ => Nil,
+      foreignKeyRendering: ForeignKeyRendering = ForeignKeyRendering.Inline
   ): List[DDLStatement] = {
     requireTables(schema)
-    val prefix = preTableStatements(schema)
-    val tables =
+    val prefix      = preTableStatements(schema)
+    val tableById   = schema.tables.map(table => table.shapeId -> table).toMap
+    val tables      =
       SqlTableTree
         .tablesInRenderOrder(schema)
         .flatMap { table =>
-          val columnLines     = table.columns.map(renderColumn)
+          val columnLines     =
+            table.columns.map(column => renderColumnWithForeignKeyComment(table, column, schema, renderColumn))
           val primaryKeyLine  = s"PRIMARY KEY (${table.primaryKeys.mkString(", ")})"
-          val foreignKeyLines = table.foreignKeys.map { foreignKey =>
-            val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
-              throw new IllegalStateException(
-                s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
-              )
+          val foreignKeyLines =
+            foreignKeyRendering match {
+              case ForeignKeyRendering.Inline      =>
+                table.foreignKeys.map(foreignKey => renderInlineForeignKey(tableById, foreignKey))
+              case ForeignKeyRendering.Separate(_) =>
+                Nil
             }
-            s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
-          }
           val keyLines        = primaryKeyLine :: foreignKeyLines
           val createTable     =
             DDLStatement.CreateTable(
@@ -81,8 +90,67 @@ object SqlShared {
           createTable :: indexStatements
         }
         .filter(_.statement.nonEmpty)
-    prefix ++ tables
+    val foreignKeys =
+      foreignKeyRendering match {
+        case ForeignKeyRendering.Inline                    =>
+          Nil
+        case ForeignKeyRendering.Separate(renderStatement) =>
+          schema.tables
+            .sortBy(_.name)
+            .flatMap { table =>
+              table.foreignKeys
+                .sortBy(_.sourceMember.toString)
+                .map { foreignKey =>
+                  val referencedTable = requireReferencedTable(tableById, foreignKey)
+                  DDLStatement.AddForeignKey(
+                    table = table,
+                    foreignKey = foreignKey,
+                    statement = renderStatement(table, foreignKey, referencedTable)
+                  )
+                }
+            }
+      }
+    prefix ++ tables ++ foreignKeys
   }
+
+  private def renderColumnWithForeignKeyComment(
+      table: SqlTable,
+      column: SqlColumn,
+      schema: SqlSchema,
+      renderColumn: SqlColumn => String
+  ): String = {
+    val base = renderColumn(column)
+    table.foreignKeys.find(_.column == column.name) match {
+      case Some(foreignKey) =>
+        val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
+          throw new IllegalStateException(
+            s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
+          )
+        }
+        s"$base /* FK -> ${referencedTable.name} (${foreignKey.referencesColumn}) */"
+      case None             =>
+        base
+    }
+  }
+
+  private def renderInlineForeignKey(
+      tableById: Map[ShapeId, SqlTable],
+      foreignKey: SqlForeignKey
+  ): String = {
+    val referencedTable = requireReferencedTable(tableById, foreignKey)
+    s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
+  }
+
+  private def requireReferencedTable(
+      tableById: Map[ShapeId, SqlTable],
+      foreignKey: SqlForeignKey
+  ): SqlTable =
+    tableById.getOrElse(
+      foreignKey.referencesShape,
+      throw new IllegalStateException(
+        s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
+      )
+    )
 
   def appendSection(prefix: String, suffix: String): String =
     if (suffix.isEmpty) {

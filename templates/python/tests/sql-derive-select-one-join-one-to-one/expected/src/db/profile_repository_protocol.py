@@ -12,7 +12,7 @@ from generated.db.models.profile_repository_models import (
 @dataclass
 class GetProfileResult:
     id: str
-    display_name: str
+    display_name: str | None
     bar_id: str
     bar: Bar
 
