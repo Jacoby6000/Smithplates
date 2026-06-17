@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import override
 
 import psycopg
-from bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
-from psycopg_transaction_run import run
+from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg.AsyncTransaction]):

@@ -7,13 +7,13 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     DeliveryState,
     PostalAddress,
     Shipment,
 )
-from shipment_repository_protocol import ShipmentRepositoryServiceProtocol
-from sqlite_transaction_run import run
+from generated.db.shipment_repository_protocol import ShipmentRepositoryServiceProtocol
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol[aiosqlite.Connection]):

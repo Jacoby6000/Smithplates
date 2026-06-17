@@ -254,6 +254,8 @@ Register in `smithy-build.json` (see [`docs/usage/integration.md`](../../docs/us
 "plugins": {
   "smithplates": {
     "python": {
+      "sourceOutputDir": "src/generated",
+      "testOutputDir": "tests",
       "sql": {
         "sqlite": {
           "enable": true,
@@ -262,9 +264,7 @@ Register in `smithy-build.json` (see [`docs/usage/integration.md`](../../docs/us
         "postgres": {
           "enable": true,
           "migrationLocation": "db/migrations/postgres"
-        },
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests"
+        }
       }
     }
   }

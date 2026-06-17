@@ -1,0 +1,1150 @@
+{
+    "smithy": "2.0",
+    "shapes": {
+        "petstore.api#CategoryDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store": {
+                    "target": "petstore.api#StoreSummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#CategoryNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested category was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#CategorySummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#CreatePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#CreatePetInput"
+            },
+            "output": {
+                "target": "petstore.api#CreatePetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations\nin `src/server` that delegate to generated `@sqlService` repositories.",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/pets",
+                    "code": 201
+                },
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#CreatePetInput": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#CreatePetOutput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "etag": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpHeader": "ETag",
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#DeletePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#DeletePetInput"
+            },
+            "output": {
+                "target": "smithy.api#Unit"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "DELETE",
+                    "uri": "/pets/{petId}",
+                    "code": 204
+                },
+                "smithy.api#idempotent": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#DeletePetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#FulfillmentState": {
+            "type": "union",
+            "members": {
+                "pending": {
+                    "target": "smithy.api#String"
+                },
+                "shipped": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "delivered": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#GetCategory": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetCategoryInput"
+            },
+            "output": {
+                "target": "petstore.api#GetCategoryOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#CategoryNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/categories/{categoryId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "categories"
+                ]
+            }
+        },
+        "petstore.api#GetCategoryInput": {
+            "type": "structure",
+            "members": {
+                "categoryId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetCategoryOutput": {
+            "type": "structure",
+            "members": {
+                "category": {
+                    "target": "petstore.api#CategoryDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetOrder": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetOrderInput"
+            },
+            "output": {
+                "target": "petstore.api#GetOrderOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#OrderNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/orders/{orderId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "orders"
+                ]
+            }
+        },
+        "petstore.api#GetOrderInput": {
+            "type": "structure",
+            "members": {
+                "orderId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetOrderOutput": {
+            "type": "structure",
+            "members": {
+                "order": {
+                    "target": "petstore.api#OrderDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetPet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetPetInput"
+            },
+            "output": {
+                "target": "petstore.api#GetPetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#GetPetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetPetOutput": {
+            "type": "structure",
+            "members": {
+                "pet": {
+                    "target": "petstore.api#PetDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#HealthCheck": {
+            "type": "operation",
+            "input": {
+                "target": "smithy.api#Unit"
+            },
+            "output": {
+                "target": "petstore.api#HealthCheckOutput"
+            },
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/health"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "health"
+                ]
+            }
+        },
+        "petstore.api#HealthCheckOutput": {
+            "type": "structure",
+            "members": {
+                "status": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "label": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#OrderStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "priority": {
+                    "target": "petstore.api#OrderPriority",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "updated_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "lines": {
+                    "target": "petstore.api#OrderLineDetailList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderLineDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "order_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "pet_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "quantity": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "unit_price_cents": {
+                    "target": "smithy.api#Long",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "fulfillment": {
+                    "target": "petstore.api#FulfillmentState",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderLineDetailList": {
+            "type": "list",
+            "member": {
+                "target": "petstore.api#OrderLineDetail"
+            }
+        },
+        "petstore.api#OrderNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested order was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#OrderPriority": {
+            "type": "intEnum",
+            "members": {
+                "LOW": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 1
+                    }
+                },
+                "NORMAL": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 2
+                    }
+                },
+                "HIGH": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 3
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderStatus": {
+            "type": "enum",
+            "members": {
+                "PLACED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "placed"
+                    }
+                },
+                "APPROVED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "approved"
+                    }
+                },
+                "DELIVERED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "delivered"
+                    }
+                }
+            }
+        },
+        "petstore.api#OwnerSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "full_name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "mailing_address": {
+                    "target": "petstore.api#PostalAddress",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#PetAttribute": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "value": {
+                    "target": "petstore.api#PetAttributeValue",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetAttributeList": {
+            "type": "list",
+            "member": {
+                "target": "petstore.api#PetAttribute"
+            }
+        },
+        "petstore.api#PetAttributeValue": {
+            "type": "union",
+            "members": {
+                "color": {
+                    "target": "smithy.api#String"
+                },
+                "weight_kg": {
+                    "target": "smithy.api#Double"
+                },
+                "vaccinated": {
+                    "target": "smithy.api#Boolean"
+                }
+            }
+        },
+        "petstore.api#PetDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "updated_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "category": {
+                    "target": "petstore.api#CategorySummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store": {
+                    "target": "petstore.api#StoreSummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner": {
+                    "target": "petstore.api#OwnerSummary"
+                },
+                "profile": {
+                    "target": "petstore.api#PetProfileSummary"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Aggregate read model returned by GetPet; mirrors joined repository output."
+            }
+        },
+        "petstore.api#PetLocationRedirect": {
+            "type": "structure",
+            "members": {
+                "url": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpHeader": "Location",
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested pet was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#PetProfileSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "biography": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "pet_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetSpecies": {
+            "type": "intEnum",
+            "members": {
+                "DOG": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 1
+                    }
+                },
+                "CAT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 2
+                    }
+                },
+                "BIRD": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 3
+                    }
+                },
+                "REPTILE": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 4
+                    }
+                }
+            }
+        },
+        "petstore.api#PetStatus": {
+            "type": "enum",
+            "members": {
+                "AVAILABLE": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "available"
+                    }
+                },
+                "PENDING": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "pending"
+                    }
+                },
+                "SOLD": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "sold"
+                    }
+                }
+            }
+        },
+        "petstore.api#Petstore": {
+            "type": "service",
+            "version": "2024-01-01",
+            "operations": [
+                {
+                    "target": "petstore.api#CreatePet"
+                },
+                {
+                    "target": "petstore.api#DeletePet"
+                },
+                {
+                    "target": "petstore.api#GetCategory"
+                },
+                {
+                    "target": "petstore.api#GetOrder"
+                },
+                {
+                    "target": "petstore.api#GetPet"
+                },
+                {
+                    "target": "petstore.api#HealthCheck"
+                },
+                {
+                    "target": "petstore.api#PlaceOrder"
+                },
+                {
+                    "target": "petstore.api#ResolvePetLocation"
+                },
+                {
+                    "target": "petstore.api#UpdatePet"
+                }
+            ],
+            "traits": {
+                "aws.protocols#restJson1": {},
+                "smithy.api#documentation": "HTTP-facing petstore service for smithplates FastAPI codegen and Smithy OpenAPI export."
+            }
+        },
+        "petstore.api#PlaceOrder": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#PlaceOrderInput"
+            },
+            "output": {
+                "target": "petstore.api#PlaceOrderOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/orders",
+                    "code": 201
+                },
+                "smithy.api#tags": [
+                    "orders"
+                ]
+            }
+        },
+        "petstore.api#PlaceOrderInput": {
+            "type": "structure",
+            "members": {
+                "label": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#OrderStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "priority": {
+                    "target": "petstore.api#OrderPriority",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PlaceOrderOutput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PostalAddress": {
+            "type": "structure",
+            "members": {
+                "street": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "city": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "postal_code": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#ResolvePetLocation": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#ResolvePetLocationInput"
+            },
+            "output": {
+                "target": "petstore.api#PetLocationRedirect"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}/location",
+                    "code": 302
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#ResolvePetLocationInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#StoreSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#StringList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            }
+        },
+        "petstore.api#UpdatePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#UpdatePetInput"
+            },
+            "output": {
+                "target": "petstore.api#UpdatePetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                },
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "PUT",
+                    "uri": "/pets/{petId}"
+                },
+                "smithy.api#idempotent": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#UpdatePetBody": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#UpdatePetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                },
+                "body": {
+                    "target": "petstore.api#UpdatePetBody",
+                    "traits": {
+                        "smithy.api#httpPayload": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#UpdatePetOutput": {
+            "type": "structure",
+            "members": {
+                "updated": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#ValidationError": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Client supplied invalid input.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 400
+            }
+        }
+    }
+}

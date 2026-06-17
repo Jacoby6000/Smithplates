@@ -51,6 +51,7 @@ object SqlCodegenIntegrationTestBuilder {
             extraImports = collectExtraImports(insert, selectOne, updateOperation),
             testImports = testImports,
             localImportBlock = SqlCodegenPythonImports.integrationTestLocalImportBlock(
+              context.packageName,
               context.name,
               context.dialectKey,
               testImports
@@ -389,12 +390,12 @@ object SqlCodegenIntegrationTestBuilder {
 
     val importBlocks = List.newBuilder[String]
     if (modelImportNames.nonEmpty) {
-      importBlocks += s"from ${serviceModuleBase}_models import ("
+      importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"models/${serviceModuleBase}_models")} import ("
       importBlocks ++= modelImportNames.toList.sorted.map(name => s"    $name,")
       importBlocks += ")"
     }
     if (protocolImportNames.nonEmpty) {
-      importBlocks += s"from ${serviceModuleBase}_protocol import ("
+      importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"${serviceModuleBase}_protocol")} import ("
       importBlocks ++= protocolImportNames.toList.sorted.map(name => s"    $name,")
       importBlocks += ")"
     }

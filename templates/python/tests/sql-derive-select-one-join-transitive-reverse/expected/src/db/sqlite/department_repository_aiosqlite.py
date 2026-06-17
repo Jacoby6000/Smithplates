@@ -5,15 +5,15 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from department_repository_models import (
-    Category,
-    Widget,
-)
-from department_repository_protocol import (
+from generated.db.department_repository_protocol import (
     DepartmentRepositoryServiceProtocol,
     GetDepartmentResult,
 )
-from sqlite_transaction_run import run
+from generated.db.models.department_repository_models import (
+    Category,
+    Widget,
+)
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class DepartmentRepositoryAiosqliteService(DepartmentRepositoryServiceProtocol[aiosqlite.Connection]):

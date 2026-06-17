@@ -18,3 +18,5 @@ templates/**/tests/**/out/
 result
 .direnv
 metals.sbt
+
+example/**/smithy-build.json

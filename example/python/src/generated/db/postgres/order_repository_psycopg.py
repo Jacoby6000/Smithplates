@@ -7,15 +7,15 @@ from datetime import datetime
 from typing import cast, override
 
 import psycopg
-from order_repository_models import (
+from generated.db.models.order_repository_models import (
     FulfillmentState,
     OrderLine,
 )
-from order_repository_protocol import (
+from generated.db.order_repository_protocol import (
     GetOrderRecordResult,
     OrderRepositoryServiceProtocol,
 )
-from psycopg_transaction_run import run
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.AsyncTransaction]):

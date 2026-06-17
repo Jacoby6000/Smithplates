@@ -23,9 +23,14 @@ object SqlCodegenPythonNaming {
 object SqlCodegenPythonImports {
   import SqlCodegenPythonNaming.*
 
+  def qualifiedModule(packageName: String, relativeModulePath: String): String = {
+    val suffix = relativeModulePath.stripPrefix("/").replace('/', '.')
+    s"$packageName.$suffix"
+  }
+
   def protocolTableModelImportBlock(context: SqlCodegenServiceContext): String = {
     val (tableModels, unions) = protocolReferencedNames(context)
-    renderModelsImport(serviceModuleBaseName(context.name), tableModels, unions).getOrElse("")
+    renderModelsImport(context.packageName, serviceModuleBaseName(context.name), tableModels, unions).getOrElse("")
   }
 
   def serviceLocalImportBlock(context: SqlCodegenServiceContext): String = {
@@ -34,10 +39,10 @@ object SqlCodegenPythonImports {
     val operationResultNames  = serviceReferencedOperationResultNames(context)
 
     val blocks = List.newBuilder[String]
-    renderModelsImport(moduleBase, tableModels, unions).foreach(blocks += _)
-    renderProtocolImport(moduleBase, operationResultNames, context.name).foreach(blocks += _)
+    renderModelsImport(context.packageName, moduleBase, tableModels, unions).foreach(blocks += _)
+    renderProtocolImport(context.packageName, moduleBase, operationResultNames, context.name).foreach(blocks += _)
     if (context.hasSqlOperations) {
-      blocks += s"from ${transactionRunModuleName(context.dialectKey)} import run"
+      blocks += s"from ${qualifiedModule(context.packageName, s"${context.dialectKey}/${transactionRunModuleName(context.dialectKey)}")} import run"
     }
 
     blocks.result().sortBy(extractImportModuleName).mkString("\n")
@@ -138,6 +143,7 @@ object SqlCodegenPythonImports {
     block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')
 
   private def renderModelsImport(
+      packageName: String,
       moduleBase: String,
       tableModels: List[String],
       unions: List[String]
@@ -147,7 +153,7 @@ object SqlCodegenPythonImports {
       None
     } else {
       val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
-      Some(s"from ${moduleBase}_models import ($body)")
+      Some(s"from ${qualifiedModule(packageName, s"models/${moduleBase}_models")} import ($body)")
     }
   }
 
@@ -160,6 +166,7 @@ object SqlCodegenPythonImports {
   }
 
   def integrationTestLocalImportBlock(
+      packageName: String,
       serviceName: String,
       dialectKey: String,
       testImports: String
@@ -177,7 +184,7 @@ object SqlCodegenPythonImports {
         case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
       }
     val implementationBlock  =
-      s"from $implementationModule import $implementationClass"
+      s"from ${qualifiedModule(packageName, s"$dialectKey/$implementationModule")} import $implementationClass"
     val blocks               = importBlocks(testImports) :+ implementationBlock
     blocks
       .groupBy(extractImportModuleName)
@@ -210,17 +217,18 @@ object SqlCodegenPythonImports {
     }
 
   private def renderProtocolImport(
+      packageName: String,
       moduleBase: String,
       resultNames: List[String],
       serviceName: String
   ): Option[String] = {
     val protocolName = serviceProtocolName(serviceName)
     if (resultNames.isEmpty) {
-      Some(s"from ${moduleBase}_protocol import $protocolName")
+      Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import $protocolName")
     } else {
       val body =
         (resultNames.map(name => s"    $name,") :+ s"    $protocolName,").mkString("\n", "\n", "\n")
-      Some(s"from ${moduleBase}_protocol import ($body)")
+      Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import ($body)")
     }
   }
 }

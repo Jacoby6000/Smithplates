@@ -8,15 +8,15 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from pet_repository_aiosqlite import PetRepositoryAiosqliteService
-from pet_repository_models import (
+from generated.db.sqlite.pet_repository_aiosqlite import PetRepositoryAiosqliteService
+from generated.db.models.pet_repository_models import (
     PetHighlight,
     PetTags,
 )
-from pet_repository_protocol import (
+from generated.db.pet_repository_protocol import (
     GetPetRecordResult,
 )
-from sqlite_migrations import SqliteMigrationService
+from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Any
 <% } %>
 <% for (typeName <- importTypeNames) { %>
-from ${modelsPackageName(packageName)}.${snakeCase(typeName)} import ${typeName}
+from ${packageName}.${snakeCase(typeName)} import ${typeName}
 <% } %>
 
 

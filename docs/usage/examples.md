@@ -12,19 +12,25 @@ It demonstrates:
 - SQL schema DDL generation for SQLite and Postgres;
 - Python DB model, repository protocol, dialect implementation, migration service, and generated test output;
 - Python/FastAPI HTTP route and service protocol generation;
-- OpenAPI export from Smithy HTTP models;
-- generated Python client code from OpenAPI;
+- Smithplates httpx HTTP client generation from the same `@httpService` model;
+- optional OpenAPI Generator reference client under `example/openapi-reference-python/`;
 - hand-written adapters that map API models to database models.
 
 ## Regenerate artifacts
 
-From the example directory:
+From the repository root:
+
+```bash
+./scripts/run-example-build.sh all
+```
+
+Or from an example directory:
 
 ```bash
 ./build-generated.sh
 ```
 
-The script runs Smithy build steps, synchronizes generated output from `build/smithy/source/smithplates/`, exports OpenAPI, and runs OpenAPI Generator for the client path.
+The build script runs `publishM2`, renders `smithy-build.json`, runs Smithy build, syncs generated output, and formats Python with `uv run ruff format` using each example's `pyproject.toml`. OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`.
 
 ## Runtime shape
 
@@ -44,10 +50,11 @@ Use this as the reference pattern for combining SQL and HTTP codegen in one appl
 |------|---------|
 | `example/python/smithy-build.json.template` | Source template for the Smithplates SQL and HTTP plugin config. |
 | `example/python/smithy-build.json` | Rendered config with the current local or published plugin version. |
-| `example/python/openapi/smithy-build.json.template` | Source template for OpenAPI export. |
-| `example/python/build-generated.sh` | End-to-end regeneration script. |
+| `example/openapi-reference-python/` | OpenAPI export + OpenAPI Generator reference client. |
+| `scripts/run-example-build.sh` | End-to-end regeneration for example reference projects. |
+| `example/python/build-generated.sh` | Thin wrapper for the Python petstore reference. |
 | `example/python/src/server/` | Hand-written app wiring and protocol implementations. |
-| `example/python/src/generated/` | Generated API, DB, and client output. |
+| `example/python/src/generated/` | Generated API, HTTP client, and DB output. |
 | `example/python/tests/` | Generated DB tests plus example API tests. |
 
 ## Typical workflow
@@ -56,8 +63,8 @@ When changing Smithplates itself:
 
 ```bash
 sbtn publishM2
-bash example/python/render-smithy-build.sh
-bash example/python/build-generated.sh
+bash scripts/render-smithy-build.sh example/python
+bash scripts/run-example-build.sh python
 ```
 
 When inspecting only the generated consumer project:

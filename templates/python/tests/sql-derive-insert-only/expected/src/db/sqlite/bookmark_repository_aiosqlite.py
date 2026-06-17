@@ -5,8 +5,8 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
-from sqlite_transaction_run import run
+from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosqlite.Connection]):

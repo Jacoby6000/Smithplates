@@ -5,14 +5,14 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from order_repository_models import (
+from generated.db.models.order_repository_models import (
     OrderLine,
 )
-from order_repository_protocol import (
+from generated.db.order_repository_protocol import (
     GetOrderResult,
     OrderRepositoryServiceProtocol,
 )
-from psycopg_transaction_run import run
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.AsyncTransaction]):

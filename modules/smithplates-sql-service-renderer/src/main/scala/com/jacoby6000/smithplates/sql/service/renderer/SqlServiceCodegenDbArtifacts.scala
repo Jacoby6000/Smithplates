@@ -1,30 +1,30 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-/** Bundled `@sqlService` artifact paths under the `db/` service-type layout. */
+/** Bundled `@sqlService` artifact paths relative to the DB template root. */
 object SqlServiceCodegenDbArtifacts {
   val shared: List[SqlServiceCodegenArtifactConfig] =
     List(
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
-        template = "model/models.ssp",
-        outputFile = "db/model/{{serviceFileName}}_models.py"
+        template = "models/models.ssp",
+        outputFile = "models/{{serviceFileName}}_models.py"
       ),
       SqlServiceCodegenArtifactConfig(
         kind = SqlServiceCodegenArtifactKind.Src,
         template = "service_protocol.ssp",
-        outputFile = "db/{{serviceFileName}}_protocol.py"
+        outputFile = "{{serviceFileName}}_protocol.py"
       )
     )
 
   def sqlite(
       serviceTemplate: String = "sqlite/service_aiosqlite.ssp",
-      serviceOutputFile: String = "db/sqlite/{{serviceFileName}}_aiosqlite.py",
+      serviceOutputFile: String = "sqlite/{{serviceFileName}}_aiosqlite.py",
       transactionRunResource: String = "sqlite/sqlite_transaction_run.py",
-      transactionRunOutputFile: String = "db/sqlite/sqlite_transaction_run.py",
+      transactionRunOutputFile: String = "sqlite/sqlite_transaction_run.py",
       migrationsServiceTemplate: String = "sqlite/migrations_service.ssp",
-      migrationsServiceOutputFile: String = "db/sqlite/sqlite_migrations.py",
+      migrationsServiceOutputFile: String = "sqlite/sqlite_migrations.py",
       integrationTestTemplate: String = "sqlite/tests/service_derived_sql_integration_tests.ssp",
-      integrationTestOutputFile: String = "db/sqlite/test_{{serviceFileName}}_derived_sql.py"
+      integrationTestOutputFile: String = "sqlite/test_{{serviceFileName}}_derived_sql.py"
   ): List[SqlServiceCodegenArtifactConfig] =
     shared ++ List(
       SqlServiceCodegenArtifactConfig(
@@ -52,15 +52,15 @@ object SqlServiceCodegenDbArtifacts {
 
   def postgres(
       serviceTemplate: String = "postgres/service_psycopg.ssp",
-      serviceOutputFile: String = "db/postgres/{{serviceFileName}}_psycopg.py",
+      serviceOutputFile: String = "postgres/{{serviceFileName}}_psycopg.py",
       transactionRunResource: String = "postgres/psycopg_transaction_run.py",
-      transactionRunOutputFile: String = "db/postgres/psycopg_transaction_run.py",
+      transactionRunOutputFile: String = "postgres/psycopg_transaction_run.py",
       migrationsServiceTemplate: String = "postgres/migrations_service.ssp",
-      migrationsServiceOutputFile: String = "db/postgres/psycopg_migrations.py",
+      migrationsServiceOutputFile: String = "postgres/psycopg_migrations.py",
       integrationTestTemplate: String = "postgres/tests/service_derived_sql_integration_tests_postgres.ssp",
-      integrationTestOutputFile: String = "db/postgres/test_{{serviceFileName}}_derived_sql.py",
+      integrationTestOutputFile: String = "postgres/test_{{serviceFileName}}_derived_sql.py",
       testcontainersStubResource: String = "postgres/stubs/testcontainers/postgres.pyi",
-      testcontainersStubOutputFile: String = "db/postgres/stubs/testcontainers/postgres.pyi"
+      testcontainersStubOutputFile: String = "postgres/stubs/testcontainers/postgres.pyi"
   ): List[SqlServiceCodegenArtifactConfig] =
     shared ++ List(
       SqlServiceCodegenArtifactConfig(

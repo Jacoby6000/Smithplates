@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
-from profile_repository_models import (
+from generated.db.models.profile_repository_models import (
     Bar,
 )
 

@@ -1,6 +1,5 @@
 package com.jacoby6000.smithplates.plugin
 
-import com.jacoby6000.smithplates.sql.service.renderer.PythonTemplateNamespaces
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 import software.amazon.smithy.model.node.Node
@@ -12,13 +11,13 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "sql": {
               "postgres": {
                 "enable": true,
                 "migrationLocation": "db/migrations/postgres"
-              },
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests"
+              }
             }
           }
         }
@@ -31,7 +30,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       }
     assertEquals(settings.enabledDialectKeys, List("postgres"))
     assertEquals(
-      settings.languageTargets.get("python").flatMap(_.dialects.get("postgres")).map(_.migrationLocation),
+      settings.languageTargets.get("python").flatMap(_.target.dialects.get("postgres")).map(_.migrationLocation),
       Some(Some("db/migrations/postgres"))
     )
     assertEquals(settings.languageTargets.keySet, Set("python"))
@@ -39,7 +38,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(settings.dialectMigrationDirectories, Map("postgres" -> "db/migrations/postgres"))
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
-    assertEquals(codegenSettings.templateDirectory, PythonTemplateNamespaces.bundledDbTemplateDirectory)
+    assertEquals(codegenSettings.templateDirectory, "classpath:python/src/db")
+    assertEquals(codegenSettings.outputPrefix, "db")
+    assertEquals(codegenSettings.packageName, "generated.db")
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))
@@ -51,12 +52,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "sql": {
               "sqlite": {
                 "migrationLocation": "db/migrations/sqlite"
-              },
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests"
+              }
             }
           }
         }
@@ -77,13 +78,13 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "sql": {
               "sqlite": {
                 "enable": true,
                 "migrationLocation": "db/sqlite.sql"
-              },
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests"
+              }
             }
           }
         }
@@ -100,12 +101,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
             "sql": {
               "sqlite": {
                 "enable": true
-              },
-              "sourceOutputDir": "src/generated",
-              "testOutputDir": "tests"
+              }
             }
           }
         }
@@ -122,10 +123,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "out/src",
+            "testOutputDir": "out/test",
             "sql": {
-              "templateDirectory": "classpath:custom-templates/python/src/db",
-              "sourceOutputDir": "out/src",
-              "testOutputDir": "out/test"
+              "templateDirectory": "classpath:custom-templates/python/src/db"
             }
           }
         }
@@ -151,6 +152,8 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
             "sql": {
               "sqlite": {
                 "enable": true,
@@ -159,9 +162,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
               "postgres": {
                 "enable": true,
                 "migrationLocation": "db/migrations/postgres"
-              },
-              "sourceOutputDir": "src",
-              "testOutputDir": "tests"
+              }
             }
           }
         }
@@ -178,6 +179,26 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       codegenSettings.artifacts,
       SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
     )
+  }
+
+  test("rejects nested sourceOutputDir under sql") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
+            "sql": {
+              "sourceOutputDir": "src/generated"
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("smithplates.python.sql.sourceOutputDir must not be set")))
   }
 
   test("rejects old feature-first SQL shape") {
@@ -198,7 +219,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .expectObjectNode()
 
     val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("expected `sql` or `http`")))
+    assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
   }
 
   test("rejects unbundled language without templateDirectory") {
@@ -207,10 +228,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "kotlin": {
-            "sql": {
-              "sourceOutputDir": "src",
-              "testOutputDir": "tests"
-            }
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
+            "sql": {}
           }
         }
       """)
@@ -227,10 +247,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "kotlin": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
             "sql": {
-              "templateDirectory": "classpath:missing-templates/kotlin",
-              "sourceOutputDir": "src",
-              "testOutputDir": "tests"
+              "templateDirectory": "classpath:missing-templates/kotlin"
             }
           }
         }
@@ -247,14 +267,14 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src",
+            "testOutputDir": "tests",
             "sql": {
               "postgres": {
                 "enable": true,
                 "migrationLocation": "db/migrations/postgres"
               },
-              "templateDirectory": "classpath:custom-templates/python/src/db",
-              "sourceOutputDir": "src",
-              "testOutputDir": "tests"
+              "templateDirectory": "classpath:custom-templates/python/src/db"
             }
           }
         }
@@ -271,24 +291,24 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .parse("""
         {
           "python": {
+            "sourceOutputDir": "src/python",
+            "testOutputDir": "tests/python",
             "sql": {
               "sqlite": {
                 "enable": true,
                 "migrationLocation": "db/migrations/sqlite"
-              },
-              "sourceOutputDir": "src/python",
-              "testOutputDir": "tests/python"
+              }
             }
           },
           "kotlin": {
+            "sourceOutputDir": "src/kotlin",
+            "testOutputDir": "tests/kotlin",
             "sql": {
               "sqlite": {
                 "enable": true,
                 "migrationLocation": "db/migrations/kotlin-sqlite"
               },
-              "templateDirectory": "classpath:custom-templates/kotlin/src/db",
-              "sourceOutputDir": "src/kotlin",
-              "testOutputDir": "tests/kotlin"
+              "templateDirectory": "classpath:custom-templates/kotlin/src/db"
             }
           }
         }
@@ -305,5 +325,27 @@ class SmithplatesSettingsSpec extends munit.FunSuite {
     val node   = Node.parse("{}").expectObjectNode()
     val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(error => error.message.contains("sql") && error.message.contains("http")))
+  }
+
+  test("requires language-level sourceOutputDir and testOutputDir") {
+    val node =
+      Node
+        .parse("""
+        {
+          "python": {
+            "sql": {
+              "sqlite": {
+                "enable": true,
+                "migrationLocation": "db/migrations/sqlite"
+              }
+            }
+          }
+        }
+      """)
+        .expectObjectNode()
+
+    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
+    assert(errors.exists(_.message.contains("requires `testOutputDir`")))
   }
 }

@@ -7,11 +7,6 @@ import software.amazon.smithy.model.node.ObjectNode
 
 import scala.jdk.CollectionConverters.*
 
-final case class SmithplatesLanguageSettings(
-    sql: Option[LanguageTarget],
-    http: Option[HttpLanguageTarget]
-)
-
 final case class SmithplatesSettings(
     sql: Option[SmithplatesSqlSettings],
     http: Option[SmithplatesHttpSettings]
@@ -31,12 +26,23 @@ object SmithplatesSettings {
         }
       }
       .map { entries =>
-        val sqlTargets  = entries.flatMap { case (languageId, languageSettings) =>
-          languageSettings.sql.map(languageId -> _)
-        }.toMap
-        val httpTargets = entries.flatMap { case (languageId, languageSettings) =>
-          languageSettings.http.map(languageId -> _)
-        }.toMap
+        val configs     = entries.toMap
+        val sqlTargets  = configs.collect {
+          case (languageId, config) if config.sql.isDefined =>
+            languageId -> SmithplatesSqlLanguageTarget(
+              target = config.sql.get,
+              sourceOutputDir = config.sourceOutputDir,
+              testOutputDir = config.testOutputDir
+            )
+        }
+        val httpTargets = configs.collect {
+          case (languageId, config) if config.http.isDefined =>
+            languageId -> SmithplatesHttpLanguageTarget(
+              target = config.http.get,
+              sourceOutputDir = config.sourceOutputDir,
+              testOutputDir = config.testOutputDir
+            )
+        }
 
         val sqlSettings  = Option.when(sqlTargets.nonEmpty)(SmithplatesSqlSettings(sqlTargets))
         val httpSettings = Option.when(httpTargets.nonEmpty)(SmithplatesHttpSettings(httpTargets))
@@ -65,55 +71,79 @@ object SmithplatesSettings {
   private def parseLanguage(
       languageId: String,
       node: ObjectNode
-  ): SqlValidated[SmithplatesLanguageSettings] =
-    node.getMembers.asScala.toList
-      .traverse { case (keyNode, memberNode) =>
-        val key = keyNode.expectStringNode().getValue.toLowerCase
-        key match {
-          case "sql"  =>
-            if (memberNode.isObjectNode) {
-              LanguageTarget.parse(languageId, memberNode.expectObjectNode()).map(target => Left(target))
-            } else {
+  ): SqlValidated[SmithplatesLanguageConfiguration] =
+    (
+      PluginConfigMembers.requiredStringMember(
+        node,
+        "sourceOutputDir",
+        s"smithplates.$languageId requires `sourceOutputDir`"
+      ),
+      PluginConfigMembers.requiredStringMember(
+        node,
+        "testOutputDir",
+        s"smithplates.$languageId requires `testOutputDir`"
+      )
+    ).mapN { (sourceOutputDir, testOutputDir) =>
+      (sourceOutputDir, testOutputDir)
+    }.andThen { case (sourceOutputDir, testOutputDir) =>
+      node.getMembers.asScala.toList
+        .traverse { case (keyNode, memberNode) =>
+          val key = keyNode.expectStringNode().getValue.toLowerCase
+          key match {
+            case "sourceoutputdir" | "testoutputdir" =>
+              None.validNel
+            case "sql"                               =>
+              if (memberNode.isObjectNode) {
+                LanguageTarget
+                  .parse(languageId, memberNode.expectObjectNode())
+                  .map(target => Some(Left(target): Either[LanguageTarget, HttpLanguageTarget]))
+              } else {
+                SqlValidated.invalid(
+                  InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
+                )
+              }
+            case "http"                              =>
+              if (memberNode.isObjectNode) {
+                HttpLanguageTarget
+                  .parse(languageId, memberNode.expectObjectNode())
+                  .map(target => Some(Right(target): Either[LanguageTarget, HttpLanguageTarget]))
+              } else {
+                SqlValidated.invalid(
+                  InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
+                )
+              }
+            case other                               =>
               SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
+                InvalidPluginConfig(
+                  s"smithplates.$languageId contains unknown key '$other'; expected `sql`, `http`, " +
+                    "`sourceOutputDir`, or `testOutputDir`"
+                )
               )
-            }
-          case "http" =>
-            if (memberNode.isObjectNode) {
-              HttpLanguageTarget.parse(languageId, memberNode.expectObjectNode()).map(target => Right(target))
-            } else {
-              SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
-              )
-            }
-          case other  =>
+          }
+        }
+        .andThen { entries =>
+          val sqlTargets  = entries.flatten.collect { case Left(target) => target }
+          val httpTargets = entries.flatten.collect { case Right(target) => target }
+          if (sqlTargets.isEmpty && httpTargets.isEmpty) {
             SqlValidated.invalid(
-              InvalidPluginConfig(
-                s"smithplates.$languageId contains unknown key '$other'; expected `sql` or `http`"
-              )
+              InvalidPluginConfig(s"smithplates.$languageId requires at least one of `sql` or `http`")
             )
+          } else if (sqlTargets.size > 1) {
+            SqlValidated.invalid(
+              InvalidPluginConfig(s"smithplates.$languageId contains duplicate `sql` entries")
+            )
+          } else if (httpTargets.size > 1) {
+            SqlValidated.invalid(
+              InvalidPluginConfig(s"smithplates.$languageId contains duplicate `http` entries")
+            )
+          } else {
+            SmithplatesLanguageConfiguration(
+              sourceOutputDir = sourceOutputDir,
+              testOutputDir = testOutputDir,
+              sql = sqlTargets.headOption,
+              http = httpTargets.headOption
+            ).validNel
+          }
         }
-      }
-      .andThen { entries =>
-        val sqlTargets  = entries.collect { case Left(target) => target }
-        val httpTargets = entries.collect { case Right(target) => target }
-        if (sqlTargets.isEmpty && httpTargets.isEmpty) {
-          SqlValidated.invalid(
-            InvalidPluginConfig(s"smithplates.$languageId requires at least one of `sql` or `http`")
-          )
-        } else if (sqlTargets.size > 1) {
-          SqlValidated.invalid(
-            InvalidPluginConfig(s"smithplates.$languageId contains duplicate `sql` entries")
-          )
-        } else if (httpTargets.size > 1) {
-          SqlValidated.invalid(
-            InvalidPluginConfig(s"smithplates.$languageId contains duplicate `http` entries")
-          )
-        } else {
-          SmithplatesLanguageSettings(
-            sql = sqlTargets.headOption,
-            http = httpTargets.headOption
-          ).validNel
-        }
-      }
+    }
 }

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
-from shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     DeliveryState,
     PostalAddress,
     Shipment,

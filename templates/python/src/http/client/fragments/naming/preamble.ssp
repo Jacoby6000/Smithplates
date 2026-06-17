@@ -1,0 +1,104 @@
+<%
+def clientClassName(tag: String): String =
+  tag
+    .split("[_\\-]+")
+    .filter(_.nonEmpty)
+    .map(segment => s"${segment.head.toUpper}${segment.tail}")
+    .mkString + "ApiClient"
+
+def clientModuleName(tag: String): String =
+  s"${tag}_client"
+
+def isPathLabelMember(member: com.jacoby6000.smithplates.http.model.HttpOperationInputMember): Boolean =
+  member.binding.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.PathLabel]
+
+def isHeaderMember(member: com.jacoby6000.smithplates.http.model.HttpOperationInputMember): Boolean =
+  member.binding.isInstanceOf[com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Header]
+
+def clientRequestUrlExpression(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val pathMembers = operation.inputMembers.filter(isPathLabelMember)
+  val interpolatedUri =
+    pathMembers.foldLeft(operation.uri) { case (uri, member) =>
+      uri.replace("{" + member.name + "}", "{" + snakeCase(member.name) + "}")
+    }
+  s"f\"{self._base_url}$interpolatedUri\""
+}
+
+def clientHeaderMembers(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): List[com.jacoby6000.smithplates.http.model.HttpOperationInputMember] =
+  operation.inputMembers.filter(isHeaderMember)
+
+def clientHeaderBindingName(
+    member: com.jacoby6000.smithplates.http.model.HttpOperationInputMember
+): String =
+  member.binding match {
+    case com.jacoby6000.smithplates.http.model.HttpInputMemberBinding.Header(headerName) => headerName
+    case _                                                                               => member.name
+  }
+
+def clientRequestHeadersBlock(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val headerMembers = clientHeaderMembers(operation)
+  if (headerMembers.isEmpty) {
+    "headers: dict[str, str] | None = None"
+  } else {
+    val assignmentLines =
+      headerMembers.map { member =>
+        val headerName = clientHeaderBindingName(member)
+        val paramName  = snakeCase(member.name)
+        if (member.required) {
+          s"""        headers["$headerName"] = str($paramName)"""
+        } else {
+          s"""        if $paramName is not None:
+            |            headers["$headerName"] = str($paramName)""".stripMargin
+        }
+      }
+    ("        headers: dict[str, str] = {}" +: assignmentLines).mkString("\n")
+  }
+}
+
+def clientRequestJsonArgument(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String =
+  operation.bodyBinding match {
+    case com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.None =>
+      ""
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
+      val paramName = snakeCase(binding.inputShape.getName)
+      s", json=$paramName.model_dump(mode=\"json\", exclude_none=True)"
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
+      if (binding.members.size == 1) {
+        val member = binding.members.head
+        if (com.jacoby6000.smithplates.http.HttpSmithyTypeResolver.isStructureTypeName(member.typeName)) {
+          s", json=${snakeCase(member.name)}.model_dump(mode=\"json\", exclude_none=True)"
+        } else {
+          s", json=${snakeCase(member.name)}"
+        }
+      } else {
+        val entries =
+          binding.members.map(member => s"\"${member.name}\": ${snakeCase(member.name)}").mkString(", ")
+        s", json={$entries}"
+      }
+  }
+
+def clientMethodParameters(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] = {
+  val routeParams =
+    operation.inputMembers.filter(isRouteParameter).map { member =>
+      s"${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)}"
+    }
+  val bodyParams = operation.bodyBinding match {
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
+      List(
+        s"${snakeCase(binding.inputShape.getName)}: ${binding.inputShape.getName}"
+      )
+    case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
+      binding.members.map { member =>
+        s"${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)}"
+      }
+    case _ =>
+      Nil
+  }
+  routeParams ++ bodyParams
+}
+
+def clientMethodReturnType(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String =
+  operationProtocolReturnType(operation)
+%>

@@ -52,6 +52,7 @@ object SqlServiceCodegenContextBuilder {
               namespace = service.shapeId.getNamespace,
               version = service.version,
               dialectKey = queryRenderer.map(_.key).getOrElse(SqlServiceCodegenSettings.SharedDialectKey),
+              packageName = settings.packageName,
               queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),

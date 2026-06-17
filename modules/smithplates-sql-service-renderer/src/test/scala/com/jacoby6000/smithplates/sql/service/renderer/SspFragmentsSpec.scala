@@ -1,13 +1,14 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 class SspFragmentsSpec extends munit.FunSuite {
-  private val templateRoot = PythonTemplateNamespaces.Db
+  private val templateRoot = "python/src/db"
 
   private def minimalServiceView: ServiceTemplateView =
     ServiceTemplateView(
       serviceShapeId = "example#WidgetRepository",
       serviceName = "WidgetRepository",
       dialectKey = "sqlite",
+      packageName = "generated.db",
       models = Nil,
       operationResultModels = Nil,
       unions = Nil,
@@ -24,7 +25,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("top-level template render prepends generated file header") {
     val output =
       ScalateSspTemplateEngine.renderClasspathTemplate(
-        s"classpath:${PythonTemplateNamespaces.Db}/service_protocol.ssp",
+        s"classpath:$templateRoot/service_protocol.ssp",
         minimalServiceView,
         Some(templateRoot)
       )
@@ -70,6 +71,7 @@ class SspFragmentsSpec extends munit.FunSuite {
             serviceShapeId = "example#Service",
             serviceName = "ExampleService",
             dialectKey = "postgres",
+            packageName = "generated.db",
             models = Nil,
             operationResultModels = Nil,
             unions = Nil,

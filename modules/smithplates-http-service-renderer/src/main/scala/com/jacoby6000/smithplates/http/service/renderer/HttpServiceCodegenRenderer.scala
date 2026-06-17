@@ -20,7 +20,12 @@ object HttpServiceCodegenRenderer {
     val _ = model
     serviceIr.services
       .traverse { service =>
-        val view                = HttpCodegenTemplateView(service = service, packageName = settings.packageName)
+        val view                =
+          HttpCodegenTemplateView(
+            service = service,
+            packageName = settings.packageName,
+            modelsPackageName = settings.modelsPackageName
+          )
         val configuredArtifacts =
           settings.artifacts
             .traverse { artifactConfig =>
@@ -41,16 +46,20 @@ object HttpServiceCodegenRenderer {
             }
             .map(_.flatten)
         configuredArtifacts.map { artifacts =>
-          val enumNames           = (service.stringEnums.map(_.name) ++ service.intEnums.map(_.name)).toSet
-          val structureArtifacts  =
-            service.structures.map(structure => renderStructureModelArtifact(settings, service, structure, enumNames))
-          val unionArtifacts      =
-            service.unions.map(union => renderUnionModelArtifact(settings, service, union, enumNames))
-          val stringEnumArtifacts =
-            service.stringEnums.map(stringEnum => renderStringEnumModelArtifact(settings, stringEnum))
-          val intEnumArtifacts    =
-            service.intEnums.map(intEnum => renderIntEnumModelArtifact(settings, intEnum))
-          artifacts ++ structureArtifacts ++ unionArtifacts ++ stringEnumArtifacts ++ intEnumArtifacts
+          if (!settings.emitModels) {
+            artifacts
+          } else {
+            val enumNames           = (service.stringEnums.map(_.name) ++ service.intEnums.map(_.name)).toSet
+            val structureArtifacts  =
+              service.structures.map(structure => renderStructureModelArtifact(settings, service, structure, enumNames))
+            val unionArtifacts      =
+              service.unions.map(union => renderUnionModelArtifact(settings, service, union, enumNames))
+            val stringEnumArtifacts =
+              service.stringEnums.map(stringEnum => renderStringEnumModelArtifact(settings, stringEnum))
+            val intEnumArtifacts    =
+              service.intEnums.map(intEnum => renderIntEnumModelArtifact(settings, intEnum))
+            artifacts ++ structureArtifacts ++ unionArtifacts ++ stringEnumArtifacts ++ intEnumArtifacts
+          }
         }
       }
       .map(_.flatten)
@@ -61,10 +70,12 @@ object HttpServiceCodegenRenderer {
       artifactConfig: HttpServiceCodegenArtifactConfig,
       view: HttpCodegenTemplateView
   ): HttpValidated[List[HttpCodegenArtifact]] = {
-    val templatePath = resolveTemplatePath(settings, artifactConfig.template)
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
-    val content      = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
-    val relativePath = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
+    val templateSettings =
+      settings.copy(templateDirectory = resolvedTemplateDirectory(settings, artifactConfig))
+    val templatePath     = resolveTemplatePath(templateSettings, artifactConfig.template)
+    val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
+    val content          = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
+    val relativePath     = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
     List(
       HttpCodegenArtifact(
         relativePath = relativePath,
@@ -86,25 +97,45 @@ object HttpServiceCodegenRenderer {
       service: com.jacoby6000.smithplates.http.model.HttpService,
       packageName: String
   ): String = {
+    val outputPrefix       = artifactOutputPrefix(settings, artifactConfig)
     val renderedOutputFile =
       HttpCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, service, packageName)
+    val relativeOutputFile = s"$outputPrefix/$renderedOutputFile"
     val prefixedOutputFile =
       artifactConfig.kind match {
         case HttpServiceCodegenArtifactKind.Src  =>
           settings.sourceOutputDirectory match {
             case Some(sourceOutputDirectory) =>
-              s"${normalizeDirectory(sourceOutputDirectory)}/$renderedOutputFile"
-            case None                        => renderedOutputFile
+              s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
+            case None                        => relativeOutputFile
           }
         case HttpServiceCodegenArtifactKind.Test =>
           settings.testOutputDirectory match {
             case Some(testOutputDirectory) =>
-              s"${normalizeDirectory(testOutputDirectory)}/$renderedOutputFile"
-            case None                      => renderedOutputFile
+              s"${normalizeDirectory(testOutputDirectory)}/$relativeOutputFile"
+            case None                      => relativeOutputFile
           }
       }
     prefixedOutputFile
   }
+
+  private def resolvedTemplateDirectory(
+      settings: HttpServiceCodegenSettings,
+      artifactConfig: HttpServiceCodegenArtifactConfig
+  ): String =
+    artifactConfig.templateSource match {
+      case HttpCodegenTemplateSource.Service => settings.templateDirectory
+      case HttpCodegenTemplateSource.Models  => settings.resolvedModelTemplateDirectory
+    }
+
+  private def artifactOutputPrefix(
+      settings: HttpServiceCodegenSettings,
+      artifactConfig: HttpServiceCodegenArtifactConfig
+  ): String =
+    artifactConfig.templateSource match {
+      case HttpCodegenTemplateSource.Models  => settings.modelsOutputPrefix
+      case HttpCodegenTemplateSource.Service => settings.outputPrefix
+    }
 
   private def normalizeDirectory(directory: String): String =
     directory.stripSuffix("/")
@@ -115,7 +146,7 @@ object HttpServiceCodegenRenderer {
       structure: HttpStructure,
       enumNames: Set[String]
   ): HttpCodegenArtifact = {
-    val templateRoot    = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val structureNames  = service.structures.map(_.name).toSet
     val unionNames      = service.unions.map(_.name).toSet
     val importTypeNames =
@@ -124,10 +155,12 @@ object HttpServiceCodegenRenderer {
     val needsAny        = HttpModelTypeNames.needsAnyImport(structure.members)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/structure.ssp"),
+        resolveTemplatePath(
+          settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
+          "structure.ssp"),
         Map(
           "structure"           -> structure,
-          "packageName"         -> settings.packageName,
+          "packageName"         -> settings.modelsPackageName,
           "importTypeNames"     -> importTypeNames,
           "needsDatetimeImport" -> needsDatetime,
           "needsAnyImport"      -> needsAny
@@ -149,17 +182,17 @@ object HttpServiceCodegenRenderer {
       union: HttpUnion,
       enumNames: Set[String]
   ): HttpCodegenArtifact = {
-    val templateRoot    = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val structureNames  = service.structures.map(_.name).toSet
     val unionNames      = service.unions.map(_.name).toSet
     val importTypeNames = HttpModelTypeNames.unionReferencedTypeNames(union, structureNames, unionNames, enumNames)
     val needsDatetime   = HttpModelTypeNames.unionNeedsDatetimeImport(union.members)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/union.ssp"),
+        resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "union.ssp"),
         Map(
           "union"               -> union,
-          "packageName"         -> settings.packageName,
+          "packageName"         -> settings.modelsPackageName,
           "importTypeNames"     -> importTypeNames,
           "needsDatetimeImport" -> needsDatetime
         ),
@@ -177,19 +210,21 @@ object HttpServiceCodegenRenderer {
   private def modelArtifactRelativePath(settings: HttpServiceCodegenSettings, moduleName: String): String =
     settings.sourceOutputDirectory match {
       case Some(sourceOutputDirectory) =>
-        s"${normalizeDirectory(sourceOutputDirectory)}/api/models/$moduleName.py"
+        s"${normalizeDirectory(sourceOutputDirectory)}/${settings.modelsOutputPrefix}/$moduleName.py"
       case None                        =>
-        s"api/models/$moduleName.py"
+        s"${settings.modelsOutputPrefix}/$moduleName.py"
     }
 
   private def renderStringEnumModelArtifact(
       settings: HttpServiceCodegenSettings,
       stringEnum: HttpStringEnum
   ): HttpCodegenArtifact = {
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val content      =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/string_enum.ssp"),
+        resolveTemplatePath(
+          settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
+          "string_enum.ssp"),
         Map("stringEnum" -> stringEnum),
         Some(templateRoot)
       )
@@ -204,10 +239,10 @@ object HttpServiceCodegenRenderer {
       settings: HttpServiceCodegenSettings,
       intEnum: HttpIntEnum
   ): HttpCodegenArtifact = {
-    val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+    val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
     val content      =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-        resolveTemplatePath(settings, "models/int_enum.ssp"),
+        resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "int_enum.ssp"),
         Map("intEnum" -> intEnum),
         Some(templateRoot)
       )

@@ -1,0 +1,30 @@
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
+<% val routeGroup = ctx.routeGroup.get %>
+<% val operations = routeGroup.operations %>
+<% val typingSymbols = List("Annotated") ++ (if (operations.flatMap(_.inputMembers).exists(_.typeName == "Document")) List("Any") else Nil) %>
+from typing import ${typingSymbols.mkString(", ")}, Protocol  # noqa: F401
+
+from pydantic import Field  # noqa: F401
+<% if (operations.flatMap(_.inputMembers).exists(m => httpMemberPythonType(m.typeName, m.timestampFormat) == "datetime")) { %>
+from datetime import datetime  # noqa: F401
+<% } %>
+<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
+from ${ctx.modelsPackageName}.${snakeCase(typeName)} import ${typeName}
+<% } %>
+
+class ${protocolClassName(routeGroup.tag)}(Protocol):
+<% for (operation <- operations) { %>
+    async def ${operationMethodName(operation.name)}(
+        self,
+<% for (member <- operation.inputMembers.filter(isRouteParameter)) { %>
+        ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
+<% } %>
+<% documentBodyInputShape(operation).foreach { inputShape => %>
+        ${snakeCase(inputShape.getName)}: ${inputShape.getName},
+<% } %>
+<% for (member <- bodyBindingMembers(operation)) { %>
+        ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)},
+<% } %>
+    ) -> ${operationProtocolReturnType(operation)}:
+        ${operation.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
+<% } %>

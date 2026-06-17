@@ -18,6 +18,25 @@ run_example_harness_linters() {
   "${linter}"
 }
 
+run_openapi_reference_linters() {
+  local example="${ROOT}/example/openapi-reference-python"
+  local generated_root="src/generated/client/petstore_client"
+
+  if [[ ! -d "${example}/${generated_root}" ]]; then
+    echo "error: missing generated OpenAPI client under ${example}/${generated_root}" >&2
+    exit 1
+  fi
+
+  (
+    cd "${example}"
+    uv sync
+    echo "==> example/openapi-reference-python ruff check"
+    uv run --group dev ruff check --config pyproject.toml "${generated_root}"
+    echo "==> example/openapi-reference-python ruff format --check"
+    uv run --group dev ruff format --check --config pyproject.toml "${generated_root}"
+  )
+}
+
 run_all() {
   local found=0
   shopt -s nullglob
@@ -31,14 +50,20 @@ run_all() {
     echo "error: no example-harnesses/*/run-linters.sh scripts found" >&2
     exit 1
   fi
+  run_openapi_reference_linters
 }
 
 mode="${1:-all}"
 case "${mode}" in
   all) run_all ;;
-  python) run_example_harness_linters python ;;
+  python)
+    run_example_harness_linters python
+    ;;
+  openapi-reference-python)
+    run_openapi_reference_linters
+    ;;
   *)
-    echo "usage: $0 [all|python]" >&2
+    echo "usage: $0 [all|python|openapi-reference-python]" >&2
     exit 2
     ;;
 esac

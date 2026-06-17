@@ -13,11 +13,26 @@ resolve_target_dir() {
     return 1
   fi
 
-  if [[ ! -x "${target_dir}/start-server.sh" ]] || [[ ! -x "${target_dir}/run-case.sh" ]]; then
-    echo "error: target '${target_name}' must provide executable start-server.sh and run-case.sh" >&2
+  printf '%s\n' "${target_dir}"
+}
+
+resolve_server_target_dir() {
+  local target_dir
+  target_dir="$(resolve_target_dir "$1")" || return 1
+  if [[ ! -x "${target_dir}/start-server.sh" ]]; then
+    echo "error: server target '$1' must provide executable start-server.sh" >&2
     return 1
   fi
+  printf '%s\n' "${target_dir}"
+}
 
+resolve_client_target_dir() {
+  local target_dir
+  target_dir="$(resolve_target_dir "$1")" || return 1
+  if [[ ! -x "${target_dir}/run-case.sh" ]]; then
+    echo "error: client target '$1' must provide executable run-case.sh" >&2
+    return 1
+  fi
   printf '%s\n' "${target_dir}"
 }
 

@@ -81,6 +81,7 @@ final case class SqlCodegenServiceContext(
     namespace: String,
     version: String,
     dialectKey: String,
+    packageName: String,
     queryRenderer: Option[SqlQueryRenderer],
     bindPlaceholderStyle: SqlBindPlaceholder,
     hasSqlOperations: Boolean,

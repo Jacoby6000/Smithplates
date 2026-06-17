@@ -5,13 +5,13 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from psycopg.rows import class_row
-from psycopg.types.string import TextLoader
-from psycopg_transaction_run import run
-from widget_repository_models import (
+from generated.db.models.widget_repository_models import (
     Widget,
 )
-from widget_repository_protocol import WidgetRepositoryServiceProtocol
+from generated.db.postgres.psycopg_transaction_run import run
+from generated.db.widget_repository_protocol import WidgetRepositoryServiceProtocol
+from psycopg.rows import class_row
+from psycopg.types.string import TextLoader
 
 
 class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol[psycopg.AsyncTransaction]):

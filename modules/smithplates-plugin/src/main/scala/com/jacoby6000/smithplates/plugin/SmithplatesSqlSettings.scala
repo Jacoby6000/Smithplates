@@ -13,17 +13,17 @@ final case class SqlDialectSettings(
 )
 
 final case class SmithplatesSqlSettings(
-    languageTargets: Map[String, LanguageTarget]
+    languageTargets: Map[String, SmithplatesSqlLanguageTarget]
 ) {
   def enabledDialectKeys: List[String] =
     SmithplatesSqlSettings.OrderedDialectKeys.filter { key =>
-      languageTargets.values.exists(_.dialects.get(key).exists(_.enabled))
+      languageTargets.values.exists(_.target.dialects.get(key).exists(_.enabled))
     }
 
   def dialectMigrationDirectories: Map[String, String] =
     enabledDialectKeys.flatMap { dialectKey =>
       languageTargets.values
-        .flatMap(_.dialects.get(dialectKey).flatMap(_.migrationLocation))
+        .flatMap(_.target.dialects.get(dialectKey).flatMap(_.migrationLocation))
         .toList
         .distinct
         .headOption
@@ -31,9 +31,9 @@ final case class SmithplatesSqlSettings(
     }.toMap
 
   def toCodegenSettings(languageId: String): Option[SqlServiceCodegenSettings] =
-    languageTargets.get(languageId).map { target =>
-      val enabledKeys = target.enabledDialectKeys
-      target.toCodegenSettings(
+    languageTargets.get(languageId).map { languageTarget =>
+      val enabledKeys = languageTarget.enabledDialectKeys
+      languageTarget.toCodegenSettings(
         languageId = languageId,
         enabledDialectKeys = enabledKeys,
         queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
@@ -58,8 +58,12 @@ object SmithplatesSqlSettings {
       settings: SmithplatesSqlSettings
   ): SqlValidated[SmithplatesSqlSettings] =
     settings.languageTargets.toList
-      .traverse { case (languageId, target) =>
-        LanguageTargetTemplateValidator.validate(languageId, target, target.enabledDialectKeys)
+      .traverse { case (languageId, languageTarget) =>
+        LanguageTargetTemplateValidator.validate(
+          languageId,
+          languageTarget.target,
+          languageTarget.enabledDialectKeys
+        )
       }
       .map(_ => settings)
 
@@ -69,8 +73,8 @@ object SmithplatesSqlSettings {
     val conflicts =
       OrderedDialectKeys.flatMap { dialectKey =>
         val locations         =
-          settings.languageTargets.toList.flatMap { case (languageId, target) =>
-            target.dialects.get(dialectKey).flatMap {
+          settings.languageTargets.toList.flatMap { case (languageId, languageTarget) =>
+            languageTarget.target.dialects.get(dialectKey).flatMap {
               case SqlDialectSettings(true, Some(location)) => Some(languageId -> location)
               case _                                        => None
             }

@@ -47,13 +47,13 @@ Enable one or more dialects for migration DDL and set output directories for gen
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
-          },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          }
         }
       }
     }
@@ -130,11 +130,11 @@ Configure HTTP generation under the language entry:
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "http": {
           "server": {
             "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "packageName": "generated.api"
           }
         }
@@ -178,7 +178,7 @@ structure HealthCheckOutput {
 
 ### HTTP output
 
-With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers, and Python API models under `src/generated/api/`.
+With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers under `src/generated/http/server/`, and shared Pydantic models under `src/generated/http/models/`.
 
 ## Using SQL and HTTP together
 
@@ -199,7 +199,7 @@ Run `smithy build` from the consumer project. Smithy writes plugin artifacts und
 build/smithy/source/smithplates/
 ```
 
-Copy, sync, or otherwise project those files into your application layout. The [Python petstore example](../../example/python/) demonstrates this with `build-generated.sh`.
+Copy, sync, or otherwise project those files into your application layout. The [Python petstore example](../../example/python/) demonstrates this with [`scripts/run-example-build.sh`](../../scripts/run-example-build.sh).
 
 For a first inspection, run:
 

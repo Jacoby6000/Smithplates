@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
-from pet_repository_models import (
+from generated.db.models.pet_repository_models import (
     Category,
     Owner,
     PetHighlight,
@@ -16,11 +16,11 @@ from pet_repository_models import (
     PostalAddress,
     Store,
 )
-from pet_repository_protocol import (
+from generated.db.pet_repository_protocol import (
     GetPetRecordResult,
     PetRepositoryServiceProtocol,
 )
-from sqlite_transaction_run import run
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class PetRepositoryAiosqliteService(PetRepositoryServiceProtocol[aiosqlite.Connection]):

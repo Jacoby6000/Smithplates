@@ -6,11 +6,11 @@
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src",
+        "testOutputDir": "test",
         "http": {
           "server": {
             "webFramework": "fastapi",
-            "sourceOutputDir": "src",
-            "testOutputDir": "test",
             "packageName": "generated.content_api"
           }
         }

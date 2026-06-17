@@ -31,7 +31,7 @@ Only the plugin is the public coordinate users add manually. Renderer and IR mod
 The Python example stores rendered `smithy-build.json` files. When versions change or templates are updated, regenerate them with:
 
 ```bash
-bash example/python/render-smithy-build.sh
+bash scripts/render-smithy-build.sh all
 ```
 
 The render script filters `sbtn` output to avoid recording thin-client log lines as Maven versions.

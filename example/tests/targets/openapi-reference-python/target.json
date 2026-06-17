@@ -1,0 +1,7 @@
+{
+  "name": "openapi-reference-python",
+  "description": "OpenAPI Generator asyncio client case runner (reference implementation; server is python).",
+  "client": {
+    "runCase": "run-case.sh"
+  }
+}

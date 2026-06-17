@@ -2,7 +2,7 @@
 
 Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case has its own `PYTHONPATH` (`expected/src/db/model`, `expected/src/db`, `expected/src/db/<implementation>`). Linters and pytest both run per case/dialect so generated module names (for example `order_repository_aiosqlite`) never collide across fixtures.
+Each golden case uses `PYTHONPATH=expected/src` with a runtime `expected/src/generated/db` symlink to `../db`, so generated modules import as `generated.db.*` while golden files stay under `expected/src/db/`.
 
 ## Linters (`run-linters.sh`)
 
@@ -27,7 +27,7 @@ Suites run per golden case and dialect so each invocation uses an isolated `PYTH
 Pass custom pytest args (set `PYTHONPATH` yourself when targeting golden trees):
 
 ```bash
-export PYTHONPATH=../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db/model:../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db:../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src/db/sqlite
+export PYTHONPATH=../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/src
 ./language-test-harnesses/python/run-tests.sh -m integration ../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/test/db/sqlite
 ```
 

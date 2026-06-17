@@ -37,6 +37,8 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -45,9 +47,7 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
           "postgres": {
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
-          },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          }
         }
       }
     }
@@ -61,11 +61,11 @@ Unlike SQL, HTTP settings do **not** use per-dialect `enable` flags. Each langua
 
 ```json
 "python": {
+  "sourceOutputDir": "src/generated",
+  "testOutputDir": "tests",
   "http": {
     "server": {
       "webFramework": "fastapi",
-      "sourceOutputDir": "src/generated",
-      "testOutputDir": "tests",
       "packageName": "generated.rendering_pipeline_api"
     }
   }
@@ -80,9 +80,9 @@ Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templ
 |-------|----------|---------|---------|
 | `webFramework` | No | `fastapi` | Python web framework for generated route and protocol templates. Only `fastapi` is supported today; additional frameworks (for example `flask`) will use the same field when added. |
 | `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/http/`](../../templates/python/src/http/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all templates required by `webFramework`. |
-| `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
-| `testOutputDir` | Yes | — | Base directory for generated test artifacts |
 | `packageName` | No | `generated.api` | Python import root for generated modules (for example `generated.rendering_pipeline_api`) |
+
+Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
 
 Example output layout for bundled FastAPI templates (paths relative to `build/smithy/source/smithplates/`; sources under `templates/python/src/http/`):
 
@@ -133,15 +133,16 @@ The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on
 
 #### OpenAPI Generator coordination
 
-Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). Use OpenAPI export when you also need an OpenAPI document or generated clients.
+Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). Smithplates also generates httpx async clients under `smithplates.<language>.http.client`. Use OpenAPI export when you also need an OpenAPI document for external tooling.
 
 The Python petstore reference uses this split:
 
 | Concern | Tool | Output |
 |---------|------|--------|
-| FastAPI server wiring and API models | Smithplates HTTP codegen | `src/generated/api/` |
-| OpenAPI document | Smithy OpenAPI plugin with Smithplates transforms | `openapi/openapi.json` |
-| Python client | OpenAPI Generator `python` client generator | `src/generated/client/petstore_client/` |
+| FastAPI server wiring | Smithplates HTTP server codegen | `src/generated/http/server/` |
+| Shared HTTP Pydantic models | Smithplates HTTP codegen (`modelsPackageName`) | `src/generated/http/models/` |
+| httpx async HTTP client | Smithplates HTTP client codegen | `example/python/src/generated/http/client/` |
+| OpenAPI document + reference Python client | Smithy OpenAPI plugin + OpenAPI Generator | `example/openapi-reference-python/` |
 
 Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL Smithy files in the OpenAPI projection, and keep hand-written adapters responsible for mapping generated API models to generated DB models.
 
@@ -186,8 +187,8 @@ Controls **SQL database service codegen** (database services and operations IR +
 | Field | Required | Default | Purpose |
 |-------|----------|---------|---------|
 | `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/db/`](../../templates/python/src/db/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `fragments/` tree referenced from main templates via `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`. |
-| `sourceOutputDir` | Yes | — | Base directory for generated src artifacts |
-| `testOutputDir` | Yes | — | Base directory for generated test artifacts |
+
+Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
 
 When a language target is configured, bundled `db` service-type templates are selected automatically from enabled dialects. Users do not list individual `artifacts` entries.
 

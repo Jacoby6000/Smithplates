@@ -7,12 +7,12 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from shipment_repository_aiosqlite import ShipmentRepositoryAiosqliteService
-from shipment_repository_models import (
+from generated.db.models.shipment_repository_models import (
     PostalAddress,
     Shipment,
 )
-from sqlite_migrations import SqliteMigrationService
+from generated.db.sqlite.shipment_repository_aiosqlite import ShipmentRepositoryAiosqliteService
+from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

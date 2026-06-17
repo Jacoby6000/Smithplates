@@ -49,11 +49,12 @@ Transform changes should be tested both as direct model transforms and through O
 `smithplates-http-service-renderer` owns:
 
 - HTTP codegen settings;
-- FastAPI artifact selection;
-- generated API model, route, protocol, app, response, and exception views;
-- bundled HTTP template precompilation.
+- FastAPI server artifact selection;
+- httpx client artifact selection;
+- generated API model, route, protocol, client, app, response, and exception views;
+- bundled HTTP server and client template precompilation.
 
-Bundled templates currently target Python/FastAPI.
+Bundled templates currently target Python/FastAPI servers and Python/httpx clients.
 
 Typical changes:
 
@@ -74,7 +75,7 @@ Typical changes:
 
 ## Test coverage
 
-HTTP golden cases live under `templates/python/tests/http-fastapi-*` and are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is covered by the Python petstore example and shared example tests.
+HTTP golden cases live under `templates/python/tests/http-fastapi-*` and `templates/python/tests/http-httpx-*` and are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is covered by the Python petstore example and shared example tests.
 
 ## Change map
 
@@ -82,7 +83,8 @@ HTTP golden cases live under `templates/python/tests/http-fastapi-*` and are exe
 |------|-----------------|---------------------|
 | Add or change an HTTP trait | `smithplates-http-ir` | HTTP IR tests, HTTP golden case |
 | Change OpenAPI compatibility transforms | `smithplates-http-ir` transforms | transform tests, OpenAPI projection example |
-| Change generated FastAPI output | `smithplates-http-service-renderer`, `templates/python/src/http` | HTTP golden case, example HTTP tests |
+| Change generated FastAPI output | `smithplates-http-service-renderer`, `templates/python/src/http/server` | HTTP golden case, example HTTP tests |
+| Change generated httpx client output | `smithplates-http-service-renderer`, `templates/python/src/http/client` | HTTP client golden case |
 | Change HTTP plugin settings | `smithplates-plugin` HTTP settings | plugin settings specs, HTTP golden case |
 | Add another HTTP framework | HTTP renderer artifact config, templates, validators | new golden variant and example coverage |
 

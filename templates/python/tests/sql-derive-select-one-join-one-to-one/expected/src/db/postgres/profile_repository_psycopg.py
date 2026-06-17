@@ -5,14 +5,14 @@ import uuid
 from typing import cast, override
 
 import psycopg
-from profile_repository_models import (
+from generated.db.models.profile_repository_models import (
     Bar,
 )
-from profile_repository_protocol import (
+from generated.db.postgres.psycopg_transaction_run import run
+from generated.db.profile_repository_protocol import (
     GetProfileResult,
     ProfileRepositoryServiceProtocol,
 )
-from psycopg_transaction_run import run
 
 
 class ProfileRepositoryPsycopgService(ProfileRepositoryServiceProtocol[psycopg.AsyncTransaction]):

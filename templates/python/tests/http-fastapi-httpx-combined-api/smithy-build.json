@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "plugins": {
+    "smithplates": {
+      "python": {
+        "sourceOutputDir": "src",
+        "testOutputDir": "test",
+        "http": {
+          "server": {
+            "webFramework": "fastapi",
+            "packageName": "generated.warehouse_api"
+          },
+          "client": {
+            "httpLibrary": "httpx",
+            "packageName": "generated.warehouse_api_client"
+          }
+        }
+      }
+    }
+  }
+}

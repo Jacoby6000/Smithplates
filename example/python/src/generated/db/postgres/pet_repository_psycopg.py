@@ -8,7 +8,7 @@ from decimal import Decimal
 from typing import cast, override
 
 import psycopg
-from pet_repository_models import (
+from generated.db.models.pet_repository_models import (
     Category,
     Owner,
     PetHighlight,
@@ -17,11 +17,11 @@ from pet_repository_models import (
     PostalAddress,
     Store,
 )
-from pet_repository_protocol import (
+from generated.db.pet_repository_protocol import (
     GetPetRecordResult,
     PetRepositoryServiceProtocol,
 )
-from psycopg_transaction_run import run
+from generated.db.postgres.psycopg_transaction_run import run
 
 
 class PetRepositoryPsycopgService(PetRepositoryServiceProtocol[psycopg.AsyncTransaction]):

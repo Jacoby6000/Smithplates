@@ -5,14 +5,14 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from category_repository_models import (
+from generated.db.models.category_repository_models import (
     Store,
 )
-from category_repository_protocol import (
+from generated.db.category_repository_protocol import (
     CategoryRepositoryServiceProtocol,
     GetCategoryRecordResult,
 )
-from sqlite_transaction_run import run
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosqlite.Connection]):

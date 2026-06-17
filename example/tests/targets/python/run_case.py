@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute a language-neutral HTTP test case via the generated OpenAPI client."""
+"""Execute a language-neutral HTTP test case via the generated Smithplates httpx client."""
 
 from __future__ import annotations
 
@@ -8,17 +8,13 @@ import asyncio
 import json
 import re
 import sys
-from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from petstore_client import ApiClient, Configuration
-from petstore_client.api.default_api import DefaultApi
-from petstore_client.exceptions import ApiException
-from petstore_client.models.create_pet_request_content import CreatePetRequestContent
-from petstore_client.models.place_order_request_content import PlaceOrderRequestContent
-from petstore_client.models.update_pet_body import UpdatePetBody
+import httpx
+from generated.http.client.client_response import parse_client_response
+from generated.http.client.operation_bindings import OPERATION_HTTP_BINDINGS
 
 VARIABLE_PATTERN = re.compile(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 SERVER_VARIABLE_PATTERN = re.compile(r"^\$\{server\.([a-zA-Z_][a-zA-Z0-9_]*)\}$")
@@ -133,11 +129,11 @@ def matches_expected(actual: Any, expected: Any, path: str) -> None:
 def model_to_json(value: Any) -> dict[str, Any] | None:
     if value is None:
         return None
-    if hasattr(value, "to_dict"):
-        converted = value.to_dict()
-        if isinstance(converted, dict):
-            return converted
-        raise TypeError(f"{type(value).__name__}.to_dict() returned {type(converted).__name__}, expected dict")
+    if hasattr(value, "model_dump"):
+        dumped = value.model_dump(mode="json", exclude_none=True)
+        if isinstance(dumped, dict):
+            return dumped
+        raise TypeError(f"{type(value).__name__}.model_dump() returned {type(dumped).__name__}, expected dict")
     if isinstance(value, dict):
         return value
     raise TypeError(f"unsupported response payload type: {type(value).__name__}")
@@ -151,96 +147,12 @@ class StepResult:
     response_body: str | None
 
 
-def step_result_from_api_response(response: Any) -> StepResult:
-    headers = dict(response.headers or {})
-    return StepResult(
-        status_code=response.status_code,
-        headers=headers,
-        response_json=model_to_json(response.data),
-        response_body=response.raw_data.decode("utf-8") if response.raw_data else None,
-    )
-
-
-def step_result_from_api_exception(error: ApiException) -> StepResult:
-    headers = dict(error.headers or {})
-    response_json = model_to_json(error.data) if error.data is not None else None
-    return StepResult(
-        status_code=error.status or 0,
-        headers=headers,
-        response_json=response_json,
-        response_body=error.body,
-    )
-
-
-def require_path_param(path_params: dict[str, Any], key: str, operation_id: str) -> str:
-    value = path_params.get(key)
-    if value is None:
-        raise ValueError(f"{operation_id}: missing required path parameter '{key}'")
-    return str(value)
-
-
-def deserialize_body(model_cls: Any, json_body: Any, operation_id: str) -> Any:
-    if json_body is None:
-        raise ValueError(f"{operation_id}: request.json body is required")
-    model = model_cls.from_dict(json_body)
-    if model is None:
-        raise ValueError(f"{operation_id}: request.json did not deserialize into {model_cls.__name__}")
-    return model
-
-
-OperationHandler = Callable[[DefaultApi, dict[str, Any], Any], Awaitable[Any]]
-
-
-async def _health_check(api: DefaultApi, _path_params: dict[str, Any], _json_body: Any) -> Any:
-    return await api.health_check_with_http_info()
-
-
-async def _create_pet(api: DefaultApi, _path_params: dict[str, Any], json_body: Any) -> Any:
-    body = deserialize_body(CreatePetRequestContent, json_body, "CreatePet")
-    return await api.create_pet_with_http_info(create_pet_request_content=body)
-
-
-async def _get_pet(api: DefaultApi, path_params: dict[str, Any], _json_body: Any) -> Any:
-    pet_id = require_path_param(path_params, "petId", "GetPet")
-    return await api.get_pet_with_http_info(pet_id=pet_id)
-
-
-async def _update_pet(api: DefaultApi, path_params: dict[str, Any], json_body: Any) -> Any:
-    pet_id = require_path_param(path_params, "petId", "UpdatePet")
-    body = deserialize_body(UpdatePetBody, json_body, "UpdatePet")
-    return await api.update_pet_with_http_info(pet_id=pet_id, update_pet_body=body)
-
-
-async def _delete_pet(api: DefaultApi, path_params: dict[str, Any], _json_body: Any) -> Any:
-    pet_id = require_path_param(path_params, "petId", "DeletePet")
-    return await api.delete_pet_with_http_info(pet_id=pet_id)
-
-
-async def _get_category(api: DefaultApi, path_params: dict[str, Any], _json_body: Any) -> Any:
-    category_id = require_path_param(path_params, "categoryId", "GetCategory")
-    return await api.get_category_with_http_info(category_id=category_id)
-
-
-async def _place_order(api: DefaultApi, _path_params: dict[str, Any], json_body: Any) -> Any:
-    body = deserialize_body(PlaceOrderRequestContent, json_body, "PlaceOrder")
-    return await api.place_order_with_http_info(place_order_request_content=body)
-
-
-async def _get_order(api: DefaultApi, path_params: dict[str, Any], _json_body: Any) -> Any:
-    order_id = require_path_param(path_params, "orderId", "GetOrder")
-    return await api.get_order_with_http_info(order_id=order_id)
-
-
-OPERATION_HANDLERS: dict[str, OperationHandler] = {
-    "HealthCheck": _health_check,
-    "CreatePet": _create_pet,
-    "GetPet": _get_pet,
-    "UpdatePet": _update_pet,
-    "DeletePet": _delete_pet,
-    "GetCategory": _get_category,
-    "PlaceOrder": _place_order,
-    "GetOrder": _get_order,
-}
+def operation_binding(operation_id: str) -> Any:
+    binding = OPERATION_HTTP_BINDINGS.get(operation_id)
+    if binding is None:
+        known = ", ".join(sorted(key for key in OPERATION_HTTP_BINDINGS if key[0].isupper()))
+        raise ValueError(f"unsupported operationId '{operation_id}' (known: {known})")
+    return binding
 
 
 def header_value(headers: dict[str, str], name: str) -> str | None:
@@ -252,8 +164,6 @@ def header_value(headers: dict[str, str], name: str) -> str | None:
 
 
 async def execute_raw_request(base_url: str, request_spec: dict[str, Any]) -> StepResult:
-    import httpx
-
     method = request_spec["method"]
     path = request_spec["path"]
     url = f"{base_url.rstrip('/')}{path}"
@@ -279,25 +189,43 @@ async def execute_raw_request(base_url: str, request_spec: dict[str, Any]) -> St
     )
 
 
-async def execute_request(api: DefaultApi, request_spec: dict[str, Any]) -> StepResult:
+async def execute_client_request(
+    client: httpx.AsyncClient,
+    base_url: str,
+    request_spec: dict[str, Any],
+) -> StepResult:
     operation_id = request_spec.get("operationId")
     if not operation_id:
         method = request_spec.get("method")
         path = request_spec.get("path")
         raise ValueError(f"request for {method} {path} is missing operationId")
 
-    handler = OPERATION_HANDLERS.get(operation_id)
-    if handler is None:
-        known = ", ".join(sorted(OPERATION_HANDLERS))
-        raise ValueError(f"unsupported operationId '{operation_id}' (known: {known})")
-
-    path_params = request_spec.get("pathParameters") or {}
+    method = request_spec["method"]
+    path = request_spec["path"]
+    url = f"{base_url.rstrip('/')}{path}"
     json_body = request_spec.get("json")
+    response = await client.request(method, url, json=json_body)
+    binding = operation_binding(operation_id)
+
+    response_json: dict[str, Any] | None = None
     try:
-        response = await handler(api, path_params, json_body)
-    except ApiException as error:
-        return step_result_from_api_exception(error)
-    return step_result_from_api_response(response)
+        model = parse_client_response(response, binding)
+        response_json = model_to_json(model)
+    except (httpx.HTTPStatusError, KeyError):
+        if response.content:
+            try:
+                parsed = response.json()
+                if isinstance(parsed, dict):
+                    response_json = parsed
+            except json.JSONDecodeError:
+                response_json = None
+
+    return StepResult(
+        status_code=response.status_code,
+        headers=dict(response.headers),
+        response_json=response_json,
+        response_body=response.text if response.text else None,
+    )
 
 
 def apply_captures(
@@ -353,10 +281,7 @@ async def run_case(case_file: Path, base_url: str, context_file: Path) -> None:
     server_variables = context.get("variables") or {}
     variables = merge_variables(case.get("variables"), server_variables)
 
-    configuration = Configuration(host=base_url.rstrip("/"), ignore_operation_servers=True)
-    api_client = ApiClient(configuration=configuration)
-    api = DefaultApi(api_client)
-    try:
+    async with httpx.AsyncClient(follow_redirects=False) as client:
         for index, step in enumerate(case["steps"], start=1):
             step_id = step.get("id") or f"step-{index}"
             request_spec = substitute_value(step["request"], variables)
@@ -366,21 +291,19 @@ async def run_case(case_file: Path, base_url: str, context_file: Path) -> None:
             if transport == "raw":
                 result = await execute_raw_request(base_url, request_spec)
             elif transport == "client":
-                result = await execute_request(api, request_spec)
+                result = await execute_client_request(client, base_url, request_spec)
             else:
                 raise ValueError(f"{step_id}: unsupported request transport '{transport}'")
 
             apply_captures(step_id, step, result, variables)
             assert_step_expectations(step_id, expect_spec, result, variables)
-    finally:
-        await api_client.close()
 
 
 def main() -> int:
     args = parse_args()
     try:
         asyncio.run(run_case(args.case_file, args.base_url, args.context))
-    except (AssertionError, ValueError, ApiException) as error:
+    except (AssertionError, ValueError, httpx.HTTPError) as error:
         print(f"{args.case_file.name}: {error}", file=sys.stderr)
         return 1
     print(f"{args.case_file.name}: ok")

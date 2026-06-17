@@ -11,6 +11,8 @@
   "plugins": {
     "smithplates": {
       "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -20,15 +22,15 @@
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
           },
-          "sourceOutputDir": "src/generated",
-          "testOutputDir": "tests"
+          "rootNamespace": "generated"
         },
         "http": {
+          "rootNamespace": "generated",
           "server": {
-            "webFramework": "fastapi",
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
-            "packageName": "generated.petstore_api"
+            "webFramework": "fastapi"
+          },
+          "client": {
+            "httpLibrary": "httpx"
           }
         }
       }

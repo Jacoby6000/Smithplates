@@ -18,8 +18,8 @@ collect_python_files() {
   local impl="$2"
   local test_dir="$3"
 
-  if [[ -d "${db_root}/model" ]]; then
-    find "${db_root}/model" -name '*.py' -type f
+  if [[ -d "${db_root}/models" ]]; then
+    find "${db_root}/models" -name '*.py' -type f
   fi
   find "${db_root}" -maxdepth 1 -name '*.py' -type f
   if [[ -d "${db_root}/${impl}" ]]; then
@@ -32,10 +32,16 @@ configure_case_env() {
   local db_root="$1"
   local impl="$2"
   local test_dir="$3"
+  local src_root
+  src_root="$(dirname "${db_root}")"
+  local generated_root="${src_root}/generated"
 
-  export PYTHONPATH="${db_root}/model:${db_root}:${db_root}/${impl}"
+  mkdir -p "${generated_root}"
+  ln -sfn ../db "${generated_root}/db"
+
+  export PYTHONPATH="${src_root}"
   export PYTHONDONTWRITEBYTECODE=1
-  local mypy_path="${PYTHONPATH}"
+  local mypy_path="${src_root}"
   if [[ -d "${test_dir}/stubs" ]]; then
     mypy_path="${test_dir}/stubs:${mypy_path}"
   fi

@@ -1,0 +1,2920 @@
+{
+    "smithy": "2.0",
+    "shapes": {
+        "aws.api#ArnNamespace": {
+            "type": "string",
+            "traits": {
+                "smithy.api#documentation": "A string representing a service's ARN namespace.",
+                "smithy.api#pattern": "^[a-z0-9.\\-]{1,63}$",
+                "smithy.api#private": {}
+            }
+        },
+        "aws.api#CloudFormationName": {
+            "type": "string",
+            "traits": {
+                "smithy.api#documentation": "A string representing a CloudFormation service name.",
+                "smithy.api#pattern": "^[A-Z][A-Za-z0-9]+$",
+                "smithy.api#private": {}
+            }
+        },
+        "aws.api#CloudWatchMetricNamespace": {
+            "type": "string",
+            "traits": {
+                "smithy.api#length": {
+                    "min": 1,
+                    "max": 255
+                },
+                "smithy.api#pattern": "^[^:].*$",
+                "smithy.api#private": {}
+            }
+        },
+        "aws.api#ResourceDelimiter": {
+            "type": "enum",
+            "members": {
+                "FORWARD_SLASH": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "The `/` character.",
+                        "smithy.api#enumValue": "/"
+                    }
+                },
+                "COLON": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "The `:` character.",
+                        "smithy.api#enumValue": ":"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "The possible delimiters for an ARN resource segment.",
+                "smithy.api#private": {}
+            }
+        },
+        "aws.api#TagOperationReference": {
+            "type": "string",
+            "traits": {
+                "smithy.api#documentation": "Points to an operation designated for a tagging APi",
+                "smithy.api#idRef": {
+                    "failWhenMissing": true,
+                    "selector": "resource > operation"
+                }
+            }
+        },
+        "aws.api#TaggableApiConfig": {
+            "type": "structure",
+            "members": {
+                "tagApi": {
+                    "target": "aws.api#TagOperationReference",
+                    "traits": {
+                        "smithy.api#documentation": "The `tagApi` property is a string value that references a non-instance\nor create operation that creates or updates tags on the resource.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "untagApi": {
+                    "target": "aws.api#TagOperationReference",
+                    "traits": {
+                        "smithy.api#documentation": "The `untagApi` property is a string value that references a non-instance\noperation that removes tags on the resource.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "listTagsApi": {
+                    "target": "aws.api#TagOperationReference",
+                    "traits": {
+                        "smithy.api#documentation": "The `listTagsApi` property is a string value that references a non-\ninstance operation which gets the current tags on the resource.",
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Structure representing the configuration of resource specific tagging APIs"
+            }
+        },
+        "aws.api#arn": {
+            "type": "structure",
+            "members": {
+                "template": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Defines the ARN template. The provided string contains URI-template\nstyle label placeholders that contain the name of one of the identifiers\ndefined in the `identifiers` property of the resource. These labels can\nbe substituted at runtime with the actual identifiers of the resource.\nEvery identifier name of the resource MUST have corresponding label of\nthe same name. Note that percent-encoding **is not** performed on these\nplaceholder values; they are to be replaced literally. For relative ARN\ntemplates that have not set `absolute` to `true`, the template string\ncontains only the resource part of the ARN (for example,\n`foo/{MyResourceId}`). Relative ARNs MUST NOT start with \"/\".",
+                        "smithy.api#required": {}
+                    }
+                },
+                "absolute": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Set to true to indicate that the ARN template contains a fully-formed\nARN that does not need to be merged with the service. This type of ARN\nMUST be used when the identifier of a resource is an ARN or is based on\nthe ARN identifier of a parent resource."
+                    }
+                },
+                "noRegion": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Set to true to specify that the ARN does not contain a region. If not\nset, or if set to false, the resolved ARN will contain a placeholder\nfor the region. This can only be set to true if `absolute` is not set\nor is false."
+                    }
+                },
+                "noAccount": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Set to true to specify that the ARN does not contain an account ID. If\nnot set, or if set to false, the resolved ARN will contain a placeholder\nfor the customer account ID. This can only be set to true if absolute\nis not set or is false."
+                    }
+                },
+                "resourceDelimiter": {
+                    "target": "aws.api#ResourceDelimiter",
+                    "traits": {
+                        "smithy.api#documentation": "Defines which character is used to delimit sections of the resource\nsegment of an ARN. This can only be set if absolute is set to true."
+                    }
+                },
+                "reusable": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Set to true to indicate that an ARN may be reused for different\ninstances of a resource."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Specifies an ARN template for the resource.",
+                "smithy.api#externalDocumentation": {
+                    "Reference": "https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html"
+                },
+                "smithy.api#trait": {
+                    "selector": "resource"
+                }
+            }
+        },
+        "aws.api#arnReference": {
+            "type": "structure",
+            "members": {
+                "type": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The AWS CloudFormation resource type contained in the ARN."
+                    }
+                },
+                "resource": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "An absolute shape ID that references the Smithy resource type contained\nin the ARN (e.g., `com.foo#SomeResource`). The targeted resource is not\nrequired to be found in the model, allowing for external shapes to be\nreferenced without needing to take on an additional dependency. If the\nshape is found in the model, it MUST target a resource shape, and the\nresource MUST be found within the closure of the referenced service\nshape."
+                    }
+                },
+                "service": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The Smithy service absolute shape ID that is referenced by the ARN. The\ntargeted service is not required to be found in the model, allowing for\nexternal shapes to be referenced without needing to take on an\nadditional dependency."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Marks a string as containing an ARN.",
+                "smithy.api#trait": {
+                    "selector": "string"
+                }
+            }
+        },
+        "aws.api#awsChunked": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Indicates that the streaming blob supports aws-chunked content encoding.\n\nWhen present, SDKs MUST aws-chunk encode the underlying data stream.\naws-chunked encoding is a series of data blocks followed by a final block\nthat contains metadata about the content transferred (e.g., checksums).",
+                "smithy.api#trait": {
+                    "selector": "blob[trait|streaming]",
+                    "breakingChanges": [
+                        {
+                            "change": "remove"
+                        }
+                    ]
+                }
+            }
+        },
+        "aws.api#clientDiscoveredEndpoint": {
+            "type": "structure",
+            "members": {
+                "required": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "This field denotes whether or not this operation requires the use of a\nspecific endpoint. If this field is false, the standard regional\nendpoint for a service can handle this request. The client will start\nsending requests to the standard regional endpoint while working to\ndiscover a more specific endpoint.",
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Indicates that the target operation should use the client's endpoint\ndiscovery logic.",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "aws.api#clientEndpointDiscovery": {
+            "type": "structure",
+            "members": {
+                "operation": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Indicates the operation that clients should use to discover endpoints\nfor the service.",
+                        "smithy.api#idRef": {
+                            "failWhenMissing": true,
+                            "selector": "operation"
+                        },
+                        "smithy.api#required": {}
+                    }
+                },
+                "error": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Indicates the error that tells clients that the endpoint they are using\nis no longer valid. This error MUST be bound to any operation bound to\nthe service which is marked with the aws.api#clientDiscoveredEndpoint\ntrait.",
+                        "smithy.api#idRef": {
+                            "failWhenMissing": true,
+                            "selector": "structure[trait|error]"
+                        },
+                        "smithy.api#recommended": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Configures endpoint discovery for the service.",
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.api#clientEndpointDiscoveryId": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Indicates members of the operation input which should be use to discover\nendpoints.",
+                "smithy.api#trait": {
+                    "selector": "operation[trait|aws.api#clientDiscoveredEndpoint] -[input]->\nstructure > :test(member[trait|required] > string)"
+                }
+            }
+        },
+        "aws.api#controlPlane": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Defines a service, resource, or operation as operating on the control plane.",
+                "smithy.api#trait": {
+                    "selector": ":test(service, resource, operation)",
+                    "conflicts": [
+                        "aws.api#dataPlane"
+                    ]
+                }
+            }
+        },
+        "aws.api#data": {
+            "type": "enum",
+            "members": {
+                "CUSTOMER_CONTENT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "Customer content means any software (including machine images), data,\ntext, audio, video or images that customers or any customer end user\ntransfers to AWS for processing, storage or hosting by AWS services in\nconnection with the customer’s accounts and any computational results\nthat customers or any customer end user derive from the foregoing\nthrough their use of AWS services.",
+                        "smithy.api#enumValue": "content"
+                    }
+                },
+                "CUSTOMER_ACCOUNT_INFORMATION": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "Account information means information about customers that customers\nprovide to AWS in connection with the creation or administration of\ncustomers’ accounts.",
+                        "smithy.api#enumValue": "account"
+                    }
+                },
+                "SERVICE_ATTRIBUTES": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "Service Attributes means service usage data related to a customer’s\naccount, such as resource identifiers, metadata tags, security and\naccess roles, rules, usage policies, permissions, usage statistics,\nlogging data, and analytics.",
+                        "smithy.api#enumValue": "usage"
+                    }
+                },
+                "TAG_DATA": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "Designates metadata tags applied to AWS resources.",
+                        "smithy.api#enumValue": "tagging"
+                    }
+                },
+                "PERMISSIONS_DATA": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "Designates security and access roles, rules, usage policies, and\npermissions.",
+                        "smithy.api#enumValue": "permissions"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Designates the target as containing data of a known classification level.",
+                "smithy.api#trait": {
+                    "selector": ":test(simpleType, list, structure, union, member)"
+                }
+            }
+        },
+        "aws.api#dataPlane": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Defines a service, resource, or operation as operating on the data plane.",
+                "smithy.api#trait": {
+                    "selector": ":test(service, resource, operation)",
+                    "conflicts": [
+                        "aws.api#controlPlane"
+                    ]
+                }
+            }
+        },
+        "aws.api#service": {
+            "type": "structure",
+            "members": {
+                "sdkId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The `sdkId` property is a required string value that specifies the AWS\nSDK service ID (e.g., \"API Gateway\"). This value is used for generating\nclient names in SDKs and for linking between services.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "arnNamespace": {
+                    "target": "aws.api#ArnNamespace",
+                    "traits": {
+                        "smithy.api#documentation": "The `arnNamespace` property is a string value that defines the ARN service\nnamespace of the service (e.g., \"apigateway\"). This value is used in\nARNs assigned to resources in the service. If not set, this value\ndefaults to the lowercase name of the service shape."
+                    }
+                },
+                "cloudFormationName": {
+                    "target": "aws.api#CloudFormationName",
+                    "traits": {
+                        "smithy.api#documentation": "The `cloudFormationName` property is a string value that specifies the\nAWS CloudFormation service name (e.g., `ApiGateway`). When not set,\nthis value defaults to the name of the service shape. This value is\npart of the CloudFormation resource type name that is automatically\nassigned to resources in the service (e.g., `AWS::<NAME>::resourceName`)."
+                    }
+                },
+                "cloudTrailEventSource": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The `cloudTrailEventSource` property is a string value that defines the\nAWS customer-facing eventSource property contained in CloudTrail event\nrecords emitted by the service. If not specified, this value defaults\nto the `arnNamespace` plus `.amazonaws.com`."
+                    }
+                },
+                "docId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The `docId` property is a string value that defines the identifier\nused to implement linking between service and SDK documentation for\nAWS services. If not specified, this value defaults to the `sdkId` in\nlower case plus the service `version` property, separated by dashes."
+                    }
+                },
+                "endpointPrefix": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The `endpointPrefix` property is a string value that identifies which\nendpoint in a given region should be used to connect to the service.\nFor example, most services in the AWS standard partition have endpoints\nwhich follow the format: `{endpointPrefix}.{region}.amazonaws.com`. A\nservice with the endpoint prefix example in the region us-west-2 might\nhave the endpoint example.us-west-2.amazonaws.com.\n\nThis value is not unique across services and is subject to change.\nTherefore, it MUST NOT be used for client naming or for any other\npurpose that requires a static, unique identifier. sdkId should be used\nfor those purposes. Additionally, this value can be used to attempt to\nresolve endpoints."
+                    }
+                },
+                "cloudWatchNamespace": {
+                    "target": "aws.api#CloudWatchMetricNamespace",
+                    "traits": {
+                        "smithy.api#documentation": "The `cloudWatchNamespace` property is a string value that defines the\nAWS customer-facing namespace of most metrics emitted by the service."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "An AWS service is defined using the `aws.api#service` trait. This trait\nprovides information about the service like the name used to generate AWS\nSDK client classes and the namespace used in ARNs.",
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.api#tagEnabled": {
+            "type": "structure",
+            "members": {
+                "disableDefaultOperations": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "The `disableDefaultOperations` property is a boolean value that specifies\nif the service does not have the standard tag operations supporting all\nresources on the service. Default value is `false`"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Annotates a service as having tagging on 1 or more resources and associated\nAPIs to perform CRUD operations on those tags",
+                "smithy.api#trait": {
+                    "selector": "service"
+                },
+                "smithy.api#unstable": {}
+            }
+        },
+        "aws.api#taggable": {
+            "type": "structure",
+            "members": {
+                "property": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The `property` property is a string value that identifies which\nresource property represents tags for the resource."
+                    }
+                },
+                "apiConfig": {
+                    "target": "aws.api#TaggableApiConfig",
+                    "traits": {
+                        "smithy.api#documentation": "Specifies configuration for resource specific tagging APIs if the\nresource has them."
+                    }
+                },
+                "disableSystemTags": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Flag indicating if the resource is not able to carry AWS system level.\nUsed by service principals. Default value is `false`"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Indicates a resource supports CRUD operations for tags. Either through\nresource lifecycle or instance operations or tagging operations on the\nservice.",
+                "smithy.api#trait": {
+                    "selector": "resource"
+                },
+                "smithy.api#unstable": {}
+            }
+        },
+        "aws.auth#StringList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            },
+            "traits": {
+                "smithy.api#private": {}
+            }
+        },
+        "aws.auth#cognitoUserPools": {
+            "type": "structure",
+            "members": {
+                "providerArns": {
+                    "target": "aws.auth#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "A list of the Amazon Cognito user pool ARNs. Each element is of this\nformat: `arn:aws:cognito-idp:{region}:{account_id}:userpool/{user_pool_id}`.",
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#authDefinition": {},
+                "smithy.api#documentation": "Configures an Amazon Cognito User Pools auth scheme.",
+                "smithy.api#internal": {},
+                "smithy.api#tags": [
+                    "internal"
+                ],
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.auth#cognitoUserPoolsScopes": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            },
+            "traits": {
+                "smithy.api#documentation": "Defines the OAuth scopes required to invoke an operation that uses an\nAmazon Cognito User Pools authorizer.",
+                "smithy.api#internal": {},
+                "smithy.api#length": {
+                    "min": 1
+                },
+                "smithy.api#tags": [
+                    "internal"
+                ],
+                "smithy.api#trait": {
+                    "selector": "service[trait|aws.auth#cognitoUserPools] ~> operation"
+                }
+            }
+        },
+        "aws.auth#sigv4": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The signature version 4 service signing name to use in the credential\nscope when signing requests. This value SHOULD match the `arnNamespace`\nproperty of the `aws.api#service` trait if present and the `name`\nproperty of the `aws.api#sigv4a` trait if present.",
+                        "smithy.api#externalDocumentation": {
+                            "Reference": "https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html"
+                        },
+                        "smithy.api#length": {
+                            "min": 1
+                        },
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#authDefinition": {
+                    "traits": [
+                        "aws.auth#unsignedPayload"
+                    ]
+                },
+                "smithy.api#documentation": "[Signature Version 4](https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html)\nis the process to add authentication information to AWS requests sent by HTTP. For\nsecurity, most requests to AWS must be signed with an access key, which consists\nof an access key ID and secret access key. These two keys are commonly referred to\nas your security credentials.",
+                "smithy.api#externalDocumentation": {
+                    "Reference": "https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html"
+                },
+                "smithy.api#trait": {
+                    "selector": "service",
+                    "breakingChanges": [
+                        {
+                            "change": "remove",
+                            "message": "Removing the existing authentication scheme is not backward compatible and can break existing clients' authentication."
+                        }
+                    ]
+                }
+            }
+        },
+        "aws.auth#sigv4a": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The signature version 4a service signing name to use in the credential\nscope when signing requests. This value SHOULD match the `arnNamespace`\nproperty of the `aws.api#service` trait if present and the `name`\nproperty of the `aws.api#sigv4` trait.",
+                        "smithy.api#externalDocumentation": {
+                            "Reference": "https://docs.aws.amazon.com/general/latest/gr/sigv4-create-string-to-sign.html"
+                        },
+                        "smithy.api#length": {
+                            "min": 1
+                        },
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#authDefinition": {
+                    "traits": [
+                        "aws.auth#unsignedPayload"
+                    ]
+                },
+                "smithy.api#documentation": "Signature Version 4 Asymmetric (SigV4A), an extension of Signature Version 4 (SigV4), is the\nprocess to add authentication information to AWS requests sent by HTTP. SigV4A is nearly\nidentical to SigV4, but also uses public-private keys and asymmetric cryptographic signatures\nfor every request. Most notably, SigV4A supports signatures for multi-region API requests.",
+                "smithy.api#externalDocumentation": {
+                    "Reference": "https://docs.aws.amazon.com/general/latest/gr/signature-version-4.html",
+                    "Examples": "https://github.com/aws-samples/sigv4a-signing-examples"
+                },
+                "smithy.api#trait": {
+                    "selector": "service[trait|aws.auth#sigv4]",
+                    "breakingChanges": [
+                        {
+                            "change": "remove",
+                            "message": "Removing the existing authentication scheme is not backward compatible and can break existing clients' authentication."
+                        }
+                    ]
+                }
+            }
+        },
+        "aws.auth#unsignedPayload": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Indicates that the request payload of a signed request is not to be used\nas part of the signature.",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "aws.customizations#s3UnwrappedXmlOutput": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Indicates the response body from S3 is not wrapped in the\naws-restxml-protocol operation-level XML node. Intended to only be used by\nAWS S3.",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "aws.protocols#ChecksumAlgorithm": {
+            "type": "enum",
+            "members": {
+                "CRC32": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "CRC32",
+                        "smithy.api#enumValue": "CRC32"
+                    }
+                },
+                "CRC32C": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "CRC32C",
+                        "smithy.api#enumValue": "CRC32C"
+                    }
+                },
+                "CRC64NVME": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "CRC64NVME",
+                        "smithy.api#enumValue": "CRC64NVME"
+                    }
+                },
+                "MD5": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "MD5",
+                        "smithy.api#enumValue": "MD5"
+                    }
+                },
+                "SHA1": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "SHA1",
+                        "smithy.api#enumValue": "SHA1"
+                    }
+                },
+                "SHA256": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "SHA256",
+                        "smithy.api#enumValue": "SHA256"
+                    }
+                },
+                "SHA512": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "SHA512",
+                        "smithy.api#enumValue": "SHA512"
+                    }
+                },
+                "XXHASH64": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "XXHASH64",
+                        "smithy.api#enumValue": "XXHASH64"
+                    }
+                },
+                "XXHASH3": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "XXHASH3",
+                        "smithy.api#enumValue": "XXHASH3"
+                    }
+                },
+                "XXHASH128": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#documentation": "XXHASH128",
+                        "smithy.api#enumValue": "XXHASH128"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#private": {}
+            }
+        },
+        "aws.protocols#ChecksumAlgorithmSet": {
+            "type": "list",
+            "member": {
+                "target": "aws.protocols#ChecksumAlgorithm"
+            },
+            "traits": {
+                "smithy.api#length": {
+                    "min": 1
+                },
+                "smithy.api#private": {},
+                "smithy.api#uniqueItems": {}
+            }
+        },
+        "aws.protocols#HttpConfiguration": {
+            "type": "structure",
+            "members": {
+                "http": {
+                    "target": "aws.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "The priority ordered list of supported HTTP protocol versions."
+                    }
+                },
+                "eventStreamHttp": {
+                    "target": "aws.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "The priority ordered list of supported HTTP protocol versions that\nare required when using event streams with the service. If not set,\nthis value defaults to the value of the `http` member. Any entry in\n`eventStreamHttp` MUST also appear in `http`."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Contains HTTP protocol configuration for HTTP-based protocols.",
+                "smithy.api#mixin": {
+                    "localTraits": [
+                        "smithy.api#private"
+                    ]
+                },
+                "smithy.api#private": {}
+            }
+        },
+        "aws.protocols#StringList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            },
+            "traits": {
+                "smithy.api#private": {}
+            }
+        },
+        "aws.protocols#awsJson1_0": {
+            "type": "structure",
+            "mixins": [
+                {
+                    "target": "aws.protocols#HttpConfiguration"
+                }
+            ],
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "An RPC-based protocol that sends JSON payloads. This protocol does not use\nHTTP binding traits.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.protocols#awsJson1_1": {
+            "type": "structure",
+            "mixins": [
+                {
+                    "target": "aws.protocols#HttpConfiguration"
+                }
+            ],
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "An RPC-based protocol that sends JSON payloads. This protocol does not use\nHTTP binding traits.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.protocols#awsQuery": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#deprecated": {},
+                "smithy.api#documentation": "An RPC-based protocol that sends 'POST' requests in the body as\n`x-www-form-urlencoded` strings and responses in XML documents. This\nprotocol does not use HTTP binding traits.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "aws.protocols#awsQueryError",
+                        "smithy.api#xmlAttribute",
+                        "smithy.api#xmlFlattened",
+                        "smithy.api#xmlName",
+                        "smithy.api#xmlNamespace"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service [trait|xmlNamespace]"
+                },
+                "smithy.api#traitValidators": {
+                    "UnsupportedProtocolDocument": {
+                        "selector": "~> member :test(> document)",
+                        "message": "Document types are not supported with awsQuery"
+                    }
+                }
+            }
+        },
+        "aws.protocols#awsQueryCompatible": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Enable backward compatibility when migrating from awsQuery to the awsJson\nprotocol or Smithy RPC v2 CBOR.",
+                "smithy.api#trait": {
+                    "selector": "service :test([trait|aws.protocols#awsJson1_0], [trait|smithy.protocols#rpcv2Cbor])"
+                }
+            }
+        },
+        "aws.protocols#awsQueryError": {
+            "type": "structure",
+            "members": {
+                "code": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "The value used to distinguish this error shape during serialization.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "httpResponseCode": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#documentation": "The HTTP response code used on a response containing this error shape.",
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Provides the value in the 'Code' distinguishing field and HTTP response\ncode for an operation error.",
+                "smithy.api#trait": {
+                    "selector": "structure [trait|error]",
+                    "breakingChanges": [
+                        {
+                            "change": "any"
+                        }
+                    ]
+                }
+            }
+        },
+        "aws.protocols#ec2Query": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#deprecated": {},
+                "smithy.api#documentation": "An RPC-based protocol that sends 'POST' requests in the body as Amazon EC2\nformatted `x-www-form-urlencoded` strings and responses in XML documents.\nThis protocol does not use HTTP binding traits.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "aws.protocols#ec2QueryName",
+                        "smithy.api#xmlAttribute",
+                        "smithy.api#xmlFlattened",
+                        "smithy.api#xmlName",
+                        "smithy.api#xmlNamespace"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service [trait|xmlNamespace]"
+                },
+                "smithy.api#traitValidators": {
+                    "UnsupportedProtocolDocument": {
+                        "selector": "~> member :test(> document)",
+                        "message": "Document types are not supported with ec2Query"
+                    }
+                }
+            }
+        },
+        "aws.protocols#ec2QueryName": {
+            "type": "string",
+            "traits": {
+                "smithy.api#documentation": "Indicates the serialized name of a structure member when that structure is\nserialized for the input of an EC2 operation.",
+                "smithy.api#pattern": "^[a-zA-Z_][a-zA-Z_0-9-]*$",
+                "smithy.api#trait": {
+                    "selector": "structure > member"
+                }
+            }
+        },
+        "aws.protocols#httpChecksum": {
+            "type": "structure",
+            "members": {
+                "requestAlgorithmMember": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Defines a top-level operation input member that is used to configure\nrequest checksum behavior."
+                    }
+                },
+                "requestChecksumRequired": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#documentation": "Indicates an operation requires a checksum in its HTTP request."
+                    }
+                },
+                "requestValidationModeMember": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Defines a top-level operation input member used to opt-in to response\nchecksum validation."
+                    }
+                },
+                "responseAlgorithms": {
+                    "target": "aws.protocols#ChecksumAlgorithmSet",
+                    "traits": {
+                        "smithy.api#documentation": "Defines the checksum algorithms clients should look for when performing\nHTTP response checksum validation."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Indicates that an operation supports checksum validation.",
+                "smithy.api#trait": {
+                    "selector": "operation",
+                    "breakingChanges": [
+                        {
+                            "change": "remove",
+                            "severity": "DANGER",
+                            "message": "Removing the trait removes the ability for clients to do request or response checksums. The service MUST continue to support old clients by supporting the `httpChecksum` trait."
+                        },
+                        {
+                            "change": "remove",
+                            "path": "/requestAlgorithmMember",
+                            "severity": "DANGER",
+                            "message": "`requestAlgorithmMember` was removed, so newly generated clients will no longer be able to pick the request checksum algorithms The service MUST continue to support old clients by supporting `requestAlgorithmMember`."
+                        },
+                        {
+                            "change": "remove",
+                            "path": "/requestValidationModeMember",
+                            "severity": "DANGER",
+                            "message": "`requestValidationModeMember` was removed, so newly generated clients will no longer validate response checksums. The service MUST continue to support old clients by supporting `requestValidationModeMember`."
+                        },
+                        {
+                            "change": "remove",
+                            "path": "/responseAlgorithms/member",
+                            "severity": "DANGER",
+                            "message": "Members of `responseAlgorithms` were removed, so newly generated clients will no longer validate response checksums for the removed algorithms. The service MUST continue to support old clients by supporting removed compression algorithms."
+                        }
+                    ]
+                },
+                "smithy.api#unstable": {}
+            }
+        },
+        "aws.protocols#restJson1": {
+            "type": "structure",
+            "mixins": [
+                {
+                    "target": "aws.protocols#HttpConfiguration"
+                }
+            ],
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "A RESTful protocol that sends JSON in structured payloads.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "smithy.api#http",
+                        "smithy.api#httpError",
+                        "smithy.api#httpHeader",
+                        "smithy.api#httpLabel",
+                        "smithy.api#httpPayload",
+                        "smithy.api#httpPrefixHeaders",
+                        "smithy.api#httpQuery",
+                        "smithy.api#httpQueryParams",
+                        "smithy.api#httpResponseCode",
+                        "aws.protocols#httpChecksum",
+                        "smithy.api#httpChecksumRequired",
+                        "smithy.api#jsonName"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "aws.protocols#restXml": {
+            "type": "structure",
+            "mixins": [
+                {
+                    "target": "aws.protocols#HttpConfiguration"
+                }
+            ],
+            "members": {
+                "noErrorWrapping": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#deprecated": {},
+                        "smithy.api#documentation": "Disables the serialization wrapping of error properties in an 'Error'\nXML element."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#deprecated": {},
+                "smithy.api#documentation": "A RESTful protocol that sends XML in structured payloads.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#timestampFormat",
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "smithy.api#http",
+                        "smithy.api#httpError",
+                        "smithy.api#httpHeader",
+                        "smithy.api#httpLabel",
+                        "smithy.api#httpPayload",
+                        "smithy.api#httpPrefixHeaders",
+                        "smithy.api#httpQuery",
+                        "smithy.api#httpQueryParams",
+                        "smithy.api#httpResponseCode",
+                        "aws.protocols#httpChecksum",
+                        "smithy.api#httpChecksumRequired",
+                        "smithy.api#xmlAttribute",
+                        "smithy.api#xmlFlattened",
+                        "smithy.api#xmlName",
+                        "smithy.api#xmlNamespace"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                },
+                "smithy.api#traitValidators": {
+                    "UnsupportedProtocolDocument": {
+                        "selector": "~> member :test(> document)",
+                        "message": "Document types are not supported with restXml"
+                    }
+                }
+            }
+        },
+        "petstore.api#CategoryDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store": {
+                    "target": "petstore.api#StoreSummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#CategoryNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested category was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#CategorySummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#CreatePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#CreatePetInput"
+            },
+            "output": {
+                "target": "petstore.api#CreatePetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#documentation": "HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations\nin `src/server` that delegate to generated `@sqlService` repositories.",
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/pets",
+                    "code": 201
+                },
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#CreatePetInput": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#CreatePetOutput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "etag": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpHeader": "ETag",
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#DeletePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#DeletePetInput"
+            },
+            "output": {
+                "target": "smithy.api#Unit"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "DELETE",
+                    "uri": "/pets/{petId}",
+                    "code": 204
+                },
+                "smithy.api#idempotent": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#DeletePetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#FulfillmentState": {
+            "type": "union",
+            "members": {
+                "pending": {
+                    "target": "smithy.api#String"
+                },
+                "shipped": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "delivered": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#GetCategory": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetCategoryInput"
+            },
+            "output": {
+                "target": "petstore.api#GetCategoryOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#CategoryNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/categories/{categoryId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "categories"
+                ]
+            }
+        },
+        "petstore.api#GetCategoryInput": {
+            "type": "structure",
+            "members": {
+                "categoryId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetCategoryOutput": {
+            "type": "structure",
+            "members": {
+                "category": {
+                    "target": "petstore.api#CategoryDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetOrder": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetOrderInput"
+            },
+            "output": {
+                "target": "petstore.api#GetOrderOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#OrderNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/orders/{orderId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "orders"
+                ]
+            }
+        },
+        "petstore.api#GetOrderInput": {
+            "type": "structure",
+            "members": {
+                "orderId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetOrderOutput": {
+            "type": "structure",
+            "members": {
+                "order": {
+                    "target": "petstore.api#OrderDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetPet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#GetPetInput"
+            },
+            "output": {
+                "target": "petstore.api#GetPetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#GetPetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#GetPetOutput": {
+            "type": "structure",
+            "members": {
+                "pet": {
+                    "target": "petstore.api#PetDetail",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#HealthCheck": {
+            "type": "operation",
+            "input": {
+                "target": "smithy.api#Unit"
+            },
+            "output": {
+                "target": "petstore.api#HealthCheckOutput"
+            },
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/health"
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "health"
+                ]
+            }
+        },
+        "petstore.api#HealthCheckOutput": {
+            "type": "structure",
+            "members": {
+                "status": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "label": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#OrderStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "priority": {
+                    "target": "petstore.api#OrderPriority",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "updated_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "lines": {
+                    "target": "petstore.api#OrderLineDetailList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderLineDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "order_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "pet_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "quantity": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "unit_price_cents": {
+                    "target": "smithy.api#Long",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "fulfillment": {
+                    "target": "petstore.api#FulfillmentState",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderLineDetailList": {
+            "type": "list",
+            "member": {
+                "target": "petstore.api#OrderLineDetail"
+            }
+        },
+        "petstore.api#OrderNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested order was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#OrderPriority": {
+            "type": "intEnum",
+            "members": {
+                "LOW": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 1
+                    }
+                },
+                "NORMAL": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 2
+                    }
+                },
+                "HIGH": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 3
+                    }
+                }
+            }
+        },
+        "petstore.api#OrderStatus": {
+            "type": "enum",
+            "members": {
+                "PLACED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "placed"
+                    }
+                },
+                "APPROVED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "approved"
+                    }
+                },
+                "DELIVERED": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "delivered"
+                    }
+                }
+            }
+        },
+        "petstore.api#OwnerSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "full_name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "mailing_address": {
+                    "target": "petstore.api#PostalAddress",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#PetAttribute": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "value": {
+                    "target": "petstore.api#PetAttributeValue",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetAttributeList": {
+            "type": "list",
+            "member": {
+                "target": "petstore.api#PetAttribute"
+            }
+        },
+        "petstore.api#PetAttributeValue": {
+            "type": "union",
+            "members": {
+                "color": {
+                    "target": "smithy.api#String"
+                },
+                "weight_kg": {
+                    "target": "smithy.api#Double"
+                },
+                "vaccinated": {
+                    "target": "smithy.api#Boolean"
+                }
+            }
+        },
+        "petstore.api#PetDetail": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "created_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "updated_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#required": {},
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                },
+                "category": {
+                    "target": "petstore.api#CategorySummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "store": {
+                    "target": "petstore.api#StoreSummary",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner": {
+                    "target": "petstore.api#OwnerSummary"
+                },
+                "profile": {
+                    "target": "petstore.api#PetProfileSummary"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Aggregate read model returned by GetPet; mirrors joined repository output."
+            }
+        },
+        "petstore.api#PetLocationRedirect": {
+            "type": "structure",
+            "members": {
+                "url": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpHeader": "Location",
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetNotFound": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Requested pet was not found.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 404
+            }
+        },
+        "petstore.api#PetProfileSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "biography": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "pet_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PetSpecies": {
+            "type": "intEnum",
+            "members": {
+                "DOG": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 1
+                    }
+                },
+                "CAT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 2
+                    }
+                },
+                "BIRD": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 3
+                    }
+                },
+                "REPTILE": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": 4
+                    }
+                }
+            }
+        },
+        "petstore.api#PetStatus": {
+            "type": "enum",
+            "members": {
+                "AVAILABLE": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "available"
+                    }
+                },
+                "PENDING": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "pending"
+                    }
+                },
+                "SOLD": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "sold"
+                    }
+                }
+            }
+        },
+        "petstore.api#Petstore": {
+            "type": "service",
+            "version": "2024-01-01",
+            "operations": [
+                {
+                    "target": "petstore.api#CreatePet"
+                },
+                {
+                    "target": "petstore.api#DeletePet"
+                },
+                {
+                    "target": "petstore.api#GetCategory"
+                },
+                {
+                    "target": "petstore.api#GetOrder"
+                },
+                {
+                    "target": "petstore.api#GetPet"
+                },
+                {
+                    "target": "petstore.api#HealthCheck"
+                },
+                {
+                    "target": "petstore.api#PlaceOrder"
+                },
+                {
+                    "target": "petstore.api#ResolvePetLocation"
+                },
+                {
+                    "target": "petstore.api#UpdatePet"
+                }
+            ],
+            "traits": {
+                "aws.protocols#restJson1": {},
+                "smithy.api#documentation": "HTTP-facing petstore service for smithplates FastAPI codegen and Smithy OpenAPI export."
+            }
+        },
+        "petstore.api#PlaceOrder": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#PlaceOrderInput"
+            },
+            "output": {
+                "target": "petstore.api#PlaceOrderOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "POST",
+                    "uri": "/orders",
+                    "code": 201
+                },
+                "smithy.api#tags": [
+                    "orders"
+                ]
+            }
+        },
+        "petstore.api#PlaceOrderInput": {
+            "type": "structure",
+            "members": {
+                "label": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#OrderStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "priority": {
+                    "target": "petstore.api#OrderPriority",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PlaceOrderOutput": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#PostalAddress": {
+            "type": "structure",
+            "members": {
+                "street": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "city": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "postal_code": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#ResolvePetLocation": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#ResolvePetLocationInput"
+            },
+            "output": {
+                "target": "petstore.api#PetLocationRedirect"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "GET",
+                    "uri": "/pets/{petId}/location",
+                    "code": 302
+                },
+                "smithy.api#readonly": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#ResolvePetLocationInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#StoreSummary": {
+            "type": "structure",
+            "members": {
+                "id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#StringList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            }
+        },
+        "petstore.api#UpdatePet": {
+            "type": "operation",
+            "input": {
+                "target": "petstore.api#UpdatePetInput"
+            },
+            "output": {
+                "target": "petstore.api#UpdatePetOutput"
+            },
+            "errors": [
+                {
+                    "target": "petstore.api#PetNotFound"
+                },
+                {
+                    "target": "petstore.api#ValidationError"
+                }
+            ],
+            "traits": {
+                "smithy.api#http": {
+                    "method": "PUT",
+                    "uri": "/pets/{petId}"
+                },
+                "smithy.api#idempotent": {},
+                "smithy.api#tags": [
+                    "pets"
+                ]
+            }
+        },
+        "petstore.api#UpdatePetBody": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "status": {
+                    "target": "petstore.api#PetStatus",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "species": {
+                    "target": "petstore.api#PetSpecies",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "category_id": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "owner_id": {
+                    "target": "smithy.api#String"
+                },
+                "tag_count": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "tags": {
+                    "target": "petstore.api#StringList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "attributes": {
+                    "target": "petstore.api#PetAttributeList",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "photo": {
+                    "target": "smithy.api#Blob"
+                },
+                "metadata": {
+                    "target": "smithy.api#Document"
+                },
+                "adopted_at": {
+                    "target": "smithy.api#Timestamp",
+                    "traits": {
+                        "smithy.api#timestampFormat": "date-time"
+                    }
+                }
+            }
+        },
+        "petstore.api#UpdatePetInput": {
+            "type": "structure",
+            "members": {
+                "petId": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#httpLabel": {},
+                        "smithy.api#required": {}
+                    }
+                },
+                "body": {
+                    "target": "petstore.api#UpdatePetBody",
+                    "traits": {
+                        "smithy.api#httpPayload": {},
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#UpdatePetOutput": {
+            "type": "structure",
+            "members": {
+                "updated": {
+                    "target": "smithy.api#Boolean",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "petstore.api#ValidationError": {
+            "type": "structure",
+            "members": {
+                "message": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Client supplied invalid input.",
+                "smithy.api#error": "client",
+                "smithy.api#httpError": 400
+            }
+        },
+        "smithplates.codegen.http#HttpSerializationFormat": {
+            "type": "enum",
+            "members": {
+                "JSON": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "json"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "HTTP payload serialization format for @httpService."
+            }
+        },
+        "smithplates.codegen.http#httpProblem": {
+            "type": "structure",
+            "members": {
+                "type": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#default": "about:blank",
+                        "smithy.api#documentation": "URI reference identifying the problem type. Use an HTTPS URL to documentation for this error.\nDefaults to `about:blank`.\n"
+                    }
+                },
+                "title": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Short, human-readable summary of the problem type.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "detail": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Default human-readable explanation when the raised exception does not supply `detail`.\n"
+                    }
+                },
+                "code": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#documentation": "HTTP status code for this error. When set, implies `@httpError` with the same code.\n"
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Marks a service or operation error structure as an [RFC 9457](https://datatracker.ietf.org/doc/html/rfc9457)\nproblem response. Codegen emits exception classes that serialize to `application/problem+json` with\ntrait defaults for `type`, `title`, and optional `detail`. Raise the generated exception with optional\n`detail` and `instance` arguments to describe a specific occurrence (for example trace identifiers).\n\nThe `type` field should be an HTTPS URL pointing to human-readable documentation for this error.\nIt defaults to `about:blank` when unset; smithplates warns when `type` is not an HTTPS URL.\n\nImplies `Content-Type: application/problem+json` via response bindings (equivalent to\n`@httpStaticHeader(name: \"Content-Type\", value: \"application/problem+json\")`).\n\nWhen `code` is set, implies `@httpError` with the same status code (you do not need a separate\n`@httpError` trait). Otherwise the structure must declare `@httpError`.\n",
+                "smithy.api#trait": {
+                    "selector": "structure[trait|error]"
+                }
+            }
+        },
+        "smithplates.codegen.http#httpService": {
+            "type": "structure",
+            "members": {
+                "serialization": {
+                    "target": "smithplates.codegen.http#HttpSerializationFormat",
+                    "traits": {
+                        "smithy.api#default": "json",
+                        "smithy.api#documentation": "Wire serialization format for HTTP payloads. Defaults to JSON."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Marks a Smithy service as an HTTP API service for smithplates HTTP codegen. Operations\nuse standard Smithy @http bindings and @tags for route grouping. Services may declare\nSmithy resources; nested resource inputs may bind identifiers via `structure ... for Resource`.\n",
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "smithplates.codegen.http#httpStaticHeader": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "HTTP header name.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "value": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "HTTP header value.",
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Attaches a fixed HTTP response header to an output structure (for example\n`Content-Type: application/problem+json` on an error payload model).\n",
+                "smithy.api#trait": {
+                    "selector": "structure"
+                }
+            }
+        },
+        "smithplates.codegen.sql#DerivedStruct": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Sentinel input shape for @sqlDeriveInsert, @sqlDeriveUpdate, @sqlDeriveDelete, and @sqlDeriveSelectOne operations. Do not add\nmembers; fields are derived from the target @sqlTable at code-generation time. Use as the\noperation input: `input: DerivedStruct` (with `use smithplates.codegen.sql#DerivedStruct`).\nFor @sqlDeriveUpdate, codegen expands a structure with `whereClause` (primary key members)\nand `updateFields` (non-primary-key, non-database-managed columns). For @sqlDeriveDelete and\n@sqlDeriveSelectOne, codegen expands a structure with `whereClause` (primary key members only).\nSentinel output shape for @sqlDeriveSelect operations. Do not add members; fields are derived\nfrom the operation `@sqlDeriveSelect` projections at code-generation time.\n"
+            }
+        },
+        "smithplates.codegen.sql#SqlAggregateFunction": {
+            "type": "enum",
+            "members": {
+                "SUM": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "sum"
+                    }
+                },
+                "COUNT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "count"
+                    }
+                },
+                "MAX": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "max"
+                    }
+                },
+                "MIN": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "min"
+                    }
+                },
+                "AVG": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "avg"
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#SqlComparisonOperator": {
+            "type": "enum",
+            "members": {
+                "EQ": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "="
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#SqlJoinType": {
+            "type": "enum",
+            "members": {
+                "INNER": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "inner"
+                    }
+                },
+                "LEFT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "left"
+                    }
+                },
+                "RIGHT": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "right"
+                    }
+                },
+                "FULL": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "full"
+                    }
+                },
+                "CROSS": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "cross"
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#SqlSortDirection": {
+            "type": "enum",
+            "members": {
+                "ASC": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "asc"
+                    }
+                },
+                "DESC": {
+                    "target": "smithy.api#Unit",
+                    "traits": {
+                        "smithy.api#enumValue": "desc"
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlAutoUuid": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Maps a table member to a database-generated UUID column. Implies @sqlUuid. Omit from\ninsert inputs. Primary keys with this trait must still appear on @sqlUpdate structures\nto identify the row in the WHERE clause.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlColumn": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Overrides the SQL column name; defaults to the member name.",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlColumnIndex": {
+            "type": "structure",
+            "members": {
+                "index": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Assigns a stable ordering weight for this @sqlTable member relative to other members on\nthe same structure. Members without @sqlColumnIndex keep Smithy definition order among\nthemselves and sort before @sqlCreatedTimestamp / @sqlUpdatedTimestamp columns unless those\ntraits are overridden here. Affects DDL column order, derived query column lists, and\ngenerated row models.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlCreatedTimestamp": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Column value is set by the database on insert; omit from insert/update inputs. Defaults to the second-to-last table column unless @sqlColumnIndex overrides.",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveDelete": {
+            "type": "structure",
+            "members": {
+                "targetTable": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Derives a DELETE statement from an operation and the referenced @sqlTable shape. The\noperation input must be `smithplates.codegen.sql#DerivedStruct`. Codegen expands input to\n`whereClause` (all @sqlPrimaryKey members). The operation output must be `Boolean` (false\nwhen no row was deleted). Generated SQL deletes a single row via the primary key WHERE clause\nand uses RETURNING on primary key columns so callers can detect whether a row was removed.\n",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveInsert": {
+            "type": "structure",
+            "members": {
+                "targetTable": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Derives an INSERT statement from an operation and the referenced @sqlTable shape. The\noperation input must be `smithplates.codegen.sql#DerivedStruct`. Insert columns are every\nnon-auto-generated table member (required and optional). Database-managed members\n(@sqlAutoUuid, @sqlCreatedTimestamp, @sqlUpdatedTimestamp) are omitted. For output, set the\noperation output to the primary key member target type to RETURNING that column when the table\nhas a single primary key. Otherwise set output to a structure whose members name table columns\nto RETURNING. `Unit` output is invalid.\n",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelect": {
+            "type": "structure",
+            "members": {
+                "from": {
+                    "target": "smithplates.codegen.sql#sqlDeriveSelectFrom",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "projections": {
+                    "target": "smithy.api#Document",
+                    "traits": {
+                        "smithy.api#default": "*",
+                        "smithy.api#documentation": "`\"*\"` selects all columns from `from` and joined tables; otherwise an explicit projection list."
+                    }
+                },
+                "joins": {
+                    "target": "smithplates.codegen.sql#sqlSelectJoinList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                },
+                "where": {
+                    "target": "smithplates.codegen.sql#sqlDeriveSelectConditionList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                },
+                "groupBy": {
+                    "target": "smithplates.codegen.sql#sqlDeriveSelectGroupByList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                },
+                "having": {
+                    "target": "smithplates.codegen.sql#sqlDeriveSelectConditionList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                },
+                "orderBy": {
+                    "target": "smithplates.codegen.sql#sqlDeriveSelectOrderByList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                },
+                "offsetInputMember": {
+                    "target": "smithy.api#String"
+                },
+                "limitInputMember": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Derives a SELECT statement from an operation and the referenced @sqlTable shape. The operation\ninput must be a structure whose members supply bind parameters. The operation output must be\n`smithplates.codegen.sql#DerivedStruct`; codegen expands a result structure from `projections`.\nUse `projections: \"*\"` (the default) to select all columns from `from` and joined tables as\nexplicit `{alias}_{member}` result fields; provide an explicit projection list for aggregates,\n`groupBy`, `having`, or `orderBy`. Use `from: { table: ShapeId, alias: String? }` for the\nprimary table and optional query alias.\nJoin entries accept `tableAlias`. Reference input bind parameters as `input.memberName`.\nReference table columns as `alias.columnName` (or bare column/member names when unique).\n`where` conditions may reference table columns on `from`/joins only; `having` may reference\nprojections (including aggregates) or table columns. Join ON clauses are derived from\n@sqlForeignKey relationships between the primary table and each joined table.\n",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectCondition": {
+            "type": "structure",
+            "members": {
+                "left": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "operator": {
+                    "target": "smithplates.codegen.sql#SqlComparisonOperator",
+                    "traits": {
+                        "smithy.api#default": "="
+                    }
+                },
+                "right": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectConditionList": {
+            "type": "list",
+            "member": {
+                "target": "smithplates.codegen.sql#sqlDeriveSelectCondition"
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectFrom": {
+            "type": "structure",
+            "members": {
+                "table": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "alias": {
+                    "target": "smithy.api#String"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectGroupByList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectOne": {
+            "type": "structure",
+            "members": {
+                "targetTable": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "joins": {
+                    "target": "smithplates.codegen.sql#sqlSelectJoinList",
+                    "traits": {
+                        "smithy.api#default": []
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Derives a SELECT-by-primary-key statement from an operation and the referenced @sqlTable shape.\nThe operation input must be `smithplates.codegen.sql#DerivedStruct`. Codegen expands input to\n`whereClause` (all @sqlPrimaryKey members). When `joins` is empty, the operation output must\nbe the target @sqlTable structure shape. When `joins` lists related @sqlTable shapes, the\noperation output must be `smithplates.codegen.sql#DerivedStruct`; codegen expands a result\nstructure with the target table members plus nested joined structures. Join ON clauses are\nderived from @sqlForeignKey relationships. A joined table whose foreign key points at the\ntarget table is modeled as a list member (one-to-many). A target-table foreign key pointing\nat a joined table is modeled as a singular nested member (many-to-one or one-to-one); required\nwhen the foreign key member is required.\nGenerated SQL selects every column from the target table and joined tables and filters by\nprimary key. Each join after the first resolves its ON clause from the nearest prior joined\ntable when no direct @sqlForeignKey exists on the target table.\n",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectOrderBy": {
+            "type": "structure",
+            "members": {
+                "projection": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "direction": {
+                    "target": "smithplates.codegen.sql#SqlSortDirection",
+                    "traits": {
+                        "smithy.api#default": "asc"
+                    }
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectOrderByList": {
+            "type": "list",
+            "member": {
+                "target": "smithplates.codegen.sql#sqlDeriveSelectOrderBy"
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectProjection": {
+            "type": "structure",
+            "members": {
+                "alias": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "source": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#documentation": "Table column reference (`alias.column`) or bare column name when unique across `from` and joins.",
+                        "smithy.api#required": {}
+                    }
+                },
+                "aggregate": {
+                    "target": "smithplates.codegen.sql#SqlAggregateFunction"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveSelectProjectionList": {
+            "type": "list",
+            "member": {
+                "target": "smithplates.codegen.sql#sqlDeriveSelectProjection"
+            }
+        },
+        "smithplates.codegen.sql#sqlDeriveUpdate": {
+            "type": "structure",
+            "members": {
+                "targetTable": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Derives an UPDATE statement from an operation and the referenced @sqlTable shape. The\noperation input must be `smithplates.codegen.sql#DerivedStruct`. Codegen expands input to\n`whereClause` (all @sqlPrimaryKey members) and `updateFields` (non-primary-key members that\nare not database-managed on update). The operation output must be `Boolean` (false when no\nrow matched or was updated). Generated SQL targets a single row via the primary key WHERE\nclause and sets @sqlUpdatedTimestamp columns automatically.\n",
+                "smithy.api#trait": {
+                    "selector": "operation"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlForeignKey": {
+            "type": "structure",
+            "members": {
+                "references": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "column": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "References another @sqlTable structure by shape ID. When `column` is omitted,\nthe referenced table's @sqlPrimaryKey column is used. The relationship is many-to-one from\nthe containing table to the referenced table; use @sqlUniqueIndex on the foreign key member\nfor a one-to-one relationship.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlIndex": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Creates a SQL index on the annotated column.",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlJson": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Stores the member in a JSON column. Use on list, map, structure, or union members (including\nnested structures that are not @sqlTable). Document members map to JSON without this trait. The\ntrait is not applied implicitly.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlPrimaryKey": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Marks a table member as part of the primary key.",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlSelectJoin": {
+            "type": "structure",
+            "members": {
+                "table": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                },
+                "type": {
+                    "target": "smithplates.codegen.sql#SqlJoinType",
+                    "traits": {
+                        "smithy.api#default": "inner"
+                    }
+                },
+                "tableAlias": {
+                    "target": "smithy.api#String"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlSelectJoinList": {
+            "type": "list",
+            "member": {
+                "target": "smithplates.codegen.sql#sqlSelectJoin"
+            }
+        },
+        "smithplates.codegen.sql#sqlService": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Marks a Smithy service as a SQL data-access service. Its operations become methods on a\nsingle generated repository class. Declare operations directly on the service; do not use\n`resources`. The natural 1:1 mapping is table to resource, but resource `properties` cannot\ncarry SQL member traits (`@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlColumn`, and so on) that\nbelong on `@sqlTable` structure members. Workarounds would split annotations away from the\nfields they describe and worsen authoring UX without meaningful benefit.\n\nOperations do not automatically generate or bind SQL; query linkage is defined separately\nin later work.\n",
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlTable": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Maps a structure to a SQL table with the given physical name.",
+                "smithy.api#trait": {
+                    "selector": "structure"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlUniqueIndex": {
+            "type": "structure",
+            "members": {
+                "name": {
+                    "target": "smithy.api#String"
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Creates a unique SQL index on the annotated column. When applied to an @sqlForeignKey member,\nthe relationship from the containing table to the referenced table is modeled as one-to-one\ninstead of many-to-one.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlUpdate": {
+            "type": "structure",
+            "members": {
+                "tableRef": {
+                    "target": "smithy.api#String",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Maps a structure to an UPDATE statement for the referenced @sqlTable shape. All\n@sqlPrimaryKey members must appear. Member names must match table members.\n@sqlCreatedTimestamp and @sqlUpdatedTimestamp table columns must not appear on the update\nstructure (they are database-managed). @sqlAutoUuid primary keys must appear to identify\nthe row.\n",
+                "smithy.api#trait": {
+                    "selector": "structure"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlUpdatedTimestamp": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Column value is set by the database on insert and update; omit from insert/update\ninputs. Generated UPDATE statements set this column automatically. Defaults to the last\ntable column unless @sqlColumnIndex overrides.\n",
+                "smithy.api#trait": {
+                    "selector": "member"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlUuid": {
+            "type": "structure",
+            "members": {},
+            "traits": {
+                "smithy.api#documentation": "Maps a string shape or string member to a SQL UUID column. Apply on the member or on a\nstring type alias (for example `@sqlUuid string Uuid`). String shapes without this trait\nmap to TEXT (or VARCHAR when annotated with @sqlVarchar). UUID is never inferred from\nshape names.\n",
+                "smithy.api#trait": {
+                    "selector": ":test(string, member > string)"
+                }
+            }
+        },
+        "smithplates.codegen.sql#sqlVarchar": {
+            "type": "structure",
+            "members": {
+                "maxLength": {
+                    "target": "smithy.api#Integer",
+                    "traits": {
+                        "smithy.api#required": {}
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Maps a string shape or string member to VARCHAR with the given maximum length. Apply on\nthe member or on a string type alias (for example `@sqlVarchar(maxLength: 16) string Code`).\nString shapes without this trait map to TEXT. On SQLite, VARCHAR length is enforced with\na CHECK constraint.\n",
+                "smithy.api#trait": {
+                    "selector": ":test(string, member > string)"
+                }
+            }
+        },
+        "smithy.openapi#SpecificationExtensionKey": {
+            "type": "string",
+            "traits": {
+                "smithy.api#pattern": "^x-.+$",
+                "smithy.api#private": {}
+            }
+        },
+        "smithy.openapi#specificationExtension": {
+            "type": "structure",
+            "members": {
+                "as": {
+                    "target": "smithy.openapi#SpecificationExtensionKey",
+                    "traits": {
+                        "smithy.api#documentation": "Explicitly name the specification extension.\nIf set must begin with `x-`, otherwise defaults to the target trait shape's ID normalized with hyphens and prepended with `x-`."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "Indicates a trait shape should be converted into an [OpenAPI specification extension](https://spec.openapis.org/oas/v3.1.0#specification-extensions).",
+                "smithy.api#trait": {
+                    "selector": "[trait|trait]",
+                    "breakingChanges": [
+                        {
+                            "change": "presence"
+                        },
+                        {
+                            "path": "/as",
+                            "change": "any"
+                        }
+                    ]
+                }
+            }
+        },
+        "smithy.protocols#StringList": {
+            "type": "list",
+            "member": {
+                "target": "smithy.api#String"
+            },
+            "traits": {
+                "smithy.api#documentation": "A list of String shapes.",
+                "smithy.api#private": {}
+            }
+        },
+        "smithy.protocols#rpcv2Cbor": {
+            "type": "structure",
+            "members": {
+                "http": {
+                    "target": "smithy.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "Priority ordered list of supported HTTP protocol versions."
+                    }
+                },
+                "eventStreamHttp": {
+                    "target": "smithy.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "Priority ordered list of supported HTTP protocol versions\nthat are required when using event streams."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "An RPC-based protocol that serializes CBOR payloads.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "smithy.api#httpError",
+                        "smithy.api#requestCompression"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                },
+                "smithy.api#traitValidators": {
+                    "rpcv2Cbor.NoDocuments": {
+                        "selector": "service ~> member :test(> document)",
+                        "message": "This protocol does not support document types in most possible scenarios.",
+                        "severity": "DANGER"
+                    }
+                }
+            }
+        },
+        "smithy.protocols#rpcv2Json": {
+            "type": "structure",
+            "members": {
+                "http": {
+                    "target": "smithy.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "Priority ordered list of supported HTTP protocol versions."
+                    }
+                },
+                "eventStreamHttp": {
+                    "target": "smithy.protocols#StringList",
+                    "traits": {
+                        "smithy.api#documentation": "Priority ordered list of supported HTTP protocol versions\nthat are required when using event streams."
+                    }
+                }
+            },
+            "traits": {
+                "smithy.api#documentation": "An RPC-based protocol that serializes JSON payloads.",
+                "smithy.api#protocolDefinition": {
+                    "traits": [
+                        "smithy.api#cors",
+                        "smithy.api#endpoint",
+                        "smithy.api#hostLabel",
+                        "smithy.api#httpError",
+                        "smithy.api#requestCompression"
+                    ]
+                },
+                "smithy.api#trait": {
+                    "selector": "service"
+                }
+            }
+        }
+    }
+}

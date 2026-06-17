@@ -6,16 +6,16 @@ import sqlite3
 from typing import cast, override
 
 import aiosqlite
-from order_repository_models import (
+from generated.db.models.order_repository_models import (
     FulfillmentState,
     OrderLine,
     PostalAddress,
 )
-from order_repository_protocol import (
+from generated.db.order_repository_protocol import (
     GetOrderResult,
     OrderRepositoryServiceProtocol,
 )
-from sqlite_transaction_run import run
+from generated.db.sqlite.sqlite_transaction_run import run
 
 
 class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.Connection]):

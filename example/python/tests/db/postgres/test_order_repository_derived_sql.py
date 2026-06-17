@@ -7,11 +7,11 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from order_repository_protocol import (
+from generated.db.order_repository_protocol import (
     GetOrderRecordResult,
 )
-from order_repository_psycopg import OrderRepositoryPsycopgService
-from psycopg_migrations import PsycopgMigrationService
+from generated.db.postgres.order_repository_psycopg import OrderRepositoryPsycopgService
+from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"

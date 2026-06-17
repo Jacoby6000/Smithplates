@@ -7,11 +7,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from category_repository_aiosqlite import CategoryRepositoryAiosqliteService
-from category_repository_protocol import (
+from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
+from generated.db.category_repository_protocol import (
     GetCategoryRecordResult,
 )
-from sqlite_migrations import SqliteMigrationService
+from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

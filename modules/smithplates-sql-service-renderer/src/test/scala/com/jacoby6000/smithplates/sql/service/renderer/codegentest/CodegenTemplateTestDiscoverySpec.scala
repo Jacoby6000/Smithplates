@@ -16,7 +16,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     val cases =
       CodegenTemplateTestDiscovery.discover(repoRoot, "python", Set(sqliteVariant))
 
-    assertEquals(cases.size, 20)
+    assertEquals(cases.size, 22)
     val sqlCases = cases.filterNot(_.name.startsWith("http-"))
     assertEquals(sqlCases.size, 13)
     assert(sqlCases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
@@ -153,16 +153,18 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
     } finally deleteRecursively(tempRoot)
   }
 
-  test("CodegenTemplateTestDiscovery - discovers nested api service-type files for http variants") {
+  test("CodegenTemplateTestDiscovery - discovers nested http server files for http variants") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {
       val testsRoot       = tempRoot.resolve("templates/python/tests")
       val caseDirectory   = testsRoot.resolve("sample-http-case")
       val smithyDirectory = caseDirectory.resolve("smithy")
-      val apiDirectory    = caseDirectory.resolve("expected/src/api")
-      val apisDirectory   = apiDirectory.resolve("apis")
+      val serverDirectory = caseDirectory.resolve("expected/src/http/server")
+      val apisDirectory   = serverDirectory.resolve("apis")
+      val modelsDirectory = caseDirectory.resolve("expected/src/http/models")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(apisDirectory)
+      Files.createDirectories(modelsDirectory)
       Files.writeString(
         smithyDirectory.resolve("smithy-files.smithy"),
         """$version: "2.0"
@@ -170,19 +172,65 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
           |structure Placeholder {}
           |""".stripMargin
       )
-      Files.writeString(apiDirectory.resolve("app_factory.py"), "# app factory\n")
+      Files.writeString(serverDirectory.resolve("app_factory.py"), "# app factory\n")
       Files.writeString(apisDirectory.resolve("v1_widgets_api.py"), "# routes\n")
+      Files.writeString(modelsDirectory.resolve("widget_output.py"), "# model\n")
 
-      val fastapiVariant = CodegenTemplateVariant("python", "api", "fastapi")
-      val testCase       =
+      val serverVariant = CodegenTemplateVariant("python", "http", "server")
+      val testCase      =
         CodegenTemplateTestDiscovery
-          .discover(tempRoot, "python", Set(fastapiVariant))
+          .discover(tempRoot, "python", Set(serverVariant))
           .headOption
           .getOrElse(fail("expected discovered test case"))
 
       assertEquals(
-        testCase.expectedOutputsByVariant.getOrElse(fastapiVariant, Nil).map(_.relativePath).sorted,
-        List("src/api/apis/v1_widgets_api.py", "src/api/app_factory.py")
+        testCase.expectedOutputsByVariant.getOrElse(serverVariant, Nil).map(_.relativePath).sorted,
+        List(
+          "src/http/models/widget_output.py",
+          "src/http/server/apis/v1_widgets_api.py",
+          "src/http/server/app_factory.py"
+        )
+      )
+    } finally deleteRecursively(tempRoot)
+  }
+
+  test("CodegenTemplateTestDiscovery - discovers nested http client files for http variants") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot        = tempRoot.resolve("templates/python/tests")
+      val caseDirectory    = testsRoot.resolve("sample-http-client-case")
+      val smithyDirectory  = caseDirectory.resolve("smithy")
+      val clientDirectory  = caseDirectory.resolve("expected/src/http/client")
+      val clientsDirectory = clientDirectory.resolve("clients")
+      val modelsDirectory  = caseDirectory.resolve("expected/src/http/models")
+      Files.createDirectories(smithyDirectory)
+      Files.createDirectories(clientsDirectory)
+      Files.createDirectories(modelsDirectory)
+      Files.writeString(
+        smithyDirectory.resolve("smithy-files.smithy"),
+        """$version: "2.0"
+          |namespace example
+          |structure Placeholder {}
+          |""".stripMargin
+      )
+      Files.writeString(clientDirectory.resolve("client_registry.py"), "# registry\n")
+      Files.writeString(clientsDirectory.resolve("warehouse_client.py"), "# client\n")
+      Files.writeString(modelsDirectory.resolve("widget_output.py"), "# model\n")
+
+      val clientVariant = CodegenTemplateVariant("python", "http", "client")
+      val testCase      =
+        CodegenTemplateTestDiscovery
+          .discover(tempRoot, "python", Set(clientVariant))
+          .headOption
+          .getOrElse(fail("expected discovered test case"))
+
+      assertEquals(
+        testCase.expectedOutputsByVariant.getOrElse(clientVariant, Nil).map(_.relativePath).sorted,
+        List(
+          "src/http/client/client_registry.py",
+          "src/http/client/clients/warehouse_client.py",
+          "src/http/models/widget_output.py"
+        )
       )
     } finally deleteRecursively(tempRoot)
   }

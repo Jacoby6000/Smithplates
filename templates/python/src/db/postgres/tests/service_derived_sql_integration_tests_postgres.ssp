@@ -13,7 +13,7 @@ from testcontainers.postgres import PostgresContainer
 <% if (test.localImportBlock != "") { %>
 ${test.localImportBlock}
 <% } %>
-from psycopg_migrations import PsycopgMigrationService
+from ${qualifiedModule(ctx.packageName, migrationServiceModulePath(ctx.dialectKey))} import ${migrationServiceClassName(ctx.dialectKey)}
 
 MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
 

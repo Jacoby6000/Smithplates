@@ -40,16 +40,16 @@ templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
   smithy-build.json                # http.python.server config; no maven block in golden fixtures
   expected/
-    src/api/app_factory.py
-    src/api/app_services.py
-    src/api/api_response.py
-    src/api/operation_bindings.py
-    src/api/api_exceptions.py
-    src/api/api_exception_handler.py
-    src/api/models/problem.py
-    src/api/models/<output_shape>.py
-    src/api/apis/<route_group>_api.py
-    src/api/apis/<route_group>_api_base.py
+    src/http/server/app_factory.py
+    src/http/server/app_services.py
+    src/http/server/api_response.py
+    src/http/server/operation_bindings.py
+    src/http/server/api_exceptions.py
+    src/http/server/api_exception_handler.py
+    src/http/models/problem.py
+    src/http/models/<output_shape>.py
+    src/http/server/apis/<route_group>_api.py
+    src/http/server/apis/<route_group>_api_base.py
 ```
 
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
