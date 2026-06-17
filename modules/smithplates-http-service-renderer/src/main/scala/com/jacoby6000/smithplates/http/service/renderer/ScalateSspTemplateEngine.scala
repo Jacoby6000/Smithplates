@@ -14,24 +14,19 @@ object ScalateSspTemplateEngine {
   private val CommonPreambleClasspath           = "python/src/common/fragments/preamble.ssp"
   private val SharedHttpNamingPreambleClasspath = "python/src/http/fragments/naming/preamble.ssp"
 
-  private def contextBindingPreamble(normalizedTemplateRoot: String): String = {
+  private def contextBindingPreamble(normalizedTemplateRoot: String, classLoader: ClassLoader): String = {
     val commonPreamble     =
-      readClasspathTemplate(CommonPreambleClasspath).getOrElse("")
+      readClasspathTemplate(classLoader, CommonPreambleClasspath).getOrElse("")
     val sharedHttpPreamble =
       if (isHttpCodegenTemplateRoot(normalizedTemplateRoot)) {
-        readClasspathTemplate(SharedHttpNamingPreambleClasspath).getOrElse("")
+        readClasspathTemplate(classLoader, SharedHttpNamingPreambleClasspath).getOrElse("")
       } else {
         ""
       }
     val featurePreamble    =
-      readClasspathTemplate(namingPreambleClasspath(normalizedTemplateRoot))
+      readClasspathTemplate(classLoader, s"$normalizedTemplateRoot/fragments/naming/preamble.ssp")
         .getOrElse("")
     commonPreamble + sharedHttpPreamble + featurePreamble
-  }
-
-  private def namingPreambleClasspath(templateRoot: String): String = {
-    val normalized = templateRoot.stripPrefix("/").stripSuffix("/")
-    s"$normalized/fragments/naming/preamble.ssp"
   }
 
   private def isHttpCodegenTemplateRoot(normalizedTemplateRoot: String): Boolean = {
@@ -43,8 +38,8 @@ object ScalateSspTemplateEngine {
     }
   }
 
-  private def readClasspathTemplate(resourcePath: String): Option[String] =
-    readClasspathTemplateOptional(normalizeResourcePath(resourcePath))
+  private def readClasspathTemplate(classLoader: ClassLoader, resourcePath: String): Option[String] =
+    readClasspathTemplateOptional(classLoader, normalizeResourcePath(resourcePath))
 
   def renderClasspathTemplate(
       templateClasspath: String,
@@ -125,13 +120,13 @@ object ScalateSspTemplateEngine {
     created.resourceLoader = new PreambleTemplateRootResourceLoader(
       getClass.getClassLoader,
       normalizedTemplateRoot,
-      contextBindingPreamble(normalizedTemplateRoot)
+      contextBindingPreamble(normalizedTemplateRoot, getClass.getClassLoader)
     )
     created
   }
 
-  private def readClasspathTemplateOptional(resourcePath: String): Option[String] =
-    Option(getClass.getResourceAsStream(normalizeResourcePath(resourcePath))).map { stream =>
+  private def readClasspathTemplateOptional(classLoader: ClassLoader, resourcePath: String): Option[String] =
+    Option(classLoader.getResourceAsStream(resourcePath.stripPrefix("/"))).map { stream =>
       try readStream(stream)
       finally stream.close()
     }

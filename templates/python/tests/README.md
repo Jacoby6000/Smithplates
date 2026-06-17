@@ -30,6 +30,7 @@ HTTP golden cases use `@httpService` services and `smithplates.<language>.http.s
 | `http-fastapi-service-errors-api` | Service-level `@httpError`, `@httpProblem` RFC 9457 exceptions, `Unit` input |
 | `http-fastapi-parameter-order-api` | Canonical route param order (header → path → query), `@timestampFormat` |
 | `http-fastapi-resource-nested-api` | Resources, nested routes, document/member request bodies |
+| `http-fastapi-resource-custom-operations-api` | `resource operations: [...]` on deeply nested resources (redirect + custom read) |
 | `http-fastapi-body-unions-nested-api` | Tagged unions and nested structures in input/output bodies |
 | `http-fastapi-mixed-input-bindings-api` | POST with `@httpHeader`, `@httpLabel`, and `@httpPayload` together |
 | `http-fastapi-operation-errors-api` | Operation-level `@httpError` unions on protocol methods (no exceptions) |

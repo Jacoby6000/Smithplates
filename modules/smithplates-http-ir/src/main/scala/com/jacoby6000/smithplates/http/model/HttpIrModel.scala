@@ -64,6 +64,7 @@ final case class HttpResource(
     listOperation: Option[ShapeId],
     updateOperation: Option[ShapeId],
     deleteOperation: Option[ShapeId],
+    operationIds: List[ShapeId],
     childResourceIds: List[ShapeId]
 )
 
