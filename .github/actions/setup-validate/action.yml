@@ -23,12 +23,15 @@ runs:
       with:
         extra_nix_config: |
           experimental-features = nix-command flakes
+          keep-env-derivations = true
+          keep-outputs = true
 
     - name: Cache Nix store
       if: inputs.backend == 'nix'
       uses: nix-community/cache-nix-action@v6
       with:
         primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+        restore-prefixes-first-match: nix-${{ runner.os }}-
 
     - name: Restore Docker test image cache
       if: inputs.backend == 'docker' || inputs.docker-image-cache == 'true'
