@@ -7,7 +7,7 @@ from typing import cast, override
 import aiosqlite
 from generated.db.category_repository_protocol import CategoryRepositoryServiceProtocol
 from generated.db.models.category_repository_models import (
-    CategoryItem,
+    Category,
 )
 from generated.db.sqlite.sqlite_transaction_run import run
 
@@ -38,32 +38,32 @@ class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosq
         return await run(self._connection, transaction, execute)
 
     @override
-    async def get_category_item(
+    async def get_category(
         self,
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> CategoryItem | None:
-        async def execute(conn: aiosqlite.Connection) -> CategoryItem | None:
+    ) -> Category | None:
+        async def execute(conn: aiosqlite.Connection) -> Category | None:
             cursor = await conn.execute(
-                """SELECT category_items.id, category_items.category_id, category_items.label
-FROM category_items
+                """SELECT categories.id, categories.name, categories.parent_category_id
+FROM categories
 WHERE id = ?;""",
                 (id,),
             )
             row = await cursor.fetchone()
             if row is None:
                 return None
-            return _CategoryItem_row_factory(cursor, row)
+            return _Category_row_factory(cursor, row)
 
         return await run(self._connection, transaction, execute)
 
 
-def _CategoryItem_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> CategoryItem:
-    return CategoryItem(
+def _Category_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Category:
+    return Category(
         id=_read_str(row, 0),
-        category_id=_read_str(row, 1),
-        label=_read_str(row, 2),
+        name=_read_str(row, 1),
+        parent_category_id=_read_str(row, 2),
     )
 
 

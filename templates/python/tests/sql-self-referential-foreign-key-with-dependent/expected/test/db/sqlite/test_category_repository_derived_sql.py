@@ -8,7 +8,7 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.models.category_repository_models import (
-    CategoryItem,
+    Category,
 )
 from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
@@ -38,8 +38,8 @@ async def test_derived_sql_methods_lifecycle(category_repository_service: Catego
     assert isinstance(entity_id, str)
     assert entity_id
 
-    fetched = await category_repository_service.get_category_item(id=entity_id)
-    assert isinstance(fetched, CategoryItem)
+    fetched = await category_repository_service.get_category(id=entity_id)
+    assert isinstance(fetched, Category)
     assert fetched.name == "integration-name"
     assert fetched.parent_category_id == "integration-parent_category_id"
 
@@ -59,8 +59,8 @@ async def test_derived_sql_methods_transaction_commit(
         assert isinstance(entity_id, str)
         assert entity_id
 
-        fetched = await category_repository_service.get_category_item(id=entity_id, transaction=connection)
-        assert isinstance(fetched, CategoryItem)
+        fetched = await category_repository_service.get_category(id=entity_id, transaction=connection)
+        assert isinstance(fetched, Category)
         assert fetched.name == "integration-name"
         assert fetched.parent_category_id == "integration-parent_category_id"
         await connection.commit()
@@ -68,8 +68,8 @@ async def test_derived_sql_methods_transaction_commit(
         await connection.rollback()
         raise
 
-    fetched_after_commit = await category_repository_service.get_category_item(id=entity_id)
-    assert isinstance(fetched_after_commit, CategoryItem)
+    fetched_after_commit = await category_repository_service.get_category(id=entity_id)
+    assert isinstance(fetched_after_commit, Category)
     assert fetched_after_commit.name == "integration-name"
     assert fetched_after_commit.parent_category_id == "integration-parent_category_id"
 
@@ -89,5 +89,5 @@ async def test_derived_sql_methods_transaction_rollback(
     assert entity_id
     await connection.rollback()
 
-    missing = await category_repository_service.get_category_item(id=entity_id)
+    missing = await category_repository_service.get_category(id=entity_id)
     assert missing is None

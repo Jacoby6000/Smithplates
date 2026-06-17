@@ -7,7 +7,7 @@ from typing import cast, override
 import psycopg
 from generated.db.category_repository_protocol import CategoryRepositoryServiceProtocol
 from generated.db.models.category_repository_models import (
-    CategoryItem,
+    Category,
 )
 from generated.db.postgres.psycopg_transaction_run import run
 from psycopg.rows import class_row
@@ -41,17 +41,17 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
         return await run(self._connection, transaction, execute)
 
     @override
-    async def get_category_item(
+    async def get_category(
         self,
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> CategoryItem | None:
-        async def execute() -> CategoryItem | None:
-            async with self._connection.cursor(row_factory=class_row(CategoryItem)) as cur:
+    ) -> Category | None:
+        async def execute() -> Category | None:
+            async with self._connection.cursor(row_factory=class_row(Category)) as cur:
                 await cur.execute(
-                    """SELECT category_items.id, category_items.category_id, category_items.label
-FROM category_items
+                    """SELECT categories.id, categories.name, categories.parent_category_id
+FROM categories
 WHERE id = %s;""",
                     (id,),
                 )

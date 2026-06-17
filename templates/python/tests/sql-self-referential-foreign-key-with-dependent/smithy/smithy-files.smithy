@@ -40,14 +40,14 @@ operation CreateCategory {
     output: String
 }
 
-@sqlDeriveSelectOne(targetTable: "example#CategoryItem")
-operation GetCategoryItem {
+@sqlDeriveSelectOne(targetTable: "example#Category")
+operation GetCategory {
     input: DerivedStruct
-    output: CategoryItem
+    output: Category
 }
 
 @sqlService
 service CategoryRepository {
     version: "1"
-    operations: [CreateCategory, GetCategoryItem]
+    operations: [CreateCategory, GetCategory]
 }

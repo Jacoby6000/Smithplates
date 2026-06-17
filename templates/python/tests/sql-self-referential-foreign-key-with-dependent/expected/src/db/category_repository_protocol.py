@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from generated.db.models.category_repository_models import (
-    CategoryItem,
+    Category,
 )
 
 T = TypeVar("T", contravariant=True)
@@ -18,9 +18,9 @@ class CategoryRepositoryServiceProtocol(Protocol[T]):
         *,
         transaction: T | None = None,
     ) -> str: ...
-    async def get_category_item(
+    async def get_category(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> CategoryItem | None: ...
+    ) -> Category | None: ...
