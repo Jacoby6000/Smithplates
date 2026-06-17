@@ -23,8 +23,8 @@ class TreeNodeRepositoryPsycopgService(TreeNodeRepositoryServiceProtocol[psycopg
     @override
     async def create_tree_node(
         self,
-        label: str,
-        parent_node_id: str,
+        label: str | None,
+        parent_node_id: str | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:

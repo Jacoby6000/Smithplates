@@ -23,7 +23,7 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
     @override
     async def create_order(
         self,
-        label: str,
+        label: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:

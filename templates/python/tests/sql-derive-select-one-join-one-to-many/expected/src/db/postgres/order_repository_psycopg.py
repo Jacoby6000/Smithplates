@@ -23,7 +23,7 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
     @override
     async def create_order(
         self,
-        label: str,
+        label: str | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:

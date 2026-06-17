@@ -12,8 +12,8 @@ from generated.db.models.widget_repository_models import (
 @dataclass
 class GetWidgetResult:
     id: str
-    title: str
-    category_id: str
+    title: str | None
+    category_id: str | None
     category: Category | None
 
 

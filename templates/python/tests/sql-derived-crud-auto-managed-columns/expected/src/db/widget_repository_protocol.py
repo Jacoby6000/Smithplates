@@ -13,8 +13,8 @@ T = TypeVar("T", contravariant=True)
 class WidgetRepositoryServiceProtocol(Protocol[T]):
     async def create_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         *,
         transaction: T | None = None,
     ) -> str: ...
@@ -26,8 +26,8 @@ class WidgetRepositoryServiceProtocol(Protocol[T]):
     ) -> Widget | None: ...
     async def update_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         id: str,
         *,
         transaction: T | None = None,

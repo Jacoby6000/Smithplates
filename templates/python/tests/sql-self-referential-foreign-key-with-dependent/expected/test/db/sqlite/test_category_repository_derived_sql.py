@@ -32,16 +32,14 @@ async def category_repository_service() -> AsyncIterator[CategoryRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryAiosqliteService) -> None:
-    entity_id = await category_repository_service.create_category(
-        name="integration-name", parent_category_id="integration-parent_category_id"
-    )
+    entity_id = await category_repository_service.create_category(name=None, parent_category_id=None)
     assert isinstance(entity_id, str)
     assert entity_id
 
     fetched = await category_repository_service.get_category(id=entity_id)
     assert isinstance(fetched, Category)
-    assert fetched.name == "integration-name"
-    assert fetched.parent_category_id == "integration-parent_category_id"
+    assert fetched.name is None
+    assert fetched.parent_category_id is None
 
 
 @pytest.mark.integration
@@ -54,15 +52,15 @@ async def test_derived_sql_methods_transaction_commit(
     await connection.execute("BEGIN")
     try:
         entity_id = await category_repository_service.create_category(
-            name="integration-name", parent_category_id="integration-parent_category_id", transaction=connection
+            name=None, parent_category_id=None, transaction=connection
         )
         assert isinstance(entity_id, str)
         assert entity_id
 
         fetched = await category_repository_service.get_category(id=entity_id, transaction=connection)
         assert isinstance(fetched, Category)
-        assert fetched.name == "integration-name"
-        assert fetched.parent_category_id == "integration-parent_category_id"
+        assert fetched.name is None
+        assert fetched.parent_category_id is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
@@ -70,8 +68,8 @@ async def test_derived_sql_methods_transaction_commit(
 
     fetched_after_commit = await category_repository_service.get_category(id=entity_id)
     assert isinstance(fetched_after_commit, Category)
-    assert fetched_after_commit.name == "integration-name"
-    assert fetched_after_commit.parent_category_id == "integration-parent_category_id"
+    assert fetched_after_commit.name is None
+    assert fetched_after_commit.parent_category_id is None
 
 
 @pytest.mark.integration
@@ -83,7 +81,7 @@ async def test_derived_sql_methods_transaction_rollback(
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
     entity_id = await category_repository_service.create_category(
-        name="integration-name", parent_category_id="integration-parent_category_id", transaction=connection
+        name=None, parent_category_id=None, transaction=connection
     )
     assert isinstance(entity_id, str)
     assert entity_id

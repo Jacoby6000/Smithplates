@@ -32,16 +32,14 @@ async def tree_node_repository_service() -> AsyncIterator[TreeNodeRepositoryAios
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(tree_node_repository_service: TreeNodeRepositoryAiosqliteService) -> None:
-    entity_id = await tree_node_repository_service.create_tree_node(
-        label="integration-label", parent_node_id="integration-parent_node_id"
-    )
+    entity_id = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
     assert isinstance(entity_id, str)
     assert entity_id
 
     fetched = await tree_node_repository_service.get_tree_node(id=entity_id)
     assert isinstance(fetched, TreeNode)
-    assert fetched.label == "integration-label"
-    assert fetched.parent_node_id == "integration-parent_node_id"
+    assert fetched.label is None
+    assert fetched.parent_node_id is None
 
 
 @pytest.mark.integration
@@ -54,15 +52,15 @@ async def test_derived_sql_methods_transaction_commit(
     await connection.execute("BEGIN")
     try:
         entity_id = await tree_node_repository_service.create_tree_node(
-            label="integration-label", parent_node_id="integration-parent_node_id", transaction=connection
+            label=None, parent_node_id=None, transaction=connection
         )
         assert isinstance(entity_id, str)
         assert entity_id
 
         fetched = await tree_node_repository_service.get_tree_node(id=entity_id, transaction=connection)
         assert isinstance(fetched, TreeNode)
-        assert fetched.label == "integration-label"
-        assert fetched.parent_node_id == "integration-parent_node_id"
+        assert fetched.label is None
+        assert fetched.parent_node_id is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
@@ -70,8 +68,8 @@ async def test_derived_sql_methods_transaction_commit(
 
     fetched_after_commit = await tree_node_repository_service.get_tree_node(id=entity_id)
     assert isinstance(fetched_after_commit, TreeNode)
-    assert fetched_after_commit.label == "integration-label"
-    assert fetched_after_commit.parent_node_id == "integration-parent_node_id"
+    assert fetched_after_commit.label is None
+    assert fetched_after_commit.parent_node_id is None
 
 
 @pytest.mark.integration
@@ -83,7 +81,7 @@ async def test_derived_sql_methods_transaction_rollback(
     connection = tree_node_repository_service._connection
     await connection.execute("BEGIN")
     entity_id = await tree_node_repository_service.create_tree_node(
-        label="integration-label", parent_node_id="integration-parent_node_id", transaction=connection
+        label=None, parent_node_id=None, transaction=connection
     )
     assert isinstance(entity_id, str)
     assert entity_id

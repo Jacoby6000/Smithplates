@@ -17,7 +17,7 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
     @override
     async def create_bookmark(
         self,
-        title: str,
+        title: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:

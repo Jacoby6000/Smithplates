@@ -23,8 +23,8 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
     @override
     async def create_category(
         self,
-        name: str,
-        parent_category_id: str,
+        name: str | None,
+        parent_category_id: str | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:

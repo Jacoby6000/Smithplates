@@ -13,7 +13,7 @@ from generated.db.models.department_repository_models import (
 @dataclass
 class GetDepartmentResult:
     id: str
-    name: str
+    name: str | None
     categories: list[Category]
     widgets: list[Widget]
 

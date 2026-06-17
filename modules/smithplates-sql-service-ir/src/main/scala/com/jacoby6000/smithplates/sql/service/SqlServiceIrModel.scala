@@ -106,6 +106,7 @@ final case class SqlQueryColumn(
     memberName: String,
     columnName: String,
     typeName: String,
+    nullable: Boolean = false,
     jsonTypeName: Option[String] = None,
     isStructure: Boolean = false,
     structureShapeId: Option[ShapeId] = None

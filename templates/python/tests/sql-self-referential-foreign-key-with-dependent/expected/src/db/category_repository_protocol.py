@@ -13,8 +13,8 @@ T = TypeVar("T", contravariant=True)
 class CategoryRepositoryServiceProtocol(Protocol[T]):
     async def create_category(
         self,
-        name: str,
-        parent_category_id: str,
+        name: str | None,
+        parent_category_id: str | None,
         *,
         transaction: T | None = None,
     ) -> str: ...

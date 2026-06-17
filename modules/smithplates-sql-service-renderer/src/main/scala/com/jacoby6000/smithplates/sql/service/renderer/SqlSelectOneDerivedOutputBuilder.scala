@@ -24,7 +24,7 @@ object SqlSelectOneDerivedOutputBuilder {
         SqlStructureMember(
           name = column.memberName,
           typeName = column.typeName,
-          optional = false,
+          optional = column.nullable,
           isStructure = column.isStructure,
           structureShapeId = column.structureShapeId
         )

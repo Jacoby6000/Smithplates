@@ -12,7 +12,7 @@ from generated.db.models.order_repository_models import (
 @dataclass
 class GetOrderResult:
     id: str
-    label: str
+    label: str | None
     order_lines: list[OrderLine]
 
 
@@ -22,7 +22,7 @@ T = TypeVar("T", contravariant=True)
 class OrderRepositoryServiceProtocol(Protocol[T]):
     async def create_order(
         self,
-        label: str,
+        label: str | None,
         *,
         transaction: T | None = None,
     ) -> str: ...

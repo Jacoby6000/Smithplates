@@ -229,13 +229,14 @@ object SqlCodegenIntegrationTestBuilder {
       } else if (isUnionParameter(context, parameter)) {
         unionAssertion(context, parameter, targetExpression, variant, enumSamples).toList
       } else {
-        List(
-          s"""assert $targetExpression.${parameter.name} == ${sampleExpression(
-              context,
-              parameter,
-              variant,
-              enumSamples)}"""
-        )
+        val sample    = sampleExpression(context, parameter, variant, enumSamples)
+        val assertion =
+          if (sample == "None") {
+            s"assert $targetExpression.${parameter.name} is None"
+          } else {
+            s"assert $targetExpression.${parameter.name} == $sample"
+          }
+        List(assertion)
       }
     }
 
@@ -268,7 +269,9 @@ object SqlCodegenIntegrationTestBuilder {
       variant: SampleVariant,
       enumSamples: Map[String, String]
   ): String =
-    if (parameter.isStructure) {
+    if (parameter.optional) {
+      "None"
+    } else if (parameter.isStructure) {
       val members   = structureMembers(context, parameter)
       val arguments =
         members

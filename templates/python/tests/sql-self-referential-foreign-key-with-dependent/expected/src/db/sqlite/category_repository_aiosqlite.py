@@ -20,8 +20,8 @@ class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosq
     @override
     async def create_category(
         self,
-        name: str,
-        parent_category_id: str,
+        name: str | None,
+        parent_category_id: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:

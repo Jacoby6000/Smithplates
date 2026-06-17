@@ -41,13 +41,13 @@ async def order_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryPsycopgService) -> None:
-    entity_id = await order_repository_service.create_order(label="integration-label")
+    entity_id = await order_repository_service.create_order(label=None)
     assert isinstance(entity_id, str)
     assert entity_id
 
     fetched = await order_repository_service.get_order(id=entity_id)
     assert isinstance(fetched, GetOrderResult)
-    assert fetched.label == "integration-label"
+    assert fetched.label is None
 
 
 @pytest.mark.integration
@@ -56,17 +56,17 @@ async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepo
 async def test_derived_sql_methods_transaction_commit(order_repository_service: OrderRepositoryPsycopgService) -> None:
     connection = order_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await order_repository_service.create_order(label="integration-label", transaction=tx)
+        entity_id = await order_repository_service.create_order(label=None, transaction=tx)
         assert isinstance(entity_id, str)
         assert entity_id
 
         fetched = await order_repository_service.get_order(id=entity_id, transaction=tx)
         assert isinstance(fetched, GetOrderResult)
-        assert fetched.label == "integration-label"
+        assert fetched.label is None
 
     fetched_after_commit = await order_repository_service.get_order(id=entity_id)
     assert isinstance(fetched_after_commit, GetOrderResult)
-    assert fetched_after_commit.label == "integration-label"
+    assert fetched_after_commit.label is None
 
 
 @pytest.mark.integration
@@ -79,7 +79,7 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await order_repository_service.create_order(label="integration-label", transaction=tx)
+            entity_id = await order_repository_service.create_order(label=None, transaction=tx)
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

@@ -385,6 +385,7 @@ private[service] object SqlDeriveSelectOneExtractor {
   ): SqlQueryColumn = {
     val member       = tableStructure.getMember(tableMember.memberName).get()
     val memberType   = SqlIrTypeNameResolver.resolveMember(model, tableMember.memberName, member)
+    val tableColumn  = table.columns.find(_.name == tableMember.columnName)
     val jsonTypeName =
       table.columns
         .find(_.name == tableMember.columnName)
@@ -393,6 +394,7 @@ private[service] object SqlDeriveSelectOneExtractor {
       memberName = tableMember.memberName,
       columnName = tableMember.columnName,
       typeName = memberType.typeName,
+      nullable = tableColumn.exists(_.nullable),
       jsonTypeName = jsonTypeName,
       isStructure = memberType.isStructure,
       structureShapeId = memberType.structureShapeId

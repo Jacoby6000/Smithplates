@@ -23,8 +23,8 @@ class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol[psycopg.Asy
     @override
     async def create_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:
@@ -62,8 +62,8 @@ WHERE id = %s;""",
     @override
     async def update_widget(
         self,
-        foo: str,
-        bar: int,
+        foo: str | None,
+        bar: int | None,
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,

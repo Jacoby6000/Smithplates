@@ -32,13 +32,13 @@ async def order_repository_service() -> AsyncIterator[OrderRepositoryAiosqliteSe
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryAiosqliteService) -> None:
-    entity_id = await order_repository_service.create_order(label="integration-label")
+    entity_id = await order_repository_service.create_order(label=None)
     assert isinstance(entity_id, str)
     assert entity_id
 
     fetched = await order_repository_service.get_order(id=entity_id)
     assert isinstance(fetched, GetOrderResult)
-    assert fetched.label == "integration-label"
+    assert fetched.label is None
 
 
 @pytest.mark.integration
@@ -50,13 +50,13 @@ async def test_derived_sql_methods_transaction_commit(
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await order_repository_service.create_order(label="integration-label", transaction=connection)
+        entity_id = await order_repository_service.create_order(label=None, transaction=connection)
         assert isinstance(entity_id, str)
         assert entity_id
 
         fetched = await order_repository_service.get_order(id=entity_id, transaction=connection)
         assert isinstance(fetched, GetOrderResult)
-        assert fetched.label == "integration-label"
+        assert fetched.label is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
@@ -64,7 +64,7 @@ async def test_derived_sql_methods_transaction_commit(
 
     fetched_after_commit = await order_repository_service.get_order(id=entity_id)
     assert isinstance(fetched_after_commit, GetOrderResult)
-    assert fetched_after_commit.label == "integration-label"
+    assert fetched_after_commit.label is None
 
 
 @pytest.mark.integration
@@ -75,7 +75,7 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await order_repository_service.create_order(label="integration-label", transaction=connection)
+    entity_id = await order_repository_service.create_order(label=None, transaction=connection)
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

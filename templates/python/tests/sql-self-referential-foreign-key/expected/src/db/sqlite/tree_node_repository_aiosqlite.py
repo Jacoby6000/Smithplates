@@ -20,8 +20,8 @@ class TreeNodeRepositoryAiosqliteService(TreeNodeRepositoryServiceProtocol[aiosq
     @override
     async def create_tree_node(
         self,
-        label: str,
-        parent_node_id: str,
+        label: str | None,
+        parent_node_id: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:

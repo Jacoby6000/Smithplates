@@ -16,7 +16,7 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
     @override
     async def update_bookmark(
         self,
-        title: str,
+        title: str | None,
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
