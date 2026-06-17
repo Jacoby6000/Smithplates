@@ -11,15 +11,15 @@ templates/python/tests/<case-name>/
   expected/
     db/migrations/postgres/        # golden versioned migration SQL (when dialect enabled)
     db/migrations/sqlite/
-    src/db/model/*_models.py       # shared query models
-    src/db/*_protocol.py           # shared Protocol interface
-    src/db/sqlite/*_aiosqlite.py   # per-dialect implementation
-    src/db/postgres/*_psycopg.py
+    src/generated/db/model/*_models.py       # shared query models
+    src/generated/db/*_protocol.py           # shared Protocol interface
+    src/generated/db/sqlite/*_aiosqlite.py   # per-dialect implementation
+    src/generated/db/postgres/*_psycopg.py
     test/db/sqlite/test_*_derived_sql.py
     test/db/postgres/test_*_derived_sql.py
 ```
 
-Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
+Optional variant skip marker: `expected/src/generated/db/<implementation>/unsupported.md`.
 
 ## HTTP cases
 
@@ -41,16 +41,16 @@ templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
   smithy-build.json                # http.python.server config; no maven block in golden fixtures
   expected/
-    src/http/server/app_factory.py
-    src/http/server/app_services.py
-    src/http/server/api_response.py
-    src/http/server/operation_bindings.py
-    src/http/server/api_exceptions.py
-    src/http/server/api_exception_handler.py
-    src/http/models/problem.py
-    src/http/models/<output_shape>.py
-    src/http/server/apis/<route_group>_api.py
-    src/http/server/apis/<route_group>_api_base.py
+    src/generated/http/server/app_factory.py
+    src/generated/http/server/app_services.py
+    src/generated/http/server/api_response.py
+    src/generated/http/server/operation_bindings.py
+    src/generated/http/server/api_exceptions.py
+    src/generated/http/server/api_exception_handler.py
+    src/generated/http/models/problem.py
+    src/generated/http/models/<output_shape>.py
+    src/generated/http/server/apis/<route_group>_api.py
+    src/generated/http/server/apis/<route_group>_api_base.py
 ```
 
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).

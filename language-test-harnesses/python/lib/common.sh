@@ -33,11 +33,7 @@ configure_case_env() {
   local impl="$2"
   local test_dir="$3"
   local src_root
-  src_root="$(dirname "${db_root}")"
-  local generated_root="${src_root}/generated"
-
-  mkdir -p "${generated_root}"
-  ln -sfn ../db "${generated_root}/db"
+  src_root="$(dirname "$(dirname "${db_root}")")"
 
   export PYTHONPATH="${src_root}"
   export PYTHONDONTWRITEBYTECODE=1
@@ -81,7 +77,7 @@ run_python_linters() {
   fi
 
   echo "==> ${label} mypy"
-  if ! uv run mypy --strict --config-file "${PYPROJECT}" "${python_files[@]}"; then
+  if ! uv run mypy --strict --explicit-package-bases --config-file "${PYPROJECT}" "${python_files[@]}"; then
     return 1
   fi
 }
@@ -92,7 +88,7 @@ discover_python_service_types() {
 
   shopt -s nullglob
   for case_dir in "${TESTS_ROOT}"/*/; do
-    for service_type_dir in "${case_dir}expected/src"/*/; do
+    for service_type_dir in "${case_dir}expected/src/generated"/*/; do
       service_type="$(basename "${service_type_dir}")"
       local seen=0
       if [[ ${#service_types[@]} -gt 0 ]]; then
@@ -163,7 +159,7 @@ foreach_python_variant() {
 
     local service_type
     for service_type in "${service_types[@]}"; do
-      local db_root="${case_dir}expected/src/${service_type}"
+      local db_root="${case_dir}expected/src/generated/${service_type}"
 
       local impl
       for impl in "${impls[@]}"; do

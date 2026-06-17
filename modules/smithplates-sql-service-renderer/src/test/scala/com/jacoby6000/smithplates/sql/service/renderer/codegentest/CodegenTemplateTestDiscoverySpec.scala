@@ -29,7 +29,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val caseDirectory    = testsRoot.resolve("sample-case")
       val smithyDirectory  = caseDirectory.resolve("smithy")
       val expectedRoot     = caseDirectory.resolve("expected")
-      val variantDirectory = expectedRoot.resolve("src/db/sqlite")
+      val variantDirectory = expectedRoot.resolve("src/generated/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(variantDirectory)
       Files.writeString(
@@ -54,7 +54,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
 
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath),
-        List("src/db/sqlite/sample_repository_aiosqlite.py")
+        List("src/generated/db/sqlite/sample_repository_aiosqlite.py")
       )
     } finally deleteRecursively(tempRoot)
   }
@@ -66,7 +66,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val caseDirectory    = testsRoot.resolve("sample-case")
       val smithyDirectory  = caseDirectory.resolve("smithy")
       val expectedRoot     = caseDirectory.resolve("expected")
-      val variantDirectory = expectedRoot.resolve("src/db/sqlite")
+      val variantDirectory = expectedRoot.resolve("src/generated/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(variantDirectory)
       Files.writeString(
@@ -100,7 +100,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val caseDirectory         = testsRoot.resolve("sample-case")
       val smithyDirectory       = caseDirectory.resolve("smithy")
       val expectedRoot          = caseDirectory.resolve("expected")
-      val sqliteDirectory       = expectedRoot.resolve("src/db/sqlite")
+      val sqliteDirectory       = expectedRoot.resolve("src/generated/db/sqlite")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(sqliteDirectory)
       Files.createDirectories(expectedRoot.resolve("db"))
@@ -144,7 +144,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
 
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath).sorted,
-        List("db/migrations/sqlite/v1_initial_schema.sql", "src/db/sqlite/sample_repository_aiosqlite.py")
+        List("db/migrations/sqlite/v1_initial_schema.sql", "src/generated/db/sqlite/sample_repository_aiosqlite.py")
       )
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(postgresVariant, Nil).map(_.relativePath),
@@ -159,9 +159,9 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val testsRoot       = tempRoot.resolve("templates/python/tests")
       val caseDirectory   = testsRoot.resolve("sample-http-case")
       val smithyDirectory = caseDirectory.resolve("smithy")
-      val serverDirectory = caseDirectory.resolve("expected/src/http/server")
+      val serverDirectory = caseDirectory.resolve("expected/src/generated/http/server")
       val apisDirectory   = serverDirectory.resolve("apis")
-      val modelsDirectory = caseDirectory.resolve("expected/src/http/models")
+      val modelsDirectory = caseDirectory.resolve("expected/src/generated/http/models")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(apisDirectory)
       Files.createDirectories(modelsDirectory)
@@ -186,9 +186,9 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(serverVariant, Nil).map(_.relativePath).sorted,
         List(
-          "src/http/models/widget_output.py",
-          "src/http/server/apis/v1_widgets_api.py",
-          "src/http/server/app_factory.py"
+          "src/generated/http/models/widget_output.py",
+          "src/generated/http/server/apis/v1_widgets_api.py",
+          "src/generated/http/server/app_factory.py"
         )
       )
     } finally deleteRecursively(tempRoot)
@@ -200,9 +200,9 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val testsRoot        = tempRoot.resolve("templates/python/tests")
       val caseDirectory    = testsRoot.resolve("sample-http-client-case")
       val smithyDirectory  = caseDirectory.resolve("smithy")
-      val clientDirectory  = caseDirectory.resolve("expected/src/http/client")
+      val clientDirectory  = caseDirectory.resolve("expected/src/generated/http/client")
       val clientsDirectory = clientDirectory.resolve("clients")
-      val modelsDirectory  = caseDirectory.resolve("expected/src/http/models")
+      val modelsDirectory  = caseDirectory.resolve("expected/src/generated/http/models")
       Files.createDirectories(smithyDirectory)
       Files.createDirectories(clientsDirectory)
       Files.createDirectories(modelsDirectory)
@@ -227,9 +227,9 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       assertEquals(
         testCase.expectedOutputsByVariant.getOrElse(clientVariant, Nil).map(_.relativePath).sorted,
         List(
-          "src/http/client/client_registry.py",
-          "src/http/client/clients/warehouse_client.py",
-          "src/http/models/widget_output.py"
+          "src/generated/http/client/client_registry.py",
+          "src/generated/http/client/clients/warehouse_client.py",
+          "src/generated/http/models/widget_output.py"
         )
       )
     } finally deleteRecursively(tempRoot)

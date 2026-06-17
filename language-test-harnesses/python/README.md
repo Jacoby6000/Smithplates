@@ -2,13 +2,13 @@
 
 Lints and runs `@pytest.mark.integration` suites from [`templates/python/tests/`](../../templates/python/tests/) golden `expected/` trees.
 
-Each golden case uses `PYTHONPATH=expected/src` with a runtime `expected/src/generated/db` symlink to `../db`, so generated modules import as `generated.db.*` while golden files stay under `expected/src/db/`.
+Each golden case uses `PYTHONPATH=expected/src` so generated modules import as `generated.db.*` from `expected/src/generated/db/` (same layout as consumer projects).
 
 ## Linters (`run-linters.sh`)
 
 1. **ruff check** — lint (import order, style; long lines in tests and bundled transaction helpers are ignored)
 2. **ruff format --check** — formatting
-3. **mypy** — strict typing (`--strict`, `extra_checks`; postgres variants pick up bundled `test/db/postgres/stubs/` via `MYPYPATH`)
+3. **mypy** — strict typing (`--strict`, `--explicit-package-bases`, `extra_checks`; postgres variants pick up bundled `test/db/postgres/stubs/` via `MYPYPATH`)
 
 ```bash
 ./language-test-harnesses/python/run-linters.sh
@@ -31,6 +31,6 @@ export PYTHONPATH=../../templates/python/tests/sql-derived-crud-auto-managed-col
 ./language-test-harnesses/python/run-tests.sh -m integration ../../templates/python/tests/sql-derived-crud-auto-managed-columns/expected/test/db/sqlite
 ```
 
-Cases with `expected/src/db/<implementation>/unsupported.md` are skipped.
+Cases with `expected/src/generated/db/<implementation>/unsupported.md` are skipped.
 
 Shared iteration logic lives in [`lib/common.sh`](lib/common.sh).
