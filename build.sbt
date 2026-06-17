@@ -73,8 +73,14 @@ val strictScala3Settings: Seq[Def.Setting[_]] = Seq(
 
 def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   publish / skip := true,
+  publishArtifact := false,
   crossPaths := false,
-  Compile / packageDoc / publishArtifact := false
+  Compile / packageBin / publishArtifact := false,
+  Compile / packageSrc / publishArtifact := false,
+  Compile / packageDoc / publishArtifact := false,
+  Test / packageBin / publishArtifact := false,
+  Test / packageSrc / publishArtifact := false,
+  Test / packageDoc / publishArtifact := false
 )
 
 /**
@@ -84,7 +90,8 @@ def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
  */
 def publishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   crossPaths := false,
-  Compile / packageDoc / publishArtifact := false,
+  Compile / packageDoc / publishArtifact := true,
+  Test / packageDoc / publishArtifact := false,
   publishM2Configuration := publishM2Configuration.value.withOverwrite(true)
 )
 
@@ -406,7 +413,8 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
       "software.amazon.smithy" % "smithy-openapi" % smithyVersion % Test
     ),
     Test / logBuffered := false,
-    Compile / packageDoc / publishArtifact := false,
+    Compile / packageDoc / publishArtifact := true,
+    Test / packageDoc / publishArtifact := false,
     publishM2Configuration := publishM2Configuration.value.withOverwrite(true),
     Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "templates",
     // The codegen golden suites render bundled templates through the renderer engines. Put each renderer's precompiled
@@ -490,6 +498,7 @@ lazy val root = (project in file("."))
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
+    name := "smithplates",
     Compile / sources := Nil,
     Compile / resources := Nil,
     generateGoldenTemplatesFor := (smithplatesPlugin / generateGoldenTemplatesFor).evaluated
