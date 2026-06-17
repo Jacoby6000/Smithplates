@@ -8,7 +8,12 @@ import com.jacoby6000.smithplates.sql.model.*
 object PostgresRenderer extends SqlSchemaDdlRenderer {
   override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
     SqlShared.requireTables(schema)
-    preTableEnumStatements(schema) ++ SqlShared.renderDdlStatements(schema, renderColumn)
+    SqlShared.renderDdlStatements(
+      schema = schema,
+      renderColumn = renderColumn,
+      preTableStatements = preTableEnumStatements,
+      foreignKeyRendering = SqlShared.ForeignKeyRendering.Separate(renderForeignKeyConstraint)
+    )
   }
 
   private def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
@@ -58,6 +63,17 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
       case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsExpression
     }
+
+  private def renderForeignKeyConstraint(
+      table: SqlTable,
+      foreignKey: SqlForeignKey,
+      referencedTable: SqlTable
+  ): String = {
+    val constraintName = s"fk_${table.name}_${foreignKey.column}"
+    s"""ALTER TABLE ${table.name}
+       |    ADD CONSTRAINT $constraintName
+       |    FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn});""".stripMargin
+  }
 
   private def sqlTypeFor(columnType: SqlColumnType): String =
     SqlShared.baseSqlType(columnType).getOrElse {

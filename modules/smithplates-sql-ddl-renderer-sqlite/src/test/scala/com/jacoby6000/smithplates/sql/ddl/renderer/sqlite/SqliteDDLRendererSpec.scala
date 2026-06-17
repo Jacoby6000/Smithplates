@@ -47,7 +47,7 @@ final class SqliteDDLRendererSpec extends FunSuite {
         |-- smithplates.codegen.sql.example#Foo
         |CREATE TABLE foos (
         |    id TEXT NOT NULL,
-        |    bar_id TEXT,
+        |    bar_id TEXT /* FK -> bars (id) */,
         |    name TEXT CHECK(length(name) <= 128),
         |    size_bytes BIGINT,
         |    payload TEXT,
@@ -75,7 +75,12 @@ final class SqliteDDLRendererSpec extends FunSuite {
           columns = List(SqlColumn("id", SqlColumnType.Text, nullable = false)),
           primaryKeys = List("id"),
           foreignKeys = List(
-            SqlForeignKey(column = "parent_id", referencesShape = parentShape, referencesColumn = "id")
+            SqlForeignKey(
+              column = "parent_id",
+              sourceMember = ShapeId.from("example#Child$parent"),
+              referencesShape = parentShape,
+              referencesColumn = "id"
+            )
           ),
           indexes = Nil
         ),
@@ -119,7 +124,7 @@ final class SqliteDDLRendererSpec extends FunSuite {
         |CREATE TABLE tree_nodes (
         |    id TEXT NOT NULL,
         |    label TEXT,
-        |    parent_node_id TEXT,
+        |    parent_node_id TEXT /* FK -> tree_nodes (id) */,
         |
         |    PRIMARY KEY (id),
         |    FOREIGN KEY (parent_node_id) REFERENCES tree_nodes (id)

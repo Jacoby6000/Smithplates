@@ -60,18 +60,22 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |-- smithplates.codegen.sql.example#Foo
         |CREATE TABLE foos (
         |    id TEXT NOT NULL,
-        |    bar_id TEXT,
+        |    bar_id TEXT /* FK -> bars (id) */,
         |    name VARCHAR(128),
         |    size_bytes BIGINT,
         |    payload JSONB,
         |    created_at TIMESTAMP,
         |
-        |    PRIMARY KEY (id),
-        |    FOREIGN KEY (bar_id) REFERENCES bars (id)
+        |    PRIMARY KEY (id)
         |);
         |
         |-- smithplates.codegen.sql.example#Foo
-        |CREATE INDEX idx_foos_created_at ON foos (created_at);""".stripMargin
+        |CREATE INDEX idx_foos_created_at ON foos (created_at);
+        |
+        |-- smithplates.codegen.sql.example#Foo
+        |ALTER TABLE foos
+        |    ADD CONSTRAINT fk_foos_bar_id
+        |    FOREIGN KEY (bar_id) REFERENCES bars (id);""".stripMargin
 
     assertEquals(postgres, expectedPostgresDdl)
   }
@@ -88,7 +92,12 @@ final class PostgresDDLRendererSpec extends FunSuite {
           columns = List(SqlColumn("id", SqlColumnType.Text, nullable = false)),
           primaryKeys = List("id"),
           foreignKeys = List(
-            SqlForeignKey(column = "parent_id", referencesShape = parentShape, referencesColumn = "id")
+            SqlForeignKey(
+              column = "parent_id",
+              sourceMember = ShapeId.from("example#Child$parent"),
+              referencesShape = parentShape,
+              referencesColumn = "id"
+            )
           ),
           indexes = Nil
         ),
@@ -107,7 +116,7 @@ final class PostgresDDLRendererSpec extends FunSuite {
     assert(ddl.indexOf("CREATE TABLE aaa_parent") < ddl.indexOf("CREATE TABLE zzz_child"))
   }
 
-  test("Create Table - renders self-referential foreign keys inline") {
+  test("Create Table - renders self-referential foreign keys after tables") {
     val model = SqlTestModelBuilder.assemble(
       """use smithplates.codegen.sql#sqlForeignKey
         |use smithplates.codegen.sql#sqlPrimaryKey
@@ -132,11 +141,15 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |CREATE TABLE tree_nodes (
         |    id TEXT NOT NULL,
         |    label TEXT,
-        |    parent_node_id TEXT,
+        |    parent_node_id TEXT /* FK -> tree_nodes (id) */,
         |
-        |    PRIMARY KEY (id),
-        |    FOREIGN KEY (parent_node_id) REFERENCES tree_nodes (id)
-        |);""".stripMargin
+        |    PRIMARY KEY (id)
+        |);
+        |
+        |-- example#TreeNode
+        |ALTER TABLE tree_nodes
+        |    ADD CONSTRAINT fk_tree_nodes_parent_node_id
+        |    FOREIGN KEY (parent_node_id) REFERENCES tree_nodes (id);""".stripMargin
     )
   }
 

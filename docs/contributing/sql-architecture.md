@@ -57,7 +57,7 @@ DDL renderers live in:
 - `smithplates-sql-ddl-renderer-sqlite`
 - `smithplates-sql-ddl-renderer-postgres`
 
-They turn SQL schema IR into dialect DDL statements. The build plugin currently writes DDL-only migration files through `DialectRenderers.renderDdlOnly`.
+They turn SQL schema IR into dialect DDL statements. The build plugin currently writes DDL-only migration files through `DialectRenderers.renderDdlOnly`. Foreign-key columns include reviewer-facing comments in `CREATE TABLE`. Postgres renders foreign-key constraints after all table/index statements as `ALTER TABLE ... ADD CONSTRAINT`; SQLite keeps constraints inline because it cannot add table constraints after creation.
 
 Typical changes:
 

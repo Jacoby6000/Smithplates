@@ -162,29 +162,45 @@ object SqlQueryExtractor {
 
     resolveTable(model, schema, operationShape, targetTable, queryKind).andThen { case (table, tableStructure) =>
       requireDerivedStructInput(operation, "sqlDeriveInsert").andThen { _ =>
-        val tableMembers       = SqlTableMemberCatalog.membersFor(tableStructure)
-        val tableMembersByName = tableMembers.map(info => info.memberName -> info).toMap
-        val insertableMembers  = SqlTableMemberCatalog.insertableMembers(tableMembers)
+        rejectRequiredForeignKeyCycle(schema, operationShape, table).andThen { _ =>
+          val tableMembers       = SqlTableMemberCatalog.membersFor(tableStructure)
+          val tableMembersByName = tableMembers.map(info => info.memberName -> info).toMap
+          val insertableMembers  = SqlTableMemberCatalog.insertableMembers(tableMembers)
 
-        resolveInsertReturningColumns(
-          model,
-          operation,
-          tableStructure,
-          tableMembersByName,
-          table,
-          table.name
-        ).map { returningColumns =>
-          val columns = insertableMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember))
-          SqlInsertQuery(
-            shapeId = operationShape,
-            table = table,
-            columns = columns,
-            returningColumns = returningColumns
-          )
+          resolveInsertReturningColumns(
+            model,
+            operation,
+            tableStructure,
+            tableMembersByName,
+            table,
+            table.name
+          ).map { returningColumns =>
+            val columns = insertableMembers.map(tableMember => queryColumn(model, tableStructure, table, tableMember))
+            SqlInsertQuery(
+              shapeId = operationShape,
+              table = table,
+              columns = columns,
+              returningColumns = returningColumns
+            )
+          }
         }
       }
     }
   }
+
+  private def rejectRequiredForeignKeyCycle(
+      schema: SqlSchema,
+      operationShape: ShapeId,
+      table: SqlTable
+  ): SqlValidated[Unit] =
+    if (SqlTableTree.hasRequiredCycleContaining(schema, table.shapeId)) {
+      InvalidDeriveInsert(
+        operationShape,
+        s"target table '${table.name}' participates in a required foreign-key cycle; derived inserts cannot safely order writes without deferred constraint evaluation"
+      ).invalidNel
+    } else {
+      ().validNel
+    }
 
   private def requireDerivedStructInput(operation: OperationShape, deriveTrait: String): SqlValidated[Unit] = {
     val operationShape = operation.getId

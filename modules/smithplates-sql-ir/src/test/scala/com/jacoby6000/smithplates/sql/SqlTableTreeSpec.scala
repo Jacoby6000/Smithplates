@@ -17,7 +17,12 @@ final class SqlTableTreeSpec extends FunSuite {
           columns = Nil,
           primaryKeys = List("id"),
           foreignKeys = List(
-            SqlForeignKey(column = "parent_id", referencesShape = parentShape, referencesColumn = "id")
+            SqlForeignKey(
+              column = "parent_id",
+              sourceMember = ShapeId.from("example#Child$parent"),
+              referencesShape = parentShape,
+              referencesColumn = "id"
+            )
           ),
           indexes = Nil
         ),
@@ -36,9 +41,10 @@ final class SqlTableTreeSpec extends FunSuite {
     assertEquals(ordered, List("parent", "child"))
   }
 
-  test("forest - dependency nodes point at parent tables") {
+  test("graph - foreign key edges point at parent tables") {
     val childShape  = ShapeId.from("example#Child")
     val parentShape = ShapeId.from("example#Parent")
+    val memberShape = ShapeId.from("example#Child$parent")
 
     val parent = SqlTable("parent", parentShape, Nil, List("id"), Nil, Nil)
     val child  = SqlTable(
@@ -46,31 +52,32 @@ final class SqlTableTreeSpec extends FunSuite {
       childShape,
       Nil,
       List("id"),
-      List(SqlForeignKey("parent_id", parentShape, "id")),
+      List(SqlForeignKey("parent_id", memberShape, parentShape, "id")),
       Nil
     )
 
-    val forest    = SqlTableTree.forest(SqlSchema(List(child, parent)))
-    val childNode = forest.find(_.table.name == "child").get
-    assertEquals(childNode.dependencies.map(_.table.name), List("parent"))
-    assertEquals(childNode.dependencies.head.dependencies, Nil)
+    val graph     = SqlTableTree.graph(SqlSchema(List(child, parent)))
+    val childNode = graph.edges.keys.find(_.table.name == "child").get
+    assertEquals(graph.edges(childNode).keys.toList, List(memberShape))
+    assertEquals(graph.edges(childNode)(memberShape).targetShapeId, parentShape)
   }
 
   test("forest - self-referential foreign keys do not create dependency cycles") {
-    val nodeShape = ShapeId.from("example#TreeNode")
+    val nodeShape   = ShapeId.from("example#TreeNode")
+    val memberShape = ShapeId.from("example#TreeNode$parent")
 
     val treeNode = SqlTable(
       "tree_nodes",
       nodeShape,
       Nil,
       List("id"),
-      List(SqlForeignKey("parent_node_id", nodeShape, "id")),
+      List(SqlForeignKey("parent_node_id", memberShape, nodeShape, "id")),
       Nil
     )
 
-    val forest = SqlTableTree.forest(SqlSchema(List(treeNode)))
-    val node   = forest.find(_.table.name == "tree_nodes").get
-    assertEquals(node.dependencies, Nil)
+    val graph = SqlTableTree.graph(SqlSchema(List(treeNode)))
+    val node  = graph.edges.keys.find(_.table.name == "tree_nodes").get
+    assertEquals(graph.edges(node)(memberShape).targetShapeId, nodeShape)
   }
 
   test("tablesInRenderOrder - self-referential table appears once") {
@@ -84,7 +91,12 @@ final class SqlTableTreeSpec extends FunSuite {
           columns = Nil,
           primaryKeys = List("id"),
           foreignKeys = List(
-            SqlForeignKey(column = "parent_node_id", referencesShape = nodeShape, referencesColumn = "id")
+            SqlForeignKey(
+              column = "parent_node_id",
+              sourceMember = ShapeId.from("example#TreeNode$parent"),
+              referencesShape = nodeShape,
+              referencesColumn = "id"
+            )
           ),
           indexes = Nil
         )
@@ -93,5 +105,34 @@ final class SqlTableTreeSpec extends FunSuite {
 
     val ordered = SqlTableTree.tablesInRenderOrder(schema).map(_.name)
     assertEquals(ordered, List("tree_nodes"))
+  }
+
+  test("tablesInRenderOrder - cyclic tables are emitted deterministically") {
+    val aShape = ShapeId.from("example#A")
+    val bShape = ShapeId.from("example#B")
+
+    val schema = SqlSchema(
+      tables = List(
+        SqlTable(
+          name = "b_table",
+          shapeId = bShape,
+          columns = Nil,
+          primaryKeys = List("id"),
+          foreignKeys = List(SqlForeignKey("a_id", ShapeId.from("example#B$a"), aShape, "id")),
+          indexes = Nil
+        ),
+        SqlTable(
+          name = "a_table",
+          shapeId = aShape,
+          columns = Nil,
+          primaryKeys = List("id"),
+          foreignKeys = List(SqlForeignKey("b_id", ShapeId.from("example#A$b"), bShape, "id")),
+          indexes = Nil
+        )
+      )
+    )
+
+    val ordered = SqlTableTree.tablesInRenderOrder(schema).map(_.name)
+    assertEquals(ordered, List("a_table", "b_table"))
   }
 }

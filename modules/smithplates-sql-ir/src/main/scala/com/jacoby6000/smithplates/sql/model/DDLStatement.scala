@@ -19,6 +19,10 @@ object DDLStatement {
     override val shapeId: ShapeId = table.shapeId
   }
 
+  final case class AddForeignKey(table: SqlTable, foreignKey: SqlForeignKey, statement: String) extends DDLStatement {
+    override val shapeId: ShapeId = table.shapeId
+  }
+
   final case class CreateEnumType(enumType: SqlColumnType.StringEnum, statement: String) extends DDLStatement {
     override val shapeId: ShapeId = enumType.shapeId
   }

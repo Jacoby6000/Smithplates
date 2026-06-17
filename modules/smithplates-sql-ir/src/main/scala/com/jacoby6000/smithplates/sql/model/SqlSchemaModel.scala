@@ -39,6 +39,7 @@ case object SqlUpdatedTimestamp extends SqlAutoGeneration
 
 final case class SqlForeignKey(
     column: String,
+    sourceMember: ShapeId,
     referencesShape: ShapeId,
     referencesColumn: String,
     cardinality: SqlRelationshipCardinality = SqlRelationshipCardinality.ManyToOne

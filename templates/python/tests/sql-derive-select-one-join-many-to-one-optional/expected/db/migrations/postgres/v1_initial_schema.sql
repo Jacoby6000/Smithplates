@@ -10,8 +10,12 @@ CREATE TABLE categories (
 CREATE TABLE widgets (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     title TEXT,
-    category_id UUID,
+    category_id UUID /* FK -> categories (id) */,
 
-    PRIMARY KEY (id),
-    FOREIGN KEY (category_id) REFERENCES categories (id)
+    PRIMARY KEY (id)
 );
+
+-- example#Widget
+ALTER TABLE widgets
+    ADD CONSTRAINT fk_widgets_category_id
+    FOREIGN KEY (category_id) REFERENCES categories (id);
