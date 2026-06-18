@@ -6,11 +6,14 @@ from typing import Protocol, TypeVar
 
 from generated.db.models.pet_repository_models import (
     Category,
+    CreatePetRecordOutput,
+    DeletePetRecordOutput,
     Owner,
     PetHighlight,
     PetProfile,
     PetTags,
     Store,
+    UpdatePetRecordOutput,
 )
 
 
@@ -21,18 +24,19 @@ class GetPetRecordResult:
     status: PetStatus
     species: PetSpecies
     category_id: str
-    owner_id: str
+    owner_id: str | None
     tag_count: int
     tags: PetTags
     featured_attribute: PetHighlight
-    photo: bytes
-    adopted_at: datetime
+    photo: bytes | None
+    adopted_at: datetime | None
     created_at: datetime
     updated_at: datetime
     category: Category
     store: Store
     owner: Owner | None
     pet_profiles: list[PetProfile]
+
 
 T = TypeVar("T", contravariant=True)
 
@@ -44,44 +48,40 @@ class PetRepositoryServiceProtocol(Protocol[T]):
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         *,
         transaction: T | None = None,
-    ) -> str:
-        ...
+    ) -> CreatePetRecordOutput: ...
     async def get_pet_record(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> GetPetRecordResult | None:
-        ...
+    ) -> GetPetRecordResult | None: ...
     async def update_pet_record(
         self,
         name: str,
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool:
-        ...
+    ) -> UpdatePetRecordOutput: ...
     async def delete_pet_record(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool:
-        ...
+    ) -> DeletePetRecordOutput: ...

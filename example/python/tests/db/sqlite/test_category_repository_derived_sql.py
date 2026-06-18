@@ -7,10 +7,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
+
 from generated.db.category_repository_protocol import (
     GetCategoryRecordResult,
 )
+from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
@@ -32,9 +33,10 @@ async def category_repository_service() -> AsyncIterator[CategoryRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryAiosqliteService) -> None:
-    entity_id = await category_repository_service.create_category_record(
+    entity_id_result = await category_repository_service.create_category_record(
         name="integration-name", store_id="integration-store_id"
     )
+    entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -53,9 +55,10 @@ async def test_derived_sql_methods_transaction_commit(
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await category_repository_service.create_category_record(
+        entity_id_result = await category_repository_service.create_category_record(
             name="integration-name", store_id="integration-store_id", transaction=connection
         )
+        entity_id = entity_id_result.id
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -82,9 +85,10 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await category_repository_service.create_category_record(
+    entity_id_result = await category_repository_service.create_category_record(
         name="integration-name", store_id="integration-store_id", transaction=connection
     )
+    entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

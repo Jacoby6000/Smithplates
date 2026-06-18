@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel, Field
+
 from generated.http.models.category_summary import CategorySummary
 from generated.http.models.owner_summary import OwnerSummary
 from generated.http.models.pet_attribute import PetAttribute
@@ -12,7 +14,6 @@ from generated.http.models.pet_profile_summary import PetProfileSummary
 from generated.http.models.pet_species import PetSpecies
 from generated.http.models.pet_status import PetStatus
 from generated.http.models.store_summary import StoreSummary
-from pydantic import BaseModel, Field
 
 
 class PetDetail(BaseModel):

@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from generated.http.server.apis.categories_api_base import CategoriesApiServiceProtocol
-from generated.http.server.apis.health_api_base import HealthApiServiceProtocol
-from generated.http.server.apis.orders_api_base import OrdersApiServiceProtocol
-from generated.http.server.apis.pets_api_base import PetsApiServiceProtocol
 from generated.http.models.category_not_found import CategoryNotFound
 from generated.http.models.create_pet_input import CreatePetInput
 from generated.http.models.create_pet_output import CreatePetOutput
@@ -20,7 +16,10 @@ from generated.http.models.place_order_input import PlaceOrderInput
 from generated.http.models.place_order_output import PlaceOrderOutput
 from generated.http.models.update_pet_body import UpdatePetBody
 from generated.http.models.update_pet_output import UpdatePetOutput
-
+from generated.http.server.apis.categories_api_base import CategoriesApiServiceProtocol
+from generated.http.server.apis.health_api_base import HealthApiServiceProtocol
+from generated.http.server.apis.orders_api_base import OrdersApiServiceProtocol
+from generated.http.server.apis.pets_api_base import PetsApiServiceProtocol
 from server.repository_service import PetstoreRepositoryService
 
 

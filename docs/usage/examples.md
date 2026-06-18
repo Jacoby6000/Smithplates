@@ -30,7 +30,7 @@ Or from an example directory:
 ./build-generated.sh
 ```
 
-The build script runs `publishM2`, renders `smithy-build.json`, runs Smithy build, syncs generated output, and formats Python with `uv run ruff format` using each example's `pyproject.toml`. OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`.
+The build script runs `publishM2`, renders `smithy-build.json`, runs Smithy build, syncs Smithplates-generated output, and formats the Python petstore reference with `uv run ruff format`. OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`; that generated client is build-only validation collateral and is not linted.
 
 ## Runtime shape
 

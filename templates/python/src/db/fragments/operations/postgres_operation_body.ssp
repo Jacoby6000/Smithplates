@@ -38,6 +38,21 @@
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             return cur.rowcount > 0
+#case ("booleanStructureExists")            cur = await self._connection.execute(
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            row = await cur.fetchone()
+            return ${operation.outputShapeName}(
+                ${operation.booleanResultFieldName}=row is not None,
+            )
+#case ("booleanStructureRowcount")            cur = await self._connection.execute(
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+            )
+            return ${operation.outputShapeName}(
+                ${operation.booleanResultFieldName}=cur.rowcount > 0,
+            )
 #case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
 <% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 return await cur.fetchone()

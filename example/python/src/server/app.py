@@ -8,10 +8,10 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
+
 from generated.http.server.api_exception_handler import DefaultFallbackApiExceptionHandler
 from generated.http.server.app_factory import create_app
 from generated.http.server.app_services import ApiServices
-
 from server.api_adapters import CategoriesApiService, HealthApiService, OrdersApiService, PetsApiService
 from server.database import DEFAULT_DATABASE_PATH, repository_lifespan
 from server.repository_service import PetstoreRepositoryService

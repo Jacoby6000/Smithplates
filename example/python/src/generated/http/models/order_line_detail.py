@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from generated.http.models.fulfillment_state import FulfillmentState
 from pydantic import BaseModel, Field
+
+from generated.http.models.fulfillment_state import FulfillmentState
 
 
 class OrderLineDetail(BaseModel):

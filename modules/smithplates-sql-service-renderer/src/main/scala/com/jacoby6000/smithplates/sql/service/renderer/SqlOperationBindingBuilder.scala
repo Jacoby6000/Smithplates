@@ -118,9 +118,10 @@ object SqlOperationBindingBuilder {
       bindParameters =
         (query.setColumns ++ query.whereColumns).map(column => columnToBindParameter(query.table, column)),
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
-      outputKind = "boolean",
+      outputKind = query.booleanResultMemberName.fold("boolean")(_ => "booleanStructure"),
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = Nil,
+      booleanResultFieldName = query.booleanResultMemberName
     )
 
   private def buildDeleteBinding(
@@ -133,9 +134,10 @@ object SqlOperationBindingBuilder {
       tableName = query.table.name,
       bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
       executionMode = "fetchone",
-      outputKind = "boolean",
+      outputKind = query.booleanResultMemberName.fold("boolean")(_ => "booleanStructure"),
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = Nil,
+      booleanResultFieldName = query.booleanResultMemberName
     )
 
   private def buildSelectOneBinding(

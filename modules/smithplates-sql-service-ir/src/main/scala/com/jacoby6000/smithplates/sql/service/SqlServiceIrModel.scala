@@ -43,14 +43,16 @@ final case class SqlUpdateQuery(
     table: SqlTable,
     setColumns: List[SqlQueryColumn],
     whereColumns: List[SqlQueryColumn],
-    returningColumns: List[SqlQueryColumn]
+    returningColumns: List[SqlQueryColumn],
+    booleanResultMemberName: Option[String] = None
 )
 
 final case class SqlDeleteQuery(
     shapeId: ShapeId,
     table: SqlTable,
     whereColumns: List[SqlQueryColumn],
-    returningColumns: List[SqlQueryColumn]
+    returningColumns: List[SqlQueryColumn],
+    booleanResultMemberName: Option[String] = None
 )
 
 final case class SqlSelectOneQuery(

@@ -7,15 +7,17 @@ from fastapi import (
     Depends,
     Path,
 )
+from pydantic import Field  # noqa: F401
+
 from generated.http.models.get_order_output import GetOrderOutput
 from generated.http.models.place_order_input import PlaceOrderInput
 from generated.http.models.place_order_output import PlaceOrderOutput
 from generated.http.server.api_response import dispatch_api_response
 from generated.http.server.app_services import ApiServices, get_api_services
 from generated.http.server.operation_bindings import OPERATION_HTTP_BINDINGS
-from pydantic import Field  # noqa: F401
 
 router = APIRouter()
+
 
 @router.get(
     "/orders/{orderId}",
@@ -33,6 +35,8 @@ async def get_order(
         await services.orders_api.get_order(order_id=order_id),
         OPERATION_HTTP_BINDINGS["get_order"],
     )
+
+
 @router.post(
     "/orders",
     responses={

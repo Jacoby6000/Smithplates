@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import httpx
+
 from generated.http.client.clients.categories_client import CategoriesApiClient
 from generated.http.client.clients.health_client import HealthApiClient
 from generated.http.client.clients.orders_client import OrdersApiClient

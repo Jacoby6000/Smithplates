@@ -18,7 +18,7 @@ class HealthApiClient:
     async def health_check(
         self,
     ) -> HealthCheckOutput:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "GET",
             f"{self._base_url}/health",

@@ -8,6 +8,8 @@ from fastapi import (
     Depends,
     Path,
 )
+from pydantic import Field  # noqa: F401
+
 from generated.http.models.create_pet_input import CreatePetInput
 from generated.http.models.create_pet_output import CreatePetOutput
 from generated.http.models.get_pet_output import GetPetOutput
@@ -17,9 +19,9 @@ from generated.http.models.update_pet_output import UpdatePetOutput
 from generated.http.server.api_response import dispatch_api_response
 from generated.http.server.app_services import ApiServices, get_api_services
 from generated.http.server.operation_bindings import OPERATION_HTTP_BINDINGS
-from pydantic import Field  # noqa: F401
 
 router = APIRouter()
+
 
 @router.post(
     "/pets",
@@ -37,6 +39,8 @@ async def create_pet(
         await services.pets_api.create_pet(create_pet_input=create_pet_input),
         OPERATION_HTTP_BINDINGS["create_pet"],
     )
+
+
 @router.delete(
     "/pets/{petId}",
     responses={
@@ -53,6 +57,8 @@ async def delete_pet(
         await services.pets_api.delete_pet(pet_id=pet_id),
         OPERATION_HTTP_BINDINGS["delete_pet"],
     )
+
+
 @router.get(
     "/pets/{petId}",
     responses={
@@ -69,6 +75,8 @@ async def get_pet(
         await services.pets_api.get_pet(pet_id=pet_id),
         OPERATION_HTTP_BINDINGS["get_pet"],
     )
+
+
 @router.get(
     "/pets/{petId}/location",
     responses={
@@ -85,6 +93,8 @@ async def resolve_pet_location(
         await services.pets_api.resolve_pet_location(pet_id=pet_id),
         OPERATION_HTTP_BINDINGS["resolve_pet_location"],
     )
+
+
 @router.put(
     "/pets/{petId}",
     responses={

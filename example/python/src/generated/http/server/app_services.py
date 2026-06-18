@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from fastapi import HTTPException, Request
+
 from generated.http.server.apis.categories_api_base import CategoriesApiServiceProtocol
 from generated.http.server.apis.health_api_base import HealthApiServiceProtocol
 from generated.http.server.apis.orders_api_base import OrdersApiServiceProtocol

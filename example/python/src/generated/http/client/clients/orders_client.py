@@ -23,7 +23,7 @@ class OrdersApiClient:
         self,
         order_id: str,
     ) -> GetOrderOutput | OrderNotFound:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "GET",
             f"{self._base_url}/orders/{order_id}",
@@ -38,11 +38,12 @@ headers: dict[str, str] | None = None
         self,
         place_order_input: PlaceOrderInput,
     ) -> PlaceOrderOutput | ValidationError:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "POST",
             f"{self._base_url}/orders",
-            headers=headers, json=place_order_input.model_dump(mode="json", exclude_none=True),
+            headers=headers,
+            json=place_order_input.model_dump(mode="json", exclude_none=True),
         )
         return parse_client_response(
             response,

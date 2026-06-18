@@ -10,9 +10,7 @@ class Problem(BaseModel):
 
     type: str | None = Field(
         default=None,
-        description=(
-            "URI reference identifying the problem type; prefer an HTTPS URL to documentation."
-        ),
+        description=("URI reference identifying the problem type; prefer an HTTPS URL to documentation."),
     )
     title: str | None = Field(
         default=None,
@@ -28,8 +26,5 @@ class Problem(BaseModel):
     )
     instance: str | None = Field(
         default=None,
-        description=(
-            "URI reference identifying this specific occurrence "
-            "(for example a trace or request identifier)."
-        ),
+        description=("URI reference identifying this specific occurrence (for example a trace or request identifier)."),
     )

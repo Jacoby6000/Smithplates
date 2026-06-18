@@ -7,12 +7,13 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
+from testcontainers.postgres import PostgresContainer
+
 from generated.db.category_repository_protocol import (
     GetCategoryRecordResult,
 )
 from generated.db.postgres.category_repository_psycopg import CategoryRepositoryPsycopgService
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
-from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 
@@ -41,9 +42,10 @@ async def category_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryPsycopgService) -> None:
-    entity_id = await category_repository_service.create_category_record(
+    entity_id_result = await category_repository_service.create_category_record(
         name="integration-name", store_id="integration-store_id"
     )
+    entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -61,9 +63,10 @@ async def test_derived_sql_methods_transaction_commit(
 ) -> None:
     connection = category_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await category_repository_service.create_category_record(
+        entity_id_result = await category_repository_service.create_category_record(
             name="integration-name", store_id="integration-store_id", transaction=tx
         )
+        entity_id = entity_id_result.id
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -88,9 +91,10 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await category_repository_service.create_category_record(
+            entity_id_result = await category_repository_service.create_category_record(
                 name="integration-name", store_id="integration-store_id", transaction=tx
             )
+            entity_id = entity_id_result.id
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

@@ -9,11 +9,14 @@ from typing import TypedDict
 class FulfillmentStatePending(TypedDict):
     pending: str
 
+
 class FulfillmentStateShipped(TypedDict):
     shipped: datetime
 
+
 class FulfillmentStateDelivered(TypedDict):
     delivered: datetime
+
 
 FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | FulfillmentStateDelivered
 
@@ -24,6 +27,17 @@ class Category:
     name: str
     store_id: str
 
+
+@dataclass
+class CreatePetRecordOutput:
+    id: str
+
+
+@dataclass
+class DeletePetRecordOutput:
+    deleted: bool
+
+
 @dataclass
 class Order:
     id: str
@@ -32,6 +46,7 @@ class Order:
     priority: OrderPriority
     created_at: datetime
     updated_at: datetime
+
 
 @dataclass
 class OrderLine:
@@ -42,12 +57,14 @@ class OrderLine:
     unit_price_cents: int
     fulfillment: FulfillmentState
 
+
 @dataclass
 class Owner:
     id: str
     full_name: str
     mailing_address: PostalAddress
     created_at: datetime
+
 
 @dataclass
 class Pet:
@@ -65,10 +82,12 @@ class Pet:
     created_at: datetime
     updated_at: datetime
 
+
 @dataclass
 class PetHighlight:
     name: str
     color: str
+
 
 @dataclass
 class PetProfile:
@@ -76,9 +95,11 @@ class PetProfile:
     biography: str
     pet_id: str
 
+
 @dataclass
 class PetTags:
     items: list[str]
+
 
 @dataclass
 class PostalAddress:
@@ -86,7 +107,13 @@ class PostalAddress:
     city: str
     postal_code: str
 
+
 @dataclass
 class Store:
     id: str
     name: str
+
+
+@dataclass
+class UpdatePetRecordOutput:
+    updated: bool

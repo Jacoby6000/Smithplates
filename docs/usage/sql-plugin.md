@@ -53,7 +53,12 @@ structure Foo {
 @sqlDeriveInsert(targetTable: "example#Foo")
 operation CreateFoo {
     input: DerivedStruct
-    output: String
+    output: CreateFooOutput
+}
+
+structure CreateFooOutput {
+    @required
+    id: String
 }
 
 @sqlService

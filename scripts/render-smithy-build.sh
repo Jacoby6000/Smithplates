@@ -34,7 +34,7 @@ render_example() {
     exit 1
   fi
 
-  envsubst '${SMITHPLATES_VERSION} ${SMITHY_VERSION}' < "${template}" > "${output}"
+  envsubst '${SMITHPLATES_VERSION} ${SMITHY_VERSION} ${SMITHPLATES_LOCAL_MAVEN_REPOSITORY_URL}' < "${template}" > "${output}"
   echo "rendered ${output} (smithplates ${SMITHPLATES_VERSION})"
 }
 

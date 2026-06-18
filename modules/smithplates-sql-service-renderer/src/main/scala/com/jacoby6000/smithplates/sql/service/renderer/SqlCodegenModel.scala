@@ -72,6 +72,7 @@ final case class SqlCodegenSqlBinding(
     outputKind: String,
     returningColumnIndex: Option[Int],
     resultFields: List[SqlCodegenResultField],
+    booleanResultFieldName: Option[String] = None,
     selectOneOutput: Option[SqlCodegenSelectOneOutputBinding] = None
 )
 
@@ -122,6 +123,7 @@ final case class SqlCodegenIntegrationTestOperation(
     callArguments: String,
     updatedCallArguments: Option[String],
     outputShapeId: Option[ShapeId],
+    outputValueAccessor: String,
     resultAssertions: List[String],
     updatedResultAssertions: List[String]
 )

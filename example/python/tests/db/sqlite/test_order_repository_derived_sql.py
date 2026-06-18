@@ -7,10 +7,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
+
 from generated.db.order_repository_protocol import (
     GetOrderRecordResult,
 )
+from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
@@ -32,9 +33,10 @@ async def order_repository_service() -> AsyncIterator[OrderRepositoryAiosqliteSe
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryAiosqliteService) -> None:
-    entity_id = await order_repository_service.create_order_record(
+    entity_id_result = await order_repository_service.create_order_record(
         label="integration-label", status="approved", priority=3
     )
+    entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -54,9 +56,10 @@ async def test_derived_sql_methods_transaction_commit(
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await order_repository_service.create_order_record(
+        entity_id_result = await order_repository_service.create_order_record(
             label="integration-label", status="approved", priority=3, transaction=connection
         )
+        entity_id = entity_id_result.id
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -85,9 +88,10 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await order_repository_service.create_order_record(
+    entity_id_result = await order_repository_service.create_order_record(
         label="integration-label", status="approved", priority=3, transaction=connection
     )
+    entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

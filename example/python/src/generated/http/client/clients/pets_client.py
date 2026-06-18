@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime  # noqa: F401
+
 import httpx
 from pydantic import Field  # noqa: F401
-from datetime import datetime  # noqa: F401
 
 from generated.http.client.client_response import parse_client_response
 from generated.http.client.operation_bindings import OPERATION_HTTP_BINDINGS
@@ -28,12 +29,13 @@ class PetsApiClient:
         create_pet_input: CreatePetInput,
     ) -> CreatePetOutput | ValidationError:
         """HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations
-in `src/server` that delegate to generated `@sqlService` repositories."""
-headers: dict[str, str] | None = None
+        in `src/server` that delegate to generated `@sqlService` repositories."""
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "POST",
             f"{self._base_url}/pets",
-            headers=headers, json=create_pet_input.model_dump(mode="json", exclude_none=True),
+            headers=headers,
+            json=create_pet_input.model_dump(mode="json", exclude_none=True),
         )
         return parse_client_response(
             response,
@@ -44,7 +46,7 @@ headers: dict[str, str] | None = None
         self,
         pet_id: str,
     ) -> PetNotFound:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "DELETE",
             f"{self._base_url}/pets/{pet_id}",
@@ -59,7 +61,7 @@ headers: dict[str, str] | None = None
         self,
         pet_id: str,
     ) -> GetPetOutput | PetNotFound:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "GET",
             f"{self._base_url}/pets/{pet_id}",
@@ -74,7 +76,7 @@ headers: dict[str, str] | None = None
         self,
         pet_id: str,
     ) -> PetLocationRedirect | PetNotFound:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "GET",
             f"{self._base_url}/pets/{pet_id}/location",
@@ -90,11 +92,12 @@ headers: dict[str, str] | None = None
         pet_id: str,
         body: UpdatePetBody,
     ) -> UpdatePetOutput | PetNotFound | ValidationError:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "PUT",
             f"{self._base_url}/pets/{pet_id}",
-            headers=headers, json=body.model_dump(mode="json", exclude_none=True),
+            headers=headers,
+            json=body.model_dump(mode="json", exclude_none=True),
         )
         return parse_client_response(
             response,

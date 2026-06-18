@@ -33,7 +33,8 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> Asy
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+    entity_id_result = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+    entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
 

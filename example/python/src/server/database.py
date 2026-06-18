@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import aiosqlite
+
 from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from generated.db.sqlite.pet_repository_aiosqlite import PetRepositoryAiosqliteService

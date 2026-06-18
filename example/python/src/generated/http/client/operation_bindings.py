@@ -42,13 +42,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetCategoryOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "CategoryNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -62,13 +62,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetCategoryOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "CategoryNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -82,7 +82,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "HealthCheckOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(("Cache-Control", "no-store"),),
             ),
@@ -95,7 +95,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "HealthCheckOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(("Cache-Control", "no-store"),),
             ),
@@ -108,13 +108,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetOrderOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "OrderNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -128,13 +128,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetOrderOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "OrderNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -148,13 +148,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "PlaceOrderOutput": ResponseVariantBinding(
                 status_code=201,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -168,13 +168,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "PlaceOrderOutput": ResponseVariantBinding(
                 status_code=201,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -188,13 +188,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "CreatePetOutput": ResponseVariantBinding(
                 status_code=201,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(("etag", "ETag"),),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -208,13 +208,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "CreatePetOutput": ResponseVariantBinding(
                 status_code=201,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(("etag", "ETag"),),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -234,7 +234,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -254,7 +254,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -268,13 +268,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetPetOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -288,13 +288,13 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "GetPetOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -314,7 +314,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -334,7 +334,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -348,19 +348,19 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "UpdatePetOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
@@ -375,19 +375,19 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
         variants_by_type_name={
             "UpdatePetOutput": ResponseVariantBinding(
                 status_code=200,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "PetNotFound": ResponseVariantBinding(
                 status_code=404,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
             "ValidationError": ResponseVariantBinding(
                 status_code=400,
-                media_type='application/json',
+                media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),

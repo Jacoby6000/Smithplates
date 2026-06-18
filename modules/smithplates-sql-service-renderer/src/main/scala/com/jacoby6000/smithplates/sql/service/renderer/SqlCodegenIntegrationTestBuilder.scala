@@ -122,6 +122,7 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial, enumSamples),
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -150,6 +151,7 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial, enumSamples),
         updatedResultAssertions =
           resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated, enumSamples)
@@ -175,6 +177,7 @@ object SqlCodegenIntegrationTestBuilder {
         },
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -187,10 +190,21 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
     )
+
+  private def outputValueAccessor(operation: SqlCodegenOperation): String =
+    operation.sql match {
+      case Some(sql) if sql.queryKind == "insert" && sql.outputKind == "structure" =>
+        sql.resultFields.headOption.map(field => s".${field.fieldName}").getOrElse("")
+      case Some(sql) if sql.outputKind == "booleanStructure"                       =>
+        sql.booleanResultFieldName.map(fieldName => s".$fieldName").getOrElse("")
+      case _                                                                       =>
+        ""
+    }
 
   private def remapAssertionTarget(
       assertions: List[String],

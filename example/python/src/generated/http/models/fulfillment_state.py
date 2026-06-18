@@ -9,10 +9,13 @@ from typing import TypedDict
 class FulfillmentStatePending(TypedDict):
     pending: str
 
+
 class FulfillmentStateShipped(TypedDict):
     shipped: datetime
 
+
 class FulfillmentStateDelivered(TypedDict):
     delivered: datetime
+
 
 FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | FulfillmentStateDelivered

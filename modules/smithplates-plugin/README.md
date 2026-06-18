@@ -4,7 +4,7 @@ Scala/SBT Smithy build plugin that extracts SQL and HTTP IR from a Smithy model,
 
 ## Traits
 
-Smithy trait IDL is packaged into the published plugin JAR from [`../smithplates-sql-ir/`](../smithplates-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`), [`../smithplates-sql-service-ir/`](../smithplates-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`), and [`../smithplates-http-ir/`](../smithplates-http-ir/) (`META-INF/smithy/smithplates.codegen.http.smithy`). User overviews: [`docs/usage/sql-plugin.md`](../../docs/usage/sql-plugin.md) and [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md).
+Smithy trait IDL is packaged into the published plugin dependency graph from [`../smithplates-sql-ir/`](../smithplates-sql-ir/) (`META-INF/smithy/smithplates.codegen.sql.smithy`), [`../smithplates-sql-service-ir/`](../smithplates-sql-service-ir/) (`META-INF/smithy/smithplates.codegen.sql.service.smithy`), and [`../smithplates-http-ir/`](../smithplates-http-ir/) (`META-INF/smithy/smithplates.codegen.http.smithy`). Each trait jar also includes `META-INF/smithy/manifest` so Smithy CLI model discovery loads those resources from Maven dependencies. User overviews: [`docs/usage/sql-plugin.md`](../../docs/usage/sql-plugin.md) and [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md).
 
 ### SQL traits
 
@@ -66,19 +66,34 @@ use smithplates.codegen.sql#DerivedStruct
 @sqlDeriveInsert(targetTable: "example#Foo")
 operation CreateFoo {
     input: DerivedStruct
-    output: String
+    output: CreateFooOutput
+}
+
+structure CreateFooOutput {
+    @required
+    id: String
 }
 
 @sqlDeriveUpdate(targetTable: "example#Foo")
 operation UpdateFoo {
     input: DerivedStruct
-    output: Boolean
+    output: UpdateFooOutput
+}
+
+structure UpdateFooOutput {
+    @required
+    updated: Boolean
 }
 
 @sqlDeriveDelete(targetTable: "example#Foo")
 operation DeleteFoo {
     input: DerivedStruct
-    output: Boolean
+    output: DeleteFooOutput
+}
+
+structure DeleteFooOutput {
+    @required
+    deleted: Boolean
 }
 
 @sqlDeriveSelectOne(targetTable: "example#Foo")

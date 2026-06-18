@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel, Field
+
 from generated.http.models.pet_attribute import PetAttribute
 from generated.http.models.pet_species import PetSpecies
 from generated.http.models.pet_status import PetStatus
-from pydantic import BaseModel, Field
 
 
 class UpdatePetBody(BaseModel):

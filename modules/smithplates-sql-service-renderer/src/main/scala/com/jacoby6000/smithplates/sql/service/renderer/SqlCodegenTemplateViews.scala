@@ -88,6 +88,7 @@ final case class TemplateOperationView(
     bindParameters: List[TemplateBindParameterView],
     returningColumnIndex: java.lang.Integer,
     resultFields: List[TemplateResultFieldView],
+    booleanResultFieldName: String,
     selectOneNestedBindings: List[TemplateSelectOneNestedBindingView] = Nil,
     last: Boolean = false
 )
@@ -102,6 +103,7 @@ final case class TemplateIntegrationTestOperationView(
     name: String,
     callArguments: String,
     outputShapeName: String,
+    outputValueAccessor: String,
     hasResultAssertions: Boolean,
     resultAssertions: List[TemplateAssertionLine],
     hasUpdatedResultAssertions: Boolean,
@@ -114,6 +116,7 @@ object TemplateIntegrationTestOperationView {
       name = "",
       callArguments = "",
       outputShapeName = "",
+      outputValueAccessor = "",
       hasResultAssertions = false,
       resultAssertions = Nil,
       hasUpdatedResultAssertions = false,
@@ -252,6 +255,7 @@ object SqlCodegenTemplateViews {
       name = operation.name,
       callArguments = operation.callArguments,
       outputShapeName = operation.outputShapeId.map(_.getName).getOrElse(""),
+      outputValueAccessor = operation.outputValueAccessor,
       hasResultAssertions = operation.resultAssertions.nonEmpty,
       resultAssertions = withLastFlag(operation.resultAssertions.map(TemplateAssertionLine(_)))((assertion, last) =>
         assertion.copy(last = last)),
@@ -291,14 +295,15 @@ object SqlCodegenTemplateViews {
       dialectKey: String,
       operation: SqlCodegenOperation
   ): TemplateOperationView = {
-    val sqlFields                                                                       = operation.sql match {
+    val sqlFields                                                                                               = operation.sql match {
       case None      =>
         (
           "",
           "",
           List.empty[TemplateBindParameterView],
           null: java.lang.Integer,
-          List.empty[TemplateResultFieldView]
+          List.empty[TemplateResultFieldView],
+          ""
         )
       case Some(sql) =>
         (
@@ -307,11 +312,13 @@ object SqlCodegenTemplateViews {
           withLastFlag(sql.bindParameters.map(bindParameterView(dialectKey, _)))((bindParameter, last) =>
             bindParameter.copy(last = last)),
           sql.returningColumnIndex.map(Integer.valueOf).orNull,
-          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
+          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last)),
+          sql.booleanResultFieldName.getOrElse("")
         )
     }
-    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields) = sqlFields
-    val selectOneNestedBindings                                                         =
+    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields, booleanResultFieldName) =
+      sqlFields
+    val selectOneNestedBindings                                                                                 =
       operation.sql.flatMap(_.selectOneOutput).toList.flatMap { output =>
         output.nestedBindings.map { nested =>
           TemplateSelectOneNestedBindingView(
@@ -340,6 +347,7 @@ object SqlCodegenTemplateViews {
       bindParameters = bindParameters,
       returningColumnIndex = returningColumnIndex,
       resultFields = resultFields,
+      booleanResultFieldName = booleanResultFieldName,
       selectOneNestedBindings = selectOneNestedBindings
     )
   }

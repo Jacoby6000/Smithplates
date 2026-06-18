@@ -7,14 +7,18 @@ from datetime import datetime, timezone
 from typing import cast, override
 
 import aiosqlite
+
 from generated.db.models.pet_repository_models import (
     Category,
+    CreatePetRecordOutput,
+    DeletePetRecordOutput,
     Owner,
     PetHighlight,
     PetProfile,
     PetTags,
     PostalAddress,
     Store,
+    UpdatePetRecordOutput,
 )
 from generated.db.pet_repository_protocol import (
     GetPetRecordResult,
@@ -35,26 +39,41 @@ class PetRepositoryAiosqliteService(PetRepositoryServiceProtocol[aiosqlite.Conne
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> str:
-        async def execute(conn: aiosqlite.Connection) -> str:
+    ) -> CreatePetRecordOutput:
+        async def execute(conn: aiosqlite.Connection) -> CreatePetRecordOutput:
             cursor = await conn.execute(
-"""INSERT INTO pets (name, status, species, category_id, owner_id, tag_count, tags, featured_attribute, photo, adopted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id;"""
-,
-                (name, status, species, category_id, owner_id, tag_count, _json_bind_PetTags(tags), _json_bind_PetHighlight(featured_attribute), photo, _timestamp_bind_epoch_seconds(adopted_at)),
+                """INSERT INTO pets (name, status, species, category_id, owner_id, tag_count, tags, featured_attribute, photo, adopted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id;""",
+                (
+                    name,
+                    status,
+                    species,
+                    category_id,
+                    owner_id,
+                    tag_count,
+                    _json_bind_PetTags(tags),
+                    _json_bind_PetHighlight(featured_attribute),
+                    photo,
+                    _timestamp_bind_epoch_seconds(adopted_at),
+                ),
             )
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+            named_row = _as_sqlite_named_row(cursor, row)
+            return CreatePetRecordOutput(
+                id=_read_str_col(named_row, "id"),
+            )
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def get_pet_record(
         self,
@@ -64,14 +83,13 @@ class PetRepositoryAiosqliteService(PetRepositoryServiceProtocol[aiosqlite.Conne
     ) -> GetPetRecordResult | None:
         async def execute(conn: aiosqlite.Connection) -> GetPetRecordResult | None:
             cursor = await conn.execute(
-"""SELECT pets.id, pets.name, pets.status, pets.species, pets.category_id, pets.owner_id, pets.tag_count, pets.tags, pets.featured_attribute, pets.photo, pets.adopted_at, pets.created_at, pets.updated_at, c.id AS c_id, c.name AS c_name, c.store_id AS c_store_id, s.id AS s_id, s.name AS s_name, o.id AS o_id, o.full_name AS o_full_name, o.mailing_address AS o_mailing_address, o.created_at AS o_created_at, pp.id AS pp_id, pp.biography AS pp_biography, pp.pet_id AS pp_pet_id
+                """SELECT pets.id, pets.name, pets.status, pets.species, pets.category_id, pets.owner_id, pets.tag_count, pets.tags, pets.featured_attribute, pets.photo, pets.adopted_at, pets.created_at, pets.updated_at, c.id AS c_id, c.name AS c_name, c.store_id AS c_store_id, s.id AS s_id, s.name AS s_name, o.id AS o_id, o.full_name AS o_full_name, o.mailing_address AS o_mailing_address, o.created_at AS o_created_at, pp.id AS pp_id, pp.biography AS pp_biography, pp.pet_id AS pp_pet_id
 FROM pets AS pets
 INNER JOIN categories AS c ON pets.category_id = c.id
 INNER JOIN stores AS s ON c.store_id = s.id
 LEFT JOIN owners AS o ON pets.owner_id = o.id
 LEFT JOIN pet_profiles AS pp ON pets.id = pp.pet_id
-WHERE pets.id = ?;"""
-,
+WHERE pets.id = ?;""",
                 (id,),
             )
             rows = list(await cursor.fetchall())
@@ -111,7 +129,9 @@ WHERE pets.id = ?;"""
                     id=_read_str(row, 16),
                     name=_read_str(row, 17),
                 ),
-                owner=None if row[18] is None else Owner(
+                owner=None
+                if row[18] is None
+                else Owner(
                     id=_read_str(row, 18),
                     full_name=_read_str(row, 19),
                     mailing_address=_read_PostalAddress(row, 20),
@@ -119,7 +139,9 @@ WHERE pets.id = ?;"""
                 ),
                 pet_profiles=pet_profiles,
             )
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def update_pet_record(
         self,
@@ -127,46 +149,76 @@ WHERE pets.id = ?;"""
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> UpdatePetRecordOutput:
+        async def execute(conn: aiosqlite.Connection) -> UpdatePetRecordOutput:
             cursor = await conn.execute(
-"""UPDATE pets
+                """UPDATE pets
 SET name = ?, status = ?, species = ?, category_id = ?, owner_id = ?, tag_count = ?, tags = ?, featured_attribute = ?, photo = ?, adopted_at = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ? RETURNING updated_at;"""
-,
-                (name, status, species, category_id, owner_id, tag_count, _json_bind_PetTags(tags), _json_bind_PetHighlight(featured_attribute), photo, _timestamp_bind_epoch_seconds(adopted_at), id),
+WHERE id = ? RETURNING updated_at;""",
+                (
+                    name,
+                    status,
+                    species,
+                    category_id,
+                    owner_id,
+                    tag_count,
+                    _json_bind_PetTags(tags),
+                    _json_bind_PetHighlight(featured_attribute),
+                    photo,
+                    _timestamp_bind_epoch_seconds(adopted_at),
+                    id,
+                ),
             )
             row = await cursor.fetchone()
-            return row is not None
+            return UpdatePetRecordOutput(
+                updated=row is not None,
+            )
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def delete_pet_record(
         self,
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> DeletePetRecordOutput:
+        async def execute(conn: aiosqlite.Connection) -> DeletePetRecordOutput:
             cursor = await conn.execute(
-"""DELETE FROM pets WHERE id = ? RETURNING id;"""
-,
+                """DELETE FROM pets WHERE id = ? RETURNING id;""",
                 (id,),
             )
             row = await cursor.fetchone()
-            return row is not None
+            return DeletePetRecordOutput(
+                deleted=row is not None,
+            )
+
         return await run(self._connection, transaction, execute)
+
+
+def _as_sqlite_named_row(
+    cursor: sqlite3.Cursor | aiosqlite.Cursor,
+    row: tuple[object, ...] | sqlite3.Row,
+) -> dict[str, object]:
+    if type(row) is not tuple:
+        named = cast(sqlite3.Row, row)
+        return {key: cast(object, named[key]) for key in named}
+    description = cast(tuple[tuple[object, ...], ...], cursor.description)
+    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
+
 
 def _read_bytes(row: tuple[object, ...] | sqlite3.Row, index: int) -> bytes:
     return cast(bytes, row[index])
+
 
 def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
     value = cast(str, row[index])
@@ -181,14 +233,18 @@ def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetim
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
+
 def _read_epoch_seconds(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
     return datetime.fromtimestamp(cast(float, row[index]), tz=timezone.utc)
+
 
 def _read_int(row: tuple[object, ...] | sqlite3.Row, index: int) -> int:
     return cast(int, row[index])
 
+
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
 
 def _timestamp_bind_epoch_seconds(value: datetime) -> float:
     if value.tzinfo is None:
@@ -197,8 +253,9 @@ def _timestamp_bind_epoch_seconds(value: datetime) -> float:
         normalized = value.astimezone(timezone.utc)
     return normalized.timestamp()
 
+
 def _json_bind_PetHighlight(value: PetHighlight) -> str:
-    payload = { "name": cast(object, value.name), "color": cast(object, value.color) }
+    payload = {"name": cast(object, value.name), "color": cast(object, value.color)}
     return json.dumps(payload)
 
 
@@ -209,8 +266,9 @@ def _read_PetHighlight(row: tuple[object, ...] | sqlite3.Row, index: int) -> Pet
         color=cast(str, data["color"]),
     )
 
+
 def _json_bind_PetTags(value: PetTags) -> str:
-    payload = { "items": cast(object, value.items) }
+    payload = {"items": cast(object, value.items)}
     return json.dumps(payload)
 
 
@@ -220,8 +278,13 @@ def _read_PetTags(row: tuple[object, ...] | sqlite3.Row, index: int) -> PetTags:
         items=cast(list[str], data["items"]),
     )
 
+
 def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = { "street": cast(object, value.street), "city": cast(object, value.city), "postal_code": cast(object, value.postal_code) }
+    payload = {
+        "street": cast(object, value.street),
+        "city": cast(object, value.city),
+        "postal_code": cast(object, value.postal_code),
+    }
     return json.dumps(payload)
 
 
@@ -232,3 +295,7 @@ def _read_PostalAddress(row: tuple[object, ...] | sqlite3.Row, index: int) -> Po
         city=cast(str, data["city"]),
         postal_code=cast(str, data["postal_code"]),
     )
+
+
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    return cast(str, row[column])

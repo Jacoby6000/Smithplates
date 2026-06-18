@@ -126,7 +126,7 @@ modules/smithplates-testkit (library, unpublished)
     └── smithplates-sql-ddl-renderer-sqlite-it (test, unpublished)
 ```
 
-`smithplates-plugin` is the only artifact consumers reference by coordinate, but its entire transitive compile graph (every module listed above it) is **published** so Maven can resolve those dependencies — and so the renderer jars carrying precompiled SSP template classes reach consumers. Only `smithplates-testkit` and the dialect IT modules stay unpublished (`unpublishedModuleSettings`); all others use `publishedModuleSettings`. `sbtn publishM2` publishes the full set.
+`smithplates-plugin` is the only artifact consumers reference by coordinate, but its entire transitive compile graph (every module listed above it) is **published** so Maven can resolve those dependencies — and so the renderer jars carrying precompiled SSP template classes reach consumers. The IR jars that publish Smithy trait IDL include `META-INF/smithy/manifest` files so Smithy CLI model discovery loads those resources from Maven dependencies. Only `smithplates-testkit` and the dialect IT modules stay unpublished (`unpublishedModuleSettings`); all others use `publishedModuleSettings`. `sbtn publishM2` publishes the full set.
 
 - **smithplates-sql-ir** — schema ADTs, table extraction; Smithy trait IDL and Java `TraitService` SPI.
 - **smithplates-sql-ddl-renderer-common** — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`).

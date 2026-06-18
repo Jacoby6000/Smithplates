@@ -39,11 +39,41 @@ require_sbtn() {
   fi
 }
 
-require_smithy() {
-  if ! command -v smithy >/dev/null 2>&1; then
-    echo "error: smithy CLI not on PATH (see docs/contributing/getting-started.md)" >&2
+require_java() {
+  if ! command -v java >/dev/null 2>&1; then
+    echo "error: java not on PATH (required to run Smithy with the local plugin classpath)" >&2
     exit 1
   fi
+}
+
+require_coursier() {
+  if ! command -v coursier >/dev/null 2>&1; then
+    echo "error: coursier not on PATH (required to resolve locally published Smithplates jars)" >&2
+    exit 1
+  fi
+}
+
+local_smithy_extension_classpath() {
+  coursier fetch --classpath \
+    --repository "${SMITHPLATES_LOCAL_MAVEN_REPOSITORY_URL}" \
+    "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}" \
+    "software.amazon.smithy:smithy-aws-traits:${SMITHY_VERSION}" \
+    "software.amazon.smithy:smithy-openapi:${SMITHY_VERSION}"
+}
+
+run_smithy_build_with_local_plugin() {
+  local extension_classpath
+  local smithy_classpath
+
+  extension_classpath="$(local_smithy_extension_classpath)"
+  smithy_classpath="$(coursier fetch --classpath "software.amazon.smithy:smithy-cli:${SMITHY_VERSION}")"
+
+  SMITHY_DEPENDENCY_MODE=ignore java \
+    -cp "${smithy_classpath}:${extension_classpath}" \
+    software.amazon.smithy.cli.SmithyCli \
+    build \
+    --discover \
+    --discover-classpath "${extension_classpath}"
 }
 
 format_generated_python() {
@@ -60,6 +90,8 @@ format_generated_python() {
     uv sync
     for path in "$@"; do
       if [[ -d "${path}" ]]; then
+        echo "==> ${example_dir#"${ROOT}/"} ruff check --fix ${path}"
+        uv run --group dev ruff check --fix --config pyproject.toml "${path}"
         echo "==> ${example_dir#"${ROOT}/"} ruff format ${path}"
         uv run --group dev ruff format --config pyproject.toml "${path}"
       fi
@@ -81,12 +113,12 @@ sync_smithplates_output() {
 
 build_python_example() {
   local example_dir="${ROOT}/example/python"
-  require_smithy
+  require_java
 
   echo "==> example/python smithy build"
   (
     cd "${example_dir}"
-    smithy build
+    run_smithy_build_with_local_plugin
   )
   sync_smithplates_output "${example_dir}"
   format_generated_python "${example_dir}" src/generated tests
@@ -129,12 +161,12 @@ find_openapi_spec() {
 
 build_openapi_reference_example() {
   local example_dir="${ROOT}/example/openapi-reference-python"
-  require_smithy
+  require_java
 
   echo "==> example/openapi-reference-python smithy build (OpenAPI projection)"
   (
     cd "${example_dir}"
-    smithy build
+    run_smithy_build_with_local_plugin
   )
 
   local open_api_spec
@@ -156,8 +188,6 @@ build_openapi_reference_example() {
     -o "${client_output}" \
     --package-name petstore_client \
     --additional-properties generateSourceCodeOnly=true,library=asyncio,hideGenerationTimestamp=true
-
-  format_generated_python "${example_dir}" src/generated/client/petstore_client
 }
 
 if [[ "${SMITHYSTACHE_EXAMPLE_BUILD_DONE:-}" == "1" ]]; then
@@ -172,8 +202,12 @@ fi
 enter_nix_shell_if_available "$@"
 
 require_sbtn
+require_coursier
 echo "==> publishM2"
 sbtn publishM2
+
+# shellcheck source=lib/resolve-smithy-build-versions.sh
+source "${ROOT}/scripts/lib/resolve-smithy-build-versions.sh" "${ROOT}"
 
 case "$1" in
   all)
