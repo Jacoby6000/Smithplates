@@ -16,10 +16,7 @@ collect_example_python_files() {
   local path
   for path in \
     "${EXAMPLE_ROOT}/src/server" \
-    "${EXAMPLE_ROOT}/src/generated/http/server" \
-    "${EXAMPLE_ROOT}/src/generated/http/client" \
-    "${EXAMPLE_ROOT}/src/generated/http/models" \
-    "${EXAMPLE_ROOT}/src/generated/db" \
+    "${EXAMPLE_ROOT}/src/generated/petstore" \
     "${EXAMPLE_ROOT}/tests"; do
     if [[ -d "${path}" ]]; then
       find "${path}" -name '*.py' -type f ! -path '*/stubs/*'
@@ -37,9 +34,9 @@ collect_example_handwritten_python_files() {
 }
 
 configure_example_env() {
-  export PYTHONPATH="${EXAMPLE_ROOT}/src:${EXAMPLE_ROOT}/src/generated:${EXAMPLE_ROOT}/src/generated/db/models:${EXAMPLE_ROOT}/src/generated/db:${EXAMPLE_ROOT}/src/generated/db/sqlite:${EXAMPLE_ROOT}/src/generated/db/postgres:${EXAMPLE_ROOT}/src"
+  export PYTHONPATH="${EXAMPLE_ROOT}/src"
   export PYTHONDONTWRITEBYTECODE=1
-  export MYPYPATH="${EXAMPLE_ROOT}/tests/db/postgres/stubs:${PYTHONPATH}"
+  export MYPYPATH="${EXAMPLE_ROOT}/tests/petstore/db/postgres/stubs:${EXAMPLE_ROOT}/src"
 }
 
 run_example_linters() {
@@ -51,7 +48,7 @@ run_example_linters() {
   local -a mypy_targets=(
     src/server
     tests/test_api.py
-    tests/db/sqlite
+    tests/petstore/db/sqlite
   )
   local -a postgres_tests=()
   local path target
@@ -82,16 +79,16 @@ run_example_linters() {
       continue
     fi
     echo "==> ${label} mypy ${target}"
-    if ! uv run --group dev mypy "${target}"; then
+    if ! uv run --group dev mypy --explicit-package-bases "${target}"; then
       return 1
     fi
   done
 
   shopt -s nullglob
-  postgres_tests=(tests/db/postgres/test_*.py)
+  postgres_tests=(tests/petstore/db/postgres/test_*.py)
   if [[ ${#postgres_tests[@]} -gt 0 ]]; then
-    echo "==> ${label} mypy tests/db/postgres (derived SQL)"
-    if ! uv run --group dev mypy "${postgres_tests[@]}"; then
+    echo "==> ${label} mypy tests/petstore/db/postgres (derived SQL)"
+    if ! uv run --group dev mypy --explicit-package-bases "${postgres_tests[@]}"; then
       return 1
     fi
   fi

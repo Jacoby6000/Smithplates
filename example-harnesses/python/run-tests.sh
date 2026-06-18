@@ -14,10 +14,10 @@ echo "==> example/python pytest (API smoke)"
 uv run pytest tests/test_api.py
 
 echo "==> example/python pytest (sqlite integration)"
-uv run pytest tests/db/sqlite -m "integration and sqlite"
+uv run pytest tests/petstore/db/sqlite -m "integration and sqlite"
 
 echo "==> example/python pytest (postgres integration)"
-uv run pytest tests/db/postgres -m "integration and postgres"
+uv run pytest tests/petstore/db/postgres -m "integration and postgres"
 
 echo "==> example/python shared HTTP reference tests (Smithplates client)"
 "${REPO_ROOT}/example/tests/run-tests.sh" python python

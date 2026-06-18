@@ -6,31 +6,31 @@ import json
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from generated.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
-from generated.db.models.pet_repository_models import PetTags as GeneratedPetTags
-from generated.http.models.category_detail import CategoryDetail
-from generated.http.models.category_summary import CategorySummary
-from generated.http.models.create_pet_input import CreatePetInput
-from generated.http.models.fulfillment_state import FulfillmentState
-from generated.http.models.order_detail import OrderDetail
-from generated.http.models.order_line_detail import OrderLineDetail
-from generated.http.models.order_priority import OrderPriority
-from generated.http.models.order_status import OrderStatus
-from generated.http.models.owner_summary import OwnerSummary
-from generated.http.models.pet_attribute import PetAttribute
-from generated.http.models.pet_attribute_value import (
+from generated.petstore.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
+from generated.petstore.db.models.pet_repository_models import PetTags as GeneratedPetTags
+from generated.petstore.api.category_detail import CategoryDetail
+from generated.petstore.api.category_summary import CategorySummary
+from generated.petstore.api.create_pet_input import CreatePetInput
+from generated.petstore.api.fulfillment_state import FulfillmentState
+from generated.petstore.api.order_detail import OrderDetail
+from generated.petstore.api.order_line_detail import OrderLineDetail
+from generated.petstore.api.order_priority import OrderPriority
+from generated.petstore.api.order_status import OrderStatus
+from generated.petstore.api.owner_summary import OwnerSummary
+from generated.petstore.api.pet_attribute import PetAttribute
+from generated.petstore.api.pet_attribute_value import (
     PetAttributeValue,
     PetAttributeValueColor,
     PetAttributeValueWeight_kg,
 )
-from generated.http.models.pet_detail import PetDetail
-from generated.http.models.pet_profile_summary import PetProfileSummary
-from generated.http.models.pet_species import PetSpecies
-from generated.http.models.pet_status import PetStatus
-from generated.http.models.place_order_input import PlaceOrderInput
-from generated.http.models.postal_address import PostalAddress
-from generated.http.models.store_summary import StoreSummary
-from generated.http.models.update_pet_body import UpdatePetBody
+from generated.petstore.api.pet_detail import PetDetail
+from generated.petstore.api.pet_profile_summary import PetProfileSummary
+from generated.petstore.api.pet_species import PetSpecies
+from generated.petstore.api.pet_status import PetStatus
+from generated.petstore.api.place_order_input import PlaceOrderInput
+from generated.petstore.api.postal_address import PostalAddress
+from generated.petstore.api.store_summary import StoreSummary
+from generated.petstore.api.update_pet_body import UpdatePetBody
 from server.database import RepositoryBundle
 
 
