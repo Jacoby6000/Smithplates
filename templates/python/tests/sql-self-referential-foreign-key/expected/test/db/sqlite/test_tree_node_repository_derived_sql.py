@@ -32,7 +32,8 @@ async def tree_node_repository_service() -> AsyncIterator[TreeNodeRepositoryAios
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(tree_node_repository_service: TreeNodeRepositoryAiosqliteService) -> None:
-    entity_id = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
+    entity_id_result = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -51,9 +52,10 @@ async def test_derived_sql_methods_transaction_commit(
     connection = tree_node_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await tree_node_repository_service.create_tree_node(
+        entity_id_result = await tree_node_repository_service.create_tree_node(
             label=None, parent_node_id=None, transaction=connection
         )
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -80,9 +82,10 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = tree_node_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await tree_node_repository_service.create_tree_node(
+    entity_id_result = await tree_node_repository_service.create_tree_node(
         label=None, parent_node_id=None, transaction=connection
     )
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

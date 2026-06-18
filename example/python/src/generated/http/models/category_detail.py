@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from generated.http.models.store_summary import StoreSummary
 from pydantic import BaseModel, Field
+
+from generated.http.models.store_summary import StoreSummary
 
 
 class CategoryDetail(BaseModel):

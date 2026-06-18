@@ -9,9 +9,10 @@ from typing import Protocol
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
 from generated.http.models.problem import Problem
 from generated.http.server.api_exceptions import NotImplementedApiError
-from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
 

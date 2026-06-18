@@ -24,9 +24,9 @@ Derives an INSERT statement from an operation and the referenced @sqlTable shape
 operation input must be `smithplates.codegen.sql#DerivedStruct`. Insert columns are every
 non-auto-generated table member (required and optional). Database-managed members
 (@sqlAutoUuid, @sqlCreatedTimestamp, @sqlUpdatedTimestamp) are omitted. For output, set the
-operation output to the primary key member target type to RETURNING that column when the table
-has a single primary key. Otherwise set output to a structure whose members name table columns
-to RETURNING. `Unit` output is invalid.
+operation output to a structure whose members name table columns to RETURNING. For example,
+`structure CreateFooOutput { @required id: String }` returns the `id` column. `Unit` output is
+invalid.
 """)
 @trait(selector: "operation")
 structure sqlDeriveInsert {
@@ -38,9 +38,10 @@ structure sqlDeriveInsert {
 Derives an UPDATE statement from an operation and the referenced @sqlTable shape. The
 operation input must be `smithplates.codegen.sql#DerivedStruct`. Codegen expands input to
 `whereClause` (all @sqlPrimaryKey members) and `updateFields` (non-primary-key members that
-are not database-managed on update). The operation output must be `Boolean` (false when no
-row matched or was updated). Generated SQL targets a single row via the primary key WHERE
-clause and sets @sqlUpdatedTimestamp columns automatically.
+are not database-managed on update). The operation output should be a structure with exactly
+one Boolean member (false when no row matched or was updated), such as
+`structure UpdateFooOutput { @required updated: Boolean }`. Generated SQL targets a single row
+via the primary key WHERE clause and sets @sqlUpdatedTimestamp columns automatically.
 """)
 @trait(selector: "operation")
 structure sqlDeriveUpdate {
@@ -51,9 +52,11 @@ structure sqlDeriveUpdate {
 @documentation("""
 Derives a DELETE statement from an operation and the referenced @sqlTable shape. The
 operation input must be `smithplates.codegen.sql#DerivedStruct`. Codegen expands input to
-`whereClause` (all @sqlPrimaryKey members). The operation output must be `Boolean` (false
-when no row was deleted). Generated SQL deletes a single row via the primary key WHERE clause
-and uses RETURNING on primary key columns so callers can detect whether a row was removed.
+`whereClause` (all @sqlPrimaryKey members). The operation output should be a structure with
+exactly one Boolean member (false when no row was deleted), such as
+`structure DeleteFooOutput { @required deleted: Boolean }`. Generated SQL deletes a single row
+via the primary key WHERE clause and uses RETURNING on primary key columns so callers can detect
+whether a row was removed.
 """)
 @trait(selector: "operation")
 structure sqlDeriveDelete {

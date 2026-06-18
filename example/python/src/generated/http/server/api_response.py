@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from fastapi.responses import JSONResponse, RedirectResponse, Response
-from generated.http.server.operation_bindings import OperationHttpBinding
 from pydantic import BaseModel
+
+from generated.http.server.operation_bindings import OperationHttpBinding
 
 
 def dispatch_api_response(

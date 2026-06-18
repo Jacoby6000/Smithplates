@@ -42,7 +42,7 @@ WHERE id = ?;""",
 def _Bookmark_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Bookmark:
     return Bookmark(
         id=_read_str(row, 0),
-        title=_read_str(row, 1),
+        title=None if row[1] is None else _read_str(row, 1),
     )
 
 

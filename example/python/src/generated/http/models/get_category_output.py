@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from generated.http.models.category_detail import CategoryDetail
 from pydantic import BaseModel, Field
+
+from generated.http.models.category_detail import CategoryDetail
 
 
 class GetCategoryOutput(BaseModel):

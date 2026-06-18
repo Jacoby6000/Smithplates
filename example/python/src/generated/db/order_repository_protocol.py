@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Protocol, TypeVar
 
 from generated.db.models.order_repository_models import (
+    CreateOrderRecordOutput,
     OrderLine,
 )
 
@@ -19,6 +20,7 @@ class GetOrderRecordResult:
     updated_at: datetime
     order_lines: list[OrderLine]
 
+
 T = TypeVar("T", contravariant=True)
 
 
@@ -30,12 +32,10 @@ class OrderRepositoryServiceProtocol(Protocol[T]):
         priority: OrderPriority,
         *,
         transaction: T | None = None,
-    ) -> str:
-        ...
+    ) -> CreateOrderRecordOutput: ...
     async def get_order_record(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> GetOrderRecordResult | None:
-        ...
+    ) -> GetOrderRecordResult | None: ...

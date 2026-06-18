@@ -1,7 +1,8 @@
 <%@ val memberName: String %>
 <%@ val typeName: String %>
+<%@ val optional: Boolean = false %>
 <%@ val isJson: Boolean = false %>
 <%@ val jsonTypeName: String = "" %>
 <%@ val timestampFormat: Any = null %>
 <%@ val dialectKey: String %>
-<% if (isJson) { %>_json_bind_${jsonTypeName}(${memberName})<% } else if (typeName == "Timestamp" && timestampFormat != null) { %><% if (timestampFormat == "DateTime" && dialectKey == "sqlite") { %>_timestamp_bind_datetime(${memberName})<% } else if (timestampFormat == "EpochSeconds") { %>_timestamp_bind_epoch_seconds(${memberName})<% } else { %>${memberName}<% } %><% } else { %>${memberName}<% } %>
+<% if (isJson) { %>_json_bind_${jsonTypeName}(${memberName})<% } else if (typeName == "Timestamp" && timestampFormat != null) { %><% if (timestampFormat == "DateTime" && dialectKey == "sqlite") { %><% if (optional) { %>None if ${memberName} is None else <% } %>_timestamp_bind_datetime(${memberName})<% } else if (timestampFormat == "EpochSeconds") { %><% if (optional) { %>None if ${memberName} is None else <% } %>_timestamp_bind_epoch_seconds(${memberName})<% } else { %>${memberName}<% } %><% } else { %>${memberName}<% } %>

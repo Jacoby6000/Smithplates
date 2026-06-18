@@ -2,6 +2,8 @@
 from datetime import datetime  # noqa: F401
 from typing import Annotated, Any, Protocol  # noqa: F401
 
+from pydantic import Field  # noqa: F401
+
 from generated.http.models.create_pet_input import CreatePetInput
 from generated.http.models.create_pet_output import CreatePetOutput
 from generated.http.models.get_pet_output import GetPetOutput
@@ -10,7 +12,6 @@ from generated.http.models.pet_not_found import PetNotFound
 from generated.http.models.update_pet_body import UpdatePetBody
 from generated.http.models.update_pet_output import UpdatePetOutput
 from generated.http.models.validation_error import ValidationError
-from pydantic import Field  # noqa: F401
 
 
 class PetsApiServiceProtocol(Protocol):
@@ -19,25 +20,22 @@ class PetsApiServiceProtocol(Protocol):
         create_pet_input: CreatePetInput,
     ) -> CreatePetOutput | ValidationError:
         """HTTP-facing petstore contract. Generated FastAPI routes call protocol implementations
-in `src/server` that delegate to generated `@sqlService` repositories."""
+        in `src/server` that delegate to generated `@sqlService` repositories."""
+
     async def delete_pet(
         self,
         pet_id: str,
-    ) -> PetNotFound:
-        ...
+    ) -> PetNotFound: ...
     async def get_pet(
         self,
         pet_id: str,
-    ) -> GetPetOutput | PetNotFound:
-        ...
+    ) -> GetPetOutput | PetNotFound: ...
     async def resolve_pet_location(
         self,
         pet_id: str,
-    ) -> PetLocationRedirect | PetNotFound:
-        ...
+    ) -> PetLocationRedirect | PetNotFound: ...
     async def update_pet(
         self,
         pet_id: str,
         body: UpdatePetBody,
-    ) -> UpdatePetOutput | PetNotFound | ValidationError:
-        ...
+    ) -> UpdatePetOutput | PetNotFound | ValidationError: ...

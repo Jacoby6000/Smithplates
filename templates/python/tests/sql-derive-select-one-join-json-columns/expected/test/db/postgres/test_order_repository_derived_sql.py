@@ -41,7 +41,8 @@ async def order_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryPsycopgService) -> None:
-    entity_id = await order_repository_service.create_order(label="integration-label")
+    entity_id_result = await order_repository_service.create_order(label="integration-label")
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -56,7 +57,8 @@ async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepo
 async def test_derived_sql_methods_transaction_commit(order_repository_service: OrderRepositoryPsycopgService) -> None:
     connection = order_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await order_repository_service.create_order(label="integration-label", transaction=tx)
+        entity_id_result = await order_repository_service.create_order(label="integration-label", transaction=tx)
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -79,7 +81,8 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await order_repository_service.create_order(label="integration-label", transaction=tx)
+            entity_id_result = await order_repository_service.create_order(label="integration-label", transaction=tx)
+            entity_id = entity_id_result
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from pydantic import BaseModel, Field
+
 from generated.http.models.order_priority import OrderPriority
 from generated.http.models.order_status import OrderStatus
-from pydantic import BaseModel, Field
 
 
 class PlaceOrderInput(BaseModel):

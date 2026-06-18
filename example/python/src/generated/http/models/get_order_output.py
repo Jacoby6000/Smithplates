@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from generated.http.models.order_detail import OrderDetail
 from pydantic import BaseModel, Field
+
+from generated.http.models.order_detail import OrderDetail
 
 
 class GetOrderOutput(BaseModel):

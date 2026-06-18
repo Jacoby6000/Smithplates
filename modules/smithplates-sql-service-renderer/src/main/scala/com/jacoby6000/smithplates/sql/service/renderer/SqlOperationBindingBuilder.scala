@@ -118,9 +118,10 @@ object SqlOperationBindingBuilder {
       bindParameters =
         (query.setColumns ++ query.whereColumns).map(column => columnToBindParameter(query.table, column)),
       executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
-      outputKind = "boolean",
+      outputKind = query.booleanResultMemberName.fold("boolean")(_ => "booleanStructure"),
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = Nil,
+      booleanResultFieldName = query.booleanResultMemberName
     )
 
   private def buildDeleteBinding(
@@ -133,9 +134,10 @@ object SqlOperationBindingBuilder {
       tableName = query.table.name,
       bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
       executionMode = "fetchone",
-      outputKind = "boolean",
+      outputKind = query.booleanResultMemberName.fold("boolean")(_ => "booleanStructure"),
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = Nil,
+      booleanResultFieldName = query.booleanResultMemberName
     )
 
   private def buildSelectOneBinding(
@@ -191,6 +193,7 @@ object SqlOperationBindingBuilder {
     SqlCodegenBindParameter(
       memberName = column.memberName,
       typeName = column.typeName,
+      optional = column.nullable,
       isJson = isJson,
       jsonTypeName = column.jsonTypeName,
       timestampFormat = timestampFormat
@@ -210,6 +213,7 @@ object SqlOperationBindingBuilder {
       columnIndex = columnIndex,
       typeName = column.typeName,
       readTypeName = rowReadTypeName(column.typeName, columnType),
+      optional = column.nullable,
       isJson = isJson,
       timestampFormat = timestampFormat
     )

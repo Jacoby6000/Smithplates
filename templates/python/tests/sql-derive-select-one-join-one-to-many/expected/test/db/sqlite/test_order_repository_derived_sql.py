@@ -32,7 +32,8 @@ async def order_repository_service() -> AsyncIterator[OrderRepositoryAiosqliteSe
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryAiosqliteService) -> None:
-    entity_id = await order_repository_service.create_order(label=None)
+    entity_id_result = await order_repository_service.create_order(label=None)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -50,7 +51,8 @@ async def test_derived_sql_methods_transaction_commit(
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await order_repository_service.create_order(label=None, transaction=connection)
+        entity_id_result = await order_repository_service.create_order(label=None, transaction=connection)
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -75,7 +77,8 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await order_repository_service.create_order(label=None, transaction=connection)
+    entity_id_result = await order_repository_service.create_order(label=None, transaction=connection)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

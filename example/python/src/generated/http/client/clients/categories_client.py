@@ -20,7 +20,7 @@ class CategoriesApiClient:
         self,
         category_id: str,
     ) -> GetCategoryOutput | CategoryNotFound:
-headers: dict[str, str] | None = None
+        headers: dict[str, str] | None = None
         response = await self._client.request(
             "GET",
             f"{self._base_url}/categories/{category_id}",

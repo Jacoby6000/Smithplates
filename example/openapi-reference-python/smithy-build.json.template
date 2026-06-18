@@ -2,6 +2,12 @@
   "version": "1.0",
   "sources": ["../petstore-smithy-spec/petstore/api"],
   "maven": {
+    "repositories": [
+      {
+        "url": "${SMITHPLATES_LOCAL_MAVEN_REPOSITORY_URL}",
+        "id": "smithplates-local-maven"
+      }
+    ],
     "dependencies": [
       "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}",
       "software.amazon.smithy:smithy-aws-traits:${SMITHY_VERSION}",

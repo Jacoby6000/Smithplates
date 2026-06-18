@@ -7,6 +7,7 @@
         Map(
           "memberName"      -> bindParameter.memberName,
           "typeName"        -> bindParameter.typeName,
+          "optional"        -> bindParameter.optional,
           "isJson"          -> bindParameter.isJson,
           "jsonTypeName"    -> bindParameter.jsonTypeName,
           "timestampFormat" -> (if (bindParameter.timestampFormat.isEmpty) null else bindParameter.timestampFormat),

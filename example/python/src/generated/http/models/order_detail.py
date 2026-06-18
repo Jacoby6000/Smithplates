@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from pydantic import BaseModel, Field
+
 from generated.http.models.order_line_detail import OrderLineDetail
 from generated.http.models.order_priority import OrderPriority
 from generated.http.models.order_status import OrderStatus
-from pydantic import BaseModel, Field
 
 
 class OrderDetail(BaseModel):

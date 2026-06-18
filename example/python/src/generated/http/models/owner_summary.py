@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from generated.http.models.postal_address import PostalAddress
 from pydantic import BaseModel, Field
+
+from generated.http.models.postal_address import PostalAddress
 
 
 class OwnerSummary(BaseModel):

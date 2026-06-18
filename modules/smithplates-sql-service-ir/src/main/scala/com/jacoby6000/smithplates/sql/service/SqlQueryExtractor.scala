@@ -238,23 +238,25 @@ object SqlQueryExtractor {
     }
   }
 
-  private def requireBooleanDeriveUpdateOutput(operation: OperationShape): SqlValidated[Unit] =
+  private def requireBooleanDeriveUpdateOutput(operation: OperationShape, model: Model): SqlValidated[Option[String]] =
     requireBooleanDeriveOutput(
       operation,
+      model,
       error =>
         InvalidDeriveUpdate(
           operation.getId,
-          s"output must be Boolean (false when no row was updated); got '${error.outputShapeId.toString}'"
+          s"output must be Boolean or a structure with exactly one Boolean member (false when no row was updated); got '${error.outputShapeId.toString}'"
         )
     )
 
-  private def requireBooleanDeriveDeleteOutput(operation: OperationShape): SqlValidated[Unit] =
+  private def requireBooleanDeriveDeleteOutput(operation: OperationShape, model: Model): SqlValidated[Option[String]] =
     requireBooleanDeriveOutput(
       operation,
+      model,
       error =>
         InvalidDeriveDelete(
           operation.getId,
-          s"output must be Boolean (false when no row was deleted); got '${error.outputShapeId.toString}'"
+          s"output must be Boolean or a structure with exactly one Boolean member (false when no row was deleted); got '${error.outputShapeId.toString}'"
         )
     )
 
@@ -262,14 +264,27 @@ object SqlQueryExtractor {
 
   private def requireBooleanDeriveOutput(
       operation: OperationShape,
+      model: Model,
       toError: UnexpectedDeriveOutputShape => SqlSchemaError
-  ): SqlValidated[Unit] = {
+  ): SqlValidated[Option[String]] = {
     val outputShapeId = operation.getOutput.toScala.getOrElse(operation.getOutputShape)
 
     if (outputShapeId == BooleanShapeId) {
-      ().validNel
+      None.validNel
     } else {
-      toError(UnexpectedDeriveOutputShape(outputShapeId)).invalidNel
+      model
+        .getShape(outputShapeId)
+        .toScala
+        .collect { case structure: StructureShape =>
+          val members = structure.getAllMembers.asScala.toList
+          members match {
+            case (memberName, member) :: Nil if member.getTarget == BooleanShapeId =>
+              Some(memberName).validNel
+            case _                                                                 =>
+              toError(UnexpectedDeriveOutputShape(outputShapeId)).invalidNel
+          }
+        }
+        .getOrElse(toError(UnexpectedDeriveOutputShape(outputShapeId)).invalidNel)
     }
   }
 
@@ -285,7 +300,7 @@ object SqlQueryExtractor {
     resolveTable(model, schema, operationShape, targetTable, queryKind).andThen { case (table, tableStructure) =>
       (
         requireDerivedStructInput(operation, "sqlDeriveUpdate"),
-        requireBooleanDeriveUpdateOutput(operation),
+        requireBooleanDeriveUpdateOutput(operation, model),
         validateDeriveUpdateColumns(
           operationShape,
           table.name,
@@ -293,7 +308,7 @@ object SqlQueryExtractor {
           tableStructure,
           table
         )
-      ).mapN { (_, _, columns) =>
+      ).mapN { (_, booleanResultMemberName, columns) =>
         val returningColumns =
           SqlTableMemberCatalog
             .membersFor(tableStructure)
@@ -304,7 +319,8 @@ object SqlQueryExtractor {
           table = table,
           setColumns = columns.setColumns,
           whereColumns = columns.whereColumns,
-          returningColumns = returningColumns
+          returningColumns = returningColumns,
+          booleanResultMemberName = booleanResultMemberName
         )
       }
     }
@@ -322,14 +338,15 @@ object SqlQueryExtractor {
     resolveTable(model, schema, operationShape, targetTable, queryKind).andThen { case (table, tableStructure) =>
       (
         requireDerivedStructInput(operation, "sqlDeriveDelete"),
-        requireBooleanDeriveDeleteOutput(operation),
+        requireBooleanDeriveDeleteOutput(operation, model),
         validateDeriveDeleteColumns(operationShape, table.name, model, tableStructure, table)
-      ).mapN { (_, _, whereColumns) =>
+      ).mapN { (_, booleanResultMemberName, whereColumns) =>
         SqlDeleteQuery(
           shapeId = operationShape,
           table = table,
           whereColumns = whereColumns,
-          returningColumns = whereColumns
+          returningColumns = whereColumns,
+          booleanResultMemberName = booleanResultMemberName
         )
       }
     }

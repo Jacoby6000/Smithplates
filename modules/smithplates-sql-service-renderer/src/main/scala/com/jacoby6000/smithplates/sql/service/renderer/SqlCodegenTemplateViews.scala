@@ -48,6 +48,7 @@ final case class TemplateParameterView(
 final case class TemplateBindParameterView(
     memberName: String,
     typeName: String,
+    optional: Boolean,
     isJson: Boolean,
     jsonTypeName: String,
     timestampFormat: String,
@@ -61,6 +62,7 @@ final case class TemplateResultFieldView(
     columnIndex: Int,
     typeName: String,
     readTypeName: String,
+    optional: Boolean,
     isJson: Boolean,
     timestampFormat: String,
     last: Boolean = false
@@ -88,6 +90,7 @@ final case class TemplateOperationView(
     bindParameters: List[TemplateBindParameterView],
     returningColumnIndex: java.lang.Integer,
     resultFields: List[TemplateResultFieldView],
+    booleanResultFieldName: String,
     selectOneNestedBindings: List[TemplateSelectOneNestedBindingView] = Nil,
     last: Boolean = false
 )
@@ -102,6 +105,7 @@ final case class TemplateIntegrationTestOperationView(
     name: String,
     callArguments: String,
     outputShapeName: String,
+    outputValueAccessor: String,
     hasResultAssertions: Boolean,
     resultAssertions: List[TemplateAssertionLine],
     hasUpdatedResultAssertions: Boolean,
@@ -114,6 +118,7 @@ object TemplateIntegrationTestOperationView {
       name = "",
       callArguments = "",
       outputShapeName = "",
+      outputValueAccessor = "",
       hasResultAssertions = false,
       resultAssertions = Nil,
       hasUpdatedResultAssertions = false,
@@ -123,6 +128,7 @@ object TemplateIntegrationTestOperationView {
 
 final case class IntegrationTestView(
     schemaDdl: String,
+    setupSqlStatements: List[String],
     extraImports: String,
     testImports: String,
     localImportBlock: String,
@@ -220,6 +226,7 @@ object SqlCodegenTemplateViews {
   ): IntegrationTestView =
     IntegrationTestView(
       schemaDdl = integrationTest.schemaDdl,
+      setupSqlStatements = integrationTest.setupSqlStatements,
       extraImports = if (integrationTest.extraImports.nonEmpty) {
         integrationTest.extraImports.mkString("", "\n", "\n")
       } else {
@@ -252,6 +259,7 @@ object SqlCodegenTemplateViews {
       name = operation.name,
       callArguments = operation.callArguments,
       outputShapeName = operation.outputShapeId.map(_.getName).getOrElse(""),
+      outputValueAccessor = operation.outputValueAccessor,
       hasResultAssertions = operation.resultAssertions.nonEmpty,
       resultAssertions = withLastFlag(operation.resultAssertions.map(TemplateAssertionLine(_)))((assertion, last) =>
         assertion.copy(last = last)),
@@ -291,14 +299,15 @@ object SqlCodegenTemplateViews {
       dialectKey: String,
       operation: SqlCodegenOperation
   ): TemplateOperationView = {
-    val sqlFields                                                                       = operation.sql match {
+    val sqlFields                                                                                               = operation.sql match {
       case None      =>
         (
           "",
           "",
           List.empty[TemplateBindParameterView],
           null: java.lang.Integer,
-          List.empty[TemplateResultFieldView]
+          List.empty[TemplateResultFieldView],
+          ""
         )
       case Some(sql) =>
         (
@@ -307,11 +316,13 @@ object SqlCodegenTemplateViews {
           withLastFlag(sql.bindParameters.map(bindParameterView(dialectKey, _)))((bindParameter, last) =>
             bindParameter.copy(last = last)),
           sql.returningColumnIndex.map(Integer.valueOf).orNull,
-          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
+          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last)),
+          sql.booleanResultFieldName.getOrElse("")
         )
     }
-    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields) = sqlFields
-    val selectOneNestedBindings                                                         =
+    val (sqlStatement, sqlBodyKind, bindParameters, returningColumnIndex, resultFields, booleanResultFieldName) =
+      sqlFields
+    val selectOneNestedBindings                                                                                 =
       operation.sql.flatMap(_.selectOneOutput).toList.flatMap { output =>
         output.nestedBindings.map { nested =>
           TemplateSelectOneNestedBindingView(
@@ -340,6 +351,7 @@ object SqlCodegenTemplateViews {
       bindParameters = bindParameters,
       returningColumnIndex = returningColumnIndex,
       resultFields = resultFields,
+      booleanResultFieldName = booleanResultFieldName,
       selectOneNestedBindings = selectOneNestedBindings
     )
   }
@@ -361,6 +373,7 @@ object SqlCodegenTemplateViews {
     TemplateBindParameterView(
       memberName = bindParameter.memberName,
       typeName = bindParameter.typeName,
+      optional = bindParameter.optional,
       isJson = bindParameter.isJson,
       jsonTypeName = bindParameter.jsonTypeName.getOrElse(""),
       timestampFormat = timestampFormatName(bindParameter.timestampFormat),
@@ -374,6 +387,7 @@ object SqlCodegenTemplateViews {
       columnIndex = resultField.columnIndex,
       typeName = resultField.typeName,
       readTypeName = resultField.readTypeName,
+      optional = resultField.optional,
       isJson = resultField.isJson,
       timestampFormat = timestampFormatName(resultField.timestampFormat)
     )

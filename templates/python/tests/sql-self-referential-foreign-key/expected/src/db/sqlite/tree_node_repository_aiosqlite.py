@@ -62,8 +62,8 @@ WHERE id = ?;""",
 def _TreeNode_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> TreeNode:
     return TreeNode(
         id=_read_str(row, 0),
-        label=_read_str(row, 1),
-        parent_node_id=_read_str(row, 2),
+        label=None if row[1] is None else _read_str(row, 1),
+        parent_node_id=None if row[2] is None else _read_str(row, 2),
     )
 
 

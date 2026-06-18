@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from generated.http.models.pet_detail import PetDetail
 from pydantic import BaseModel, Field
+
+from generated.http.models.pet_detail import PetDetail
 
 
 class GetPetOutput(BaseModel):

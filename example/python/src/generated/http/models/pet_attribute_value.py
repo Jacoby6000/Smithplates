@@ -8,10 +8,13 @@ from typing import TypedDict
 class PetAttributeValueColor(TypedDict):
     color: str
 
+
 class PetAttributeValueWeight_kg(TypedDict):
     weight_kg: float
 
+
 class PetAttributeValueVaccinated(TypedDict):
     vaccinated: bool
+
 
 PetAttributeValue = PetAttributeValueColor | PetAttributeValueWeight_kg | PetAttributeValueVaccinated

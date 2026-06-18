@@ -88,7 +88,12 @@ structure Widget {
 @sqlDeriveInsert(targetTable: "example.db#Widget")
 operation CreateWidget {
     input: DerivedStruct
-    output: String
+    output: CreateWidgetOutput
+}
+
+structure CreateWidgetOutput {
+    @required
+    id: String
 }
 
 @sqlDeriveSelectOne(targetTable: "example.db#Widget")

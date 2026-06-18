@@ -6,6 +6,8 @@ import json
 from datetime import UTC, datetime
 from typing import Any, cast
 
+from generated.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
+from generated.db.models.pet_repository_models import PetTags as GeneratedPetTags
 from generated.http.models.category_detail import CategoryDetail
 from generated.http.models.category_summary import CategorySummary
 from generated.http.models.create_pet_input import CreatePetInput
@@ -29,9 +31,6 @@ from generated.http.models.place_order_input import PlaceOrderInput
 from generated.http.models.postal_address import PostalAddress
 from generated.http.models.store_summary import StoreSummary
 from generated.http.models.update_pet_body import UpdatePetBody
-from generated.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
-from generated.db.models.pet_repository_models import PetTags as GeneratedPetTags
-
 from server.database import RepositoryBundle
 
 
@@ -79,7 +78,7 @@ class PetstoreRepositoryService:
     async def create_pet(self, request: CreatePetInput) -> str:
         adopted_at = request.adopted_at or datetime.now(tz=UTC)
         featured = _attribute_value_from_union(request.attributes[0].value)
-        return await self._repositories.pets.create_pet_record(
+        created = await self._repositories.pets.create_pet_record(
             name=request.name,
             status=str(request.status.value),
             species=int(request.species.value),
@@ -91,6 +90,7 @@ class PetstoreRepositoryService:
             photo=request.photo or b"",
             adopted_at=adopted_at,
         )
+        return created.id
 
     async def get_pet(self, pet_id: str) -> PetDetail | None:
         record = await self._repositories.pets.get_pet_record(id=pet_id)
@@ -144,7 +144,7 @@ class PetstoreRepositoryService:
     async def update_pet(self, pet_id: str, request: UpdatePetBody) -> bool:
         adopted_at = request.adopted_at or datetime.now(tz=UTC)
         featured = _attribute_value_from_union(request.attributes[0].value)
-        return await self._repositories.pets.update_pet_record(
+        updated = await self._repositories.pets.update_pet_record(
             name=request.name,
             status=str(request.status.value),
             species=int(request.species.value),
@@ -157,9 +157,11 @@ class PetstoreRepositoryService:
             adopted_at=adopted_at,
             id=pet_id,
         )
+        return updated.updated
 
     async def delete_pet(self, pet_id: str) -> bool:
-        return await self._repositories.pets.delete_pet_record(id=pet_id)
+        deleted = await self._repositories.pets.delete_pet_record(id=pet_id)
+        return deleted.deleted
 
     async def get_category(self, category_id: str) -> CategoryDetail | None:
         record = await self._repositories.categories.get_category_record(id=category_id)
@@ -173,11 +175,12 @@ class PetstoreRepositoryService:
         )
 
     async def place_order(self, request: PlaceOrderInput) -> str:
-        return await self._repositories.orders.create_order_record(
+        created = await self._repositories.orders.create_order_record(
             label=request.label,
             status=str(request.status.value),
             priority=int(request.priority.value),
         )
+        return created.id
 
     async def get_order(self, order_id: str) -> OrderDetail | None:
         record = await self._repositories.orders.get_order_record(id=order_id)
@@ -205,11 +208,11 @@ class PetstoreRepositoryService:
 
     async def seed_reference_data(self) -> tuple[str, str]:
         store_id = await self._seed_store()
-        category_id = await self._repositories.categories.create_category_record(
+        category = await self._repositories.categories.create_category_record(
             name="Dogs",
             store_id=store_id,
         )
-        return store_id, category_id
+        return store_id, category.id
 
     async def seed_fulfillment_orders(self) -> dict[str, str]:
         """Seed one single-line order per FulfillmentState variant; return their ids by variant."""

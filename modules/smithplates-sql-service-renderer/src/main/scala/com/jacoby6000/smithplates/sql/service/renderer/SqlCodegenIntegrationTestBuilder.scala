@@ -6,6 +6,9 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.service.SqlQueries
 
+import java.nio.charset.StandardCharsets
+import java.util.UUID
+
 object SqlCodegenIntegrationTestBuilder {
   private enum SampleVariant {
     case Initial
@@ -37,10 +40,15 @@ object SqlCodegenIntegrationTestBuilder {
 
     (insertOperation, selectOneOperation) match {
       case (Some(insert), Some(selectOne)) =>
-        val testImports = collectTestImports(context, insert, selectOne, updateOperation)
+        val testImports     = collectTestImports(context, insert, selectOne, updateOperation)
+        val insertTableName =
+          sqlOperations
+            .find(_.sql.exists(_.queryKind == "insert"))
+            .flatMap(_.sql.map(_.tableName))
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = schemaDdl(schema, sqlOperations, queries, context.dialectKey, schemaDdlRenderers),
+            setupSqlStatements = insertTableName.toList.flatMap(requiredForeignKeySetupStatements(schema, _)),
             insertOperation = insert,
             selectOneOperation = selectOne,
             updateOperation = updateOperation,
@@ -90,6 +98,112 @@ object SqlCodegenIntegrationTestBuilder {
     SqlShared.formatDdlStatements(ddlRenderer.renderSchemaDdlStatements(filteredSchema))
   }
 
+  final private case class SeedTable(
+      table: SqlTable,
+      valueSeeds: Map[String, String],
+      variant: SampleVariant
+  )
+
+  private def requiredForeignKeySetupStatements(schema: SqlSchema, primaryTableName: String): List[String] = {
+    val tableByName    = schema.tables.map(table => table.name -> table).toMap
+    val tableByShapeId = schema.tables.map(table => table.shapeId -> table).toMap
+
+    def requiredForeignKeys(table: SqlTable): List[SqlForeignKey] =
+      table.foreignKeys.filter { foreignKey =>
+        table.columns.find(_.name == foreignKey.column).exists(column => !column.nullable)
+      }
+
+    def collectDependencies(table: SqlTable, seen: Set[String], variant: SampleVariant): List[SeedTable] =
+      requiredForeignKeys(table).flatMap { foreignKey =>
+        tableByShapeId.get(foreignKey.referencesShape).toList.flatMap { targetTable =>
+          if (targetTable.name == primaryTableName || seen.contains(targetTable.name)) {
+            Nil
+          } else {
+            collectDependencies(targetTable, seen + targetTable.name, variant) :+
+              SeedTable(targetTable, Map(foreignKey.referencesColumn -> foreignKey.column), variant)
+          }
+        }
+      }
+
+    val seedTables =
+      tableByName
+        .get(primaryTableName)
+        .toList
+        .flatMap(table =>
+          collectDependencies(table, Set(table.name), SampleVariant.Initial) ++
+            collectDependencies(table, Set(table.name), SampleVariant.Updated))
+        .foldLeft(Vector.empty[SeedTable]) { (orderedSeeds, seed) =>
+          val existingIndex =
+            orderedSeeds.indexWhere(existing => existing.table == seed.table && existing.variant == seed.variant)
+          if (existingIndex < 0) {
+            orderedSeeds :+ seed
+          } else {
+            val existing = orderedSeeds(existingIndex)
+            orderedSeeds.updated(existingIndex, existing.copy(valueSeeds = existing.valueSeeds ++ seed.valueSeeds))
+          }
+        }
+
+    seedTables
+      .flatMap { seed =>
+        val table      = seed.table
+        val variant    = seed.variant
+        val valueSeeds = seed.valueSeeds
+        val columns    =
+          table.columns.filter(column =>
+            table.primaryKeys.contains(column.name) || (!column.nullable && column.autoGeneration.isEmpty))
+        if (columns.isEmpty) {
+          None
+        } else {
+          val columnNames = columns.map(_.name).mkString(", ")
+          val values      =
+            columns
+              .map(column =>
+                sampleSqlLiteral(column.columnType, valueSeeds.getOrElse(column.name, column.name), variant))
+              .mkString(", ")
+          Some(s"INSERT INTO ${table.name} ($columnNames) VALUES ($values) ON CONFLICT DO NOTHING;")
+        }
+      }
+      .distinct
+      .toList
+  }
+
+  private def sampleSqlLiteral(columnType: SqlColumnType, seed: String, variant: SampleVariant): String = {
+    val suffix =
+      variant match {
+        case SampleVariant.Initial => seed
+        case SampleVariant.Updated => s"updated-$seed"
+      }
+
+    columnType match {
+      case SqlColumnType.Uuid                                       =>
+        singleQuoted(uuidSample(suffix))
+      case SqlColumnType.Text | SqlColumnType.Varchar(_)            =>
+        singleQuoted(s"integration-$suffix")
+      case SqlColumnType.StringEnum(_, _, values)                   =>
+        singleQuoted(values.headOption.getOrElse(s"integration-$suffix"))
+      case SqlColumnType.Integer | SqlColumnType.BigInt             =>
+        "42"
+      case SqlColumnType.IntEnum(_, values)                         =>
+        values.headOption.map(_.toString).getOrElse("42")
+      case SqlColumnType.Boolean                                    =>
+        "true"
+      case SqlColumnType.Blob                                       =>
+        "X'00'"
+      case SqlColumnType.Json                                       =>
+        singleQuoted("{}")
+      case SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds) =>
+        "1704067200"
+      case SqlColumnType.Timestamp(SqlTimestampFormat.DateTime)     =>
+        singleQuoted("2024-01-01T00:00:00Z")
+    }
+  }
+
+  private def singleQuoted(value: String): String =
+    s"'${value.replace("'", "''")}'"
+
+  private def uuidSample(seed: String): String =
+    UUID.nameUUIDFromBytes(s"integration-$seed".getBytes(StandardCharsets.UTF_8)).toString
+
   private def enumSampleLiterals(
       context: SqlCodegenServiceContext,
       schema: SqlSchema
@@ -122,6 +236,7 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial, enumSamples),
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -150,6 +265,7 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial, enumSamples),
         updatedResultAssertions =
           resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated, enumSamples)
@@ -175,6 +291,7 @@ object SqlCodegenIntegrationTestBuilder {
         },
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
@@ -187,10 +304,21 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
     )
+
+  private def outputValueAccessor(operation: SqlCodegenOperation): String =
+    operation.sql match {
+      case Some(sql) if sql.queryKind == "insert" && sql.outputKind == "structure" =>
+        sql.resultFields.headOption.map(field => s".${field.fieldName}").getOrElse("")
+      case Some(sql) if sql.outputKind == "booleanStructure"                       =>
+        sql.booleanResultFieldName.map(fieldName => s".$fieldName").getOrElse("")
+      case _                                                                       =>
+        ""
+    }
 
   private def remapAssertionTarget(
       assertions: List[String],
@@ -314,7 +442,9 @@ object SqlCodegenIntegrationTestBuilder {
       }
 
     typeName match {
-      case "String"                                        => s"\"integration-$suffix\""
+      case "String"                                        =>
+        val sample = if (isIdentifierSeed(seed)) uuidSample(suffix) else s"integration-$suffix"
+        s"\"$sample\""
       case "Integer" | "Long" | "BigInteger"               => if (variant == SampleVariant.Initial) "42" else "84"
       case "Float" | "Double"                              => if (variant == SampleVariant.Initial) "3.5" else "7.0"
       case "Boolean"                                       => "True"
@@ -342,6 +472,9 @@ object SqlCodegenIntegrationTestBuilder {
         throw new IllegalArgumentException(s"Unsupported integration test sample type: $other")
     }
   }
+
+  private def isIdentifierSeed(seed: String): Boolean =
+    seed == "id" || seed.endsWith("_id")
 
   private def collectTestImports(
       context: SqlCodegenServiceContext,

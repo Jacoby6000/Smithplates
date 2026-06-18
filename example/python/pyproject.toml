@@ -19,6 +19,7 @@ dependencies = [
 dev = [
     "mypy>=1.13",
     "ruff>=0.9",
+    "testcontainers[postgres]>=4.14.2",
 ]
 
 [project.scripts]

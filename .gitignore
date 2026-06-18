@@ -20,3 +20,4 @@ result
 metals.sbt
 
 example/**/smithy-build.json
+**/build/smithy

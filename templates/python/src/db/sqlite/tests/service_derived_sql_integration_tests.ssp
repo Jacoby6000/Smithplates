@@ -22,6 +22,9 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> Asy
     connection = await aiosqlite.connect(":memory:")
     migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
+<% for (statement <- test.setupSqlStatements) { %>
+    await connection.execute("""${statement}""")
+<% } %>
     await connection.commit()
     try:
         yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)
@@ -33,7 +36,8 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> Asy
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+    entity_id_result = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+    entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
 

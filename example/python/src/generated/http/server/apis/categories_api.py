@@ -6,13 +6,15 @@ from fastapi import (
     Depends,
     Path,
 )
+from pydantic import Field  # noqa: F401
+
 from generated.http.models.get_category_output import GetCategoryOutput
 from generated.http.server.api_response import dispatch_api_response
 from generated.http.server.app_services import ApiServices, get_api_services
 from generated.http.server.operation_bindings import OPERATION_HTTP_BINDINGS
-from pydantic import Field  # noqa: F401
 
 router = APIRouter()
+
 
 @router.get(
     "/categories/{categoryId}",

@@ -9,6 +9,7 @@ import software.amazon.smithy.model.loader.ModelAssembler
 import software.amazon.smithy.openapi.fromsmithy.Smithy2OpenApi
 
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.util.Optional
 import java.util.ServiceLoader
@@ -130,10 +131,14 @@ object SmithyBuildTemplateRunner {
       .mkString("\n\n")
 
   private def deleteRecursively(path: Path): Unit =
-    if (Files.exists(path)) {
-      Files
-        .walk(path)
-        .sorted(java.util.Comparator.reverseOrder[Path]())
-        .forEach(Files.delete(_))
+    try
+      if (Files.exists(path)) {
+        Files
+          .walk(path)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(Files.delete(_))
+      }
+    catch {
+      case _: NoSuchFileException => ()
     }
 }

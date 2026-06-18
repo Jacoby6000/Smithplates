@@ -57,6 +57,7 @@ structure CreatePetOutput {
 
 @tags(["pets"])
 @readonly
+@suppress(["HttpResponseCodeSemantics"])
 @http(method: "GET", uri: "/pets/{petId}/location", code: 302)
 operation ResolvePetLocation {
     input: ResolvePetLocationInput

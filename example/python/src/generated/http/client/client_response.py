@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+from pydantic import BaseModel
+
 from generated.http.client.operation_bindings import ClientOperationHttpBinding
 from generated.http.models.category_not_found import CategoryNotFound
 from generated.http.models.create_pet_output import CreatePetOutput
@@ -18,7 +20,6 @@ from generated.http.models.pet_not_found import PetNotFound
 from generated.http.models.place_order_output import PlaceOrderOutput
 from generated.http.models.update_pet_output import UpdatePetOutput
 from generated.http.models.validation_error import ValidationError
-from pydantic import BaseModel
 
 
 class ClientResponseError(Exception):

@@ -40,13 +40,13 @@ WHERE widgets.id = ?;""",
                 return None
             return GetWidgetResult(
                 id=_read_str(row, 0),
-                title=_read_str(row, 1),
-                category_id=_read_str(row, 2),
+                title=None if row[1] is None else _read_str(row, 1),
+                category_id=None if row[2] is None else _read_str(row, 2),
                 category=None
                 if row[3] is None
                 else Category(
-                    id=_read_str(row, 3),
-                    name=_read_str(row, 4),
+                    id=None if row[3] is None else _read_str(row, 3),
+                    name=None if row[4] is None else _read_str(row, 4),
                 ),
             )
 

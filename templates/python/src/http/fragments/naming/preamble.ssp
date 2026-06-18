@@ -297,7 +297,7 @@ def clientHeaderBindingName(
 def clientRequestHeadersBlock(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
   val headerMembers = clientHeaderMembers(operation)
   if (headerMembers.isEmpty) {
-    "headers: dict[str, str] | None = None"
+    "        headers: dict[str, str] | None = None"
   } else {
     val assignmentLines =
       headerMembers.map { member =>

@@ -8,7 +8,8 @@ async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(servi
     connection = ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+        entity_id_result = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+        entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -35,7 +36,8 @@ async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(servi
 async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
     connection = ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}._connection
     await connection.execute("BEGIN")
-    entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+    entity_id_result = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+    entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()
