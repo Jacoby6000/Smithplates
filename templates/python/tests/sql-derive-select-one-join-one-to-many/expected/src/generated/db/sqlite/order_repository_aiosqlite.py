@@ -6,6 +6,7 @@ from typing import cast, override
 
 import aiosqlite
 from generated.db.models.order_repository_models import (
+    CreateOrderResult,
     OrderLine,
 )
 from generated.db.order_repository_protocol import (
@@ -26,8 +27,8 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
         label: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> str:
-        async def execute(conn: aiosqlite.Connection) -> str:
+    ) -> CreateOrderResult:
+        async def execute(conn: aiosqlite.Connection) -> CreateOrderResult:
             cursor = await conn.execute(
                 """INSERT INTO orders (label) VALUES (?) RETURNING id;""",
                 (label,),
@@ -35,7 +36,10 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+            named_row = _as_sqlite_named_row(cursor, row)
+            return CreateOrderResult(
+                id=_read_str_col(named_row, "id"),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -77,5 +81,20 @@ WHERE orders.id = ?;""",
         return await run(self._connection, transaction, execute)
 
 
+def _as_sqlite_named_row(
+    cursor: sqlite3.Cursor | aiosqlite.Cursor,
+    row: tuple[object, ...] | sqlite3.Row,
+) -> dict[str, object]:
+    if type(row) is not tuple:
+        named = cast(sqlite3.Row, row)
+        return {key: cast(object, named[key]) for key in named}
+    description = cast(tuple[tuple[object, ...], ...], cursor.description)
+    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
+
+
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
+
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    return cast(str, row[column])

@@ -36,26 +36,38 @@ class PetRepositoryPsycopgService(PetRepositoryServiceProtocol[psycopg.AsyncTran
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:
         async def execute() -> str:
             cur = await self._connection.execute(
-"""INSERT INTO pets (name, status, species, category_id, owner_id, tag_count, tags, featured_attribute, photo, adopted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;"""
-,
-                (name, status, species, category_id, owner_id, tag_count, _json_bind_PetTags(tags), _json_bind_PetHighlight(featured_attribute), photo, _timestamp_bind_epoch_seconds(adopted_at)),
+                """INSERT INTO pets (name, status, species, category_id, owner_id, tag_count, tags, featured_attribute, photo, adopted_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id;""",
+                (
+                    name,
+                    status,
+                    species,
+                    category_id,
+                    owner_id,
+                    tag_count,
+                    _json_bind_PetTags(tags),
+                    _json_bind_PetHighlight(featured_attribute),
+                    photo,
+                    _timestamp_bind_epoch_seconds(adopted_at),
+                ),
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return _read_str(row, 0)
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def get_pet_record(
         self,
@@ -65,14 +77,13 @@ class PetRepositoryPsycopgService(PetRepositoryServiceProtocol[psycopg.AsyncTran
     ) -> GetPetRecordResult | None:
         async def execute() -> GetPetRecordResult | None:
             cur = await self._connection.execute(
-"""SELECT pets.id, pets.name, pets.status, pets.species, pets.category_id, pets.owner_id, pets.tag_count, pets.tags, pets.featured_attribute, pets.photo, pets.adopted_at, pets.created_at, pets.updated_at, c.id AS c_id, c.name AS c_name, c.store_id AS c_store_id, s.id AS s_id, s.name AS s_name, o.id AS o_id, o.full_name AS o_full_name, o.mailing_address AS o_mailing_address, o.created_at AS o_created_at, pp.id AS pp_id, pp.biography AS pp_biography, pp.pet_id AS pp_pet_id
+                """SELECT pets.id, pets.name, pets.status, pets.species, pets.category_id, pets.owner_id, pets.tag_count, pets.tags, pets.featured_attribute, pets.photo, pets.adopted_at, pets.created_at, pets.updated_at, c.id AS c_id, c.name AS c_name, c.store_id AS c_store_id, s.id AS s_id, s.name AS s_name, o.id AS o_id, o.full_name AS o_full_name, o.mailing_address AS o_mailing_address, o.created_at AS o_created_at, pp.id AS pp_id, pp.biography AS pp_biography, pp.pet_id AS pp_pet_id
 FROM pets AS pets
 INNER JOIN categories AS c ON pets.category_id = c.id
 INNER JOIN stores AS s ON c.store_id = s.id
 LEFT JOIN owners AS o ON pets.owner_id = o.id
 LEFT JOIN pet_profiles AS pp ON pets.id = pp.pet_id
-WHERE pets.id = %s;"""
-,
+WHERE pets.id = %s;""",
                 (id,),
             )
             rows = await cur.fetchall()
@@ -112,7 +123,9 @@ WHERE pets.id = %s;"""
                     id=_read_str(row, 16),
                     name=_read_str(row, 17),
                 ),
-                owner=None if row[18] is None else Owner(
+                owner=None
+                if row[18] is None
+                else Owner(
                     id=_read_str(row, 18),
                     full_name=_read_str(row, 19),
                     mailing_address=_read_PostalAddress(row, 20),
@@ -120,7 +133,9 @@ WHERE pets.id = %s;"""
                 ),
                 pet_profiles=pet_profiles,
             )
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def update_pet_record(
         self,
@@ -128,27 +143,40 @@ WHERE pets.id = %s;"""
         status: PetStatus,
         species: PetSpecies,
         category_id: str,
-        owner_id: str,
+        owner_id: str | None,
         tag_count: int,
         tags: PetTags,
         featured_attribute: PetHighlight,
-        photo: bytes,
-        adopted_at: datetime,
+        photo: bytes | None,
+        adopted_at: datetime | None,
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> bool:
         async def execute() -> bool:
             cur = await self._connection.execute(
-"""UPDATE pets
+                """UPDATE pets
 SET name = %s, status = %s, species = %s, category_id = %s, owner_id = %s, tag_count = %s, tags = %s, featured_attribute = %s, photo = %s, adopted_at = %s, updated_at = CURRENT_TIMESTAMP
-WHERE id = %s RETURNING updated_at;"""
-,
-                (name, status, species, category_id, owner_id, tag_count, _json_bind_PetTags(tags), _json_bind_PetHighlight(featured_attribute), photo, _timestamp_bind_epoch_seconds(adopted_at), id),
+WHERE id = %s RETURNING updated_at;""",
+                (
+                    name,
+                    status,
+                    species,
+                    category_id,
+                    owner_id,
+                    tag_count,
+                    _json_bind_PetTags(tags),
+                    _json_bind_PetHighlight(featured_attribute),
+                    photo,
+                    _timestamp_bind_epoch_seconds(adopted_at),
+                    id,
+                ),
             )
             row = await cur.fetchone()
             return row is not None
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def delete_pet_record(
         self,
@@ -158,30 +186,37 @@ WHERE id = %s RETURNING updated_at;"""
     ) -> bool:
         async def execute() -> bool:
             cur = await self._connection.execute(
-"""DELETE FROM pets WHERE id = %s RETURNING id;"""
-,
+                """DELETE FROM pets WHERE id = %s RETURNING id;""",
                 (id,),
             )
             row = await cur.fetchone()
             return row is not None
+
         return await run(self._connection, transaction, execute)
+
+
 def _read_bytes(row: tuple[object, ...], index: int) -> bytes:
     return cast(bytes, row[index])
+
 
 def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
     return cast(datetime, row[index])
 
+
 def _read_epoch_seconds(row: tuple[object, ...], index: int) -> datetime:
     return datetime.fromtimestamp(float(cast(Decimal, row[index])), tz=timezone.utc)
 
+
 def _read_int(row: tuple[object, ...], index: int) -> int:
     return cast(int, row[index])
+
 
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)
+
 
 def _timestamp_bind_epoch_seconds(value: datetime) -> Decimal:
     if value.tzinfo is None:
@@ -190,8 +225,9 @@ def _timestamp_bind_epoch_seconds(value: datetime) -> Decimal:
         normalized = value.astimezone(timezone.utc)
     return Decimal(str(round(normalized.timestamp(), 3)))
 
+
 def _json_bind_PetHighlight(value: PetHighlight) -> str:
-    payload = { "name": cast(object, value.name), "color": cast(object, value.color) }
+    payload = {"name": cast(object, value.name), "color": cast(object, value.color)}
     return json.dumps(payload)
 
 
@@ -206,8 +242,9 @@ def _read_PetHighlight(row: tuple[object, ...], index: int) -> PetHighlight:
         color=cast(str, data["color"]),
     )
 
+
 def _json_bind_PetTags(value: PetTags) -> str:
-    payload = { "items": cast(object, value.items) }
+    payload = {"items": cast(object, value.items)}
     return json.dumps(payload)
 
 
@@ -221,8 +258,13 @@ def _read_PetTags(row: tuple[object, ...], index: int) -> PetTags:
         items=cast(list[str], data["items"]),
     )
 
+
 def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = { "street": cast(object, value.street), "city": cast(object, value.city), "postal_code": cast(object, value.postal_code) }
+    payload = {
+        "street": cast(object, value.street),
+        "city": cast(object, value.city),
+        "postal_code": cast(object, value.postal_code),
+    }
     return json.dumps(payload)
 
 

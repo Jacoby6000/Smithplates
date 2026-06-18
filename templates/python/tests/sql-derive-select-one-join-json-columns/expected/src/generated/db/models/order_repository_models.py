@@ -40,3 +40,8 @@ class OrderLine:
 class PostalAddress:
     street: str
     city: str
+
+
+@dataclass
+class CreateOrderResult:
+    id: str

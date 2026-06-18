@@ -1,5 +1,8 @@
 $version: "2.0"
+
 namespace example
+
+use smithy.api#required
 
 use smithplates.codegen.sql#DerivedStruct
 use smithplates.codegen.sql#sqlAutoUuid
@@ -25,7 +28,7 @@ structure TreeNode {
 @sqlDeriveInsert(targetTable: "example#TreeNode")
 operation CreateTreeNode {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(targetTable: "example#TreeNode")

@@ -6,9 +6,28 @@ from datetime import datetime
 
 
 @dataclass
+class DeleteWidgetOutput:
+    deleted: bool
+
+
+@dataclass
 class Widget:
     id: str
     foo: str | None
     bar: int | None
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class CreateWidgetResult:
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+
+@dataclass
+class UpdateWidgetResult:
+    id: str
     created_at: datetime
     updated_at: datetime

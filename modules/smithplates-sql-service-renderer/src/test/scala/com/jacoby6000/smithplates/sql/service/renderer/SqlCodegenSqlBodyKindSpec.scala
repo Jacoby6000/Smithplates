@@ -29,27 +29,37 @@ class SqlCodegenSqlBodyKindSpec extends munit.FunSuite {
       readTypeName = "String"
     )
 
-  test("resolve - insert scalar") {
-    assertEquals(
-      SqlCodegenSqlBodyKind.resolve(sqlBinding("insert", "scalar")),
-      Some(SqlCodegenSqlBodyKind.InsertScalar)
-    )
-  }
-
   test("resolve - insert structure always uses dict row factory") {
+    val scalarFields = List(
+      scalarField("id", 0),
+      scalarField("created_at", 1)
+    )
     assertEquals(
-      SqlCodegenSqlBodyKind.resolve(sqlBinding("insert", "structure")),
+      SqlCodegenSqlBodyKind.resolve(sqlBinding("insert", "structure", resultFields = scalarFields)),
       Some(SqlCodegenSqlBodyKind.InsertStructureDict)
     )
   }
 
-  test("resolve - boolean mutation") {
+  test("resolve - update structure with returning uses insert structure paths") {
+    val scalarFields = List(
+      scalarField("id", 0),
+      scalarField("updated_at", 1)
+    )
     assertEquals(
-      SqlCodegenSqlBodyKind.resolve(sqlBinding("delete", "boolean")),
+      SqlCodegenSqlBodyKind.resolve(sqlBinding("update", "structure", resultFields = scalarFields)),
+      Some(SqlCodegenSqlBodyKind.InsertStructureIndex)
+    )
+  }
+
+  test("resolve - boolean mutation") {
+    val mutationBinding =
+      sqlBinding("delete", "structure").copy(mutationResultMemberName = Some("deleted"))
+    assertEquals(
+      SqlCodegenSqlBodyKind.resolve(mutationBinding),
       Some(SqlCodegenSqlBodyKind.BooleanMutationExists)
     )
     assertEquals(
-      SqlCodegenSqlBodyKind.resolve(sqlBinding("delete", "boolean", executionMode = "rowcount")),
+      SqlCodegenSqlBodyKind.resolve(mutationBinding.copy(executionMode = "rowcount")),
       Some(SqlCodegenSqlBodyKind.BooleanMutationRowcount)
     )
   }

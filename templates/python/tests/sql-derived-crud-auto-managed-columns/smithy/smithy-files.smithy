@@ -37,7 +37,7 @@ structure WidgetNotFound {
 @sqlDeriveInsert(targetTable: "example#Widget")
 operation CreateWidget {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(targetTable: "example#Widget")
@@ -47,16 +47,21 @@ operation GetWidget {
     errors: [WidgetNotFound]
 }
 
+structure DeleteWidgetOutput {
+    @required
+    deleted: Boolean
+}
+
 @sqlDeriveUpdate(targetTable: "example#Widget")
 operation UpdateWidget {
     input: DerivedStruct
-    output: Boolean
+    output: DerivedStruct
 }
 
 @sqlDeriveDelete(targetTable: "example#Widget")
 operation DeleteWidget {
     input: DerivedStruct
-    output: Boolean
+    output: DeleteWidgetOutput
 }
 
 @sqlService

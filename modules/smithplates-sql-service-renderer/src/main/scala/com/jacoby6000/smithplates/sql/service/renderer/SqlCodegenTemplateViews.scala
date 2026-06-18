@@ -89,6 +89,7 @@ final case class TemplateOperationView(
     returningColumnIndex: java.lang.Integer,
     resultFields: List[TemplateResultFieldView],
     selectOneNestedBindings: List[TemplateSelectOneNestedBindingView] = Nil,
+    mutationResultMemberName: String = "",
     last: Boolean = false
 )
 
@@ -102,6 +103,8 @@ final case class TemplateIntegrationTestOperationView(
     name: String,
     callArguments: String,
     outputShapeName: String,
+    entityIdMemberName: String,
+    mutationResultMemberName: String,
     hasResultAssertions: Boolean,
     resultAssertions: List[TemplateAssertionLine],
     hasUpdatedResultAssertions: Boolean,
@@ -114,6 +117,8 @@ object TemplateIntegrationTestOperationView {
       name = "",
       callArguments = "",
       outputShapeName = "",
+      entityIdMemberName = "id",
+      mutationResultMemberName = "",
       hasResultAssertions = false,
       resultAssertions = Nil,
       hasUpdatedResultAssertions = false,
@@ -252,6 +257,8 @@ object SqlCodegenTemplateViews {
       name = operation.name,
       callArguments = operation.callArguments,
       outputShapeName = operation.outputShapeId.map(_.getName).getOrElse(""),
+      entityIdMemberName = operation.entityIdMemberName.getOrElse("id"),
+      mutationResultMemberName = operation.mutationResultMemberName.getOrElse(""),
       hasResultAssertions = operation.resultAssertions.nonEmpty,
       resultAssertions = withLastFlag(operation.resultAssertions.map(TemplateAssertionLine(_)))((assertion, last) =>
         assertion.copy(last = last)),
@@ -340,7 +347,8 @@ object SqlCodegenTemplateViews {
       bindParameters = bindParameters,
       returningColumnIndex = returningColumnIndex,
       resultFields = resultFields,
-      selectOneNestedBindings = selectOneNestedBindings
+      selectOneNestedBindings = selectOneNestedBindings,
+      mutationResultMemberName = operation.sql.flatMap(_.mutationResultMemberName).getOrElse("")
     )
   }
 

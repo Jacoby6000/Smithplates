@@ -8,9 +8,10 @@ import psycopg
 from generated.db.category_repository_protocol import CategoryRepositoryServiceProtocol
 from generated.db.models.category_repository_models import (
     Category,
+    CreateCategoryResult,
 )
 from generated.db.postgres.psycopg_transaction_run import run
-from psycopg.rows import class_row
+from psycopg.rows import class_row, dict_row
 from psycopg.types.string import TextLoader
 
 
@@ -27,16 +28,19 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
         parent_category_id: str | None,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> str:
-        async def execute() -> str:
-            cur = await self._connection.execute(
-                """INSERT INTO categories (name, parent_category_id) VALUES (%s, %s) RETURNING id;""",
-                (name, parent_category_id),
-            )
-            row = await cur.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+    ) -> CreateCategoryResult:
+        async def execute() -> CreateCategoryResult:
+            async with self._connection.cursor(row_factory=dict_row) as cur:
+                await cur.execute(
+                    """INSERT INTO categories (name, parent_category_id) VALUES (%s, %s) RETURNING id;""",
+                    (name, parent_category_id),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("INSERT RETURNING produced no row")
+                return CreateCategoryResult(
+                    id=_read_str_col(row, "id"),
+                )
 
         return await run(self._connection, transaction, execute)
 
@@ -60,8 +64,8 @@ WHERE id = %s;""",
         return await run(self._connection, transaction, execute)
 
 
-def _read_str(row: tuple[object, ...], index: int) -> str:
-    value = row[index]
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    value = row[column]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)

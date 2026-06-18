@@ -7,6 +7,9 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
+from generated.db.category_repository_protocol import (
+    CreateCategoryResult,
+)
 from generated.db.models.category_repository_models import (
     Category,
 )
@@ -32,8 +35,9 @@ async def category_repository_service() -> AsyncIterator[CategoryRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryAiosqliteService) -> None:
-    entity_id = await category_repository_service.create_category(name=None, parent_category_id=None)
-    assert isinstance(entity_id, str)
+    created = await category_repository_service.create_category(name=None, parent_category_id=None)
+    assert isinstance(created, CreateCategoryResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await category_repository_service.get_category(id=entity_id)
@@ -51,10 +55,11 @@ async def test_derived_sql_methods_transaction_commit(
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await category_repository_service.create_category(
+        created = await category_repository_service.create_category(
             name=None, parent_category_id=None, transaction=connection
         )
-        assert isinstance(entity_id, str)
+        assert isinstance(created, CreateCategoryResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await category_repository_service.get_category(id=entity_id, transaction=connection)
@@ -80,10 +85,11 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await category_repository_service.create_category(
+    created = await category_repository_service.create_category(
         name=None, parent_category_id=None, transaction=connection
     )
-    assert isinstance(entity_id, str)
+    assert isinstance(created, CreateCategoryResult)
+    entity_id = created.id
     assert entity_id
     await connection.rollback()
 

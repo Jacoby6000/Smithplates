@@ -78,10 +78,7 @@ class PsycopgMigrationService:
             return
         current_hash = await self._compute_schema_hash()
         if current_hash != stored_hash:
-            msg = (
-                "Database schema has drifted since the last migration: "
-                f"expected {stored_hash}, found {current_hash}"
-            )
+            msg = f"Database schema has drifted since the last migration: expected {stored_hash}, found {current_hash}"
             raise ValueError(msg)
 
     async def _pending_migrations(self) -> list[MigrationSpec]:
@@ -120,10 +117,7 @@ class PsycopgMigrationService:
             (STATE_TABLE_NAME,),
         )
         rows = await cursor.fetchall()
-        lines.extend(
-            "column|" + "|".join(str(value) for value in row)
-            for row in rows
-        )
+        lines.extend("column|" + "|".join(str(value) for value in row) for row in rows)
 
         cursor = await self._connection.execute(
             """
@@ -136,10 +130,7 @@ class PsycopgMigrationService:
             (STATE_TABLE_NAME,),
         )
         rows = await cursor.fetchall()
-        lines.extend(
-            "index|" + "|".join(str(value) for value in row)
-            for row in rows
-        )
+        lines.extend("index|" + "|".join(str(value) for value in row) for row in rows)
 
         return _hash_schema_metadata(lines)
 
@@ -164,9 +155,7 @@ class PsycopgMigrationService:
                 _ = await self._connection.execute(f"{ddl_statement};")
 
     async def _applied_versions(self) -> set[str]:
-        cursor = await self._connection.execute(
-            f"SELECT version FROM {STATE_TABLE_NAME} ORDER BY version"
-        )
+        cursor = await self._connection.execute(f"SELECT version FROM {STATE_TABLE_NAME} ORDER BY version")
         rows = await cursor.fetchall()
         return {str(row[0]) for row in rows}
 

@@ -8,3 +8,8 @@ from dataclasses import dataclass
 class Bookmark:
     id: str
     title: str | None
+
+
+@dataclass
+class DeleteBookmarkOutput:
+    deleted: bool

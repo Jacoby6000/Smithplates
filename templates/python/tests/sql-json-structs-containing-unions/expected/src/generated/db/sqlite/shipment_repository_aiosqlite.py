@@ -8,9 +8,12 @@ from typing import cast, override
 
 import aiosqlite
 from generated.db.models.shipment_repository_models import (
+    CreateShipmentResult,
+    DeleteShipmentOutput,
     DeliveryState,
     PostalAddress,
     Shipment,
+    UpdateShipmentResult,
 )
 from generated.db.shipment_repository_protocol import ShipmentRepositoryServiceProtocol
 from generated.db.sqlite.sqlite_transaction_run import run
@@ -29,16 +32,20 @@ class ShipmentRepositoryAiosqliteService(ShipmentRepositoryServiceProtocol[aiosq
         state: DeliveryState,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> str:
-        async def execute(conn: aiosqlite.Connection) -> str:
+    ) -> CreateShipmentResult:
+        async def execute(conn: aiosqlite.Connection) -> CreateShipmentResult:
             cursor = await conn.execute(
-                """INSERT INTO shipments (label, destination, state) VALUES (?, ?, ?) RETURNING id;""",
+                """INSERT INTO shipments (label, destination, state) VALUES (?, ?, ?) RETURNING id, created_at;""",
                 (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
             )
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+            named_row = _as_sqlite_named_row(cursor, row)
+            return CreateShipmentResult(
+                id=_read_str_col(named_row, "id"),
+                created_at=_read_datetime_col(named_row, "created_at"),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -79,15 +86,21 @@ WHERE id = ?;""",
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> UpdateShipmentResult:
+        async def execute(conn: aiosqlite.Connection) -> UpdateShipmentResult:
             cursor = await conn.execute(
                 """UPDATE shipments
 SET label = ?, destination = ?, state = ?
-WHERE id = ?;""",
+WHERE id = ? RETURNING id, created_at;""",
                 (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
             )
-            return cursor.rowcount > 0
+            row = await cursor.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return UpdateShipmentResult(
+                id=_read_str(row, 0),
+                created_at=_read_datetime(row, 1),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -97,14 +110,14 @@ WHERE id = ?;""",
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> DeleteShipmentOutput:
+        async def execute(conn: aiosqlite.Connection) -> DeleteShipmentOutput:
             cursor = await conn.execute(
                 """DELETE FROM shipments WHERE id = ? RETURNING id;""",
                 (id,),
             )
             row = await cursor.fetchone()
-            return row is not None
+            return DeleteShipmentOutput(deleted=row is not None)
 
         return await run(self._connection, transaction, execute)
 
@@ -118,6 +131,20 @@ def _as_sqlite_named_row(
         return {key: cast(object, named[key]) for key in named}
     description = cast(tuple[tuple[object, ...], ...], cursor.description)
     return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
+
+
+def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
+    value = cast(str, row[index])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:

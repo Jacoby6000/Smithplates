@@ -5,12 +5,12 @@ import uuid
 from typing import cast, override
 
 import psycopg
+from generated.db.category_repository_protocol import (
+    GetCategoryRecordResult,
+    CategoryRepositoryServiceProtocol,
+)
 from generated.db.models.category_repository_models import (
     Store,
-)
-from generated.db.category_repository_protocol import (
-    CategoryRepositoryServiceProtocol,
-    GetCategoryRecordResult,
 )
 from generated.db.postgres.psycopg_transaction_run import run
 
@@ -30,15 +30,16 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
     ) -> str:
         async def execute() -> str:
             cur = await self._connection.execute(
-"""INSERT INTO categories (name, store_id) VALUES (%s, %s) RETURNING id;"""
-,
+                """INSERT INTO categories (name, store_id) VALUES (%s, %s) RETURNING id;""",
                 (name, store_id),
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return _read_str(row, 0)
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def get_category_record(
         self,
@@ -48,11 +49,10 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
     ) -> GetCategoryRecordResult | None:
         async def execute() -> GetCategoryRecordResult | None:
             cur = await self._connection.execute(
-"""SELECT categories.id, categories.name, categories.store_id, s.id AS s_id, s.name AS s_name
+                """SELECT categories.id, categories.name, categories.store_id, s.id AS s_id, s.name AS s_name
 FROM categories AS categories
 INNER JOIN stores AS s ON categories.store_id = s.id
-WHERE categories.id = %s;"""
-,
+WHERE categories.id = %s;""",
                 (id,),
             )
             row = await cur.fetchone()
@@ -67,7 +67,10 @@ WHERE categories.id = %s;"""
                     name=_read_str(row, 4),
                 ),
             )
+
         return await run(self._connection, transaction, execute)
+
+
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):

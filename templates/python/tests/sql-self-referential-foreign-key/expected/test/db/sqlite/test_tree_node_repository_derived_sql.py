@@ -12,6 +12,9 @@ from generated.db.models.tree_node_repository_models import (
 )
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.db.sqlite.tree_node_repository_aiosqlite import TreeNodeRepositoryAiosqliteService
+from generated.db.tree_node_repository_protocol import (
+    CreateTreeNodeResult,
+)
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 
@@ -32,8 +35,9 @@ async def tree_node_repository_service() -> AsyncIterator[TreeNodeRepositoryAios
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(tree_node_repository_service: TreeNodeRepositoryAiosqliteService) -> None:
-    entity_id = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
-    assert isinstance(entity_id, str)
+    created = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
+    assert isinstance(created, CreateTreeNodeResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await tree_node_repository_service.get_tree_node(id=entity_id)
@@ -51,10 +55,11 @@ async def test_derived_sql_methods_transaction_commit(
     connection = tree_node_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await tree_node_repository_service.create_tree_node(
+        created = await tree_node_repository_service.create_tree_node(
             label=None, parent_node_id=None, transaction=connection
         )
-        assert isinstance(entity_id, str)
+        assert isinstance(created, CreateTreeNodeResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await tree_node_repository_service.get_tree_node(id=entity_id, transaction=connection)
@@ -80,10 +85,11 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = tree_node_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await tree_node_repository_service.create_tree_node(
+    created = await tree_node_repository_service.create_tree_node(
         label=None, parent_node_id=None, transaction=connection
     )
-    assert isinstance(entity_id, str)
+    assert isinstance(created, CreateTreeNodeResult)
+    entity_id = created.id
     assert entity_id
     await connection.rollback()
 

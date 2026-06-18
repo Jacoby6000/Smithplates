@@ -16,6 +16,7 @@ class GetCategoryRecordResult:
     store_id: str
     store: Store
 
+
 T = TypeVar("T", contravariant=True)
 
 
@@ -26,12 +27,10 @@ class CategoryRepositoryServiceProtocol(Protocol[T]):
         store_id: str,
         *,
         transaction: T | None = None,
-    ) -> str:
-        ...
+    ) -> str: ...
     async def get_category_record(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> GetCategoryRecordResult | None:
-        ...
+    ) -> GetCategoryRecordResult | None: ...

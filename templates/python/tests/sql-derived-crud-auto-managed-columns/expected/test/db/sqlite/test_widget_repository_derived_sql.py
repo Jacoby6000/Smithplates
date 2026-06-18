@@ -12,6 +12,10 @@ from generated.db.models.widget_repository_models import (
 )
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.db.sqlite.widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
+from generated.db.widget_repository_protocol import (
+    CreateWidgetResult,
+    UpdateWidgetResult,
+)
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 
@@ -32,8 +36,9 @@ async def widget_repository_service() -> AsyncIterator[WidgetRepositoryAiosqlite
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRepositoryAiosqliteService) -> None:
-    entity_id = await widget_repository_service.create_widget(foo=None, bar=None)
-    assert isinstance(entity_id, str)
+    created = await widget_repository_service.create_widget(foo=None, bar=None)
+    assert isinstance(created, CreateWidgetResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await widget_repository_service.get_widget(id=entity_id)
@@ -42,7 +47,8 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
     assert fetched.bar is None
 
     updated = await widget_repository_service.update_widget(foo=None, bar=None, id=entity_id)
-    assert updated is True
+    assert isinstance(updated, UpdateWidgetResult)
+    assert updated.id == entity_id
 
     fetched_after_update = await widget_repository_service.get_widget(id=entity_id)
     assert isinstance(fetched_after_update, Widget)
@@ -50,7 +56,7 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
     assert fetched_after_update.bar is None
 
     deleted = await widget_repository_service.delete_widget(id=entity_id)
-    assert deleted is True
+    assert deleted.deleted is True
 
     missing = await widget_repository_service.get_widget(id=entity_id)
     assert missing is None
@@ -65,8 +71,9 @@ async def test_derived_sql_methods_transaction_commit(
     connection = widget_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
-        assert isinstance(entity_id, str)
+        created = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+        assert isinstance(created, CreateWidgetResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await widget_repository_service.get_widget(id=entity_id, transaction=connection)
@@ -92,8 +99,9 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = widget_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
-    assert isinstance(entity_id, str)
+    created = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+    assert isinstance(created, CreateWidgetResult)
+    entity_id = created.id
     assert entity_id
     await connection.rollback()
 

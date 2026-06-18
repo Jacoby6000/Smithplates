@@ -42,8 +42,9 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
-    assert isinstance(entity_id, str)
+    created = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+    assert isinstance(created, ${test.insertOperation.outputShapeName})
+    entity_id = created.${test.insertOperation.entityIdMemberName}
     assert entity_id
 
     fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})

@@ -8,6 +8,7 @@ import aiosqlite
 from generated.db.category_repository_protocol import CategoryRepositoryServiceProtocol
 from generated.db.models.category_repository_models import (
     Category,
+    CreateCategoryResult,
 )
 from generated.db.sqlite.sqlite_transaction_run import run
 
@@ -24,8 +25,8 @@ class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosq
         parent_category_id: str | None,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> str:
-        async def execute(conn: aiosqlite.Connection) -> str:
+    ) -> CreateCategoryResult:
+        async def execute(conn: aiosqlite.Connection) -> CreateCategoryResult:
             cursor = await conn.execute(
                 """INSERT INTO categories (name, parent_category_id) VALUES (?, ?) RETURNING id;""",
                 (name, parent_category_id),
@@ -33,7 +34,10 @@ class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosq
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+            named_row = _as_sqlite_named_row(cursor, row)
+            return CreateCategoryResult(
+                id=_read_str_col(named_row, "id"),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -67,5 +71,20 @@ def _Category_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row)
     )
 
 
+def _as_sqlite_named_row(
+    cursor: sqlite3.Cursor | aiosqlite.Cursor,
+    row: tuple[object, ...] | sqlite3.Row,
+) -> dict[str, object]:
+    if type(row) is not tuple:
+        named = cast(sqlite3.Row, row)
+        return {key: cast(object, named[key]) for key in named}
+    description = cast(tuple[tuple[object, ...], ...], cursor.description)
+    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
+
+
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
+
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    return cast(str, row[column])

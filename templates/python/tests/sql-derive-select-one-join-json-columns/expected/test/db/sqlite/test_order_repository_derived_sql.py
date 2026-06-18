@@ -8,6 +8,7 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.order_repository_protocol import (
+    CreateOrderResult,
     GetOrderResult,
 )
 from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
@@ -32,8 +33,9 @@ async def order_repository_service() -> AsyncIterator[OrderRepositoryAiosqliteSe
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryAiosqliteService) -> None:
-    entity_id = await order_repository_service.create_order(label="integration-label")
-    assert isinstance(entity_id, str)
+    created = await order_repository_service.create_order(label="integration-label")
+    assert isinstance(created, CreateOrderResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await order_repository_service.get_order(id=entity_id)
@@ -50,8 +52,9 @@ async def test_derived_sql_methods_transaction_commit(
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await order_repository_service.create_order(label="integration-label", transaction=connection)
-        assert isinstance(entity_id, str)
+        created = await order_repository_service.create_order(label="integration-label", transaction=connection)
+        assert isinstance(created, CreateOrderResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await order_repository_service.get_order(id=entity_id, transaction=connection)
@@ -75,8 +78,9 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = order_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await order_repository_service.create_order(label="integration-label", transaction=connection)
-    assert isinstance(entity_id, str)
+    created = await order_repository_service.create_order(label="integration-label", transaction=connection)
+    assert isinstance(created, CreateOrderResult)
+    entity_id = created.id
     assert entity_id
     await connection.rollback()
 

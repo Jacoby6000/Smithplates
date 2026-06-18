@@ -12,6 +12,9 @@ from generated.db.models.tree_node_repository_models import (
 )
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.db.postgres.tree_node_repository_psycopg import TreeNodeRepositoryPsycopgService
+from generated.db.tree_node_repository_protocol import (
+    CreateTreeNodeResult,
+)
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
@@ -41,8 +44,9 @@ async def tree_node_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(tree_node_repository_service: TreeNodeRepositoryPsycopgService) -> None:
-    entity_id = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
-    assert isinstance(entity_id, str)
+    created = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None)
+    assert isinstance(created, CreateTreeNodeResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await tree_node_repository_service.get_tree_node(id=entity_id)
@@ -59,8 +63,9 @@ async def test_derived_sql_methods_transaction_commit(
 ) -> None:
     connection = tree_node_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None, transaction=tx)
-        assert isinstance(entity_id, str)
+        created = await tree_node_repository_service.create_tree_node(label=None, parent_node_id=None, transaction=tx)
+        assert isinstance(created, CreateTreeNodeResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await tree_node_repository_service.get_tree_node(id=entity_id, transaction=tx)
@@ -84,9 +89,10 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await tree_node_repository_service.create_tree_node(
+            created = await tree_node_repository_service.create_tree_node(
                 label=None, parent_node_id=None, transaction=tx
             )
+            entity_id = created.id
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

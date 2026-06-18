@@ -11,6 +11,10 @@ from generated.db.models.shipment_repository_models import (
     PostalAddress,
     Shipment,
 )
+from generated.db.shipment_repository_protocol import (
+    CreateShipmentResult,
+    UpdateShipmentResult,
+)
 from generated.db.sqlite.shipment_repository_aiosqlite import ShipmentRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
@@ -33,12 +37,13 @@ async def shipment_repository_service() -> AsyncIterator[ShipmentRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryAiosqliteService) -> None:
-    entity_id = await shipment_repository_service.create_shipment(
+    created = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
     )
-    assert isinstance(entity_id, str)
+    assert isinstance(created, CreateShipmentResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await shipment_repository_service.get_shipment(id=entity_id)
@@ -54,7 +59,8 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
         state={"pending": "integration-updated-pending"},
         id=entity_id,
     )
-    assert updated is True
+    assert isinstance(updated, UpdateShipmentResult)
+    assert updated.id == entity_id
 
     fetched_after_update = await shipment_repository_service.get_shipment(id=entity_id)
     assert isinstance(fetched_after_update, Shipment)
@@ -64,7 +70,7 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert fetched_after_update.state == {"pending": "integration-updated-pending"}
 
     deleted = await shipment_repository_service.delete_shipment(id=entity_id)
-    assert deleted is True
+    assert deleted.deleted is True
 
     missing = await shipment_repository_service.get_shipment(id=entity_id)
     assert missing is None
@@ -79,13 +85,14 @@ async def test_derived_sql_methods_transaction_commit(
     connection = shipment_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await shipment_repository_service.create_shipment(
+        created = await shipment_repository_service.create_shipment(
             label="integration-label",
             destination=PostalAddress(street="integration-street", city="integration-city"),
             state={"pending": "integration-pending"},
             transaction=connection,
         )
-        assert isinstance(entity_id, str)
+        assert isinstance(created, CreateShipmentResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await shipment_repository_service.get_shipment(id=entity_id, transaction=connection)
@@ -115,13 +122,14 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = shipment_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await shipment_repository_service.create_shipment(
+    created = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
         transaction=connection,
     )
-    assert isinstance(entity_id, str)
+    assert isinstance(created, CreateShipmentResult)
+    entity_id = created.id
     assert entity_id
     await connection.rollback()
 

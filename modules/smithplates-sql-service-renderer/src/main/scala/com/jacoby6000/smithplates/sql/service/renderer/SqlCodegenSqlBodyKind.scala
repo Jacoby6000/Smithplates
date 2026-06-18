@@ -2,7 +2,6 @@ package com.jacoby6000.smithplates.sql.service.renderer
 
 /** Resolved operation-body dispatch key for SSP {@code #match} on a single string attribute. */
 object SqlCodegenSqlBodyKind {
-  val InsertScalar: String            = "insertScalar"
   val InsertStructureDict: String     = "insertStructureDict"
   val InsertStructureIndex: String    = "insertStructureIndex"
   val BooleanMutationExists: String   = "booleanMutationExists"
@@ -15,15 +14,15 @@ object SqlCodegenSqlBodyKind {
   val SelectOneJoinedAggregate: String = "selectOneJoinedAggregate"
 
   def resolve(sql: SqlCodegenSqlBinding): Option[String] =
-    if (sql.queryKind == "insert" && sql.outputKind == "scalar") {
-      Some(InsertScalar)
-    } else if (sql.queryKind == "insert" && sql.outputKind == "structure") {
+    if ((sql.queryKind == "insert" || sql.queryKind == "update") &&
+      sql.outputKind == "structure" &&
+      sql.resultFields.nonEmpty) {
       if (SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)) {
         Some(InsertStructureDict)
       } else {
         Some(InsertStructureIndex)
       }
-    } else if (sql.outputKind == "boolean") {
+    } else if (sql.mutationResultMemberName.isDefined) {
       if (sql.executionMode == "rowcount") {
         Some(BooleanMutationRowcount)
       } else {

@@ -9,15 +9,22 @@ import com.jacoby6000.smithplates.sql.service.SqlQueryColumn
 import com.jacoby6000.smithplates.sql.service.codegen.ResolvedSqlOperationQuery
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
+import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
+
 object SqlOperationBindingBuilder {
+  private val BooleanShapeId: ShapeId = ShapeId.from("smithy.api#Boolean")
+
   def build(
+      model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery,
       queryRenderer: SqlQueryRenderer
   ): SqlValidated[SqlCodegenSqlBinding] =
-    buildBinding(operation, query, queryRenderer)
+    buildBinding(model, operation, query, queryRenderer)
 
   def parametersFromQuery(
       operation: SqlOperation,
@@ -39,6 +46,7 @@ object SqlOperationBindingBuilder {
     }
 
   private def buildBinding(
+      model: Model,
       operation: SqlOperation,
       query: ResolvedSqlOperationQuery,
       queryRenderer: SqlQueryRenderer
@@ -58,11 +66,11 @@ object SqlOperationBindingBuilder {
 
         other match {
           case ResolvedSqlOperationQuery.Insert(insertQuery)       =>
-            buildInsertBinding(operation, insertQuery, statement).validNel
+            buildInsertBinding(insertQuery, statement).validNel
           case ResolvedSqlOperationQuery.Update(updateQuery)       =>
-            buildUpdateBinding(updateQuery, statement).validNel
+            buildUpdateBinding(model, operation, updateQuery, statement).validNel
           case ResolvedSqlOperationQuery.Delete(deleteQuery)       =>
-            buildDeleteBinding(deleteQuery, statement).validNel
+            buildDeleteBinding(model, operation, deleteQuery, statement).validNel
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) =>
             buildSelectOneBinding(selectOneQuery, statement, operation.name).validNel
           case ResolvedSqlOperationQuery.Select(_)                 =>
@@ -71,59 +79,54 @@ object SqlOperationBindingBuilder {
     }
 
   private def buildInsertBinding(
-      operation: SqlOperation,
       query: com.jacoby6000.smithplates.sql.service.SqlInsertQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding = {
     val bindParameters = query.columns.map(column => columnToBindParameter(query.table, column))
-    val outputShapeId  = operation.outputShape.getOrElse(SqlShapeGraph.UnitShapeId)
-
-    if (isPreludeShape(outputShapeId)) {
-      SqlCodegenSqlBinding(
-        queryKind = "insert",
-        sqlStatement = statement,
-        tableName = query.table.name,
-        bindParameters = bindParameters,
-        executionMode = "fetchone",
-        outputKind = "scalar",
-        returningColumnIndex = query.returningColumns.headOption.map(_ => 0),
-        resultFields = Nil
-      )
-    } else {
-      val resultFields =
-        query.returningColumns.zipWithIndex.map { case (column, index) =>
-          columnToResultField(query.table, column, index)
-        }
-      SqlCodegenSqlBinding(
-        queryKind = "insert",
-        sqlStatement = statement,
-        tableName = query.table.name,
-        bindParameters = bindParameters,
-        executionMode = "fetchone",
-        outputKind = "structure",
-        returningColumnIndex = None,
-        resultFields = resultFields
-      )
-    }
+    val resultFields   =
+      query.returningColumns.zipWithIndex.map { case (column, index) =>
+        columnToResultField(query.table, column, index)
+      }
+    SqlCodegenSqlBinding(
+      queryKind = "insert",
+      sqlStatement = statement,
+      tableName = query.table.name,
+      bindParameters = bindParameters,
+      executionMode = "fetchone",
+      outputKind = "structure",
+      returningColumnIndex = None,
+      resultFields = resultFields
+    )
   }
 
   private def buildUpdateBinding(
+      model: Model,
+      operation: SqlOperation,
       query: com.jacoby6000.smithplates.sql.service.SqlUpdateQuery,
       statement: SqlParameterizedStatement
-  ): SqlCodegenSqlBinding =
+  ): SqlCodegenSqlBinding = {
+    val resultFields =
+      query.returningColumns.zipWithIndex.map { case (column, index) =>
+        columnToResultField(query.table, column, index)
+      }
+    val hasReturning = query.returningColumns.nonEmpty
     SqlCodegenSqlBinding(
       queryKind = "update",
       sqlStatement = statement,
       tableName = query.table.name,
       bindParameters =
         (query.setColumns ++ query.whereColumns).map(column => columnToBindParameter(query.table, column)),
-      executionMode = if (query.returningColumns.nonEmpty) "fetchone" else "rowcount",
-      outputKind = "boolean",
+      executionMode = if (hasReturning) "fetchone" else "rowcount",
+      outputKind = "structure",
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = resultFields,
+      mutationResultMemberName = if (hasReturning) None else mutationResultMemberName(model, operation)
     )
+  }
 
   private def buildDeleteBinding(
+      model: Model,
+      operation: SqlOperation,
       query: com.jacoby6000.smithplates.sql.service.SqlDeleteQuery,
       statement: SqlParameterizedStatement
   ): SqlCodegenSqlBinding =
@@ -133,10 +136,26 @@ object SqlOperationBindingBuilder {
       tableName = query.table.name,
       bindParameters = query.whereColumns.map(column => columnToBindParameter(query.table, column)),
       executionMode = "fetchone",
-      outputKind = "boolean",
+      outputKind = "structure",
       returningColumnIndex = None,
-      resultFields = Nil
+      resultFields = Nil,
+      mutationResultMemberName = mutationResultMemberName(model, operation)
     )
+
+  private def mutationResultMemberName(model: Model, operation: SqlOperation): Option[String] =
+    operation.outputShape.flatMap { outputShapeId =>
+      model
+        .getShape(outputShapeId)
+        .toScala
+        .collect {
+          case shape if shape.isStructureShape =>
+            shape.asStructureShape.get().getAllMembers.asScala.toList.collectFirst {
+              case (memberName, member) if member.isRequired && member.getTarget == BooleanShapeId =>
+                memberName
+            }
+        }
+        .flatten
+    }
 
   private def buildSelectOneBinding(
       query: com.jacoby6000.smithplates.sql.service.SqlSelectOneQuery,
@@ -234,9 +253,6 @@ object SqlOperationBindingBuilder {
       case Some(_)                               => (false, None)
       case None                                  => (false, None)
     }
-
-  private def isPreludeShape(shapeId: ShapeId): Boolean =
-    SqlIrTypeNameResolver.isPreludeShape(shapeId) && shapeId != SqlShapeGraph.UnitShapeId
 
   private object SqlQueriesAdapter {
     def fromResolved(query: ResolvedSqlOperationQuery): SqlQueries =

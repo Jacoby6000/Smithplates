@@ -5,6 +5,9 @@ from typing import override
 
 import aiosqlite
 from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.models.bookmark_repository_models import (
+    DeleteBookmarkOutput,
+)
 from generated.db.sqlite.sqlite_transaction_run import run
 
 
@@ -19,13 +22,13 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> DeleteBookmarkOutput:
+        async def execute(conn: aiosqlite.Connection) -> DeleteBookmarkOutput:
             cursor = await conn.execute(
                 """DELETE FROM bookmarks WHERE id = ? RETURNING id;""",
                 (id,),
             )
             row = await cursor.fetchone()
-            return row is not None
+            return DeleteBookmarkOutput(deleted=row is not None)
 
         return await run(self._connection, transaction, execute)

@@ -5,6 +5,7 @@ from typing import Protocol, TypeVar
 
 from generated.db.models.category_repository_models import (
     Category,
+    CreateCategoryResult,
 )
 
 T = TypeVar("T", contravariant=True)
@@ -17,7 +18,7 @@ class CategoryRepositoryServiceProtocol(Protocol[T]):
         parent_category_id: str | None,
         *,
         transaction: T | None = None,
-    ) -> str: ...
+    ) -> CreateCategoryResult: ...
     async def get_category(
         self,
         id: str,

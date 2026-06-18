@@ -68,19 +68,20 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
       """
         |use smithplates.codegen.sql#DerivedStruct
         |use smithplates.codegen.sql#sqlDeriveInsert
+        |use smithy.api#required
         |""".stripMargin,
       """
         |@sqlDeriveInsert(targetTable: "example#Widget")
         |operation CreateWidget {
         |    input: DerivedStruct
-        |    output: String
+        |    output: DerivedStruct
         |}
         |""".stripMargin
     )
 
     assertEquals(
       queryStatement(schema.queries, renderer, "example#CreateWidget"),
-      "INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;"
+      "INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id, created_at, updated_at;"
     )
   }
   test("DeriveUpdate - renders primary key WHERE and updatable SET columns") {
@@ -93,7 +94,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
         |@sqlDeriveUpdate(targetTable: "example#Widget")
         |operation UpdateWidget {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DerivedStruct
         |}
         |""".stripMargin
     )
@@ -102,7 +103,7 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
       queryStatement(schema.queries, renderer, "example#UpdateWidget"),
       """UPDATE widgets
         |SET foo = ?, bar = ?, updated_at = CURRENT_TIMESTAMP
-        |WHERE id = ? RETURNING updated_at;""".stripMargin
+        |WHERE id = ? RETURNING id, created_at, updated_at;""".stripMargin
     )
   }
   test("DeriveDelete - renders primary key WHERE and RETURNING") {
@@ -110,12 +111,18 @@ final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
       """
         |use smithplates.codegen.sql#DerivedStruct
         |use smithplates.codegen.sql#sqlDeriveDelete
+        |use smithy.api#required
         |""".stripMargin,
       """
+        |structure DeleteWidgetOutput {
+        |    @required
+        |    deleted: Boolean
+        |}
+        |
         |@sqlDeriveDelete(targetTable: "example#Widget")
         |operation DeleteWidget {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DeleteWidgetOutput
         |}
         |""".stripMargin
     )

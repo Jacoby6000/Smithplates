@@ -7,6 +7,9 @@ from typing import cast, override
 
 import aiosqlite
 from generated.db.models.widget_repository_models import (
+    CreateWidgetResult,
+    DeleteWidgetOutput,
+    UpdateWidgetResult,
     Widget,
 )
 from generated.db.sqlite.sqlite_transaction_run import run
@@ -25,16 +28,21 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol[aiosqlite
         bar: int | None,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> str:
-        async def execute(conn: aiosqlite.Connection) -> str:
+    ) -> CreateWidgetResult:
+        async def execute(conn: aiosqlite.Connection) -> CreateWidgetResult:
             cursor = await conn.execute(
-                """INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;""",
+                """INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id, created_at, updated_at;""",
                 (foo, bar),
             )
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+            named_row = _as_sqlite_named_row(cursor, row)
+            return CreateWidgetResult(
+                id=_read_str_col(named_row, "id"),
+                created_at=_read_datetime_col(named_row, "created_at"),
+                updated_at=_read_datetime_col(named_row, "updated_at"),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -67,16 +75,22 @@ WHERE id = ?;""",
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> UpdateWidgetResult:
+        async def execute(conn: aiosqlite.Connection) -> UpdateWidgetResult:
             cursor = await conn.execute(
                 """UPDATE widgets
 SET foo = ?, bar = ?, updated_at = CURRENT_TIMESTAMP
-WHERE id = ? RETURNING updated_at;""",
+WHERE id = ? RETURNING id, created_at, updated_at;""",
                 (foo, bar, id),
             )
             row = await cursor.fetchone()
-            return row is not None
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return UpdateWidgetResult(
+                id=_read_str(row, 0),
+                created_at=_read_datetime(row, 1),
+                updated_at=_read_datetime(row, 2),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -86,14 +100,14 @@ WHERE id = ? RETURNING updated_at;""",
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> DeleteWidgetOutput:
+        async def execute(conn: aiosqlite.Connection) -> DeleteWidgetOutput:
             cursor = await conn.execute(
                 """DELETE FROM widgets WHERE id = ? RETURNING id;""",
                 (id,),
             )
             row = await cursor.fetchone()
-            return row is not None
+            return DeleteWidgetOutput(deleted=row is not None)
 
         return await run(self._connection, transaction, execute)
 
@@ -106,6 +120,17 @@ def _Widget_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -
         created_at=_read_datetime(row, 3),
         updated_at=_read_datetime(row, 4),
     )
+
+
+def _as_sqlite_named_row(
+    cursor: sqlite3.Cursor | aiosqlite.Cursor,
+    row: tuple[object, ...] | sqlite3.Row,
+) -> dict[str, object]:
+    if type(row) is not tuple:
+        named = cast(sqlite3.Row, row)
+        return {key: cast(object, named[key]) for key in named}
+    description = cast(tuple[tuple[object, ...], ...], cursor.description)
+    return {cast(str, column[0]): row[index] for index, column in enumerate(description)}
 
 
 def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
@@ -128,3 +153,21 @@ def _read_int(row: tuple[object, ...] | sqlite3.Row, index: int) -> int:
 
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
+
+def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
+    value = cast(str, row[column])
+    if value.endswith("Z"):
+        normalized = value[:-1] + "+00:00"
+    elif " " in value and "T" not in value:
+        normalized = value.replace(" ", "T", 1) + "+00:00"
+    else:
+        normalized = value
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    return cast(str, row[column])

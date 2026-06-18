@@ -13,6 +13,10 @@ from generated.db.models.shipment_repository_models import (
 )
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.db.postgres.shipment_repository_psycopg import ShipmentRepositoryPsycopgService
+from generated.db.shipment_repository_protocol import (
+    CreateShipmentResult,
+    UpdateShipmentResult,
+)
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
@@ -42,12 +46,13 @@ async def shipment_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryPsycopgService) -> None:
-    entity_id = await shipment_repository_service.create_shipment(
+    created = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
     )
-    assert isinstance(entity_id, str)
+    assert isinstance(created, CreateShipmentResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await shipment_repository_service.get_shipment(id=entity_id)
@@ -63,7 +68,8 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
         state={"pending": "integration-updated-pending"},
         id=entity_id,
     )
-    assert updated is True
+    assert isinstance(updated, UpdateShipmentResult)
+    assert updated.id == entity_id
 
     fetched_after_update = await shipment_repository_service.get_shipment(id=entity_id)
     assert isinstance(fetched_after_update, Shipment)
@@ -73,7 +79,7 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert fetched_after_update.state == {"pending": "integration-updated-pending"}
 
     deleted = await shipment_repository_service.delete_shipment(id=entity_id)
-    assert deleted is True
+    assert deleted.deleted is True
 
     missing = await shipment_repository_service.get_shipment(id=entity_id)
     assert missing is None
@@ -87,13 +93,14 @@ async def test_derived_sql_methods_transaction_commit(
 ) -> None:
     connection = shipment_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await shipment_repository_service.create_shipment(
+        created = await shipment_repository_service.create_shipment(
             label="integration-label",
             destination=PostalAddress(street="integration-street", city="integration-city"),
             state={"pending": "integration-pending"},
             transaction=tx,
         )
-        assert isinstance(entity_id, str)
+        assert isinstance(created, CreateShipmentResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await shipment_repository_service.get_shipment(id=entity_id, transaction=tx)
@@ -121,12 +128,13 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await shipment_repository_service.create_shipment(
+            created = await shipment_repository_service.create_shipment(
                 label="integration-label",
                 destination=PostalAddress(street="integration-street", city="integration-city"),
                 state={"pending": "integration-pending"},
                 transaction=tx,
             )
+            entity_id = created.id
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

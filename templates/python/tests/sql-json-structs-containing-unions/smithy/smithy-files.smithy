@@ -53,7 +53,7 @@ structure ShipmentNotFound {
 @sqlDeriveInsert(targetTable: "example#Shipment")
 operation CreateShipment {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(targetTable: "example#Shipment")
@@ -63,16 +63,21 @@ operation GetShipment {
     errors: [ShipmentNotFound]
 }
 
+structure DeleteShipmentOutput {
+    @required
+    deleted: Boolean
+}
+
 @sqlDeriveUpdate(targetTable: "example#Shipment")
 operation UpdateShipment {
     input: DerivedStruct
-    output: Boolean
+    output: DerivedStruct
 }
 
 @sqlDeriveDelete(targetTable: "example#Shipment")
 operation DeleteShipment {
     input: DerivedStruct
-    output: Boolean
+    output: DeleteShipmentOutput
 }
 
 @sqlService

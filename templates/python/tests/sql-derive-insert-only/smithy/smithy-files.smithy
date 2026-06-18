@@ -1,4 +1,5 @@
 $version: "2.0"
+
 namespace example
 
 use smithplates.codegen.sql#sqlAutoUuid
@@ -19,7 +20,7 @@ structure Bookmark {
 @sqlDeriveInsert(targetTable: "example#Bookmark")
 operation CreateBookmark {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlService

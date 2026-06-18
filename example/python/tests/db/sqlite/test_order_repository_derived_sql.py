@@ -7,10 +7,11 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
+
 from generated.db.order_repository_protocol import (
     GetOrderRecordResult,
 )
+from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"

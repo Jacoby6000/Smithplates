@@ -4,10 +4,11 @@ import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
 
 class SqlQueryExtractorSpec extends munit.FunSuite {
-  test("DeriveInsert - derives input columns from table and returns id when output matches primary key type") {
+  test("DeriveInsert - derives input columns and RETURNING from PK and auto-generated members") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
+        |use smithy.api#required
         |use smithplates.codegen.sql#sqlAutoUuid
         |use smithplates.codegen.sql#sqlCreatedTimestamp
         |use smithplates.codegen.sql#sqlDeriveInsert
@@ -32,7 +33,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |@sqlDeriveInsert(targetTable: "example#Widget")
         |operation CreateWidget {
         |    input: DerivedStruct
-        |    output: String
+        |    output: DerivedStruct
         |}
         |""".stripMargin
     )
@@ -43,54 +44,14 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(insert.shapeId.toString, "example#CreateWidget")
     assertEquals(insert.table.name, "widgets")
     assertEquals(insert.columns.map(_.memberName), List("foo", "bar", "optional_note"))
-    assertEquals(insert.returningColumns.map(_.columnName), List("id"))
-  }
-
-  test("DeriveInsert - maps output structure members to RETURNING columns") {
-    val model = SqlTestModelBuilder.assemble(
-      """
-        |use smithplates.codegen.sql#DerivedStruct
-        |use smithplates.codegen.sql#sqlAutoUuid
-        |use smithplates.codegen.sql#sqlCreatedTimestamp
-        |use smithplates.codegen.sql#sqlDeriveInsert
-        |use smithplates.codegen.sql#sqlPrimaryKey
-        |use smithplates.codegen.sql#sqlTable
-        |use smithplates.codegen.sql#sqlUpdatedTimestamp
-        |
-        |@sqlTable(name: "widgets")
-        |structure Widget {
-        |    @sqlPrimaryKey
-        |    @sqlAutoUuid
-        |    id: String
-        |    foo: String
-        |    @sqlCreatedTimestamp
-        |    created_at: Timestamp
-        |    @sqlUpdatedTimestamp
-        |    updated_at: Timestamp
-        |}
-        |
-        |structure CreateWidgetOutput {
-        |    id: String
-        |    created_at: Timestamp
-        |}
-        |
-        |@sqlDeriveInsert(targetTable: "example#Widget")
-        |operation CreateWidget {
-        |    input: DerivedStruct
-        |    output: CreateWidgetOutput
-        |}
-        |""".stripMargin
-    )
-
-    val schema = SqlModelExtractor.extractOrThrow(model)
-    val insert = schema.queries.inserts.head
-    assertEquals(insert.returningColumns.map(_.columnName), List("id", "created_at"))
+    assertEquals(insert.returningColumns.map(_.columnName), List("id", "created_at", "updated_at"))
   }
 
   test("DeriveInsert - includes non-auto-generated primary keys in derived input columns") {
     val model = SqlTestModelBuilder.assemble(
       """
         |use smithplates.codegen.sql#DerivedStruct
+        |use smithy.api#required
         |use smithplates.codegen.sql#sqlDeriveInsert
         |use smithplates.codegen.sql#sqlPrimaryKey
         |use smithplates.codegen.sql#sqlTable
@@ -107,7 +68,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |@sqlDeriveInsert(targetTable: "example#Widget")
         |operation CreateWidget {
         |    input: DerivedStruct
-        |    output: String
+        |    output: DerivedStruct
         |}
         |""".stripMargin
     )
@@ -222,13 +183,59 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
     assert(
       result.swap.toOption.get.exists {
-        case InvalidDeriveInsert(_, reason) if reason.contains("primary key target type") => true
-        case _                                                                            => false
+        case InvalidDeriveInsert(_, reason)
+            if reason.contains("output must be smithplates.codegen.sql#DerivedStruct") =>
+          true
+        case _ => false
       }
     )
   }
 
-  test("DeriveInsert - fails when output type does not match primary key type or a structure") {
+  test("DeriveInsert - fails when output is not DerivedStruct") {
+    val result = SqlModelExtractor.extract(
+      SqlTestModelBuilder.assemble(
+        """
+          |use smithplates.codegen.sql#DerivedStruct
+          |use smithy.api#required
+          |use smithplates.codegen.sql#sqlAutoUuid
+          |use smithplates.codegen.sql#sqlDeriveInsert
+          |use smithplates.codegen.sql#sqlPrimaryKey
+          |use smithplates.codegen.sql#sqlTable
+          |
+          |@sqlTable(name: "widgets")
+          |structure Widget {
+          |    @sqlPrimaryKey
+          |    @sqlAutoUuid
+          |    id: String
+          |    foo: String
+          |}
+          |
+          |structure CreateWidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |@sqlDeriveInsert(targetTable: "example#Widget")
+          |operation CreateWidget {
+          |    input: DerivedStruct
+          |    output: CreateWidgetOutput
+          |}
+          |""".stripMargin
+      )
+    )
+
+    assert(result.isInvalid)
+    assert(
+      result.swap.toOption.get.exists {
+        case InvalidDeriveInsert(_, reason)
+            if reason.contains("output must be smithplates.codegen.sql#DerivedStruct") =>
+          true
+        case _ => false
+      }
+    )
+  }
+
+  test("DeriveInsert - fails when output is bare Boolean") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -249,7 +256,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |@sqlDeriveInsert(targetTable: "example#Widget")
           |operation CreateWidget {
           |    input: DerivedStruct
-          |    output: Integer
+          |    output: Boolean
           |}
           |""".stripMargin
       )
@@ -258,47 +265,10 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
     assert(
       result.swap.toOption.get.exists {
-        case InvalidDeriveInsert(_, reason) if reason.contains("does not match a primary key target type") => true
-        case _                                                                                             => false
-      }
-    )
-  }
-
-  test("DeriveInsert - fails when output includes an unknown member") {
-    val result = SqlModelExtractor.extract(
-      SqlTestModelBuilder.assemble(
-        """
-          |use smithplates.codegen.sql#DerivedStruct
-          |use smithplates.codegen.sql#sqlDeriveInsert
-          |use smithplates.codegen.sql#sqlPrimaryKey
-          |use smithplates.codegen.sql#sqlTable
-          |
-          |@sqlTable(name: "widgets")
-          |structure Widget {
-          |    @sqlPrimaryKey
-          |    id: String
-          |    foo: String
-          |}
-          |
-          |structure CreateWidgetOutput {
-          |    id: String
-          |    extra: String
-          |}
-          |
-          |@sqlDeriveInsert(targetTable: "example#Widget")
-          |operation CreateWidget {
-          |    input: DerivedStruct
-          |    output: CreateWidgetOutput
-          |}
-          |""".stripMargin
-      )
-    )
-
-    assert(result.isInvalid)
-    assert(
-      result.swap.toOption.get.exists {
-        case QueryMemberNotOnTable(_, "extra", "widgets", InvalidQueryTableReference.Kind.Insert) => true
-        case _                                                                                    => false
+        case InvalidDeriveInsert(_, reason)
+            if reason.contains("output must be smithplates.codegen.sql#DerivedStruct") =>
+          true
+        case _ => false
       }
     )
   }
@@ -339,10 +309,15 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |    label: String
         |}
         |
+        |structure DeleteAOutput {
+        |    @required
+        |    deleted: Boolean
+        |}
+        |
         |@sqlDeriveInsert(targetTable: "example#A")
         |operation CreateA {
         |    input: DerivedStruct
-        |    output: String
+        |    output: DerivedStruct
         |}
         |
         |@sqlDeriveSelectOne(targetTable: "example#A")
@@ -354,19 +329,24 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |@sqlDeriveUpdate(targetTable: "example#A")
         |operation UpdateA {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DerivedStruct
         |}
         |
         |@sqlDeriveDelete(targetTable: "example#A")
         |operation DeleteA {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DeleteAOutput
+        |}
+        |
+        |structure DeleteBOutput {
+        |    @required
+        |    deleted: Boolean
         |}
         |
         |@sqlDeriveInsert(targetTable: "example#B")
         |operation CreateB {
         |    input: DerivedStruct
-        |    output: String
+        |    output: DerivedStruct
         |}
         |
         |@sqlDeriveSelectOne(targetTable: "example#B")
@@ -378,13 +358,13 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |@sqlDeriveUpdate(targetTable: "example#B")
         |operation UpdateB {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DerivedStruct
         |}
         |
         |@sqlDeriveDelete(targetTable: "example#B")
         |operation DeleteB {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DeleteBOutput
         |}
         |""".stripMargin
     )
@@ -466,7 +446,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |@sqlDeriveInsert(targetTable: "example#A")
           |operation CreateA {
           |    input: DerivedStruct
-          |    output: String
+          |    output: DerivedStruct
           |}
           |""".stripMargin
       )
@@ -508,7 +488,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |@sqlDeriveUpdate(targetTable: "example#Widget")
         |operation UpdateWidget {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DerivedStruct
         |}
         |""".stripMargin
     )
@@ -519,7 +499,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assertEquals(update.shapeId.toString, "example#UpdateWidget")
     assertEquals(update.whereColumns.map(_.memberName), List("id"))
     assertEquals(update.setColumns.map(_.memberName), List("foo", "bar"))
-    assertEquals(update.returningColumns.map(_.columnName), List("updated_at"))
+    assertEquals(update.returningColumns.map(_.columnName), List("id", "created_at", "updated_at"))
   }
 
   test("DeriveUpdate - fails when input is not DerivedStruct") {
@@ -547,7 +527,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |@sqlDeriveUpdate(targetTable: "example#Widget")
           |operation UpdateWidget {
           |    input: UpdateWidgetInput
-          |    output: Boolean
+          |    output: DerivedStruct
           |}
           |""".stripMargin
       )
@@ -562,7 +542,51 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveUpdate - fails when output is not Boolean") {
+  test("DeriveUpdate - fails when output is not DerivedStruct") {
+    val result = SqlModelExtractor.extract(
+      SqlTestModelBuilder.assemble(
+        """
+          |use smithplates.codegen.sql#DerivedStruct
+          |use smithy.api#required
+          |use smithplates.codegen.sql#sqlAutoUuid
+          |use smithplates.codegen.sql#sqlDeriveUpdate
+          |use smithplates.codegen.sql#sqlPrimaryKey
+          |use smithplates.codegen.sql#sqlTable
+          |
+          |@sqlTable(name: "widgets")
+          |structure Widget {
+          |    @sqlPrimaryKey
+          |    @sqlAutoUuid
+          |    id: String
+          |    foo: String
+          |}
+          |
+          |structure UpdateWidgetOutput {
+          |    @required
+          |    updated: Boolean
+          |}
+          |
+          |@sqlDeriveUpdate(targetTable: "example#Widget")
+          |operation UpdateWidget {
+          |    input: DerivedStruct
+          |    output: UpdateWidgetOutput
+          |}
+          |""".stripMargin
+      )
+    )
+
+    assert(result.isInvalid)
+    assert(
+      result.swap.toOption.get.exists {
+        case InvalidDeriveUpdate(_, reason)
+            if reason.contains("output must be smithplates.codegen.sql#DerivedStruct") =>
+          true
+        case _ => false
+      }
+    )
+  }
+
+  test("DeriveUpdate - fails when output is bare Boolean") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -583,7 +607,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |@sqlDeriveUpdate(targetTable: "example#Widget")
           |operation UpdateWidget {
           |    input: DerivedStruct
-          |    output: String
+          |    output: Boolean
           |}
           |""".stripMargin
       )
@@ -592,8 +616,10 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
     assert(
       result.swap.toOption.get.exists {
-        case InvalidDeriveUpdate(_, reason) if reason.contains("output must be Boolean") => true
-        case _                                                                           => false
+        case InvalidDeriveUpdate(_, reason)
+            if reason.contains("output must be smithplates.codegen.sql#DerivedStruct") =>
+          true
+        case _ => false
       }
     )
   }
@@ -620,11 +646,10 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |    @sqlUpdatedTimestamp
           |    updated_at: Timestamp
           |}
-          |
           |@sqlDeriveUpdate(targetTable: "example#Widget")
           |operation UpdateWidget {
           |    input: DerivedStruct
-          |    output: Boolean
+          |    output: DerivedStruct
           |}
           |""".stripMargin
       )
@@ -663,10 +688,15 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
         |    updated_at: Timestamp
         |}
         |
+        |structure DeleteWidgetOutput {
+        |    @required
+        |    deleted: Boolean
+        |}
+        |
         |@sqlDeriveDelete(targetTable: "example#Widget")
         |operation DeleteWidget {
         |    input: DerivedStruct
-        |    output: Boolean
+        |    output: DeleteWidgetOutput
         |}
         |""".stripMargin
     )
@@ -703,7 +733,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |@sqlDeriveDelete(targetTable: "example#Widget")
           |operation DeleteWidget {
           |    input: DeleteWidgetInput
-          |    output: Boolean
+          |    output: DeleteWidgetOutput
           |}
           |""".stripMargin
       )
@@ -718,7 +748,7 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     )
   }
 
-  test("DeriveDelete - fails when output is not Boolean") {
+  test("DeriveDelete - fails when output is not boolean mutation structure") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
         """
@@ -748,8 +778,12 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
     assert(result.isInvalid)
     assert(
       result.swap.toOption.get.exists {
-        case InvalidDeriveDelete(_, reason) if reason.contains("output must be Boolean") => true
-        case _                                                                           => false
+        case InvalidDeriveDelete(_, reason)
+            if reason.contains(
+              "output must be a structure with exactly one @required member targeting smithy.api#Boolean"
+            ) =>
+          true
+        case _ => false
       }
     )
   }
@@ -761,16 +795,22 @@ class SqlQueryExtractorSpec extends munit.FunSuite {
           |use smithplates.codegen.sql#DerivedStruct
           |use smithplates.codegen.sql#sqlDeriveDelete
           |use smithplates.codegen.sql#sqlTable
+          |use smithy.api#required
           |
           |@sqlTable(name: "widgets")
           |structure Widget {
           |    foo: String
           |}
           |
+          |structure DeleteWidgetOutput {
+          |    @required
+          |    deleted: Boolean
+          |}
+          |
           |@sqlDeriveDelete(targetTable: "example#Widget")
           |operation DeleteWidget {
           |    input: DerivedStruct
-          |    output: Boolean
+          |    output: DeleteWidgetOutput
           |}
           |""".stripMargin
       )

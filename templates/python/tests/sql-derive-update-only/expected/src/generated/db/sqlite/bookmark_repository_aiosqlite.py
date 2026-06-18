@@ -1,10 +1,14 @@
 # Generated from example#BookmarkRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from typing import override
+import sqlite3
+from typing import cast, override
 
 import aiosqlite
 from generated.db.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.db.models.bookmark_repository_models import (
+    UpdateBookmarkResult,
+)
 from generated.db.sqlite.sqlite_transaction_run import run
 
 
@@ -20,14 +24,23 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
-    ) -> bool:
-        async def execute(conn: aiosqlite.Connection) -> bool:
+    ) -> UpdateBookmarkResult:
+        async def execute(conn: aiosqlite.Connection) -> UpdateBookmarkResult:
             cursor = await conn.execute(
                 """UPDATE bookmarks
 SET title = ?
-WHERE id = ?;""",
+WHERE id = ? RETURNING id;""",
                 (title, id),
             )
-            return cursor.rowcount > 0
+            row = await cursor.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return UpdateBookmarkResult(
+                id=_read_str(row, 0),
+            )
 
         return await run(self._connection, transaction, execute)
+
+
+def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
+    return cast(str, row[index])

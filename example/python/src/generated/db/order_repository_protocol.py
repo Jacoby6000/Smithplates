@@ -19,6 +19,7 @@ class GetOrderRecordResult:
     updated_at: datetime
     order_lines: list[OrderLine]
 
+
 T = TypeVar("T", contravariant=True)
 
 
@@ -30,12 +31,10 @@ class OrderRepositoryServiceProtocol(Protocol[T]):
         priority: OrderPriority,
         *,
         transaction: T | None = None,
-    ) -> str:
-        ...
+    ) -> str: ...
     async def get_order_record(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> GetOrderRecordResult | None:
-        ...
+    ) -> GetOrderRecordResult | None: ...

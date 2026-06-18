@@ -56,30 +56,23 @@ object SqlCodegenHelperAttributes {
       }
       .toList
 
-  def rowReaders(operations: List[TemplateOperationView], dialectKey: String): Set[String] = {
-    val scalarReaders =
-      operations
-        .filter(_.sqlBodyKind == SqlCodegenSqlBodyKind.InsertScalar)
-        .map(_ => "_read_str")
-    val fieldReaders  =
-      operations.flatMap { operation =>
-        operation.sqlBodyKind match {
-          case SqlCodegenSqlBodyKind.InsertStructureDict | SqlCodegenSqlBodyKind.SelectOneDict =>
-            Nil
-          case SqlCodegenSqlBodyKind.SelectOneClassRow if dialectKey == "postgres"             =>
-            Nil
-          case SqlCodegenSqlBodyKind.InsertStructureIndex | SqlCodegenSqlBodyKind.SelectOneIndex |
-              SqlCodegenSqlBodyKind.SelectOneClassRow | SqlCodegenSqlBodyKind.SelectOneJoinedFlat |
-              SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
-            operation.resultFields
-              .filterNot(_.isJson)
-              .flatMap(field => rowReaderForType(field.readTypeName, field.timestampFormat))
-          case _                                                                               =>
-            Nil
-        }
+  def rowReaders(operations: List[TemplateOperationView], dialectKey: String): Set[String] =
+    operations.flatMap { operation =>
+      operation.sqlBodyKind match {
+        case SqlCodegenSqlBodyKind.InsertStructureDict | SqlCodegenSqlBodyKind.SelectOneDict =>
+          Nil
+        case SqlCodegenSqlBodyKind.SelectOneClassRow if dialectKey == "postgres"             =>
+          Nil
+        case SqlCodegenSqlBodyKind.InsertStructureIndex | SqlCodegenSqlBodyKind.SelectOneIndex |
+            SqlCodegenSqlBodyKind.SelectOneClassRow | SqlCodegenSqlBodyKind.SelectOneJoinedFlat |
+            SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
+          operation.resultFields
+            .filterNot(_.isJson)
+            .flatMap(field => rowReaderForType(field.readTypeName, field.timestampFormat))
+        case _                                                                               =>
+          Nil
       }
-    (scalarReaders ++ fieldReaders).toSet
-  }
+    }.toSet
 
   def rowReadersCol(operations: List[TemplateOperationView]): Set[String] =
     operations

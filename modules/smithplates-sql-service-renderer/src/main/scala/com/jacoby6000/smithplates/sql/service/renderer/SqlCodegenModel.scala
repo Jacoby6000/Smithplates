@@ -72,7 +72,8 @@ final case class SqlCodegenSqlBinding(
     outputKind: String,
     returningColumnIndex: Option[Int],
     resultFields: List[SqlCodegenResultField],
-    selectOneOutput: Option[SqlCodegenSelectOneOutputBinding] = None
+    selectOneOutput: Option[SqlCodegenSelectOneOutputBinding] = None,
+    mutationResultMemberName: Option[String] = None
 )
 
 final case class SqlCodegenServiceContext(
@@ -122,6 +123,8 @@ final case class SqlCodegenIntegrationTestOperation(
     callArguments: String,
     updatedCallArguments: Option[String],
     outputShapeId: Option[ShapeId],
+    entityIdMemberName: Option[String],
+    mutationResultMemberName: Option[String],
     resultAssertions: List[String],
     updatedResultAssertions: List[String]
 )

@@ -1,5 +1,8 @@
 $version: "2.0"
+
 namespace example
+
+use smithy.api#required
 
 use smithplates.codegen.sql#DerivedStruct
 use smithplates.codegen.sql#sqlAutoUuid
@@ -37,7 +40,7 @@ structure CategoryItem {
 @sqlDeriveInsert(targetTable: "example#Category")
 operation CreateCategory {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(targetTable: "example#Category")

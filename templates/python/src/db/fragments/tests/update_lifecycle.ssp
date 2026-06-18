@@ -2,7 +2,9 @@
 <%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
 
     updated = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.updateOperation.name)}(${test.updateOperation.callArguments})
-    assert updated is True
+<% for (assertion <- test.updateOperation.resultAssertions) { %>
+    ${assertion.line}
+<% } %>
 
     fetched_after_update = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched_after_update, ${test.selectOneOperation.outputShapeName})

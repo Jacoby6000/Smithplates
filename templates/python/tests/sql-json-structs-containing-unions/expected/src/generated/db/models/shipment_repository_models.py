@@ -18,6 +18,11 @@ DeliveryState = DeliveryStatePending | DeliveryStateDelivered
 
 
 @dataclass
+class DeleteShipmentOutput:
+    deleted: bool
+
+
+@dataclass
 class PostalAddress:
     street: str
     city: str
@@ -29,4 +34,16 @@ class Shipment:
     label: str
     destination: PostalAddress
     state: DeliveryState
+    created_at: datetime
+
+
+@dataclass
+class CreateShipmentResult:
+    id: str
+    created_at: datetime
+
+
+@dataclass
+class UpdateShipmentResult:
+    id: str
     created_at: datetime

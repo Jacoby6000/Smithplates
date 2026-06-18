@@ -34,15 +34,16 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
     ) -> str:
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
-"""INSERT INTO orders (label, status, priority) VALUES (?, ?, ?) RETURNING id;"""
-,
+                """INSERT INTO orders (label, status, priority) VALUES (?, ?, ?) RETURNING id;""",
                 (label, status, priority),
             )
             row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return _read_str(row, 0)
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def get_order_record(
         self,
@@ -52,11 +53,10 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
     ) -> GetOrderRecordResult | None:
         async def execute(conn: aiosqlite.Connection) -> GetOrderRecordResult | None:
             cursor = await conn.execute(
-"""SELECT orders.id, orders.label, orders.status, orders.priority, orders.created_at, orders.updated_at, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.pet_id AS ol_pet_id, ol.quantity AS ol_quantity, ol.unit_price_cents AS ol_unit_price_cents, ol.fulfillment AS ol_fulfillment
+                """SELECT orders.id, orders.label, orders.status, orders.priority, orders.created_at, orders.updated_at, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.pet_id AS ol_pet_id, ol.quantity AS ol_quantity, ol.unit_price_cents AS ol_unit_price_cents, ol.fulfillment AS ol_fulfillment
 FROM orders AS orders
 LEFT JOIN order_lines AS ol ON orders.id = ol.order_id
-WHERE orders.id = ?;"""
-,
+WHERE orders.id = ?;""",
                 (id,),
             )
             rows = list(await cursor.fetchall())
@@ -85,7 +85,9 @@ WHERE orders.id = ?;"""
                 updated_at=_read_datetime(row, 5),
                 order_lines=order_lines,
             )
+
         return await run(self._connection, transaction, execute)
+
 
 def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetime:
     value = cast(str, row[index])
@@ -100,11 +102,14 @@ def _read_datetime(row: tuple[object, ...] | sqlite3.Row, index: int) -> datetim
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
 
+
 def _read_int(row: tuple[object, ...] | sqlite3.Row, index: int) -> int:
     return cast(int, row[index])
 
+
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
 
 def _json_bind_FulfillmentState(value: FulfillmentState) -> str:
     present = [key for key in ("pending", "shipped", "delivered") if key in value]

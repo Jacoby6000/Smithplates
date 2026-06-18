@@ -147,7 +147,7 @@ structure OrderLine {
 @sqlDeriveInsert(targetTable: "petstore.db#Pet")
 operation CreatePetRecord {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(
@@ -167,13 +167,18 @@ operation GetPetRecord {
 @sqlDeriveUpdate(targetTable: "petstore.db#Pet")
 operation UpdatePetRecord {
     input: DerivedStruct
-    output: Boolean
+    output: DerivedStruct
+}
+
+structure DeletePetRecordOutput {
+    @required
+    deleted: Boolean
 }
 
 @sqlDeriveDelete(targetTable: "petstore.db#Pet")
 operation DeletePetRecord {
     input: DerivedStruct
-    output: Boolean
+    output: DeletePetRecordOutput
 }
 
 @sqlService
@@ -185,7 +190,7 @@ service PetRepository {
 @sqlDeriveInsert(targetTable: "petstore.db#Category")
 operation CreateCategoryRecord {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(
@@ -206,7 +211,7 @@ service CategoryRepository {
 @sqlDeriveInsert(targetTable: "petstore.db#Order")
 operation CreateOrderRecord {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(

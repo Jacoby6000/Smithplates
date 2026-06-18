@@ -7,6 +7,7 @@ from typing import cast, override
 
 import psycopg
 from generated.db.models.order_repository_models import (
+    CreateOrderResult,
     FulfillmentState,
     OrderLine,
     PostalAddress,
@@ -16,6 +17,7 @@ from generated.db.order_repository_protocol import (
     OrderRepositoryServiceProtocol,
 )
 from generated.db.postgres.psycopg_transaction_run import run
+from psycopg.rows import dict_row
 
 
 class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.AsyncTransaction]):
@@ -29,16 +31,19 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
         label: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> str:
-        async def execute() -> str:
-            cur = await self._connection.execute(
-                """INSERT INTO orders (label) VALUES (%s) RETURNING id;""",
-                (label,),
-            )
-            row = await cur.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+    ) -> CreateOrderResult:
+        async def execute() -> CreateOrderResult:
+            async with self._connection.cursor(row_factory=dict_row) as cur:
+                await cur.execute(
+                    """INSERT INTO orders (label) VALUES (%s) RETURNING id;""",
+                    (label,),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("INSERT RETURNING produced no row")
+                return CreateOrderResult(
+                    id=_read_str_col(row, "id"),
+                )
 
         return await run(self._connection, transaction, execute)
 
@@ -123,3 +128,10 @@ def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
         street=cast(str, data["street"]),
         city=cast(str, data["city"]),
     )
+
+
+def _read_str_col(row: dict[str, object], column: str) -> str:
+    value = row[column]
+    if isinstance(value, uuid.UUID):
+        return str(value)
+    return cast(str, value)

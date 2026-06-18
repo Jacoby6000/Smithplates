@@ -44,7 +44,7 @@ object SqlServiceCodegenContextBuilder {
       service.operations
         .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
         .map { operations =>
-          val (resolvedOperations, derivedModels) = applySelectOneDerivedOutputs(operations, queries)
+          val (resolvedOperations, derivedModels) = applyDerivedOutputs(operations, queries)
           val baseContext                         =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
@@ -78,7 +78,12 @@ object SqlServiceCodegenContextBuilder {
     }
   }
 
-  private def applySelectOneDerivedOutputs(
+  final private case class DerivedOutputModel(
+      structure: SqlStructure,
+      typeName: String
+  )
+
+  private def applyDerivedOutputs(
       operations: List[SqlCodegenOperation],
       queries: SqlQueries
   ): (List[SqlCodegenOperation], List[SqlStructure]) = {
@@ -87,7 +92,27 @@ object SqlServiceCodegenContextBuilder {
         SqlOperationQueryResolver.resolve(queries, operation.shapeId).flatMap {
           case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) if selectOneQuery.hasNestedResults =>
             val derived = SqlSelectOneDerivedOutputBuilder.build(operation.name, selectOneQuery)
-            Some(operation.shapeId -> derived)
+            Some(operation.shapeId -> DerivedOutputModel(derived.structure, derived.typeName))
+          case ResolvedSqlOperationQuery.Insert(insertQuery)
+              if operation.outputShapeId.contains(SqlQueryExtractor.DerivedStructShapeId) &&
+                insertQuery.returningColumns.nonEmpty =>
+            val derived =
+              SqlDeriveReturningDerivedOutputBuilder.build(
+                operation.name,
+                insertQuery.table,
+                insertQuery.returningColumns
+              )
+            Some(operation.shapeId -> DerivedOutputModel(derived.structure, derived.typeName))
+          case ResolvedSqlOperationQuery.Update(updateQuery)
+              if operation.outputShapeId.contains(SqlQueryExtractor.DerivedStructShapeId) &&
+                updateQuery.returningColumns.nonEmpty =>
+            val derived =
+              SqlDeriveReturningDerivedOutputBuilder.build(
+                operation.name,
+                updateQuery.table,
+                updateQuery.returningColumns
+              )
+            Some(operation.shapeId -> DerivedOutputModel(derived.structure, derived.typeName))
           case _                                                                                      =>
             None
         }
@@ -106,7 +131,9 @@ object SqlServiceCodegenContextBuilder {
         }
       }
 
-    (resolvedOperations, derivedByOperation.values.map(_.structure).toList)
+    val derivedModels = derivedByOperation.values.map(_.structure).toList
+
+    (resolvedOperations, derivedModels)
   }
 
   private def buildOperation(
@@ -130,7 +157,7 @@ object SqlServiceCodegenContextBuilder {
     val sqlBinding =
       (resolvedQuery, queryRenderer) match {
         case (Some(query), Some(renderer)) =>
-          SqlOperationBindingBuilder.build(operation, query, renderer).map(Some(_))
+          SqlOperationBindingBuilder.build(model, operation, query, renderer).map(Some(_))
         case _                             =>
           None.validNel
       }

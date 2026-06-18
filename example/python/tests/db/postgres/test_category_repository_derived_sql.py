@@ -7,12 +7,13 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
+from testcontainers.postgres import PostgresContainer
+
 from generated.db.category_repository_protocol import (
     GetCategoryRecordResult,
 )
 from generated.db.postgres.category_repository_psycopg import CategoryRepositoryPsycopgService
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
-from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 

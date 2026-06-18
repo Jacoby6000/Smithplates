@@ -54,13 +54,13 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
             |@sqlDeriveInsert(targetTable: "example#Shipment")
             |operation CreateShipment {
             |    input: DerivedStruct
-            |    output: String
+            |    output: DerivedStruct
             |}
             |
             |@sqlDeriveUpdate(targetTable: "example#Shipment")
             |operation UpdateShipment {
             |    input: DerivedStruct
-            |    output: Boolean
+            |    output: DerivedStruct
             |}
             |""".stripMargin
         )
@@ -112,6 +112,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       SqlTestModelBuilder.assemble(
         """
           |use smithplates.codegen.sql#DerivedStruct
+          |use smithy.api#required
           |use smithplates.codegen.sql#sqlDeriveInsert
           |use smithplates.codegen.sql#sqlDeriveSelectOne
           |use smithplates.codegen.sql#sqlPrimaryKey
@@ -128,7 +129,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
           |@sqlDeriveInsert(targetTable: "example#Widget")
           |operation CreateWidget {
           |    input: DerivedStruct
-          |    output: String
+          |    output: DerivedStruct
           |}
           |
           |@sqlDeriveSelectOne(targetTable: "example#Widget")

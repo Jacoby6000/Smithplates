@@ -76,6 +76,7 @@ use smithplates.codegen.sql#sqlDeriveSelectOne
 use smithplates.codegen.sql#sqlPrimaryKey
 use smithplates.codegen.sql#sqlService
 use smithplates.codegen.sql#sqlTable
+use smithy.api#required
 
 @sqlTable(name: "widgets")
 structure Widget {
@@ -88,7 +89,7 @@ structure Widget {
 @sqlDeriveInsert(targetTable: "example.db#Widget")
 operation CreateWidget {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(targetTable: "example.db#Widget")

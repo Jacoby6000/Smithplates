@@ -34,15 +34,16 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
     ) -> str:
         async def execute() -> str:
             cur = await self._connection.execute(
-"""INSERT INTO orders (label, status, priority) VALUES (%s, %s, %s) RETURNING id;"""
-,
+                """INSERT INTO orders (label, status, priority) VALUES (%s, %s, %s) RETURNING id;""",
                 (label, status, priority),
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
             return _read_str(row, 0)
+
         return await run(self._connection, transaction, execute)
+
     @override
     async def get_order_record(
         self,
@@ -52,11 +53,10 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
     ) -> GetOrderRecordResult | None:
         async def execute() -> GetOrderRecordResult | None:
             cur = await self._connection.execute(
-"""SELECT orders.id, orders.label, orders.status, orders.priority, orders.created_at, orders.updated_at, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.pet_id AS ol_pet_id, ol.quantity AS ol_quantity, ol.unit_price_cents AS ol_unit_price_cents, ol.fulfillment AS ol_fulfillment
+                """SELECT orders.id, orders.label, orders.status, orders.priority, orders.created_at, orders.updated_at, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.pet_id AS ol_pet_id, ol.quantity AS ol_quantity, ol.unit_price_cents AS ol_unit_price_cents, ol.fulfillment AS ol_fulfillment
 FROM orders AS orders
 LEFT JOIN order_lines AS ol ON orders.id = ol.order_id
-WHERE orders.id = %s;"""
-,
+WHERE orders.id = %s;""",
                 (id,),
             )
             rows = await cur.fetchall()
@@ -85,18 +85,24 @@ WHERE orders.id = %s;"""
                 updated_at=_read_datetime(row, 5),
                 order_lines=order_lines,
             )
+
         return await run(self._connection, transaction, execute)
+
+
 def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
     return cast(datetime, row[index])
 
+
 def _read_int(row: tuple[object, ...], index: int) -> int:
     return cast(int, row[index])
+
 
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
         return str(value)
     return cast(str, value)
+
 
 def _json_bind_FulfillmentState(value: FulfillmentState) -> str:
     present = [key for key in ("pending", "shipped", "delivered") if key in value]

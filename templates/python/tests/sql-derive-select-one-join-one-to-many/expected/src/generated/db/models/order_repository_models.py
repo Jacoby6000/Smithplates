@@ -15,3 +15,8 @@ class OrderLine:
     id: str
     order_id: str | None
     sku: str | None
+
+
+@dataclass
+class CreateOrderResult:
+    id: str

@@ -7,8 +7,9 @@
 async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
     connection = ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}._connection
     async with connection.transaction() as tx:
-        entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
-        assert isinstance(entity_id, str)
+        created = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
+        assert isinstance(created, ${test.insertOperation.outputShapeName})
+        entity_id = created.${test.insertOperation.entityIdMemberName}
         assert entity_id
 
         fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments}, transaction=tx)
@@ -32,7 +33,8 @@ async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(ser
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
+            created = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=tx)
+            entity_id = created.${test.insertOperation.entityIdMemberName}
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

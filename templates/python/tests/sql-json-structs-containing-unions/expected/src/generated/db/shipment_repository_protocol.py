@@ -4,9 +4,12 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from generated.db.models.shipment_repository_models import (
+    CreateShipmentResult,
+    DeleteShipmentOutput,
     DeliveryState,
     PostalAddress,
     Shipment,
+    UpdateShipmentResult,
 )
 
 T = TypeVar("T", contravariant=True)
@@ -20,7 +23,7 @@ class ShipmentRepositoryServiceProtocol(Protocol[T]):
         state: DeliveryState,
         *,
         transaction: T | None = None,
-    ) -> str: ...
+    ) -> CreateShipmentResult: ...
     async def get_shipment(
         self,
         id: str,
@@ -35,10 +38,10 @@ class ShipmentRepositoryServiceProtocol(Protocol[T]):
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool: ...
+    ) -> UpdateShipmentResult: ...
     async def delete_shipment(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool: ...
+    ) -> DeleteShipmentOutput: ...

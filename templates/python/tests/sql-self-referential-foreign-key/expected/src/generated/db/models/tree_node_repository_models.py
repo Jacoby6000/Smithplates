@@ -9,3 +9,8 @@ class TreeNode:
     id: str
     label: str | None
     parent_node_id: str | None
+
+
+@dataclass
+class CreateTreeNodeResult:
+    id: str

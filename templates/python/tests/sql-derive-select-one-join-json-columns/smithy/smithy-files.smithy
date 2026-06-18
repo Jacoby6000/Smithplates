@@ -55,7 +55,7 @@ structure OrderLine {
 @sqlDeriveInsert(targetTable: "example#Order")
 operation CreateOrder {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(

@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from generated.db.models.tree_node_repository_models import (
+    CreateTreeNodeResult,
     TreeNode,
 )
 
@@ -17,7 +18,7 @@ class TreeNodeRepositoryServiceProtocol(Protocol[T]):
         parent_node_id: str | None,
         *,
         transaction: T | None = None,
-    ) -> str: ...
+    ) -> CreateTreeNodeResult: ...
     async def get_tree_node(
         self,
         id: str,

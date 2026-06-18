@@ -7,6 +7,7 @@ use smithplates.codegen.sql#sqlTable
 use smithplates.codegen.sql#DerivedStruct
 use smithplates.codegen.sql#sqlDeriveDelete
 use smithplates.codegen.sql#sqlService
+use smithy.api#required
 
 @sqlTable(name: "bookmarks")
 structure Bookmark {
@@ -16,10 +17,15 @@ structure Bookmark {
     title: String
 }
 
+structure DeleteBookmarkOutput {
+    @required
+    deleted: Boolean
+}
+
 @sqlDeriveDelete(targetTable: "example#Bookmark")
 operation DeleteBookmark {
     input: DerivedStruct
-    output: Boolean
+    output: DeleteBookmarkOutput
 }
 
 @sqlService

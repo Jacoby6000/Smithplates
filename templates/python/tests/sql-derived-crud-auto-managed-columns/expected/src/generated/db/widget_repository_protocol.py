@@ -4,6 +4,9 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from generated.db.models.widget_repository_models import (
+    CreateWidgetResult,
+    DeleteWidgetOutput,
+    UpdateWidgetResult,
     Widget,
 )
 
@@ -17,7 +20,7 @@ class WidgetRepositoryServiceProtocol(Protocol[T]):
         bar: int | None,
         *,
         transaction: T | None = None,
-    ) -> str: ...
+    ) -> CreateWidgetResult: ...
     async def get_widget(
         self,
         id: str,
@@ -31,10 +34,10 @@ class WidgetRepositoryServiceProtocol(Protocol[T]):
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool: ...
+    ) -> UpdateWidgetResult: ...
     async def delete_widget(
         self,
         id: str,
         *,
         transaction: T | None = None,
-    ) -> bool: ...
+    ) -> DeleteWidgetOutput: ...

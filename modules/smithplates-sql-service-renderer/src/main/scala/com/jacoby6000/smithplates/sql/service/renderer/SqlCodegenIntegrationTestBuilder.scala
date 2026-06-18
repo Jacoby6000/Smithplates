@@ -115,17 +115,22 @@ object SqlCodegenIntegrationTestBuilder {
       context: SqlCodegenServiceContext,
       operation: SqlCodegenOperation,
       enumSamples: Map[String, String]
-  ): Option[SqlCodegenIntegrationTestOperation] =
+  ): Option[SqlCodegenIntegrationTestOperation] = {
+    val entityIdMemberName =
+      operation.sql.flatMap(_.resultFields.headOption).map(_.fieldName).orElse(Some("id"))
     Some(
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial, enumSamples),
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        entityIdMemberName = entityIdMemberName,
+        mutationResultMemberName = None,
         resultAssertions = Nil,
         updatedResultAssertions = Nil
       )
     )
+  }
 
   private def buildSelectOneOperation(
       context: SqlCodegenServiceContext,
@@ -150,6 +155,8 @@ object SqlCodegenIntegrationTestBuilder {
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
+        entityIdMemberName = None,
+        mutationResultMemberName = None,
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial, enumSamples),
         updatedResultAssertions =
           resultAssertions(context, updatedParameterSource, "fetched_after_update", SampleVariant.Updated, enumSamples)
@@ -161,7 +168,22 @@ object SqlCodegenIntegrationTestBuilder {
       context: SqlCodegenServiceContext,
       operation: SqlCodegenOperation,
       enumSamples: Map[String, String]
-  ): Option[SqlCodegenIntegrationTestOperation] =
+  ): Option[SqlCodegenIntegrationTestOperation] = {
+    val mutationMemberName    = operation.sql.flatMap(_.mutationResultMemberName)
+    val hasReturningStructure = operation.sql.exists(sql => sql.resultFields.nonEmpty)
+    val resultAssertions      =
+      if (hasReturningStructure) {
+        val outputTypeName =
+          operation.outputTypeName.getOrElse(
+            throw new IllegalStateException(s"Missing output type for returning update ${operation.name}")
+          )
+        List(
+          s"assert isinstance(updated, $outputTypeName)",
+          "assert updated.id == entity_id"
+        )
+      } else {
+        mutationMemberName.toList.map(memberName => s"assert updated.$memberName is True")
+      }
     Some(
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
@@ -175,22 +197,29 @@ object SqlCodegenIntegrationTestBuilder {
         },
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
-        resultAssertions = Nil,
+        entityIdMemberName = None,
+        mutationResultMemberName = mutationMemberName,
+        resultAssertions = resultAssertions,
         updatedResultAssertions = Nil
       )
     )
+  }
 
-  private def buildDeleteOperation(operation: SqlCodegenOperation): Option[SqlCodegenIntegrationTestOperation] =
+  private def buildDeleteOperation(operation: SqlCodegenOperation): Option[SqlCodegenIntegrationTestOperation] = {
+    val mutationMemberName = operation.sql.flatMap(_.mutationResultMemberName)
     Some(
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
         callArguments = "id=entity_id",
         updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
-        resultAssertions = Nil,
+        entityIdMemberName = None,
+        mutationResultMemberName = mutationMemberName,
+        resultAssertions = mutationMemberName.toList.map(memberName => s"assert deleted.$memberName is True"),
         updatedResultAssertions = Nil
       )
     )
+  }
 
   private def remapAssertionTarget(
       assertions: List[String],
@@ -351,6 +380,13 @@ object SqlCodegenIntegrationTestBuilder {
   ): String = {
     val serviceModuleBase    =
       ScalateSspTemplateEngine.renderServiceModuleBaseName("python/src/db", context.name)
+    val assertionText        =
+      List(
+        insertOperation.resultAssertions.mkString("\n"),
+        updateOperation.map(_.resultAssertions.mkString("\n")).getOrElse(""),
+        selectOneOperation.resultAssertions.mkString("\n"),
+        selectOneOperation.updatedResultAssertions.mkString("\n")
+      ).mkString("\n")
     val callText             =
       List(
         Some(insertOperation.callArguments),
@@ -359,12 +395,16 @@ object SqlCodegenIntegrationTestBuilder {
       ).flatten.mkString(" ")
     val operationResultNames =
       context.models
-        .filter(_.namespace == SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+        .filter(model =>
+          model.namespace == SqlSelectOneDerivedOutputBuilder.DerivedNamespace ||
+            model.namespace == SqlDeriveReturningDerivedOutputBuilder.DerivedNamespace)
         .map(_.name)
         .toSet
     val tableModelNames      =
       context.models
-        .filter(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+        .filter(model =>
+          model.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace &&
+            model.namespace != SqlDeriveReturningDerivedOutputBuilder.DerivedNamespace)
         .map(_.name)
         .toSet
     val unionNames           = context.unions.map(_.name).toSet
@@ -379,7 +419,14 @@ object SqlCodegenIntegrationTestBuilder {
         modelImportNames += name
       }
 
+    insertOperation.outputShapeId.foreach(shapeId => assignImportName(shapeId.getName))
+    updateOperation.flatMap(_.outputShapeId).foreach(shapeId => assignImportName(shapeId.getName))
     selectOneOperation.outputShapeId.foreach(shapeId => assignImportName(shapeId.getName))
+    operationResultNames.foreach { name =>
+      if (assertionText.contains(name)) {
+        assignImportName(name)
+      }
+    }
     tableModelNames.foreach { name =>
       if (callText.contains(name)) {
         modelImportNames += name

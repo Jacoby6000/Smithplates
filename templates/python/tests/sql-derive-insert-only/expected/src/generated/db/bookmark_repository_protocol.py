@@ -3,6 +3,10 @@ from __future__ import annotations
 
 from typing import Protocol, TypeVar
 
+from generated.db.models.bookmark_repository_models import (
+    CreateBookmarkResult,
+)
+
 T = TypeVar("T", contravariant=True)
 
 
@@ -12,4 +16,4 @@ class BookmarkRepositoryServiceProtocol(Protocol[T]):
         title: str | None,
         *,
         transaction: T | None = None,
-    ) -> str: ...
+    ) -> CreateBookmarkResult: ...

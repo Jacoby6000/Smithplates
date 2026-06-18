@@ -1,13 +1,5 @@
 <%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
 #match (operation.sqlBodyKind)
-#case ("insertScalar")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
-            )
-            row = await cur.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, ${operation.returningColumnIndex})
 #case ("insertStructureDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row")) { %>
 <% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 row = await cur.fetchone()
@@ -32,12 +24,12 @@
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
-            return row is not None
+            return ${operation.outputShapeName}(${operation.mutationResultMemberName}=row is not None)
 #case ("booleanMutationRowcount")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
-            return cur.rowcount > 0
+            return ${operation.outputShapeName}(${operation.mutationResultMemberName}=cur.rowcount > 0)
 #case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
 <% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 return await cur.fetchone()

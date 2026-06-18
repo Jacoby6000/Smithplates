@@ -8,6 +8,7 @@ import psycopg
 import pytest
 import pytest_asyncio
 from generated.db.order_repository_protocol import (
+    CreateOrderResult,
     GetOrderResult,
 )
 from generated.db.postgres.order_repository_psycopg import OrderRepositoryPsycopgService
@@ -41,8 +42,9 @@ async def order_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryPsycopgService) -> None:
-    entity_id = await order_repository_service.create_order(label=None)
-    assert isinstance(entity_id, str)
+    created = await order_repository_service.create_order(label=None)
+    assert isinstance(created, CreateOrderResult)
+    entity_id = created.id
     assert entity_id
 
     fetched = await order_repository_service.get_order(id=entity_id)
@@ -56,8 +58,9 @@ async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepo
 async def test_derived_sql_methods_transaction_commit(order_repository_service: OrderRepositoryPsycopgService) -> None:
     connection = order_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await order_repository_service.create_order(label=None, transaction=tx)
-        assert isinstance(entity_id, str)
+        created = await order_repository_service.create_order(label=None, transaction=tx)
+        assert isinstance(created, CreateOrderResult)
+        entity_id = created.id
         assert entity_id
 
         fetched = await order_repository_service.get_order(id=entity_id, transaction=tx)
@@ -79,7 +82,8 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await order_repository_service.create_order(label=None, transaction=tx)
+            created = await order_repository_service.create_order(label=None, transaction=tx)
+            entity_id = created.id
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

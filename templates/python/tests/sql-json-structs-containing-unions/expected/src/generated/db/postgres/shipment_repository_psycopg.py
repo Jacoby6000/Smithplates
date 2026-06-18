@@ -8,9 +8,12 @@ from typing import cast, override
 
 import psycopg
 from generated.db.models.shipment_repository_models import (
+    CreateShipmentResult,
+    DeleteShipmentOutput,
     DeliveryState,
     PostalAddress,
     Shipment,
+    UpdateShipmentResult,
 )
 from generated.db.postgres.psycopg_transaction_run import run
 from generated.db.shipment_repository_protocol import ShipmentRepositoryServiceProtocol
@@ -30,16 +33,20 @@ class ShipmentRepositoryPsycopgService(ShipmentRepositoryServiceProtocol[psycopg
         state: DeliveryState,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> str:
-        async def execute() -> str:
-            cur = await self._connection.execute(
-                """INSERT INTO shipments (label, destination, state) VALUES (%s, %s, %s) RETURNING id;""",
-                (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
-            )
-            row = await cur.fetchone()
-            if row is None:
-                raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, 0)
+    ) -> CreateShipmentResult:
+        async def execute() -> CreateShipmentResult:
+            async with self._connection.cursor(row_factory=dict_row) as cur:
+                await cur.execute(
+                    """INSERT INTO shipments (label, destination, state) VALUES (%s, %s, %s) RETURNING id, created_at;""",
+                    (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state)),
+                )
+                row = await cur.fetchone()
+                if row is None:
+                    raise RuntimeError("INSERT RETURNING produced no row")
+                return CreateShipmentResult(
+                    id=_read_str_col(row, "id"),
+                    created_at=_read_datetime_col(row, "created_at"),
+                )
 
         return await run(self._connection, transaction, execute)
 
@@ -80,15 +87,21 @@ WHERE id = %s;""",
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> bool:
-        async def execute() -> bool:
+    ) -> UpdateShipmentResult:
+        async def execute() -> UpdateShipmentResult:
             cur = await self._connection.execute(
                 """UPDATE shipments
 SET label = %s, destination = %s, state = %s
-WHERE id = %s;""",
+WHERE id = %s RETURNING id, created_at;""",
                 (label, _json_bind_PostalAddress(destination), _json_bind_DeliveryState(state), id),
             )
-            return cur.rowcount > 0
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("INSERT RETURNING produced no row")
+            return UpdateShipmentResult(
+                id=_read_str(row, 0),
+                created_at=_read_datetime(row, 1),
+            )
 
         return await run(self._connection, transaction, execute)
 
@@ -98,16 +111,20 @@ WHERE id = %s;""",
         id: str,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
-    ) -> bool:
-        async def execute() -> bool:
+    ) -> DeleteShipmentOutput:
+        async def execute() -> DeleteShipmentOutput:
             cur = await self._connection.execute(
                 """DELETE FROM shipments WHERE id = %s RETURNING id;""",
                 (id,),
             )
             row = await cur.fetchone()
-            return row is not None
+            return DeleteShipmentOutput(deleted=row is not None)
 
         return await run(self._connection, transaction, execute)
+
+
+def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
+    return cast(datetime, row[index])
 
 
 def _read_str(row: tuple[object, ...], index: int) -> str:

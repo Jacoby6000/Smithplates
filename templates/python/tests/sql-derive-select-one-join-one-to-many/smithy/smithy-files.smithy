@@ -1,6 +1,8 @@
 $version: "2.0"
 namespace example
 
+use smithy.api#required
+
 use smithplates.codegen.sql#sqlAutoUuid
 use smithplates.codegen.sql#sqlDeriveInsert
 use smithplates.codegen.sql#sqlDeriveSelectOne
@@ -31,7 +33,7 @@ structure OrderLine {
 @sqlDeriveInsert(targetTable: "example#Order")
 operation CreateOrder {
     input: DerivedStruct
-    output: String
+    output: DerivedStruct
 }
 
 @sqlDeriveSelectOne(

@@ -16,3 +16,8 @@ class CategoryItem:
     id: str
     category_id: str | None
     label: str | None
+
+
+@dataclass
+class CreateCategoryResult:
+    id: str
