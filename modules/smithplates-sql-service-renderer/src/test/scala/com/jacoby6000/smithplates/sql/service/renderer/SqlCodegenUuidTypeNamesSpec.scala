@@ -43,4 +43,35 @@ class SqlCodegenUuidTypeNamesSpec extends munit.FunSuite {
       Set("Uuid")
     )
   }
+
+  test("fromSchema - excludes builtin String members typed directly as UUID columns") {
+    val model      = SqlTestModelBuilder.assemble(
+      """
+            |use smithplates.codegen.sql#sqlAutoUuid
+            |use smithplates.codegen.sql#sqlPrimaryKey
+            |use smithplates.codegen.sql#sqlTable
+            |
+            |@sqlTable(name: "widgets")
+            |structure Widget {
+            |    @sqlPrimaryKey
+            |    @sqlAutoUuid
+            |    id: String
+            |    label: String
+            |}
+            |""".stripMargin
+    )
+    val extraction = SqlModelExtractor.extractOrThrow(model)
+
+    val shapeIr =
+      SqlShapeIrExtractor.extract(model, extraction.tables.map(_.shapeId)) match {
+        case Validated.Valid(ir)       => ir
+        case Validated.Invalid(errors) =>
+          throw new AssertionError(errors.toList.mkString("; "))
+      }
+
+    assertEquals(
+      SqlCodegenUuidTypeNames.fromSchema(extraction.schema, shapeIr),
+      Set.empty[String]
+    )
+  }
 }
