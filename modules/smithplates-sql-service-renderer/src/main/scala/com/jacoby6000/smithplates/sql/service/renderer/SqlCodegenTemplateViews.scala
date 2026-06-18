@@ -171,7 +171,8 @@ final case class ServiceTemplateView(
     protocolTableModelImportBlock: String,
     serviceLocalImportBlock: String,
     integrationTest: Option[IntegrationTestView],
-    migration: Option[MigrationView]
+    migration: Option[MigrationView],
+    uuidTypeNames: List[String]
 )
 
 object SqlCodegenTemplateViews {
@@ -202,7 +203,8 @@ object SqlCodegenTemplateViews {
       protocolTableModelImportBlock = SqlCodegenPythonImports.protocolTableModelImportBlock(context),
       serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
       integrationTest = context.integrationTest.map(integrationTestView),
-      migration = context.migration.map(migrationView)
+      migration = context.migration.map(migrationView),
+      uuidTypeNames = context.uuidTypeNames.toList.sorted
     )
   }
 

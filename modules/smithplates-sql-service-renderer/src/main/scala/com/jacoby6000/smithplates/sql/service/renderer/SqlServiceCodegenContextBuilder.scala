@@ -45,6 +45,7 @@ object SqlServiceCodegenContextBuilder {
         .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
         .map { operations =>
           val (resolvedOperations, derivedModels) = applySelectOneDerivedOutputs(operations, queries)
+          val uuidTypeNames                       = SqlCodegenUuidTypeNames.fromSchema(schema, shapeIr)
           val baseContext                         =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
@@ -58,7 +59,8 @@ object SqlServiceCodegenContextBuilder {
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
               models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
               unions = shapeIr.unions.sortBy(_.shapeId.toString),
-              operations = resolvedOperations
+              operations = resolvedOperations,
+              uuidTypeNames = uuidTypeNames
             )
 
           val migrationDirectory = queryRenderer.flatMap(renderer => settings.migrationDirectories.get(renderer.key))

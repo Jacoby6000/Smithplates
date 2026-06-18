@@ -19,7 +19,8 @@ class SspFragmentsSpec extends munit.FunSuite {
       protocolTableModelImportBlock = "",
       serviceLocalImportBlock = "",
       integrationTest = None,
-      migration = None
+      migration = None,
+      uuidTypeNames = Nil
     )
 
   test("top-level template render prepends generated file header") {
@@ -82,7 +83,8 @@ class SspFragmentsSpec extends munit.FunSuite {
             protocolTableModelImportBlock = "",
             serviceLocalImportBlock = "",
             integrationTest = None,
-            migration = None
+            migration = None,
+            uuidTypeNames = Nil
           )
         )
       )
