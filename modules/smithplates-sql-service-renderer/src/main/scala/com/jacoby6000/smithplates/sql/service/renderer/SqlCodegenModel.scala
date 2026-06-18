@@ -91,6 +91,7 @@ final case class SqlCodegenServiceContext(
     models: List[SqlStructure],
     unions: List[SqlUnion],
     operations: List[SqlCodegenOperation],
+    uuidTypeNames: Set[String] = Set.empty,
     integrationTest: Option[SqlCodegenIntegrationTestContext] = None,
     migration: Option[SqlCodegenMigrationContext] = None
 )

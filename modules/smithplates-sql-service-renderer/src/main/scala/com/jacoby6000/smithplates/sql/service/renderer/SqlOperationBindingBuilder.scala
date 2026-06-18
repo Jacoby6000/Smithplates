@@ -223,6 +223,7 @@ object SqlOperationBindingBuilder {
     columnType match {
       case Some(_: SqlColumnType.StringEnum) => "String"
       case Some(_: SqlColumnType.IntEnum)    => "Integer"
+      case Some(SqlColumnType.Uuid)          => "String"
       case _                                 => typeName
     }
 

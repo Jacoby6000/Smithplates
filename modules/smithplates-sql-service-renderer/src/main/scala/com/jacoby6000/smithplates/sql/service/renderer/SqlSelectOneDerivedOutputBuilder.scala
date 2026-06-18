@@ -125,6 +125,7 @@ object SqlSelectOneDerivedOutputBuilder {
     table.columns.find(_.name == columnName).map(_.columnType) match {
       case Some(_: SqlColumnType.StringEnum) => "String"
       case Some(_: SqlColumnType.IntEnum)    => "Integer"
+      case Some(SqlColumnType.Uuid)          => "String"
       case _                                 => typeName
     }
 }
