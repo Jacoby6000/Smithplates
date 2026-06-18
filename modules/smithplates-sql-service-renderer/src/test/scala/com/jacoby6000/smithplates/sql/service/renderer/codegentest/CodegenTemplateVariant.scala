@@ -6,7 +6,7 @@ final case class CodegenTemplateVariant(
     serviceTypeId: String,
     implementationId: String
 ) extends Ordered[CodegenTemplateVariant] {
-  def srcOutputRootId: String = "src"
+  def srcOutputRootId: String = "src/generated"
 
   def testOutputRootId: String = "test"
 

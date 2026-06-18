@@ -9,7 +9,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
 
   private val expectedFiles =
     List(
-      CodegenTemplateExpectedFile("src/example/sqlite/example.py", "expected\n")
+      CodegenTemplateExpectedFile("src/generated/example/sqlite/example.py", "expected\n")
     )
 
   private val testCase =
@@ -34,7 +34,7 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
       }
 
     assert(thrown.getMessage.contains("expected output file(s) were not generated"))
-    assert(thrown.getMessage.contains("src/example/sqlite/example.py"))
+    assert(thrown.getMessage.contains("src/generated/example/sqlite/example.py"))
   }
 
   test("reports unexpected generated files") {
@@ -45,14 +45,14 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
           variant,
           expectedFiles,
           rendered = Map(
-            "src/example/sqlite/example.py" -> "expected\n",
-            "src/example/sqlite/extra.py"   -> "extra\n"
+            "src/generated/example/sqlite/example.py" -> "expected\n",
+            "src/generated/example/sqlite/extra.py"   -> "extra\n"
           )
         )
       }
 
     assert(thrown.getMessage.contains("unexpected output file(s) were generated"))
-    assert(thrown.getMessage.contains("Unexpected: src/example/sqlite/extra.py"))
+    assert(thrown.getMessage.contains("Unexpected: src/generated/example/sqlite/extra.py"))
   }
 
   test("reports content diff on mismatch") {
@@ -62,13 +62,13 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
           testCase,
           variant,
           expectedFiles,
-          rendered = Map("src/example/sqlite/example.py" -> "actual\n")
+          rendered = Map("src/generated/example/sqlite/example.py" -> "actual\n")
         )
       }
 
     assert(
       thrown.getMessage.contains(
-        "Content mismatch for templates/python/tests/sample-case/expected/src/example/sqlite/example.py"
+        "Content mismatch for templates/python/tests/sample-case/expected/src/generated/example/sqlite/example.py"
       )
     )
     assert(thrown.getMessage.contains("| - expected"))

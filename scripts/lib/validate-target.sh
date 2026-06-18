@@ -86,36 +86,38 @@ smithystache_validate_target_impl() {
 
 smithystache_validate_list_python_service_types() {
   local tests_root="${ROOT}/templates/python/tests"
-  local -a service_types=()
-  local case_dir service_type_dir service_type
+  local -a namespaces=()
+  local case_dir generated_root ns_dir ns
 
   shopt -s nullglob
   for case_dir in "${tests_root}"/*/; do
-    for service_type_dir in "${case_dir}expected/src"/*/; do
-      service_type="$(basename "${service_type_dir}")"
-      if [[ "${service_type}" != "expected" ]]; then
-        local seen=0
-        if [[ ${#service_types[@]} -gt 0 ]]; then
-          local existing
-          for existing in "${service_types[@]}"; do
-            if [[ "${existing}" == "${service_type}" ]]; then
-              seen=1
-              break
-            fi
-          done
-        fi
-        if [[ ${seen} -eq 0 ]]; then
-          service_types+=("${service_type}")
-        fi
+    generated_root="${case_dir}expected/src/generated"
+    if [[ ! -d "${generated_root}" ]]; then
+      continue
+    fi
+    for ns_dir in "${generated_root}"/*/; do
+      ns="$(basename "${ns_dir}")"
+      local seen=0
+      if [[ ${#namespaces[@]} -gt 0 ]]; then
+        local existing
+        for existing in "${namespaces[@]}"; do
+          if [[ "${existing}" == "${ns}" ]]; then
+            seen=1
+            break
+          fi
+        done
+      fi
+      if [[ ${seen} -eq 0 ]]; then
+        namespaces+=("${ns}")
       fi
     done
   done
 
-  if [[ ${#service_types[@]} -eq 0 ]]; then
+  if [[ ${#namespaces[@]} -eq 0 ]]; then
     return 0
   fi
 
-  printf '%s\n' "${service_types[@]}" | sort -u
+  printf '%s\n' "${namespaces[@]}" | sort -u
 }
 
 smithystache_validate_apply_python_target_env() {
