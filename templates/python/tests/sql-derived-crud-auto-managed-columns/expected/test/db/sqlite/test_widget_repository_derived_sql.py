@@ -32,7 +32,8 @@ async def widget_repository_service() -> AsyncIterator[WidgetRepositoryAiosqlite
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRepositoryAiosqliteService) -> None:
-    entity_id = await widget_repository_service.create_widget(foo=None, bar=None)
+    entity_id_result = await widget_repository_service.create_widget(foo=None, bar=None)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -65,7 +66,8 @@ async def test_derived_sql_methods_transaction_commit(
     connection = widget_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+        entity_id_result = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -92,7 +94,8 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = widget_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+    entity_id_result = await widget_repository_service.create_widget(foo=None, bar=None, transaction=connection)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

@@ -109,6 +109,7 @@ def resultFieldAssignmentBindings(
     "fieldName"         -> resultField.fieldName,
     "typeName"          -> resultField.typeName,
     "readTypeName"      -> resultField.readTypeName,
+    "optional"          -> resultField.optional,
     "isJson"            -> resultField.isJson,
     "readMode"          -> readMode,
     "columnIndex"       -> resultField.columnIndex,

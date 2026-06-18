@@ -101,8 +101,8 @@ WHERE id = ? RETURNING updated_at;""",
 def _Widget_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Widget:
     return Widget(
         id=_read_str(row, 0),
-        foo=_read_str(row, 1),
-        bar=_read_int(row, 2),
+        foo=None if row[1] is None else _read_str(row, 1),
+        bar=None if row[2] is None else _read_int(row, 2),
         created_at=_read_datetime(row, 3),
         updated_at=_read_datetime(row, 4),
     )

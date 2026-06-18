@@ -48,6 +48,7 @@ final case class TemplateParameterView(
 final case class TemplateBindParameterView(
     memberName: String,
     typeName: String,
+    optional: Boolean,
     isJson: Boolean,
     jsonTypeName: String,
     timestampFormat: String,
@@ -61,6 +62,7 @@ final case class TemplateResultFieldView(
     columnIndex: Int,
     typeName: String,
     readTypeName: String,
+    optional: Boolean,
     isJson: Boolean,
     timestampFormat: String,
     last: Boolean = false
@@ -126,6 +128,7 @@ object TemplateIntegrationTestOperationView {
 
 final case class IntegrationTestView(
     schemaDdl: String,
+    setupSqlStatements: List[String],
     extraImports: String,
     testImports: String,
     localImportBlock: String,
@@ -223,6 +226,7 @@ object SqlCodegenTemplateViews {
   ): IntegrationTestView =
     IntegrationTestView(
       schemaDdl = integrationTest.schemaDdl,
+      setupSqlStatements = integrationTest.setupSqlStatements,
       extraImports = if (integrationTest.extraImports.nonEmpty) {
         integrationTest.extraImports.mkString("", "\n", "\n")
       } else {
@@ -369,6 +373,7 @@ object SqlCodegenTemplateViews {
     TemplateBindParameterView(
       memberName = bindParameter.memberName,
       typeName = bindParameter.typeName,
+      optional = bindParameter.optional,
       isJson = bindParameter.isJson,
       jsonTypeName = bindParameter.jsonTypeName.getOrElse(""),
       timestampFormat = timestampFormatName(bindParameter.timestampFormat),
@@ -382,6 +387,7 @@ object SqlCodegenTemplateViews {
       columnIndex = resultField.columnIndex,
       typeName = resultField.typeName,
       readTypeName = resultField.readTypeName,
+      optional = resultField.optional,
       isJson = resultField.isJson,
       timestampFormat = timestampFormatName(resultField.timestampFormat)
     )

@@ -5,6 +5,7 @@ import com.jacoby6000.smithplates.plugin.codegentest.SmithyBuildTemplateRunner
 import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
 
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -69,11 +70,15 @@ object GoldenTemplateOutputGenerator {
   }
 
   private def deleteRecursively(path: Path): Unit =
-    if (Files.exists(path)) {
-      Files
-        .walk(path)
-        .sorted(java.util.Comparator.reverseOrder[Path]())
-        .forEach(Files.delete(_))
+    try
+      if (Files.exists(path)) {
+        Files
+          .walk(path)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(Files.delete(_))
+      }
+    catch {
+      case _: NoSuchFileException => ()
     }
 
   private def defaultRepoRoot: Path =

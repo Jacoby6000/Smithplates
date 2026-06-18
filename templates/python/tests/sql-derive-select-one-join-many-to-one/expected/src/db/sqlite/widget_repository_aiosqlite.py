@@ -40,11 +40,11 @@ WHERE widgets.id = ?;""",
                 return None
             return GetWidgetResult(
                 id=_read_str(row, 0),
-                title=_read_str(row, 1),
+                title=None if row[1] is None else _read_str(row, 1),
                 category_id=_read_str(row, 2),
                 category=Category(
                     id=_read_str(row, 3),
-                    name=_read_str(row, 4),
+                    name=None if row[4] is None else _read_str(row, 4),
                 ),
             )
 

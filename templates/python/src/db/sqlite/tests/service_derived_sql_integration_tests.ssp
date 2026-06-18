@@ -22,6 +22,9 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}() -> Asy
     connection = await aiosqlite.connect(":memory:")
     migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
+<% for (statement <- test.setupSqlStatements) { %>
+    await connection.execute("""${statement}""")
+<% } %>
     await connection.commit()
     try:
         yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)

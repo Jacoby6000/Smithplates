@@ -34,6 +34,7 @@ final case class SqlCodegenOperation(
 final case class SqlCodegenBindParameter(
     memberName: String,
     typeName: String,
+    optional: Boolean = false,
     isJson: Boolean = false,
     jsonTypeName: Option[String] = None,
     timestampFormat: Option[SqlTimestampFormat] = None
@@ -45,6 +46,7 @@ final case class SqlCodegenResultField(
     columnIndex: Int,
     typeName: String,
     readTypeName: String,
+    optional: Boolean = false,
     isJson: Boolean = false,
     timestampFormat: Option[SqlTimestampFormat] = None
 )
@@ -107,6 +109,7 @@ final case class SqlCodegenMigrationContext(
 
 final case class SqlCodegenIntegrationTestContext(
     schemaDdl: String,
+    setupSqlStatements: List[String],
     insertOperation: SqlCodegenIntegrationTestOperation,
     selectOneOperation: SqlCodegenIntegrationTestOperation,
     updateOperation: Option[SqlCodegenIntegrationTestOperation],

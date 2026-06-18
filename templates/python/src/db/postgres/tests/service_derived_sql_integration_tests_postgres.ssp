@@ -31,6 +31,9 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}(
     )
     migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
+<% for (statement <- test.setupSqlStatements) { %>
+    await connection.execute("""${statement}""")
+<% } %>
     await connection.commit()
     try:
         yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)

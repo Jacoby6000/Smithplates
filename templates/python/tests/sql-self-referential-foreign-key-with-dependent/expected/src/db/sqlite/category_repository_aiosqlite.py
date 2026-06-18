@@ -62,8 +62,8 @@ WHERE id = ?;""",
 def _Category_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Category:
     return Category(
         id=_read_str(row, 0),
-        name=_read_str(row, 1),
-        parent_category_id=_read_str(row, 2),
+        name=None if row[1] is None else _read_str(row, 1),
+        parent_category_id=None if row[2] is None else _read_str(row, 2),
     )
 
 

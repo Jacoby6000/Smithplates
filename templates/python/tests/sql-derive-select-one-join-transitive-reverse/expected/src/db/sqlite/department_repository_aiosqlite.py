@@ -48,8 +48,8 @@ WHERE departments.id = ?;""",
                     categories.append(
                         Category(
                             id=_read_str(joined_row, 2),
-                            name=_read_str(joined_row, 3),
-                            department_id=_read_str(joined_row, 4),
+                            name=None if joined_row[3] is None else _read_str(joined_row, 3),
+                            department_id=None if joined_row[4] is None else _read_str(joined_row, 4),
                         )
                     )
             for joined_row in rows:
@@ -57,13 +57,13 @@ WHERE departments.id = ?;""",
                     widgets.append(
                         Widget(
                             id=_read_str(joined_row, 5),
-                            title=_read_str(joined_row, 6),
-                            category_id=_read_str(joined_row, 7),
+                            title=None if joined_row[6] is None else _read_str(joined_row, 6),
+                            category_id=None if joined_row[7] is None else _read_str(joined_row, 7),
                         )
                     )
             return GetDepartmentResult(
                 id=_read_str(row, 0),
-                name=_read_str(row, 1),
+                name=None if row[1] is None else _read_str(row, 1),
                 categories=categories,
                 widgets=widgets,
             )

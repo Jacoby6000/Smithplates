@@ -41,7 +41,8 @@ async def category_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryPsycopgService) -> None:
-    entity_id = await category_repository_service.create_category(name=None, parent_category_id=None)
+    entity_id_result = await category_repository_service.create_category(name=None, parent_category_id=None)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -59,9 +60,10 @@ async def test_derived_sql_methods_transaction_commit(
 ) -> None:
     connection = category_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await category_repository_service.create_category(
+        entity_id_result = await category_repository_service.create_category(
             name=None, parent_category_id=None, transaction=tx
         )
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -86,9 +88,10 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await category_repository_service.create_category(
+            entity_id_result = await category_repository_service.create_category(
                 name=None, parent_category_id=None, transaction=tx
             )
+            entity_id = entity_id_result
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None

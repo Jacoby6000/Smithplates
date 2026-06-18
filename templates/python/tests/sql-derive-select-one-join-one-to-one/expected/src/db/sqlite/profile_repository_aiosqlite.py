@@ -40,11 +40,11 @@ WHERE profiles.id = ?;""",
                 return None
             return GetProfileResult(
                 id=_read_str(row, 0),
-                display_name=_read_str(row, 1),
+                display_name=None if row[1] is None else _read_str(row, 1),
                 bar_id=_read_str(row, 2),
                 bar=Bar(
                     id=_read_str(row, 3),
-                    name=_read_str(row, 4),
+                    name=None if row[4] is None else _read_str(row, 4),
                 ),
             )
 

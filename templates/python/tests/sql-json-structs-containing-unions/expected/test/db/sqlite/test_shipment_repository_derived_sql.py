@@ -33,11 +33,12 @@ async def shipment_repository_service() -> AsyncIterator[ShipmentRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryAiosqliteService) -> None:
-    entity_id = await shipment_repository_service.create_shipment(
+    entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
     )
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -79,12 +80,13 @@ async def test_derived_sql_methods_transaction_commit(
     connection = shipment_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await shipment_repository_service.create_shipment(
+        entity_id_result = await shipment_repository_service.create_shipment(
             label="integration-label",
             destination=PostalAddress(street="integration-street", city="integration-city"),
             state={"pending": "integration-pending"},
             transaction=connection,
         )
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -115,12 +117,13 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = shipment_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await shipment_repository_service.create_shipment(
+    entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
         transaction=connection,
     )
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

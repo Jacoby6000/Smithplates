@@ -64,7 +64,7 @@ class PetRepositoryPsycopgService(PetRepositoryServiceProtocol[psycopg.AsyncTran
                         _json_bind_PetTags(tags),
                         _json_bind_PetHighlight(featured_attribute),
                         photo,
-                        _timestamp_bind_epoch_seconds(adopted_at),
+                        None if adopted_at is None else _timestamp_bind_epoch_seconds(adopted_at),
                     ),
                 )
                 row = await cur.fetchone()
@@ -114,12 +114,12 @@ WHERE pets.id = %s;""",
                 status=_read_str(row, 2),
                 species=_read_int(row, 3),
                 category_id=_read_str(row, 4),
-                owner_id=_read_str(row, 5),
+                owner_id=None if row[5] is None else _read_str(row, 5),
                 tag_count=_read_int(row, 6),
                 tags=_read_PetTags(row, 7),
                 featured_attribute=_read_PetHighlight(row, 8),
-                photo=_read_bytes(row, 9),
-                adopted_at=_read_epoch_seconds(row, 10),
+                photo=None if row[9] is None else _read_bytes(row, 9),
+                adopted_at=None if row[10] is None else _read_epoch_seconds(row, 10),
                 created_at=_read_datetime(row, 11),
                 updated_at=_read_datetime(row, 12),
                 category=Category(
@@ -134,10 +134,10 @@ WHERE pets.id = %s;""",
                 owner=None
                 if row[18] is None
                 else Owner(
-                    id=_read_str(row, 18),
-                    full_name=_read_str(row, 19),
-                    mailing_address=_read_PostalAddress(row, 20),
-                    created_at=_read_datetime(row, 21),
+                    id=None if row[18] is None else _read_str(row, 18),
+                    full_name=None if row[19] is None else _read_str(row, 19),
+                    mailing_address=None if row[20] is None else _read_PostalAddress(row, 20),
+                    created_at=None if row[21] is None else _read_datetime(row, 21),
                 ),
                 pet_profiles=pet_profiles,
             )
@@ -176,7 +176,7 @@ WHERE id = %s RETURNING updated_at;""",
                     _json_bind_PetTags(tags),
                     _json_bind_PetHighlight(featured_attribute),
                     photo,
-                    _timestamp_bind_epoch_seconds(adopted_at),
+                    None if adopted_at is None else _timestamp_bind_epoch_seconds(adopted_at),
                     id,
                 ),
             )

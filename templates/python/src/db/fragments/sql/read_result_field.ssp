@@ -1,5 +1,6 @@
 <%@ val typeName: String %>
 <%@ val readTypeName: String = typeName %>
+<%@ val optional: Boolean = false %>
 <%@ val isJson: Boolean = false %>
 <%@ val readMode: String %>
 <%@ val columnIndex: Int %>
@@ -19,4 +20,4 @@ def rowReaderName(typeName: String, timestampFormat: Any): String =
     case "Timestamp"                       => "_read_datetime"
     case other                             => other
   }
-%><% if (isJson) { %><% if (readMode == "col") { %>_read_${typeName}_col(${rowVar}, ${columnNameLiteral})<% } else { %>_read_${typeName}(${rowVar}, ${columnIndex})<% } %><% } else { %><% val reader = rowReaderName(readTypeName, timestampFormat) %><% if (readMode == "col") { %>${reader}_col(${rowVar}, ${columnNameLiteral})<% } else { %>${reader}(${rowVar}, ${columnIndex})<% } %><% } %>
+%><% if (optional) { %>None if ${rowVar}[<% if (readMode == "col") { %>${columnNameLiteral}<% } else { %>${columnIndex}<% } %>] is None else <% } %><% if (isJson) { %><% if (readMode == "col") { %>_read_${typeName}_col(${rowVar}, ${columnNameLiteral})<% } else { %>_read_${typeName}(${rowVar}, ${columnIndex})<% } %><% } else { %><% val reader = rowReaderName(readTypeName, timestampFormat) %><% if (readMode == "col") { %>${reader}_col(${rowVar}, ${columnNameLiteral})<% } else { %>${reader}(${rowVar}, ${columnIndex})<% } %><% } %>

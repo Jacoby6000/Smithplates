@@ -26,6 +26,18 @@ async def pet_repository_service() -> AsyncIterator[PetRepositoryAiosqliteServic
     connection = await aiosqlite.connect(":memory:")
     migration_service = SqliteMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
+    await connection.execute(
+        """INSERT INTO stores (id, name) VALUES ('d511c78e-cf3b-3fd2-9037-db356d2b78f1', 'integration-name') ON CONFLICT DO NOTHING;"""
+    )
+    await connection.execute(
+        """INSERT INTO categories (id, name, store_id) VALUES ('783e2af0-df1e-3d3d-aa50-3d085860a405', 'integration-name', 'd511c78e-cf3b-3fd2-9037-db356d2b78f1') ON CONFLICT DO NOTHING;"""
+    )
+    await connection.execute(
+        """INSERT INTO stores (id, name) VALUES ('d743e19a-1ec3-375f-ab9d-c89e5d0fc587', 'integration-updated-name') ON CONFLICT DO NOTHING;"""
+    )
+    await connection.execute(
+        """INSERT INTO categories (id, name, store_id) VALUES ('068b7b16-6db9-35b9-8a2b-093326b15812', 'integration-updated-name', 'd743e19a-1ec3-375f-ab9d-c89e5d0fc587') ON CONFLICT DO NOTHING;"""
+    )
     await connection.commit()
     try:
         yield PetRepositoryAiosqliteService(connection)
@@ -41,7 +53,7 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
         name="integration-name",
         status="available",
         species=3,
-        category_id="integration-category_id",
+        category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
         owner_id=None,
         tag_count=42,
         tags=PetTags(items=["integration-items"]),
@@ -58,7 +70,7 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
     assert fetched.name == "integration-name"
     assert fetched.status == "available"
     assert fetched.species == 3
-    assert fetched.category_id == "integration-category_id"
+    assert fetched.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
     assert fetched.owner_id is None
     assert fetched.tag_count == 42
     assert fetched.tags.items == ["integration-items"]
@@ -71,7 +83,7 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
         name="integration-updated-name",
         status="available",
         species=3,
-        category_id="integration-updated-category_id",
+        category_id="068b7b16-6db9-35b9-8a2b-093326b15812",
         owner_id=None,
         tag_count=84,
         tags=PetTags(items=["integration-updated-items"]),
@@ -87,7 +99,7 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
     assert fetched_after_update.name == "integration-updated-name"
     assert fetched_after_update.status == "available"
     assert fetched_after_update.species == 3
-    assert fetched_after_update.category_id == "integration-updated-category_id"
+    assert fetched_after_update.category_id == "068b7b16-6db9-35b9-8a2b-093326b15812"
     assert fetched_after_update.owner_id is None
     assert fetched_after_update.tag_count == 84
     assert fetched_after_update.tags.items == ["integration-updated-items"]
@@ -114,7 +126,7 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
             name="integration-name",
             status="available",
             species=3,
-            category_id="integration-category_id",
+            category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
             owner_id=None,
             tag_count=42,
             tags=PetTags(items=["integration-items"]),
@@ -132,7 +144,7 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
         assert fetched.name == "integration-name"
         assert fetched.status == "available"
         assert fetched.species == 3
-        assert fetched.category_id == "integration-category_id"
+        assert fetched.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
         assert fetched.owner_id is None
         assert fetched.tag_count == 42
         assert fetched.tags.items == ["integration-items"]
@@ -150,7 +162,7 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
     assert fetched_after_commit.name == "integration-name"
     assert fetched_after_commit.status == "available"
     assert fetched_after_commit.species == 3
-    assert fetched_after_commit.category_id == "integration-category_id"
+    assert fetched_after_commit.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
     assert fetched_after_commit.owner_id is None
     assert fetched_after_commit.tag_count == 42
     assert fetched_after_commit.tags.items == ["integration-items"]
@@ -170,7 +182,7 @@ async def test_derived_sql_methods_transaction_rollback(pet_repository_service: 
         name="integration-name",
         status="available",
         species=3,
-        category_id="integration-category_id",
+        category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
         owner_id=None,
         tag_count=42,
         tags=PetTags(items=["integration-items"]),

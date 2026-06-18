@@ -32,7 +32,8 @@ async def category_repository_service() -> AsyncIterator[CategoryRepositoryAiosq
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(category_repository_service: CategoryRepositoryAiosqliteService) -> None:
-    entity_id = await category_repository_service.create_category(name=None, parent_category_id=None)
+    entity_id_result = await category_repository_service.create_category(name=None, parent_category_id=None)
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -51,9 +52,10 @@ async def test_derived_sql_methods_transaction_commit(
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
     try:
-        entity_id = await category_repository_service.create_category(
+        entity_id_result = await category_repository_service.create_category(
             name=None, parent_category_id=None, transaction=connection
         )
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -80,9 +82,10 @@ async def test_derived_sql_methods_transaction_rollback(
 ) -> None:
     connection = category_repository_service._connection
     await connection.execute("BEGIN")
-    entity_id = await category_repository_service.create_category(
+    entity_id_result = await category_repository_service.create_category(
         name=None, parent_category_id=None, transaction=connection
     )
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()

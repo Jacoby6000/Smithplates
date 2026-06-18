@@ -193,6 +193,7 @@ object SqlOperationBindingBuilder {
     SqlCodegenBindParameter(
       memberName = column.memberName,
       typeName = column.typeName,
+      optional = column.nullable,
       isJson = isJson,
       jsonTypeName = column.jsonTypeName,
       timestampFormat = timestampFormat
@@ -212,6 +213,7 @@ object SqlOperationBindingBuilder {
       columnIndex = columnIndex,
       typeName = column.typeName,
       readTypeName = rowReadTypeName(column.typeName, columnType),
+      optional = column.nullable,
       isJson = isJson,
       timestampFormat = timestampFormat
     )

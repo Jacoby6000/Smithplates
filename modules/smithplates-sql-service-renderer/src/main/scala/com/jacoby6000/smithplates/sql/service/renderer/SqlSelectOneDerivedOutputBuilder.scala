@@ -65,6 +65,7 @@ object SqlSelectOneDerivedOutputBuilder {
           columnIndex = index,
           typeName = projected.column.typeName,
           readTypeName = rowReadTypeName(query.table, projected.column.columnName, projected.column.typeName),
+          optional = projected.column.nullable,
           isJson = isJsonColumn(query.table, projected.column.columnName),
           timestampFormat = timestampFormat(query.table, projected.column.columnName)
         )
@@ -85,6 +86,7 @@ object SqlSelectOneDerivedOutputBuilder {
               columnIndex = startIndex + offset,
               typeName = column.typeName,
               readTypeName = rowReadTypeName(nested.table, column.columnName, column.typeName),
+              optional = column.nullable || nested.optional,
               isJson = isJsonColumn(nested.table, column.columnName),
               timestampFormat = timestampFormat(nested.table, column.columnName)
             )

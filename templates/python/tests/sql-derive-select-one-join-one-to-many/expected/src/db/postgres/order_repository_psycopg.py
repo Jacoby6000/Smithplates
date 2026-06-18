@@ -64,13 +64,13 @@ WHERE orders.id = %s;""",
                     order_lines.append(
                         OrderLine(
                             id=_read_str(joined_row, 2),
-                            order_id=_read_str(joined_row, 3),
-                            sku=_read_str(joined_row, 4),
+                            order_id=None if joined_row[3] is None else _read_str(joined_row, 3),
+                            sku=None if joined_row[4] is None else _read_str(joined_row, 4),
                         )
                     )
             return GetOrderResult(
                 id=_read_str(row, 0),
-                label=_read_str(row, 1),
+                label=None if row[1] is None else _read_str(row, 1),
                 order_lines=order_lines,
             )
 

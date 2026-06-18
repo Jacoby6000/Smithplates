@@ -42,11 +42,12 @@ async def shipment_repository_service(
 @pytest.mark.postgres
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryPsycopgService) -> None:
-    entity_id = await shipment_repository_service.create_shipment(
+    entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
         state={"pending": "integration-pending"},
     )
+    entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
@@ -87,12 +88,13 @@ async def test_derived_sql_methods_transaction_commit(
 ) -> None:
     connection = shipment_repository_service._connection
     async with connection.transaction() as tx:
-        entity_id = await shipment_repository_service.create_shipment(
+        entity_id_result = await shipment_repository_service.create_shipment(
             label="integration-label",
             destination=PostalAddress(street="integration-street", city="integration-city"),
             state={"pending": "integration-pending"},
             transaction=tx,
         )
+        entity_id = entity_id_result
         assert isinstance(entity_id, str)
         assert entity_id
 
@@ -121,12 +123,13 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id: str | None = None
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
-            entity_id = await shipment_repository_service.create_shipment(
+            entity_id_result = await shipment_repository_service.create_shipment(
                 label="integration-label",
                 destination=PostalAddress(street="integration-street", city="integration-city"),
                 state={"pending": "integration-pending"},
                 transaction=tx,
             )
+            entity_id = entity_id_result
             raise RuntimeError("rollback probe")
 
     assert entity_id is not None
