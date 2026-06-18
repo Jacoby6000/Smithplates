@@ -25,8 +25,8 @@ final case class SqlServiceCodegenSettings(
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
     artifacts: List[SqlServiceCodegenArtifactConfig],
-    outputPrefix: String,
-    packageName: String
+    rootNamespace: Option[String],
+    packageNameOverride: Option[String] = None
 )
 
 object SqlServiceCodegenSettings {
@@ -88,14 +88,16 @@ object SqlServiceCodegenRenderer {
       artifactConfig: SqlServiceCodegenArtifactConfig,
       context: SqlCodegenServiceContext
   ): String = {
-    val renderedOutputFile =
+    val renderedOutputFile  =
       SqlCodegenTemplateAttributes.renderOutputPath(
         artifactConfig.outputFile,
         context,
         settings.templateDirectory.stripPrefix("classpath:")
       )
-    val relativeOutputFile = s"${settings.outputPrefix}/$renderedOutputFile"
-    val prefixedOutputFile =
+    val namespacePathPrefix =
+      com.jacoby6000.smithplates.codegen.CodegenPackageNames.outputPathPrefix(context.namespace)
+    val relativeOutputFile  = s"$namespacePathPrefix/$renderedOutputFile"
+    val prefixedOutputFile  =
       artifactConfig.kind match {
         case SqlServiceCodegenArtifactKind.Src  =>
           settings.sourceOutputDirectory match {

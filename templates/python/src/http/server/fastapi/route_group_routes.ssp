@@ -31,7 +31,7 @@ from ${ctx.packageName}.api_response import dispatch_api_response
 from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
 from ${ctx.packageName}.app_services import ApiServices, get_api_services
 <% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
-from ${ctx.modelsPackageName}.${snakeCase(typeName)} import ${typeName}
+from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 
 router = APIRouter()

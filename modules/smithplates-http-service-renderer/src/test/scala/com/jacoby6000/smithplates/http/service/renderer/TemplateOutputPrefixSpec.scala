@@ -22,10 +22,19 @@ class TemplateOutputPrefixSpec extends FunSuite {
     )
   }
 
-  test("derives package names from root namespace and template layout") {
+  test("derives namespace-aware package names") {
+    import com.jacoby6000.smithplates.codegen.CodegenPackageNames
     assertEquals(
-      TemplateOutputPrefix.toPackageName("http/server", Some("generated")),
-      "generated.http.server"
+      CodegenPackageNames.packageName(Some("generated"), "com.example.api"),
+      "generated.com.example.api"
+    )
+    assertEquals(
+      CodegenPackageNames.outputPathPrefix("com.example.inventory"),
+      "com/example/inventory"
+    )
+    assertEquals(
+      CodegenPackageNames.packageName(Some("generated"), "foo.bar"),
+      "generated.foo.bar"
     )
   }
 }

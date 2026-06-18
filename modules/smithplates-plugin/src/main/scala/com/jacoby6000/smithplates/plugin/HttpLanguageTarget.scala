@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
-import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
@@ -18,20 +17,17 @@ final case class HttpServerTarget(
       languageId: String,
       routeGroupTags: List[String],
       rootNamespace: Option[String],
-      modelsPackageName: String,
+      modelsPackageNameOverride: Option[String],
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String
   ): HttpServiceCodegenSettings = {
     val templateDirectory      = HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId)
     val modelTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
-    val outputPrefix           = TemplateOutputPrefix.fromTemplateDirectory(templateDirectory)
-    val modelsOutputPrefix     = TemplateOutputPrefix.fromTemplateDirectory(modelTemplateDirectory)
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,
       defaultFrameworkKey = webFramework,
       enabledFrameworkKeys = List(webFramework),
-      packageName = packageName.getOrElse(TemplateOutputPrefix.toPackageName(outputPrefix, rootNamespace)),
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
       artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
@@ -39,9 +35,9 @@ final case class HttpServerTarget(
         routeGroupTags,
         emitModels
       ),
-      outputPrefix = outputPrefix,
-      modelsPackageName = modelsPackageName,
-      modelsOutputPrefix = modelsOutputPrefix,
+      rootNamespace = rootNamespace,
+      packageNameOverride = packageName,
+      modelsPackageNameOverride = modelsPackageNameOverride,
       emitModels = emitModels,
       modelTemplateDirectory = Some(modelTemplateDirectory)
     )
@@ -57,28 +53,25 @@ final case class HttpClientTarget(
       languageId: String,
       routeGroupTags: List[String],
       rootNamespace: Option[String],
-      modelsPackageName: String,
+      modelsPackageNameOverride: Option[String],
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String
   ): HttpServiceCodegenSettings = {
     val templateDirectory      = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId)
     val modelTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
-    val outputPrefix           = TemplateOutputPrefix.fromTemplateDirectory(templateDirectory)
-    val modelsOutputPrefix     = TemplateOutputPrefix.fromTemplateDirectory(modelTemplateDirectory)
     val clientArtifacts        = HttpClientCodegenApiArtifacts.forEnabledLibraries(List(httpLibrary), routeGroupTags)
     val modelArtifacts         = if (emitModels) HttpServiceCodegenApiArtifacts.sharedModels else Nil
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,
       defaultFrameworkKey = httpLibrary,
       enabledFrameworkKeys = List(httpLibrary),
-      packageName = packageName.getOrElse(TemplateOutputPrefix.toPackageName(outputPrefix, rootNamespace)),
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
       artifacts = clientArtifacts ++ modelArtifacts,
-      outputPrefix = outputPrefix,
-      modelsPackageName = modelsPackageName,
-      modelsOutputPrefix = modelsOutputPrefix,
+      rootNamespace = rootNamespace,
+      packageNameOverride = packageName,
+      modelsPackageNameOverride = modelsPackageNameOverride,
       emitModels = emitModels,
       modelTemplateDirectory = Some(modelTemplateDirectory)
     )
@@ -146,17 +139,8 @@ object HttpLanguageTarget {
       }
     )
 
-  def resolvedModelsPackageName(languageId: String, target: HttpLanguageTarget): String = {
-    val rootNamespace = resolvedRootNamespace(languageId, target)
-    target.modelsPackageName.getOrElse(
-      TemplateOutputPrefix.toPackageName(
-        TemplateOutputPrefix.fromTemplateDirectory(
-          HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
-        ),
-        rootNamespace
-      )
-    )
-  }
+  def resolvedModelsPackageName(languageId: String, target: HttpLanguageTarget): Option[String] =
+    target.modelsPackageName
 
   private val ServerAllowedMembers: Set[String] =
     Set("webFramework", "templateDirectory", "packageName")

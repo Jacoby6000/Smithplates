@@ -44,6 +44,8 @@ object GoldenTemplateOutputGenerator {
     }
   }
 
+  private val MigrationOutputPrefix: String = "db/migrations/"
+
   private def syncOutputToExpected(outputDirectory: Path, expectedDirectory: Path): Unit = {
     deleteRecursively(expectedDirectory)
     Files.createDirectories(expectedDirectory)
@@ -58,13 +60,16 @@ object GoldenTemplateOutputGenerator {
       .foreach { source =>
         val relativePath =
           outputDirectory.relativize(source).toString.replace('\\', '/')
-        if (!relativePath.startsWith(pluginPrefix)) {
-          ()
-        } else {
-          val expectedRelativePath = relativePath.stripPrefix(pluginPrefix)
+        if (relativePath.startsWith(pluginPrefix) || relativePath.startsWith(MigrationOutputPrefix)) {
+          val expectedRelativePath =
+            if (relativePath.startsWith(pluginPrefix)) {
+              relativePath.stripPrefix(pluginPrefix)
+            } else {
+              relativePath
+            }
           val target               = expectedDirectory.resolve(expectedRelativePath)
           Files.createDirectories(target.getParent)
-          Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+          val _                    = Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
         }
       }
   }

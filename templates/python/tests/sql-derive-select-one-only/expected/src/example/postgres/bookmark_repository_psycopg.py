@@ -1,0 +1,39 @@
+# Generated from example#BookmarkRepository by sql-service-codegen. Do not edit by hand.
+from __future__ import annotations
+
+from typing import override
+
+import psycopg
+from generated.example.bookmark_repository_protocol import BookmarkRepositoryServiceProtocol
+from generated.example.models.bookmark_repository_models import (
+    Bookmark,
+)
+from generated.example.postgres.psycopg_transaction_run import run
+from psycopg.rows import class_row
+from psycopg.types.string import TextLoader
+
+
+class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg.AsyncTransaction]):
+    def __init__(self, connection: psycopg.AsyncConnection) -> None:
+        super().__init__()
+        self._connection = connection
+        connection.adapters.register_loader("uuid", TextLoader)
+
+    @override
+    async def get_bookmark(
+        self,
+        id: str,
+        *,
+        transaction: psycopg.AsyncTransaction | None = None,
+    ) -> Bookmark | None:
+        async def execute() -> Bookmark | None:
+            async with self._connection.cursor(row_factory=class_row(Bookmark)) as cur:
+                await cur.execute(
+                    """SELECT bookmarks.id, bookmarks.title
+FROM bookmarks
+WHERE id = %s;""",
+                    (id,),
+                )
+                return await cur.fetchone()
+
+        return await run(self._connection, transaction, execute)

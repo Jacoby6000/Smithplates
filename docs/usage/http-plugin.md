@@ -56,20 +56,20 @@ HTTP settings live under `smithplates.<language>.http`. Configure `server`, `cli
 
 Python/FastAPI is the bundled HTTP server target today. Python/httpx is the bundled HTTP client target. Non-bundled languages or frameworks require an explicit `templateDirectory`.
 
-Optional `rootNamespace` (default `generated` for bundled Python) prefixes the Python import package derived from each `templateDirectory`. Filesystem layout is `<sourceOutputDir>/` + template-relative path (for example `http/server`). When both `server` and `client` are enabled, the server pass emits models once; the client pass reuses them.
+Optional `rootNamespace` (default `generated` for bundled Python) prefixes Python import packages. Filesystem layout is `<sourceOutputDir>/<smithy namespace path>/` (for example `example` for a service in namespace `example`). When both `server` and `client` are enabled, the server pass emits models once; the client pass reuses them.
 
 ## Generated server output
 
 Generated paths are relative to `build/smithy/source/smithplates/`. For bundled FastAPI templates, Smithplates emits files such as:
 
 ```text
-<sourceOutputDir>/http/server/app_factory.py
-<sourceOutputDir>/http/server/app_services.py
-<sourceOutputDir>/http/server/api_response.py
-<sourceOutputDir>/http/server/operation_bindings.py
-<sourceOutputDir>/http/server/apis/<route_group>_api.py
-<sourceOutputDir>/http/server/apis/<route_group>_api_base.py
-<sourceOutputDir>/http/models/*.py
+<sourceOutputDir>/<smithy namespace>/app_factory.py
+<sourceOutputDir>/<smithy namespace>/app_services.py
+<sourceOutputDir>/<smithy namespace>/api_response.py
+<sourceOutputDir>/<smithy namespace>/operation_bindings.py
+<sourceOutputDir>/<smithy namespace>/apis/<route_group>_api.py
+<sourceOutputDir>/<smithy namespace>/apis/<route_group>_api_base.py
+<sourceOutputDir>/<smithy namespace>/<model_shape>.py
 ```
 
 Generated route modules depend on generated protocol base classes. Application code implements those protocols and passes implementations into the generated app factory or service registry.
@@ -79,14 +79,14 @@ Generated route modules depend on generated protocol base classes. Application c
 For bundled httpx templates, Smithplates emits files such as:
 
 ```text
-<sourceOutputDir>/http/client/client_registry.py
-<sourceOutputDir>/http/client/client_response.py
-<sourceOutputDir>/http/client/operation_bindings.py
-<sourceOutputDir>/http/client/clients/<route_group>_client.py
-<sourceOutputDir>/http/models/*.py
+<sourceOutputDir>/<smithy namespace>/client/client_registry.py
+<sourceOutputDir>/<smithy namespace>/client/client_response.py
+<sourceOutputDir>/<smithy namespace>/client/operation_bindings.py
+<sourceOutputDir>/<smithy namespace>/clients/<route_group>_client.py
+<sourceOutputDir>/<smithy namespace>/<model_shape>.py
 ```
 
-Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models under `http/models/`.
+Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models at the namespace root.
 
 ## Application wiring
 

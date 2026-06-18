@@ -7,19 +7,19 @@ object HttpClientCodegenApiArtifacts {
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
         template = "operation_bindings.ssp",
-        outputFile = "operation_bindings.py",
+        outputFile = "client/operation_bindings.py",
         scope = HttpCodegenArtifactScope.Service
       ),
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
         template = "client_response.ssp",
-        outputFile = "client_response.py",
+        outputFile = "client/client_response.py",
         scope = HttpCodegenArtifactScope.Service
       ),
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
         template = "client_registry.ssp",
-        outputFile = "client_registry.py",
+        outputFile = "client/client_registry.py",
         scope = HttpCodegenArtifactScope.Service
       ),
       HttpServiceCodegenArtifactConfig(

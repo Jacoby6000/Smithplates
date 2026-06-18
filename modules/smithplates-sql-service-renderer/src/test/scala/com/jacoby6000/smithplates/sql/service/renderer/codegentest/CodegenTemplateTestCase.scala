@@ -7,6 +7,7 @@ final case class CodegenTemplateTestCase(
     caseDirectory: Path,
     smithyModelId: String,
     smithyContent: String,
+    smithyNamespace: String,
     expectedOutputsByVariant: Map[CodegenTemplateVariant, List[CodegenTemplateExpectedFile]]
 )
 

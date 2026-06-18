@@ -4,6 +4,7 @@ import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTempla
 import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestCase
 import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
 import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateVariant
+import com.jacoby6000.smithplates.sql.service.renderer.codegentest.SmithyNamespaceTestSupport
 import munit.FunSuite
 
 import java.nio.charset.StandardCharsets
@@ -77,7 +78,8 @@ class CodegenTemplateTestSuite extends FunSuite {
           CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant)
 
         if (!unsupported && expectedFiles.nonEmpty) {
-          test(s"${testCase.name} - ${variant.resourcePath}") {
+          test(
+            s"${testCase.name} - ${variant.resourcePath(SmithyNamespaceTestSupport.namespacePathPrefix(testCase.smithyNamespace))}") {
             val outputDirectory = outputDirectoryFor(testCase)
             val actualOutputs   = readBuildOutputs(outputDirectory)
             CodegenTemplateTestAssertions.assertRenderedOutputs(

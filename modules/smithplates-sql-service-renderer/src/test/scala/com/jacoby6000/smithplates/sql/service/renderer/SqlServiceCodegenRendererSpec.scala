@@ -1,6 +1,5 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
@@ -85,7 +84,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         namespace = "example",
         version = "1",
         dialectKey = "sqlite",
-        packageName = "generated.db",
+        packageName = "generated.example",
         queryRenderer = Some(queryRenderer),
         bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
         hasSqlOperations = true,
@@ -99,11 +98,11 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
 
     assertEquals(
       SqlServiceCodegenRenderer.resolveOutputPath(settings, modelArtifact, context),
-      "db/models/widget_repository_models.py"
+      "example/models/widget_repository_models.py"
     )
     assertEquals(
       SqlServiceCodegenRenderer.resolveOutputPath(settings, integrationTestArtifact, context),
-      "test/db/sqlite/test_widget_repository_derived_sql.py"
+      "test/example/sqlite/test_widget_repository_derived_sql.py"
     )
   }
 
@@ -155,8 +154,8 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
         artifacts = SqlServiceCodegenDbArtifacts.shared,
-        outputPrefix = TemplateOutputPrefix.fromTemplateDirectory("classpath:python/src/db"),
-        packageName = "generated.db"
+        rootNamespace = Some("generated"),
+        packageNameOverride = None
       )
 
     val artifacts =
@@ -168,19 +167,19 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(
       artifacts.map(_.relativePath).sorted,
       List(
-        "src/generated/db/models/widget_repository_models.py",
-        "src/generated/db/widget_repository_protocol.py"
+        "src/generated/example/models/widget_repository_models.py",
+        "src/generated/example/widget_repository_protocol.py"
       )
     )
     assert(artifacts.forall(!_.relativePath.contains("/sqlite/")))
     assert(artifacts.forall(!_.relativePath.contains("/postgres/")))
     val artifactContentByPath = artifacts.map(artifact => artifact.relativePath -> artifact.content).toMap
     assert(
-      artifactContentByPath("src/generated/db/widget_repository_protocol.py")
+      artifactContentByPath("src/generated/example/widget_repository_protocol.py")
         .contains("async def get_widget(")
     )
     assert(
-      artifactContentByPath("src/generated/db/widget_repository_protocol.py")
+      artifactContentByPath("src/generated/example/widget_repository_protocol.py")
         .contains(") -> Widget | None:")
     )
   }

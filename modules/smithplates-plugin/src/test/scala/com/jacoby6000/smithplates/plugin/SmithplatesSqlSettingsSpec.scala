@@ -39,8 +39,8 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
 
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:python/src/db")
-    assertEquals(codegenSettings.outputPrefix, "db")
-    assertEquals(codegenSettings.packageName, "generated.db")
+    assertEquals(codegenSettings.rootNamespace, Some("generated"))
+    assertEquals(codegenSettings.packageNameOverride, None)
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
     assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))

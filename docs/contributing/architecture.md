@@ -103,6 +103,8 @@ flowchart TD
 
 Consumer configuration is documented in [Integration](../usage/integration.md): each language entry controls SQL and HTTP codegen, enabled dialects control DDL export and driver templates, and output directories stay explicit.
 
+Generated filesystem paths and default Python import packages are derived from Smithy shape namespaces via [`CodegenPackageNames`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/CodegenPackageNames.scala) and [`SmithyNamespaceMapping`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/SmithyNamespaceMapping.scala). Template roots (`classpath:python/src/db`, `classpath:python/src/http/server`, …) select which artifact families are rendered; output paths and import packages follow the Smithy namespace plus optional `rootNamespace`, not the template directory layout.
+
 ## Module graph
 
 ```
