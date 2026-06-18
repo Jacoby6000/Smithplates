@@ -449,8 +449,10 @@ object SqlCodegenIntegrationTestBuilder {
       case "Float" | "Double"                              => if (variant == SampleVariant.Initial) "3.5" else "7.0"
       case "Boolean"                                       => "True"
       case "Blob"                                          => s"b\"integration-$suffix\""
-      case "Document"                                      => "{\"integration\": true}"
+      case "Document"                                      => "{\"integration\": True}"
       case "Timestamp"                                     => "datetime.now(timezone.utc)"
+      case other if context.uuidTypeNames.contains(other)  =>
+        s"\"${uuidSample(suffix)}\""
       case other if context.models.exists(_.name == other) =>
         val structure = context.models.find(_.name == other).get
         val arguments =
