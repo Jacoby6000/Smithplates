@@ -6,8 +6,6 @@ import json
 from datetime import UTC, datetime
 from typing import Any, cast
 
-from generated.petstore.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
-from generated.petstore.db.models.pet_repository_models import PetTags as GeneratedPetTags
 from generated.petstore.api.category_detail import CategoryDetail
 from generated.petstore.api.category_summary import CategorySummary
 from generated.petstore.api.create_pet_input import CreatePetInput
@@ -31,6 +29,8 @@ from generated.petstore.api.place_order_input import PlaceOrderInput
 from generated.petstore.api.postal_address import PostalAddress
 from generated.petstore.api.store_summary import StoreSummary
 from generated.petstore.api.update_pet_body import UpdatePetBody
+from generated.petstore.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
+from generated.petstore.db.models.pet_repository_models import PetTags as GeneratedPetTags
 from server.database import RepositoryBundle
 
 
