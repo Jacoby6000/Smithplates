@@ -3,15 +3,20 @@
   "sources": [
     "smithy"
   ],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}"
+    ]
+  },
   "plugins": {
     "smithplates": {
       "python": {
         "sourceOutputDir": "src/generated",
         "testOutputDir": "test",
         "http": {
-          "server": {
-            "webFramework": "fastapi",
-            "packageName": "generated.widget_api"
+          "client": {
+            "httpLibrary": "httpx",
+            "packageName": "generated.warehouse_api_client"
           }
         }
       }

@@ -8,14 +8,12 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.models.widget_repository_models import (
+    CreateWidgetResult,
+    UpdateWidgetResult,
     Widget,
 )
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.db.sqlite.widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
-from generated.db.widget_repository_protocol import (
-    CreateWidgetResult,
-    UpdateWidgetResult,
-)
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

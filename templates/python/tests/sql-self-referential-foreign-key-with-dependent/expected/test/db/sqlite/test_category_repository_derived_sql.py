@@ -7,11 +7,9 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.db.category_repository_protocol import (
-    CreateCategoryResult,
-)
 from generated.db.models.category_repository_models import (
     Category,
+    CreateCategoryResult,
 )
 from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService

@@ -115,7 +115,8 @@ final case class SqlCodegenIntegrationTestContext(
     transactionCommitAfterAssertions: List[String],
     extraImports: List[String],
     testImports: String,
-    localImportBlock: String
+    localImportBlock: String,
+    fixtureSeedStatements: List[String] = Nil
 )
 
 final case class SqlCodegenIntegrationTestOperation(

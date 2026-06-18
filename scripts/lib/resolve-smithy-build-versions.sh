@@ -4,32 +4,34 @@
 
 _resolve_repo_root="${1:?repo root required}"
 
-if ! command -v sbtn >/dev/null 2>&1; then
-  echo "error: sbtn not on PATH (required to resolve smithplatesPlugin/version)" >&2
-  exit 1
-fi
-
-SMITHPLATES_VERSION_OUTPUT="$(
-  sbtn --no-colors 'print smithplatesPlugin/version' | tr -d '\r' || true
-)"
-SMITHPLATES_VERSION="$(
-  printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
-    | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
-    | awk '{
-        line = $0
-        sub(/^\[/, "", line)
-        if (match(line, /[0-9]+(\.[0-9]+){1,2}[-+][[:alnum:]._+-]+/)) {
-          version = substr(line, RSTART, RLENGTH)
-        }
-      } END { print version }'
-)"
-if [[ -z "${SMITHPLATES_VERSION}" ]]; then
-  echo "error: could not resolve smithplatesPlugin/version via sbtn" >&2
-  if [[ -n "${SMITHPLATES_VERSION_OUTPUT}" ]]; then
-    echo "sbtn output:" >&2
-    printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" >&2
+if [[ -z "${SMITHPLATES_VERSION:-}" ]]; then
+  if ! command -v sbtn >/dev/null 2>&1; then
+    echo "error: sbtn not on PATH (required to resolve smithplatesPlugin/version)" >&2
+    exit 1
   fi
-  exit 1
+
+  SMITHPLATES_VERSION_OUTPUT="$(
+    sbtn --no-colors 'print smithplatesPlugin/version' | tr -d '\r' || true
+  )"
+  SMITHPLATES_VERSION="$(
+    printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
+      | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
+      | awk '{
+          line = $0
+          sub(/^\[/, "", line)
+          if (match(line, /[0-9]+(\.[0-9]+){1,2}[-+][[:alnum:]._+-]+/)) {
+            version = substr(line, RSTART, RLENGTH)
+          }
+        } END { print version }'
+  )"
+  if [[ -z "${SMITHPLATES_VERSION}" ]]; then
+    echo "error: could not resolve smithplatesPlugin/version via sbtn" >&2
+    if [[ -n "${SMITHPLATES_VERSION_OUTPUT}" ]]; then
+      echo "sbtn output:" >&2
+      printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" >&2
+    fi
+    exit 1
+  fi
 fi
 
 SMITHY_VERSION="$(

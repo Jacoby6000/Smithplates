@@ -10,6 +10,9 @@ object SmithplatesGenerators {
         sys.error(
           """Usage: SmithplatesGenerators <generator> ...
             |  golden-templates <language> <case-name> [<case-name> ...]
+            |
+            |Requires publishM2 (plugin in ~/.m2), smithy on PATH, and rendered smithy-build.json
+            |(run ./scripts/render-template-smithy-build.sh all first, or use generateGoldenTemplatesFor via sbtn after publishM2).
             |""".stripMargin
         )
     }

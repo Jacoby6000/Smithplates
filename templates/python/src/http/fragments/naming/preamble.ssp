@@ -297,20 +297,20 @@ def clientHeaderBindingName(
 def clientRequestHeadersBlock(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
   val headerMembers = clientHeaderMembers(operation)
   if (headerMembers.isEmpty) {
-    "        headers: dict[str, str] | None = None"
+    "headers: dict[str, str] | None = None"
   } else {
     val assignmentLines =
       headerMembers.map { member =>
         val headerName = clientHeaderBindingName(member)
         val paramName  = snakeCase(member.name)
         if (member.required) {
-          s"""        headers["$headerName"] = str($paramName)"""
+          s"""headers["$headerName"] = str($paramName)"""
         } else {
-          s"""        if $paramName is not None:
-            |            headers["$headerName"] = str($paramName)""".stripMargin
+          s"""if $paramName is not None:
+            |    headers["$headerName"] = str($paramName)""".stripMargin
         }
       }
-    ("        headers: dict[str, str] = {}" +: assignmentLines).mkString("\n")
+    ("headers: dict[str, str] = {}" +: assignmentLines).mkString("\n")
   }
 }
 

@@ -138,7 +138,8 @@ final case class IntegrationTestView(
     hasUpdateOperation: Boolean,
     hasDeleteOperation: Boolean,
     transactionCommitInTxAssertions: List[TemplateAssertionLine],
-    transactionCommitAfterAssertions: List[TemplateAssertionLine]
+    transactionCommitAfterAssertions: List[TemplateAssertionLine],
+    fixtureSeedStatements: List[String] = Nil
 )
 
 final case class TemplateMigrationEntryView(
@@ -247,7 +248,8 @@ object SqlCodegenTemplateViews {
       )((assertion, last) => assertion.copy(last = last)),
       transactionCommitAfterAssertions = withLastFlag(
         integrationTest.transactionCommitAfterAssertions.map(TemplateAssertionLine(_))
-      )((assertion, last) => assertion.copy(last = last))
+      )((assertion, last) => assertion.copy(last = last)),
+      fixtureSeedStatements = integrationTest.fixtureSeedStatements
     )
 
   private def integrationOperationView(

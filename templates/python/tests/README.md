@@ -1,13 +1,13 @@
 # Python template golden tests
 
-Golden cases live under `templates/python/tests/<case-name>/`. Each case runs `smithy build` via [`SmithyBuildTemplateRunner`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/SmithyBuildTemplateRunner.scala) as its own munit test (`build - <case-name>`), then compares rendered output to files under `expected/` per dialect variant. Fixture `smithy-build.json` files intentionally omit `maven.dependencies`; the runner loads the plugin from the sbt test classpath. The [Python petstore reference](../../../example/python/) shows the consumer Maven layout. Build progress is logged via log4j to stdout as `[template-build] build - <case-name>: … (<elapsed>ms)` (see `modules/smithplates-plugin/src/test/resources/log4j2.xml`; plugin tests set `Test / logBuffered := false` so lines stream during long builds).
+Golden cases live under `templates/python/tests/<case-name>/`. Each case runs the Smithy CLI (`smithy build`) via [`TemplateSmithyBuild`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/TemplateSmithyBuild.scala) as its own munit test (`build - <case-name>`), then compares rendered output to files under `expected/` per dialect variant. Fixture `smithy-build.json.template` files declare `maven.dependencies` on `smithplates-plugin`; render with [`scripts/render-template-smithy-build.sh`](../../../scripts/render-template-smithy-build.sh) (also run by [`scripts/run-template-golden-tests.sh`](../../../scripts/run-template-golden-tests.sh)) after `publishM2`. The [Python petstore reference](../../../example/python/) uses the same consumer layout. Build progress is logged via log4j to stdout as `[template-build] build - <case-name>: … (<elapsed>ms)` (see `modules/smithplates-plugin/src/test/resources/log4j2.xml`; plugin tests set `Test / logBuffered := false` so lines stream during long builds).
 
 ## Layout
 
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy       # Smithy model for the case
-  smithy-build.json                # plugin config (language sql/http blocks); no maven block
+  smithy-build.json.template       # plugin config template (render to smithy-build.json)
   expected/
     db/migrations/postgres/        # golden versioned migration SQL (when dialect enabled)
     db/migrations/sqlite/
@@ -39,7 +39,7 @@ HTTP golden cases use `@httpService` services and `smithplates.<language>.http.s
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
-  smithy-build.json                # http.python.server config; no maven block in golden fixtures
+  smithy-build.json.template       # http.python.server config; render after publishM2
   expected/
     src/generated/http/server/app_factory.py
     src/generated/http/server/app_services.py

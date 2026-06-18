@@ -12,9 +12,19 @@ fi
 
 # shellcheck source=scripts/lib/validate-target.sh
 source "${ROOT}/scripts/lib/validate-target.sh"
+# shellcheck source=scripts/lib/publish-m2-once.sh
+source "${ROOT}/scripts/lib/publish-m2-once.sh"
 
 target="${SMITHYSTACHE_VALIDATE_TARGET:-all}"
 suite='*CodegenTemplateTestSuite*'
+
+smithystache_publish_m2_once
+./scripts/render-template-smithy-build.sh all
+
+if ! command -v smithy >/dev/null 2>&1; then
+  echo "error: smithy not on PATH (use the Smithplates dev shell)" >&2
+  exit 1
+fi
 
 # All comparison tests share a single per-case `build - <case>` test (one Smithy build per
 # fixture). A munit `-- -o <glob>` name filter would exclude those prerequisite build tests and

@@ -51,7 +51,7 @@ See [Integration — HTTP and SQL model separation](../../docs/usage/integration
 
 ## Regenerate codegen
 
-This project is a **consumer** reference: the Smithy CLI resolves `smithplates-plugin` and its dependencies from Maven (`publishM2` locally, or Central for releases). Golden template fixtures under `templates/python/tests/` omit `maven` because they run the plugin from the sbt test classpath instead.
+This project is a **consumer** reference: the Smithy CLI resolves `smithplates-plugin` and its dependencies from Maven (`publishM2` locally, or Central for releases). Golden template fixtures under `templates/python/tests/` use the same Maven layout via rendered `smithy-build.json` (see [`scripts/render-template-smithy-build.sh`](../../scripts/render-template-smithy-build.sh)).
 
 From the Smithplates repository root (after plugin source changes):
 

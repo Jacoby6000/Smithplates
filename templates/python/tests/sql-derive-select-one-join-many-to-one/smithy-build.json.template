@@ -3,6 +3,11 @@
   "sources": [
     "smithy"
   ],
+  "maven": {
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}"
+    ]
+  },
   "plugins": {
     "smithplates": {
       "python": {

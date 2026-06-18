@@ -28,7 +28,7 @@ This is not Maven refusing to download; Smithy fails validation first. It also m
 
 For local example regeneration, always run `publishM2` before `smithy build` so `~/.m2` contains the plugin at the rendered version. [`./validate`](../../CONTRIBUTING.md#quick-validate) runs `publishM2` once at the start of each invocation; use [`scripts/run-example-build.sh`](../../scripts/run-example-build.sh) (or `./build-generated.sh` under `example/python/`), which shares the same once-per-session publish guard, when regenerating examples outside `./validate`. Do not run `smithy build` alone against a stale or hand-edited `smithy-build.json` without publishing first.
 
-Golden template fixtures under `templates/python/tests/` omit `maven.dependencies` and load the plugin from the sbt test classpath instead.
+Golden template fixtures under `templates/python/tests/` use `smithy-build.json.template` with `maven.dependencies` on `smithplates-plugin`; render with [`scripts/render-template-smithy-build.sh`](../../scripts/render-template-smithy-build.sh) after `publishM2` before golden tests or `generateGoldenTemplatesFor`.
 
 ## Maven Central
 

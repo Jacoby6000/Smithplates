@@ -1,7 +1,7 @@
 package com.jacoby6000.smithplates.plugin.generators
 
 import com.jacoby6000.smithplates.plugin.codegentest.PythonCodegenRuffFormatter
-import com.jacoby6000.smithplates.plugin.codegentest.SmithyBuildTemplateRunner
+import com.jacoby6000.smithplates.plugin.codegentest.TemplateSmithyBuild
 import com.jacoby6000.smithplates.sql.service.renderer.codegentest.CodegenTemplateTestDiscovery
 
 import java.nio.file.Files
@@ -10,11 +10,10 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import scala.jdk.CollectionConverters.*
 
-/** Runs `smithy build` for each case and syncs `out/` into `expected/`. */
+/** Runs the Smithy CLI for each case and syncs `build/smithy/` into `expected/`. */
 object GoldenTemplateOutputGenerator {
   def generate(language: String, caseNames: Seq[String], repoRoot: Path = defaultRepoRoot): Unit = {
-    val classLoader = getClass.getClassLoader
-    val discovered  =
+    val discovered =
       CodegenTemplateTestDiscovery
         .discover(repoRoot, language, Set.empty)
         .map(testCase => testCase.name -> testCase)
@@ -31,8 +30,8 @@ object GoldenTemplateOutputGenerator {
         )
 
       val outputDirectory =
-        SmithyBuildTemplateRunner
-          .run(testCase.caseDirectory, classLoader)
+        TemplateSmithyBuild
+          .run(testCase.caseDirectory)
           .fold(message => sys.error(message), identity)
 
       val expectedDirectory = testCase.caseDirectory.resolve("expected")
@@ -47,7 +46,7 @@ object GoldenTemplateOutputGenerator {
     deleteRecursively(expectedDirectory)
     Files.createDirectories(expectedDirectory)
 
-    val pluginPrefix = s"source/${SmithyBuildTemplateRunner.PluginName}/"
+    val pluginPrefix = TemplateSmithyBuild.PluginOutputPrefix
 
     Files
       .walk(outputDirectory)

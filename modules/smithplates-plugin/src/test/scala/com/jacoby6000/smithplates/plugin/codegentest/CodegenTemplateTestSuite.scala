@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.duration.*
 import scala.jdk.CollectionConverters.*
 
-/** Runs each fixture's `smithy-build.json` once, then compares `out/` to `expected/` per variant.
+/** Runs each fixture's `smithy build` once, then compares `build/smithy/` to `expected/` per variant.
   *
   * Single language-agnostic golden suite covering every codegen variant. Adding a new language (or implementation) is
   * just adding a [[CodegenTemplateVariant]] to `variants`; discovery, build, and comparison registration are grouped by
@@ -58,7 +58,7 @@ class CodegenTemplateTestSuite extends FunSuite {
     casesRequiringBuild.foreach { testCase =>
       test(s"build - ${testCase.name}") {
         val result =
-          SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
+          TemplateSmithyBuild.run(testCase.caseDirectory)
         buildOutputs.put(testCase.name, result)
         result.fold(
           message => fail(s"Smithy build failed for '${testCase.name}': $message"),
@@ -125,7 +125,7 @@ class CodegenTemplateTestSuite extends FunSuite {
 
   /** Smithy writes plugin artifacts under `{projection}/{pluginName}/`; strip that prefix for comparison. */
   private def normalizeBuildOutputPath(relativePath: String): Option[String] = {
-    val pluginPrefix = s"source/${SmithyBuildTemplateRunner.PluginName}/"
+    val pluginPrefix = TemplateSmithyBuild.PluginOutputPrefix
     if (relativePath.startsWith(pluginPrefix)) {
       Some(relativePath.stripPrefix(pluginPrefix))
     } else if (relativePath.startsWith("source/")) {

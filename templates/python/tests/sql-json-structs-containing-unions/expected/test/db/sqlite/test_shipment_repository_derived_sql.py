@@ -8,11 +8,9 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.models.shipment_repository_models import (
+    CreateShipmentResult,
     PostalAddress,
     Shipment,
-)
-from generated.db.shipment_repository_protocol import (
-    CreateShipmentResult,
     UpdateShipmentResult,
 )
 from generated.db.sqlite.shipment_repository_aiosqlite import ShipmentRepositoryAiosqliteService

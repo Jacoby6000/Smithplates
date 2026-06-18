@@ -7,8 +7,10 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.db.order_repository_protocol import (
+from generated.db.models.order_repository_models import (
     CreateOrderResult,
+)
+from generated.db.order_repository_protocol import (
     GetOrderResult,
 )
 from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService

@@ -17,7 +17,7 @@ templates/
     tests/
       <test-case>/
         smithy/smithy-files.smithy
-        smithy-build.json
+        smithy-build.json.template
         expected/
           db/migrations/<dialect>/...
           src/<feature>/…     # golden generated src artifacts

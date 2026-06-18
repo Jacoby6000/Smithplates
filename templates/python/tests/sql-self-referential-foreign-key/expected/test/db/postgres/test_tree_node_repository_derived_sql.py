@@ -8,13 +8,11 @@ import psycopg
 import pytest
 import pytest_asyncio
 from generated.db.models.tree_node_repository_models import (
+    CreateTreeNodeResult,
     TreeNode,
 )
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.db.postgres.tree_node_repository_psycopg import TreeNodeRepositoryPsycopgService
-from generated.db.tree_node_repository_protocol import (
-    CreateTreeNodeResult,
-)
 from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"

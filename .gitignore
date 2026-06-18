@@ -13,6 +13,7 @@ language-test-harnesses/python/.venv/
 templates/**/__pycache__/
 templates/**/.pytest_cache/
 templates/**/tests/**/out/
+templates/**/tests/**/smithy-build.json
 .pre-commit-home
 .xdg-runtime
 result
@@ -20,3 +21,5 @@ result
 metals.sbt
 
 example/**/smithy-build.json
+
+**/build/smithy

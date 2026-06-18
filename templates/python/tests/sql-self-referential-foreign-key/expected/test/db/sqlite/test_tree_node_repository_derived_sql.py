@@ -8,13 +8,11 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.db.models.tree_node_repository_models import (
+    CreateTreeNodeResult,
     TreeNode,
 )
 from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.db.sqlite.tree_node_repository_aiosqlite import TreeNodeRepositoryAiosqliteService
-from generated.db.tree_node_repository_protocol import (
-    CreateTreeNodeResult,
-)
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
 

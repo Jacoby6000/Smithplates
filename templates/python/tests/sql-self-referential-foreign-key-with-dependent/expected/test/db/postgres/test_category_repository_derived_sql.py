@@ -7,11 +7,9 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.db.category_repository_protocol import (
-    CreateCategoryResult,
-)
 from generated.db.models.category_repository_models import (
     Category,
+    CreateCategoryResult,
 )
 from generated.db.postgres.category_repository_psycopg import CategoryRepositoryPsycopgService
 from generated.db.postgres.psycopg_migrations import PsycopgMigrationService

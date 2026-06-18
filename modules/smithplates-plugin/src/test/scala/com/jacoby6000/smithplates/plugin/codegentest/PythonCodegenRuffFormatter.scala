@@ -37,7 +37,7 @@ object PythonCodegenRuffFormatter {
     caseDirectory.toAbsolutePath.normalize().resolve("../../../..").normalize()
 
   private def resolveFormatRoot(root: Path): Path = {
-    val pluginOutput = root.resolve(s"source/${SmithyBuildTemplateRunner.PluginName}")
+    val pluginOutput = root.resolve(TemplateSmithyBuild.PluginOutputPrefix.stripSuffix("/"))
     if (Files.isDirectory(pluginOutput)) {
       pluginOutput
     } else {

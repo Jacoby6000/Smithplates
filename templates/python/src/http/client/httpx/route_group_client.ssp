@@ -33,7 +33,7 @@ class ${clientClassName(routeGroup.tag)}:
 <% operation.documentation.foreach { doc => %>
         """${doc.linesIterator.mkString("\n        ")}"""
 <% } %>
-${clientRequestHeadersBlock(operation)}
+        ${clientRequestHeadersBlock(operation)}
         response = await self._client.request(
             "${operation.method.toUpperCase}",
             ${clientRequestUrlExpression(operation)},
