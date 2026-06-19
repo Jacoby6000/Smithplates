@@ -15,7 +15,7 @@ object SqlIntegrationSchemas {
       |use smithplates.codegen.sql#sqlVarchar
       |""".stripMargin
 
-  lazy val simpleModel: Model =
+  private lazy val simpleModel: Model =
     SqlItModelLoader.assemble(
       "simple.smithy" ->
         s"""$$version: "2.0"
@@ -42,7 +42,7 @@ object SqlIntegrationSchemas {
            |""".stripMargin
     )
 
-  lazy val varcharCheckModel: Model =
+  private lazy val varcharCheckModel: Model =
     SqlItModelLoader.assemble(
       "varchar-check.smithy" ->
         s"""$$version: "2.0"
@@ -68,7 +68,7 @@ object SqlIntegrationSchemas {
            |""".stripMargin
     )
 
-  lazy val complexModel: Model =
+  private lazy val complexModel: Model =
     SqlItModelLoader.assemble(
       "complex.smithy" ->
         s"""$$version: "2.0"
@@ -154,7 +154,7 @@ object SqlIntegrationSchemas {
            |""".stripMargin
     )
 
-  def extractSchema(model: Model): SqlSchema =
+  private def extractSchema(model: Model): SqlSchema =
     SqlModelExtractor.extractOrThrow(model).schema
 
   lazy val simpleSchema: SqlSchema       = extractSchema(simpleModel)

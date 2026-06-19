@@ -1,6 +1,5 @@
-package com.jacoby6000.smithplates.http.service.renderer
+package com.jacoby6000.smithplates.codegen
 
-import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import munit.FunSuite
 
 class TemplateOutputPrefixSpec extends FunSuite {
@@ -23,7 +22,6 @@ class TemplateOutputPrefixSpec extends FunSuite {
   }
 
   test("derives namespace-aware package names") {
-    import com.jacoby6000.smithplates.codegen.CodegenPackageNames
     assertEquals(
       CodegenPackageNames.packageName(Some("generated"), "com.example.api"),
       "generated.com.example.api"
