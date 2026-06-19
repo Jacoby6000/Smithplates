@@ -4,7 +4,6 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.model.HttpServiceIr
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
 import com.jacoby6000.smithplates.sql.SqlValidated
-import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 
 final case class SmithplatesHttpSettings(
     languageTargets: Map[String, SmithplatesHttpLanguageTarget]
@@ -12,15 +11,14 @@ final case class SmithplatesHttpSettings(
   def toServerCodegenSettings(languageId: String, serviceIr: HttpServiceIr): Option[HttpServiceCodegenSettings] =
     languageTargets.get(languageId).flatMap { languageTarget =>
       languageTarget.target.server.map { serverTarget =>
-        val routeGroupTags =
-          serviceIr.services.flatMap(_.routeGroups.map(_.tag)).distinct.sorted
-        val rootNamespace  = HttpLanguageTarget.resolvedRootNamespace(languageId, languageTarget.target)
+        val context =
+          SmithplatesHttpSettings.sharedHttpCodegenContext(languageId, languageTarget, serviceIr, emitModels = true)
         serverTarget.toCodegenSettings(
           languageId = languageId,
-          routeGroupTags = routeGroupTags,
-          rootNamespace = rootNamespace,
-          modelsPackageNameOverride = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
-          emitModels = true,
+          routeGroupTags = context.routeGroupTags,
+          rootNamespace = context.rootNamespace,
+          modelsPackageNameOverride = context.modelsPackageNameOverride,
+          emitModels = context.emitModels,
           sourceOutputDir = languageTarget.sourceOutputDir,
           testOutputDir = languageTarget.testOutputDir
         )
@@ -30,16 +28,18 @@ final case class SmithplatesHttpSettings(
   def toClientCodegenSettings(languageId: String, serviceIr: HttpServiceIr): Option[HttpServiceCodegenSettings] =
     languageTargets.get(languageId).flatMap { languageTarget =>
       languageTarget.target.client.map { clientTarget =>
-        val routeGroupTags =
-          serviceIr.services.flatMap(_.routeGroups.map(_.tag)).distinct.sorted
-        val emitModels     = languageTarget.target.server.isEmpty
-        val rootNamespace  = HttpLanguageTarget.resolvedRootNamespace(languageId, languageTarget.target)
+        val context = SmithplatesHttpSettings.sharedHttpCodegenContext(
+          languageId,
+          languageTarget,
+          serviceIr,
+          emitModels = languageTarget.target.server.isEmpty
+        )
         clientTarget.toCodegenSettings(
           languageId = languageId,
-          routeGroupTags = routeGroupTags,
-          rootNamespace = rootNamespace,
-          modelsPackageNameOverride = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
-          emitModels = emitModels,
+          routeGroupTags = context.routeGroupTags,
+          rootNamespace = context.rootNamespace,
+          modelsPackageNameOverride = context.modelsPackageNameOverride,
+          emitModels = context.emitModels,
           sourceOutputDir = languageTarget.sourceOutputDir,
           testOutputDir = languageTarget.testOutputDir
         )
@@ -51,74 +51,66 @@ object SmithplatesHttpSettings {
   val SupportedWebFrameworks: Set[String] = Set("fastapi")
   val SupportedHttpLibraries: Set[String] = Set("httpx")
 
-  def validate(settings: SmithplatesHttpSettings): SqlValidated[SmithplatesHttpSettings] =
-    validateLanguageTargets(settings)
+  final private[plugin] case class SharedHttpCodegenContext(
+      routeGroupTags: List[String],
+      rootNamespace: Option[String],
+      modelsPackageNameOverride: Option[String],
+      emitModels: Boolean
+  )
 
-  private def validateLanguageTargets(
-      settings: SmithplatesHttpSettings
-  ): SqlValidated[SmithplatesHttpSettings] =
+  def validate(settings: SmithplatesHttpSettings): SqlValidated[SmithplatesHttpSettings] =
     settings.languageTargets.toList
       .traverse { case (languageId, languageTarget) =>
         validateTarget(languageId, languageTarget.target)
       }
       .map(_ => settings)
 
+  private[plugin] def sharedHttpCodegenContext(
+      languageId: String,
+      languageTarget: SmithplatesHttpLanguageTarget,
+      serviceIr: HttpServiceIr,
+      emitModels: Boolean
+  ): SharedHttpCodegenContext =
+    SharedHttpCodegenContext(
+      routeGroupTags = serviceIr.services.flatMap(_.routeGroups.map(_.tag)).distinct.sorted,
+      rootNamespace = PluginConstants.resolvedRootNamespace(languageId, languageTarget.target.rootNamespace),
+      modelsPackageNameOverride = languageTarget.target.modelsPackageName,
+      emitModels = emitModels
+    )
+
   private def validateTarget(
       languageId: String,
       target: HttpLanguageTarget
   ): SqlValidated[Unit] =
-    if (target.server.isEmpty && target.client.isEmpty) {
-      SqlValidated.invalid(
-        InvalidPluginConfig(s"smithplates.$languageId.http requires `server` and/or `client`")
-      )
-    } else {
-      (
-        target.server match {
-          case None         => ().validNel
-          case Some(server) =>
-            validateWebFramework(languageId, server).andThen(_ =>
-              HttpLanguageTargetTemplateValidator.validateServer(languageId, server))
-        },
-        target.client match {
-          case None         => ().validNel
-          case Some(client) =>
-            validateHttpLibrary(languageId, client).andThen(_ =>
+    (
+      target.server match {
+        case None         => ().validNel
+        case Some(server) =>
+          PluginConstants
+            .validateSupportedValue(
+              languageId,
+              "http.server.webFramework",
+              server.webFramework,
+              SupportedWebFrameworks
+            )
+            .andThen(_ => HttpLanguageTargetTemplateValidator.validateServer(languageId, server))
+      },
+      target.client match {
+        case None         => ().validNel
+        case Some(client) =>
+          PluginConstants
+            .validateSupportedValue(
+              languageId,
+              "http.client.httpLibrary",
+              client.httpLibrary,
+              SupportedHttpLibraries
+            )
+            .andThen(_ =>
               HttpLanguageTargetTemplateValidator.validateClient(
                 languageId,
                 client,
                 emitModels = target.server.isEmpty
               ))
-        }
-      ).mapN((_, _) => ())
-    }
-
-  private def validateWebFramework(
-      languageId: String,
-      target: HttpServerTarget
-  ): SqlValidated[Unit] =
-    if (SupportedWebFrameworks.contains(target.webFramework)) {
-      ().validNel
-    } else {
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates.$languageId.http.server.webFramework '${target.webFramework}' is not supported; " +
-            s"supported values: ${SupportedWebFrameworks.toList.sorted.mkString(", ")}"
-        )
-      )
-    }
-
-  private def validateHttpLibrary(
-      languageId: String,
-      target: HttpClientTarget
-  ): SqlValidated[Unit] =
-    if (SupportedHttpLibraries.contains(target.httpLibrary)) {
-      ().validNel
-    } else {
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates.$languageId.http.client.httpLibrary '${target.httpLibrary}' is not supported; " +
-            s"supported values: ${SupportedHttpLibraries.toList.sorted.mkString(", ")}"
-        )
-      )
-    }
+      }
+    ).mapN((_, _) => ())
 }

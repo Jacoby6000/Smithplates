@@ -18,6 +18,12 @@ object PluginConfigMembers {
       case _                           => None
     }
 
+  def optionalBooleanMember(node: ObjectNode, memberName: String): Option[Boolean] =
+    Option(node.getMember(memberName).orElse(null)).flatMap {
+      case value if value.isBooleanNode => Some(value.expectBooleanNode().getValue)
+      case _                            => None
+    }
+
   def requiredStringMember(
       node: ObjectNode,
       memberName: String,
