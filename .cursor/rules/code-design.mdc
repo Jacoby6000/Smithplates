@@ -1,0 +1,28 @@
+---
+description: General code and architecture design principles
+alwaysApply: true
+---
+
+# Code Design Principles
+
+- **Avoid global mutable state.** Pass dependencies and state explicitly; no
+  hidden singletons or shared mutable globals.
+- **Avoid leaky abstractions.** An interface must not expose the details of its
+  implementation (storage engine, transport, vendor SDK). Callers depend on the
+  abstraction, never on what leaks through it.
+- **Favor composition over inheritance.** Compose small, focused pieces; reserve
+  inheritance for genuine substitutable is-a relationships.
+- **Principle of least power.** Use the least powerful tool that solves the
+  problem — prefer data over configuration, configuration over code, a pure
+  function over a stateful object, a constant over a computation. Reach for more
+  power only when required.
+- **Don't share database and transport models.** Keep persistence models, API/
+  wire (transport) models, and domain models separate, even when they look alike.
+  Map between them explicitly so each can evolve independently.
+- **Avoid private declarations.** Prefer not to lock callers out. Instead of
+  making a declaration private, leave it accessible but document that it is not
+  part of the intended/stable interface — callers may have a valid, unforeseen
+  use case. Mark such declarations as an unstable implementation surface that
+  may change without notice, using the language's nearest convention (e.g. a
+  `_`-prefixed name, a `#[doc(hidden)]`/`@internal`/`@unstable` marker, or an
+  "internal — not part of the public API; subject to change" note).

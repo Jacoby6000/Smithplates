@@ -1,0 +1,25 @@
+---
+description: Strict typing configuration for typed and optionally-typed languages
+alwaysApply: true
+---
+
+# Type Strictness
+
+Build systems for typed languages or languages that support optional typing,
+should be configured to be as strict as possible. Any reduction in strictness
+must be accompanied with an explanation in the configuration.
+
+Examples of "as strict as possible":
+- TypeScript: `"strict": true` (and related `noUncheckedIndexedAccess`, etc.).
+- Rust: deny relevant warnings (e.g. `#![deny(warnings)]` / clippy at deny).
+- Python: a strict type checker mode (e.g. mypy `--strict` / pyright strict).
+
+When a strictness flag must be relaxed, document why inline in the config:
+
+```jsonc
+{
+  // DESNOTE(jbarber, 2026-06-19): noImplicitAny relaxed until the legacy
+  // ./vendor shims are typed; tracked in JIRA-1234.
+  "noImplicitAny": false
+}
+```

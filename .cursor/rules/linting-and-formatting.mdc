@@ -1,0 +1,17 @@
+---
+description: Linting, formatting, pre-commit, and CI enforcement
+alwaysApply: true
+---
+
+# Linting & Formatting
+
+Linting and Formatting should be configured for every code project so that
+formatting discussions can be kept out of PR discussion. Formatting and linting
+should be left to the tools. Precommit should be configured to run linters and
+formatters prior to push, and CI should validate lint/format.
+
+In practice, every project must have:
+- A committed formatter + linter config (e.g. rustfmt/clippy, prettier/eslint,
+  ruff/black) checked into the repo.
+- A pre-commit hook that runs the formatter and linter before push.
+- A CI check that fails the build on any formatting or lint violation.

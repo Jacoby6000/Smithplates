@@ -1,0 +1,45 @@
+---
+description: Maintain AGENTS.md as living agent-facing documentation
+alwaysApply: true
+---
+
+# AGENTS.md
+
+Every repository should have an `AGENTS.md` at its root — the predictable place
+for agent-facing context that would clutter a README (build/test/lint commands,
+conventions, architecture decisions, gotchas). Keep it separate from `README.md`,
+which stays focused on human contributors. See https://agents.md/.
+
+## Maintain it as you work
+
+Treat `AGENTS.md` as living documentation and update it regularly, without being
+asked, as the codebase grows:
+
+- **Record decision points**: when you make or discover a non-obvious choice
+  (an approach taken, a constraint, a rejected alternative and why), capture it
+  so future agents don't relitigate it. This complements in-code `DESNOTE`s —
+  durable, cross-cutting decisions belong here.
+- **Keep commands current**: build, test, lint/format, and run commands an agent
+  needs. Agents will execute listed checks, so they must be accurate.
+- **Capture conventions and gotchas**: project structure, naming, and anything
+  strange or surprising about the environment.
+- If a repository has no `AGENTS.md`, create one when you begin substantive work.
+
+## Detailed reference docs (`.ai-doc-reference/`)
+
+Keep `AGENTS.md` lean. For detailed information that is valuable but too large or
+specialized to keep in context at all times, write a dedicated document under
+`.ai-doc-reference/` that agents fetch on demand. Use this for things like
+persistent CAD documents, schemas/contracts, deep design write-ups, runbooks,
+and data-model references.
+
+- Produce thorough, self-contained docs there as the codebase grows — favor
+  detail over brevity, since these are loaded only when needed.
+- From `AGENTS.md`, link to each reference doc with a one-line description of
+  what it contains and when to read it, so agents know what is available to pull
+  in without loading it eagerly.
+
+## Monorepos
+
+Use nested `AGENTS.md` files inside subprojects/packages. The file nearest the
+edited code wins; an explicit user instruction overrides any `AGENTS.md`.

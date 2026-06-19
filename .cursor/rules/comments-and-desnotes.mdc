@@ -1,0 +1,27 @@
+---
+description: Comment discipline and the DESNOTE convention
+alwaysApply: true
+---
+
+# Comments & DESNOTEs
+
+Do not add code comments that simply restate the behavior of the code. If code
+is sufficiently complicated that the functionality is not clear, it should be
+refactored to be less complex or broken down in to more clear problems.
+
+When the code does things that are strange, counter-intuitive, or relate to some
+specific business usecase or library requirement, etc;, It should have a
+DESNOTE. DESNOTEs should be written as `// DESNOTE(<author name>, <date>): ...
+explanation`
+
+Use the real author name and date — never placeholders. Adapt the comment token
+to the language (e.g. `# DESNOTE(...)` in Python).
+
+DESNOTEs should provide links to relevant information when possible (vendor docs,
+specs, issue trackers, related discussions) so the reasoning can be verified.
+
+```rust
+// DESNOTE(jbarber, 2026-06-19): The vendor SDK returns 200 with an empty body
+// on rate-limit instead of 429, so we treat an empty body here as a retry.
+// See https://vendor.example.com/docs/rate-limiting
+```

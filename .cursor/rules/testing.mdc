@@ -1,0 +1,14 @@
+---
+description: Testing expectations for all code
+alwaysApply: true
+---
+
+# Testing
+
+- **Unit test public methods and edge cases.** Cover the public surface of each
+  unit, including boundary conditions, empty/zero inputs, and error paths — not
+  just the happy path.
+- **Use property-based testing where applicable.** When behavior holds over a
+  range of inputs (round-trips, invariants, ordering, idempotence), assert the
+  property over generated inputs rather than enumerating examples by hand.
+- Prefer hand-rolled fakes/in-memory implementations over mocking frameworks.
