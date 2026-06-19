@@ -1,0 +1,80 @@
+---
+description: Smithplates build, test, and Scala toolchain conventions
+alwaysApply: true
+---
+
+# Smithplates Build & Toolchain
+
+## sbtn
+
+Always use **`sbtn`** (SBT thin client) from the repository root; never run plain
+`sbt` or `coursier launch org.scala-sbt:sbt-launch:…`. Assume **`sbtn` is on
+`PATH`** (one-time install, e.g. `coursier install sbtn`). Do not wrap every
+command with `export PATH="$HOME/.local/share/coursier/bin:$PATH"` or bootstrap
+SBT through Coursier per invocation.
+
+Examples: `sbtn smithplatesPlugin/test`, `sbtn smithplatesSqlIr/test`,
+`sbtn publishM2`, `sbtn scalafmtCheckAll`, `sbtn 'scalafixAll --check'`.
+
+**`sbtn` is experimental** — the background daemon can hang (especially after
+`reload`, long test runs, or interrupted commands). If `sbtn` stops responding,
+find and kill stale processes, then retry:
+
+```bash
+ps aux | rg -i 'sbtn|sbt-launch'
+pkill -f 'sbtn-x86_64-pc-linux' || true
+pkill -f 'sbt-launch\.jar' || true
+```
+
+Prefer single commands over chained `sbtn 'reload; …'` when possible. Use
+`sbtn --client shutdown` only when the client still responds.
+
+## Validate
+
+- Entry point: `./validate` (default lint + test)
+- PR test plans should be exactly `./validate` unless the user explicitly asks
+  for a different format
+- Target scoping and human-oriented validate docs: [`CONTRIBUTING.md`](../../CONTRIBUTING.md)
+
+## Pre-commit
+
+After `pre-commit install` (see [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml)):
+
+- Commits touching `*.scala`/`*.sbt` run `scalafmtAll`, `scalafixAll`, then
+  `compile` via [`scripts/pre-commit-scala.sh`](../../scripts/pre-commit-scala.sh)
+- Commits touching golden template fixtures under `templates/<language>/tests/`
+  run `CodegenTemplateTestDiscoverySpec`
+- Re-stage if fmt/fix modify sources
+
+## Scala
+
+- **Scala 3.3.6** with strict compiler options (`-Werror`, `-Wunused:all`,
+  `-Wvalue-discard`, `-deprecation`, `-feature`, `-unchecked`, `-no-indent`)
+- Use **`{ }` brace syntax** only — do not use `:`/`end` optional-brace blocks
+  or significant-indent `then`/`do` forms
+- Generic type-strictness expectations: [type-strictness.mdc](type-strictness.mdc)
+
+## Cats & validation
+
+- **Cats Core 2.12.0** and **Cats Effect 3.7.0** on `smithplatesPlugin`,
+  `smithplatesTestkit`, and dialect IT modules (`smithplatesSqlDdlRendererPostgresIt`,
+  `smithplatesSqlDdlRendererSqliteIt`); extraction does not use `IO`
+- Use **`ValidatedNel[SqlSchemaError, *]`** (`SqlValidated`) with `mapN` /
+  `traverse` for Smithy model and plugin-config validation; convert to exceptions
+  only at the Smithy build plugin boundary (`SmithplatesBuildPlugin`)
+- Do not use `for` on `Validated` (fail-fast)
+- Synchronous extraction does not use `IO`
+
+## CI
+
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) runs on push/PR to
+`main`: `validate-plugin-build`, `validate-language-templates`, and
+`validate-example-tests` (Nix on Linux), plus `validate-docker` smoke checks via
+[`scripts/ci-docker-validate.sh`](../../scripts/ci-docker-validate.sh) (dev-shell
+parity and Docker backend auto-detection).
+
+When extending `devShells.default` in [`flake.nix`](../../flake.nix), update
+[`scripts/lib/dev-shell-fingerprint.sh`](../../scripts/lib/dev-shell-fingerprint.sh)
+per [`CONTRIBUTING.md`](../../CONTRIBUTING.md).
+
+Requires **Docker** on the runner for testcontainers-backed tests.

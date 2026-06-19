@@ -8,13 +8,10 @@ import scala.jdk.CollectionConverters.*
 
 /** Stable @sqlTable member ordering for DDL, queries, and codegen. */
 object SqlTableMemberOrdering {
-  private val CreatedTimestampDefaultIndex: Int = Int.MaxValue - 1
-  private val UpdatedTimestampDefaultIndex: Int = Int.MaxValue
-
   def orderedMembers(structure: StructureShape): List[(String, MemberShape)] = {
     val members = structure.getAllMembers.asScala.toList
     members.sortBy { case (memberName, member) =>
-      sortWeight(memberName, member, members)
+      internal.sortWeight(memberName, member, members)
     }
   }
 
@@ -22,7 +19,7 @@ object SqlTableMemberOrdering {
     val members         = structure.getAllMembers.asScala.toList
     val weightedMembers =
       members.map { case (memberName, member) =>
-        memberName -> sortWeight(memberName, member, members)
+        memberName -> internal.sortWeight(memberName, member, members)
       }
 
     weightedMembers
@@ -39,27 +36,33 @@ object SqlTableMemberOrdering {
       .getOrElse(SqlValidated.valid(()))
   }
 
-  private def sortWeight(
-      memberName: String,
-      member: MemberShape,
-      members: List[(String, MemberShape)]
-  ): (Int, Int) = {
-    val definitionOrder = members.indexWhere(_._1 == memberName)
-    explicitSortIndex(member) match {
-      case Some(index) => (1, index)
-      case None        => (0, definitionOrder)
-    }
-  }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val CreatedTimestampDefaultIndex: Int = Int.MaxValue - 1
+    val UpdatedTimestampDefaultIndex: Int = Int.MaxValue
 
-  private def explicitSortIndex(member: MemberShape): Option[Int] =
-    member.sqlColumnIndex
-      .orElse {
-        if (member.sqlUpdatedTimestamp) {
-          Some(UpdatedTimestampDefaultIndex)
-        } else if (member.sqlCreatedTimestamp) {
-          Some(CreatedTimestampDefaultIndex)
-        } else {
-          None
-        }
+    def sortWeight(
+        memberName: String,
+        member: MemberShape,
+        members: List[(String, MemberShape)]
+    ): (Int, Int) = {
+      val definitionOrder = members.indexWhere(_._1 == memberName)
+      explicitSortIndex(member) match {
+        case Some(index) => (1, index)
+        case None        => (0, definitionOrder)
       }
+    }
+
+    def explicitSortIndex(member: MemberShape): Option[Int] =
+      member.sqlColumnIndex
+        .orElse {
+          if (member.sqlUpdatedTimestamp) {
+            Some(UpdatedTimestampDefaultIndex)
+          } else if (member.sqlCreatedTimestamp) {
+            Some(CreatedTimestampDefaultIndex)
+          } else {
+            None
+          }
+        }
+  }
 }

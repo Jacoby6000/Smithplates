@@ -26,4 +26,4 @@ For Smithplates plugin development in this repository:
 
 Module reference (traits, templates, SPI): [`modules/smithplates-plugin/README.md`](../modules/smithplates-plugin/README.md)
 
-Conventions: [`AGENTS.md`](../AGENTS.md)
+Conventions: [`AGENTS.md`](../AGENTS.md) and [`.cursor/rules/`](../.cursor/rules/)

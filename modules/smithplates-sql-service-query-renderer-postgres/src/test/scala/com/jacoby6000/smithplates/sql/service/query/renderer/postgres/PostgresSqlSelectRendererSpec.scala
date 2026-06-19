@@ -8,26 +8,64 @@ import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
-  private lazy val renderer =
-    PostgresSqlQueryRenderer(
-      migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
-      codegenBindPlaceholder = SqlBindPlaceholder("%s")
+
+  test("StarProjection - renders default as explicit table columns") {
+    val statement =
+      PostgresSqlSelectRendererSpec.internal.renderer
+        .renderQueryUnits(PostgresSqlSelectRendererSpec.internal.starSchema.queries)
+        .find(_.shapeId == ShapeId.from("example#ListItems"))
+        .map { query =>
+          SqlBindPlaceholder.format(
+            query.statement.segments,
+            PostgresSqlSelectRendererSpec.internal.renderer.migrationBindPlaceholder
+          )
+        }
+        .getOrElse(fail("query 'example#ListItems' was not rendered"))
+
+    assertEquals(
+      statement,
+      """SELECT i.id AS i_id, i.category_id AS i_category_id, i.name AS i_name, c.id AS c_id, c.name AS c_name
+        |FROM items AS i
+        |INNER JOIN categories AS c ON i.category_id = c.id
+        |WHERE i.category_id = $1;""".stripMargin
     )
+  }
 
-  private def queryStatement(queries: SqlQueries, renderer: SqlQueryRenderer): String =
-    renderer
-      .renderQueryUnits(queries)
-      .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
-      .map { query =>
-        SqlBindPlaceholder.format(
-          query.statement.segments,
-          renderer.migrationBindPlaceholder
-        )
-      }
-      .getOrElse(fail("query 'example#ListItemCategories' was not rendered"))
+  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
+    assertEquals(
+      PostgresSqlSelectRendererSpec.internal.queryStatement(
+        PostgresSqlSelectRendererSpec.internal.schema.queries,
+        PostgresSqlSelectRendererSpec.internal.renderer),
+      """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
+        |FROM items AS i
+        |INNER JOIN categories AS c ON i.category_id = c.id
+        |WHERE i.category_id = $1
+        |GROUP BY i.id, c.name
+        |HAVING COUNT(i.id) = $2;""".stripMargin
+    )
+  }
+}
+object PostgresSqlSelectRendererSpec {
 
-  private lazy val starQueryModel = SqlTestModelBuilder.assemble(
-    """
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    lazy val renderer                                                           =
+      PostgresSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+        codegenBindPlaceholder = SqlBindPlaceholder("%s")
+      )
+    def queryStatement(queries: SqlQueries, renderer: SqlQueryRenderer): String =
+      renderer
+        .renderQueryUnits(queries)
+        .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
+        .map { query =>
+          SqlBindPlaceholder.format(
+            query.statement.segments,
+            renderer.migrationBindPlaceholder
+          )
+        }
+        .getOrElse(throw new AssertionError("query 'example#ListItemCategories' was not rendered"))
+    lazy val starQueryModel                                                     = SqlTestModelBuilder.assemble("""
       |use smithplates.codegen.sql#DerivedStruct
       |use smithplates.codegen.sql#sqlDeriveSelect
       |use smithplates.codegen.sql#sqlForeignKey
@@ -65,34 +103,9 @@ final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
       |    input: ListItemsInput
       |    output: DerivedStruct
       |}
-      |""".stripMargin
-  )
-
-  private lazy val starSchema = SqlModelExtractor.extractOrThrow(starQueryModel)
-  test("StarProjection - renders default as explicit table columns") {
-    val statement =
-      renderer
-        .renderQueryUnits(starSchema.queries)
-        .find(_.shapeId == ShapeId.from("example#ListItems"))
-        .map { query =>
-          SqlBindPlaceholder.format(
-            query.statement.segments,
-            renderer.migrationBindPlaceholder
-          )
-        }
-        .getOrElse(fail("query 'example#ListItems' was not rendered"))
-
-    assertEquals(
-      statement,
-      """SELECT i.id AS i_id, i.category_id AS i_category_id, i.name AS i_name, c.id AS c_id, c.name AS c_name
-        |FROM items AS i
-        |INNER JOIN categories AS c ON i.category_id = c.id
-        |WHERE i.category_id = $1;""".stripMargin
-    )
-  }
-
-  private lazy val queryModel = SqlTestModelBuilder.assemble(
-    """
+      |""".stripMargin)
+    lazy val starSchema                                                         = SqlModelExtractor.extractOrThrow(starQueryModel)
+    lazy val queryModel                                                         = SqlTestModelBuilder.assemble("""
       |use smithplates.codegen.sql#DerivedStruct
       |use smithplates.codegen.sql#sqlDeriveSelect
       |use smithplates.codegen.sql#sqlForeignKey
@@ -138,19 +151,7 @@ final class PostgresSqlSelectRendererSpec extends munit.FunSuite {
       |    input: ListItemCategoriesInput
       |    output: DerivedStruct
       |}
-      |""".stripMargin
-  )
-
-  private lazy val schema = SqlModelExtractor.extractOrThrow(queryModel)
-  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
-    assertEquals(
-      queryStatement(schema.queries, renderer),
-      """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
-        |FROM items AS i
-        |INNER JOIN categories AS c ON i.category_id = c.id
-        |WHERE i.category_id = $1
-        |GROUP BY i.id, c.name
-        |HAVING COUNT(i.id) = $2;""".stripMargin
-    )
+      |""".stripMargin)
+    lazy val schema                                                             = SqlModelExtractor.extractOrThrow(queryModel)
   }
 }

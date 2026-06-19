@@ -75,28 +75,32 @@ object SqlCodegenPythonImports {
 
   def protocolTableModelImportBlock(context: SqlCodegenServiceContext): String = {
     val (tableModels, unions) = protocolReferencedNames(context)
-    renderModelsImport(context.packageName, serviceModuleBaseName(context.name), tableModels, unions).getOrElse("")
+    internal
+      .renderModelsImport(context.packageName, serviceModuleBaseName(context.name), tableModels, unions)
+      .getOrElse("")
   }
 
   def serviceLocalImportBlock(context: SqlCodegenServiceContext): String = {
     val moduleBase            = serviceModuleBaseName(context.name)
     val (tableModels, unions) = serviceReferencedNames(context)
-    val operationResultNames  = serviceReferencedOperationResultNames(context)
+    val operationResultNames  = internal.serviceReferencedOperationResultNames(context)
 
     val blocks = List.newBuilder[String]
-    renderModelsImport(context.packageName, moduleBase, tableModels, unions).foreach(blocks += _)
-    renderProtocolImport(context.packageName, moduleBase, operationResultNames, context.name).foreach(blocks += _)
+    internal.renderModelsImport(context.packageName, moduleBase, tableModels, unions).foreach(blocks += _)
+    internal
+      .renderProtocolImport(context.packageName, moduleBase, operationResultNames, context.name)
+      .foreach(blocks += _)
     Option(enumImportBlock(context)).filter(_.nonEmpty).foreach(blocks += _)
     if (context.hasSqlOperations) {
       blocks += s"from ${qualifiedModule(context.packageName, s"${context.dialectKey}/${transactionRunModuleName(context.dialectKey)}")} import run"
     }
 
-    blocks.result().sortBy(extractImportModuleName).mkString("\n")
+    blocks.result().sortBy(internal.extractImportModuleName).mkString("\n")
   }
 
   def protocolReferencedNames(context: SqlCodegenServiceContext): (List[String], List[String]) = {
-    val tableModelNames = tableModelNameSet(context)
-    val unionNames      = unionNameSet(context)
+    val tableModelNames = internal.tableModelNameSet(context)
+    val unionNames      = internal.unionNameSet(context)
     val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
     val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
 
@@ -124,8 +128,8 @@ object SqlCodegenPythonImports {
   }
 
   def serviceReferencedNames(context: SqlCodegenServiceContext): (List[String], List[String]) = {
-    val tableModelNames = tableModelNameSet(context)
-    val unionNames      = unionNameSet(context)
+    val tableModelNames = internal.tableModelNameSet(context)
+    val unionNames      = internal.unionNameSet(context)
     val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
     val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
 
@@ -151,7 +155,8 @@ object SqlCodegenPythonImports {
         sql.selectOneOutput.foreach { output =>
           output.nestedBindings.foreach { nested =>
             reference(nested.shapeName)
-            // JSON columns on join tables produce `_read_<Type>` helpers that reference the model class.
+            // DESNOTE(jbarber, 2026-06-19): JSON columns on join tables produce `_read_<Type>` helpers
+            // that reference the model class.
             nested.fields.foreach(field => reference(field.typeName))
           }
         }
@@ -159,48 +164,6 @@ object SqlCodegenPythonImports {
     }
 
     (referencedTable.toList.sorted, referencedUnion.toList.sorted)
-  }
-
-  private def serviceReferencedOperationResultNames(context: SqlCodegenServiceContext): List[String] = {
-    val derivedNames =
-      context.models
-        .filter(_.namespace == SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
-        .map(_.name)
-        .toSet
-    context.operations
-      .filter(_.sql.isDefined)
-      .flatMap(_.outputTypeName)
-      .filter(derivedNames.contains)
-      .distinct
-      .sorted
-      .toList
-  }
-
-  private def tableModelNameSet(context: SqlCodegenServiceContext): Set[String] =
-    context.models
-      .filter(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
-      .map(_.name)
-      .toSet
-
-  private def unionNameSet(context: SqlCodegenServiceContext): Set[String] =
-    context.unions.map(_.name).toSet
-
-  private def extractImportModuleName(block: String): String =
-    block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')
-
-  private def renderModelsImport(
-      packageName: String,
-      moduleBase: String,
-      tableModels: List[String],
-      unions: List[String]
-  ): Option[String] = {
-    val names = (tableModels ++ unions).sorted
-    if (names.isEmpty) {
-      None
-    } else {
-      val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
-      Some(s"from ${qualifiedModule(packageName, s"models/${moduleBase}_models")} import ($body)")
-    }
   }
 
   def referencedTypeNames(typeName: String): List[String] = {
@@ -231,50 +194,95 @@ object SqlCodegenPythonImports {
       }
     val implementationBlock  =
       s"from ${qualifiedModule(packageName, s"$dialectKey/$implementationModule")} import $implementationClass"
-    val blocks               = importBlocks(testImports) :+ implementationBlock
+    val blocks               = internal.importBlocks(testImports) :+ implementationBlock
     blocks
-      .groupBy(extractImportModuleName)
+      .groupBy(internal.extractImportModuleName)
       .values
       .map(_.head)
       .toList
-      .sortBy(extractImportModuleName)
+      .sortBy(internal.extractImportModuleName)
       .mkString("\n", "\n", "")
   }
 
-  private def importBlocks(importText: String): List[String] =
-    if (importText.isEmpty) {
-      Nil
-    } else {
-      val blocks  = List.newBuilder[String]
-      var current = List.newBuilder[String]
-      importText.linesIterator.foreach { line =>
-        if (line.startsWith("from ") && current.result().nonEmpty) {
-          blocks += current.result().mkString("\n")
-          current = List.newBuilder[String]
-        }
-        if (line.nonEmpty) {
-          current += line
-        }
-      }
-      if (current.result().nonEmpty) {
-        blocks += current.result().mkString("\n")
-      }
-      blocks.result()
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def serviceReferencedOperationResultNames(context: SqlCodegenServiceContext): List[String] = {
+      val derivedNames =
+        context.models
+          .filter(_.namespace == SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+          .map(_.name)
+          .toSet
+      context.operations
+        .filter(_.sql.isDefined)
+        .flatMap(_.outputTypeName)
+        .filter(derivedNames.contains)
+        .distinct
+        .sorted
+        .toList
     }
 
-  private def renderProtocolImport(
-      packageName: String,
-      moduleBase: String,
-      resultNames: List[String],
-      serviceName: String
-  ): Option[String] = {
-    val protocolName = serviceProtocolName(serviceName)
-    if (resultNames.isEmpty) {
-      Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import $protocolName")
-    } else {
-      val body =
-        (resultNames.map(name => s"    $name,") :+ s"    $protocolName,").mkString("\n", "\n", "\n")
-      Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import ($body)")
+    def tableModelNameSet(context: SqlCodegenServiceContext): Set[String] =
+      context.models
+        .filter(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
+        .map(_.name)
+        .toSet
+
+    def unionNameSet(context: SqlCodegenServiceContext): Set[String] =
+      context.unions.map(_.name).toSet
+
+    def extractImportModuleName(block: String): String =
+      block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')
+
+    def renderModelsImport(
+        packageName: String,
+        moduleBase: String,
+        tableModels: List[String],
+        unions: List[String]
+    ): Option[String] = {
+      val names = (tableModels ++ unions).sorted
+      if (names.isEmpty) {
+        None
+      } else {
+        val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
+        Some(s"from ${qualifiedModule(packageName, s"models/${moduleBase}_models")} import ($body)")
+      }
+    }
+
+    def importBlocks(importText: String): List[String] =
+      if (importText.isEmpty) {
+        Nil
+      } else {
+        val blocks  = List.newBuilder[String]
+        var current = List.newBuilder[String]
+        importText.linesIterator.foreach { line =>
+          if (line.startsWith("from ") && current.result().nonEmpty) {
+            blocks += current.result().mkString("\n")
+            current = List.newBuilder[String]
+          }
+          if (line.nonEmpty) {
+            current += line
+          }
+        }
+        if (current.result().nonEmpty) {
+          blocks += current.result().mkString("\n")
+        }
+        blocks.result()
+      }
+
+    def renderProtocolImport(
+        packageName: String,
+        moduleBase: String,
+        resultNames: List[String],
+        serviceName: String
+    ): Option[String] = {
+      val protocolName = serviceProtocolName(serviceName)
+      if (resultNames.isEmpty) {
+        Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import $protocolName")
+      } else {
+        val body =
+          (resultNames.map(name => s"    $name,") :+ s"    $protocolName,").mkString("\n", "\n", "\n")
+        Some(s"from ${qualifiedModule(packageName, s"${moduleBase}_protocol")} import ($body)")
+      }
     }
   }
 }

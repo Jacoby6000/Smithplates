@@ -38,7 +38,10 @@ private[service] object SqlSelectJoinResolver {
             case Nil           => None
             case single :: Nil =>
               Some(
-                buildJoinCondition(single, leftTable, leftReferenceAlias, joinReferenceAlias).some.validNel
+                internal
+                  .buildJoinCondition(single, leftTable, leftReferenceAlias, joinReferenceAlias)
+                  .some
+                  .validNel
               )
             case _             =>
               Some(
@@ -58,24 +61,6 @@ private[service] object SqlSelectJoinResolver {
       }
     }
 
-  private def buildJoinCondition(
-      foreignKey: ResolvedForeignKey,
-      leftTable: SqlTable,
-      leftReferenceAlias: String,
-      joinReferenceAlias: String
-  ): SqlJoinCondition = {
-    val (leftTableAlias, leftColumn, rightTableAlias, rightColumn) =
-      if (foreignKey.sourceTable.name == leftTable.name) {
-        (leftReferenceAlias, foreignKey.sourceColumn, joinReferenceAlias, foreignKey.targetColumn)
-      } else {
-        (leftReferenceAlias, foreignKey.targetColumn, joinReferenceAlias, foreignKey.sourceColumn)
-      }
-    SqlJoinCondition(
-      left = SqlQualifiedColumn(leftTableAlias, leftColumn),
-      right = SqlQualifiedColumn(rightTableAlias, rightColumn)
-    )
-  }
-
   def findForeignKeys(
       primaryTable: SqlTable,
       primaryStructure: StructureShape,
@@ -83,49 +68,70 @@ private[service] object SqlSelectJoinResolver {
       joinStructure: StructureShape
   ): List[ResolvedForeignKey] = {
     val joinToPrimary =
-      foreignKeysReferencing(joinStructure, joinTable, primaryStructure, primaryTable)
+      internal.foreignKeysReferencing(joinStructure, joinTable, primaryStructure, primaryTable)
     val primaryToJoin =
-      foreignKeysReferencing(primaryStructure, primaryTable, joinStructure, joinTable)
+      internal.foreignKeysReferencing(primaryStructure, primaryTable, joinStructure, joinTable)
     joinToPrimary ++ primaryToJoin
   }
 
-  private def foreignKeysReferencing(
-      sourceStructure: StructureShape,
-      sourceTable: SqlTable,
-      targetStructure: StructureShape,
-      targetTable: SqlTable
-  ): List[ResolvedForeignKey] =
-    sourceStructure.getAllMembers.asScala.toList.flatMap { case (memberName, member) =>
-      member.sqlForeignKey.flatMap { foreignKeyTrait =>
-        SqlTableMemberCatalog
-          .parseShapeId(foreignKeyTrait.getReferences)
-          .filter(_ == targetStructure.getId)
-          .flatMap { _ =>
-            resolveReferencedColumn(targetStructure, foreignKeyTrait.getColumn.toScala).map { referencedColumn =>
-              ResolvedForeignKey(
-                sourceTable = sourceTable,
-                sourceColumn = member.sqlColumnName(memberName),
-                targetTable = targetTable,
-                targetColumn = referencedColumn
-              )
-            }
-          }
-      }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def buildJoinCondition(
+        foreignKey: ResolvedForeignKey,
+        leftTable: SqlTable,
+        leftReferenceAlias: String,
+        joinReferenceAlias: String
+    ): SqlJoinCondition = {
+      val (leftTableAlias, leftColumn, rightTableAlias, rightColumn) =
+        if (foreignKey.sourceTable.name == leftTable.name) {
+          (leftReferenceAlias, foreignKey.sourceColumn, joinReferenceAlias, foreignKey.targetColumn)
+        } else {
+          (leftReferenceAlias, foreignKey.targetColumn, joinReferenceAlias, foreignKey.sourceColumn)
+        }
+      SqlJoinCondition(
+        left = SqlQualifiedColumn(leftTableAlias, leftColumn),
+        right = SqlQualifiedColumn(rightTableAlias, rightColumn)
+      )
     }
 
-  private def resolveReferencedColumn(
-      targetStructure: StructureShape,
-      explicitColumn: Option[String]
-  ): Option[String] =
-    SqlText.trimmedNonEmpty(explicitColumn) match {
-      case Some(column) => Some(column)
-      case None         =>
-        SqlTableMemberCatalog
-          .membersFor(targetStructure)
-          .filter(_.isPrimaryKey)
-          .map(_.columnName) match {
-          case single :: Nil => Some(single)
-          case _             => None
+    def foreignKeysReferencing(
+        sourceStructure: StructureShape,
+        sourceTable: SqlTable,
+        targetStructure: StructureShape,
+        targetTable: SqlTable
+    ): List[ResolvedForeignKey] =
+      sourceStructure.getAllMembers.asScala.toList.flatMap { case (memberName, member) =>
+        member.sqlForeignKey.flatMap { foreignKeyTrait =>
+          SqlTableMemberCatalog
+            .parseShapeId(foreignKeyTrait.getReferences)
+            .filter(_ == targetStructure.getId)
+            .flatMap { _ =>
+              resolveReferencedColumn(targetStructure, foreignKeyTrait.getColumn.toScala).map { referencedColumn =>
+                ResolvedForeignKey(
+                  sourceTable = sourceTable,
+                  sourceColumn = member.sqlColumnName(memberName),
+                  targetTable = targetTable,
+                  targetColumn = referencedColumn
+                )
+              }
+            }
         }
-    }
+      }
+
+    def resolveReferencedColumn(
+        targetStructure: StructureShape,
+        explicitColumn: Option[String]
+    ): Option[String] =
+      SqlText.trimmedNonEmpty(explicitColumn) match {
+        case Some(column) => Some(column)
+        case None         =>
+          SqlTableMemberCatalog
+            .membersFor(targetStructure)
+            .filter(_.isPrimaryKey)
+            .map(_.columnName) match {
+            case single :: Nil => Some(single)
+            case _             => None
+          }
+      }
+  }
 }

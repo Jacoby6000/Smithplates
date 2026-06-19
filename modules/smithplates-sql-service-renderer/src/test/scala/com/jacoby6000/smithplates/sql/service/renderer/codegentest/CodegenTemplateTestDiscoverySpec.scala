@@ -7,19 +7,19 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class CodegenTemplateTestDiscoverySpec extends FunSuite {
-  private val sqliteVariant = CodegenTemplateVariant("python", "db", "sqlite")
-
-  private lazy val repoRoot: Path =
-    Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
-
   test("discovers language template fixture cases") {
     val cases =
-      CodegenTemplateTestDiscovery.discover(repoRoot, "python", Set(sqliteVariant))
+      CodegenTemplateTestDiscovery.discover(
+        CodegenTemplateTestDiscoverySpec.internal.repoRoot,
+        "python",
+        Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
 
     assertEquals(cases.size, 26)
     val sqlCases = cases.filterNot(_.name.startsWith("http-"))
     assertEquals(sqlCases.size, 16)
-    assert(sqlCases.forall(_.expectedOutputsByVariant.get(sqliteVariant).exists(_.nonEmpty)))
+    assert(
+      sqlCases.forall(
+        _.expectedOutputsByVariant.get(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant).exists(_.nonEmpty)))
   }
 
   test("ignores empty and non-golden junk files under expected/") {
@@ -48,15 +48,17 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
 
       val testCase =
         CodegenTemplateTestDiscovery
-          .discover(tempRoot, "python", Set(sqliteVariant))
+          .discover(tempRoot, "python", Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
           .headOption
           .getOrElse(fail("expected discovered test case"))
 
       assertEquals(
-        testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath),
+        testCase.expectedOutputsByVariant
+          .getOrElse(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant, Nil)
+          .map(_.relativePath),
         List("src/generated/example/sqlite/sample_repository_aiosqlite.py")
       )
-    } finally deleteRecursively(tempRoot)
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }
 
   test("unsupported.md suppresses expected files for a variant") {
@@ -83,14 +85,18 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
 
       val testCase =
         CodegenTemplateTestDiscovery
-          .discover(tempRoot, "python", Set(sqliteVariant))
+          .discover(tempRoot, "python", Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
           .headOption
           .getOrElse(fail("expected discovered test case"))
 
       assertEquals(testCase.name, "sample-case")
-      assertEquals(testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil), Nil)
-      assert(CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, sqliteVariant))
-    } finally deleteRecursively(tempRoot)
+      assertEquals(
+        testCase.expectedOutputsByVariant.getOrElse(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant, Nil),
+        Nil)
+      assert(
+        CodegenTemplateTestDiscovery
+          .isVariantUnsupported(testCase, CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }
 
   test("scopes dialect migration files per variant") {
@@ -138,12 +144,15 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
       val postgresVariant = CodegenTemplateVariant("python", "db", "postgres")
       val testCase        =
         CodegenTemplateTestDiscovery
-          .discover(tempRoot, "python", Set(sqliteVariant, postgresVariant))
+          .discover(tempRoot, "python", Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant, postgresVariant))
           .headOption
           .getOrElse(fail("expected discovered test case"))
 
       assertEquals(
-        testCase.expectedOutputsByVariant.getOrElse(sqliteVariant, Nil).map(_.relativePath).sorted,
+        testCase.expectedOutputsByVariant
+          .getOrElse(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant, Nil)
+          .map(_.relativePath)
+          .sorted,
         List(
           "db/migrations/sqlite/v1_initial_schema.sql",
           "src/generated/example/sqlite/sample_repository_aiosqlite.py")
@@ -152,7 +161,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         testCase.expectedOutputsByVariant.getOrElse(postgresVariant, Nil).map(_.relativePath),
         List("db/migrations/postgres/v1_initial_schema.sql")
       )
-    } finally deleteRecursively(tempRoot)
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }
 
   test("CodegenTemplateTestDiscovery - discovers nested http server files for http variants") {
@@ -191,7 +200,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
           "src/generated/example/widget_output.py"
         )
       )
-    } finally deleteRecursively(tempRoot)
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }
 
   test("CodegenTemplateTestDiscovery - discovers nested http client files for http variants") {
@@ -232,11 +241,19 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
           "src/generated/example/widget_output.py"
         )
       )
-    } finally deleteRecursively(tempRoot)
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }
+}
+object CodegenTemplateTestDiscoverySpec {
 
-  private def deleteRecursively(path: Path): Unit =
-    if (Files.exists(path)) {
-      Files.walk(path).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(Files.delete(_))
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val sqliteVariant                       = CodegenTemplateVariant("python", "db", "sqlite")
+    lazy val repoRoot: Path                 =
+      Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
+    def deleteRecursively(path: Path): Unit =
+      if (Files.exists(path)) {
+        Files.walk(path).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(Files.delete(_))
+      }
+  }
 }

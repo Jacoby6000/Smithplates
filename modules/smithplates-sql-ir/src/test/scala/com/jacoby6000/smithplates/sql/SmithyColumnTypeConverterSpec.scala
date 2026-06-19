@@ -1,100 +1,34 @@
 package com.jacoby6000.smithplates.sql
 
 import com.jacoby6000.smithplates.sql.model.*
+import munit.Assertions
 import munit.FunSuite
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SmithyColumnTypeConverterSpec extends FunSuite {
-  private val converter: ColumnTypeConverter = SmithyColumnTypeConverter
-  private val builder                        = SqlTestModelBuilder
-
-  private val AliasStructureName = "AliasMember"
-  private val AliasMemberName    = "value"
-  private val AliasTypeName      = "TypeAlias"
-
-  private def modelWithTypeAlias(
-      aliasType: String,
-      aliasTraits: List[String] = Nil,
-      structurePropertyTraits: List[String] = Nil
-  ): Model = {
-    val uses       = sqlTraitUses(aliasTraits ++ structurePropertyTraits).map(u => s"use $u").mkString("\n")
-    val aliasLines = (aliasTraits :+ s"$aliasType $AliasTypeName").mkString("\n")
-
-    builder.assemble(
-      s"""$uses
-         |
-         |$aliasLines
-         |
-         |structure $AliasStructureName {
-         |    ${structurePropertyTraits.map(line => s"$line").mkString("    \n")}
-         |    $AliasMemberName: $AliasTypeName
-         |}""".stripMargin.linesIterator.filter(_.nonEmpty).mkString("\n")
-    )
-  }
-
-  private def sqlTraitUses(traitLines: List[String]): List[String] = {
-    val text = traitLines.mkString(" ")
-    List(
-      Option.when(text.contains("sqlUuid"))("smithplates.codegen.sql#sqlUuid"),
-      Option.when(text.contains("sqlVarchar"))("smithplates.codegen.sql#sqlVarchar"),
-      Option.when(text.contains("sqlJson"))("smithplates.codegen.sql#sqlJson")
-    ).flatten
-  }
-
-  private def memberFromModel(model: Model, structureName: String, memberName: String) =
-    model
-      .expectShape(ShapeId.from(builder.structureId(structureName)))
-      .asStructureShape
-      .get()
-      .getMember(memberName)
-      .get()
-
-  private def assertModelColumns(
-      model: Model,
-      structureName: String,
-      expected: List[(String, SqlColumnType)]
-  ): Unit =
-    expected.foreach { case (memberName, expectedType) =>
-      val member = memberFromModel(model, structureName, memberName)
-      val actual = converter.fromSmithyMember(model, member)
-      assertEquals(
-        actual,
-        Right(expectedType),
-        s"member '$memberName' on ${builder.structureId(structureName)}: expected Right($expectedType), got $actual"
-      )
-    }
-
-  private def assertUnsupportedMember(
-      model: Model,
-      structureName: String,
-      memberName: String,
-      kind: InvalidMemberColumnType.Kind = InvalidMemberColumnType.Kind.Unsupported
-  ): Unit = {
-    val member = memberFromModel(model, structureName, memberName)
-    assertEquals(
-      converter.fromSmithyMember(model, member),
-      Left(UnsupportedColumnType(member.getTarget, kind)),
-      s"member '$memberName' on ${builder.structureId(structureName)}: expected unsupported target ${member.getTarget}"
-    )
-  }
-
   test("Text - prelude String maps to Text") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PreludeStringMember {
         |    value: String
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeStringMember", List("value" -> SqlColumnType.Text))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeStringMember",
+      List("value" -> SqlColumnType.Text))
   }
 
   test("Text - string alias maps to Text") {
-    val model = modelWithTypeAlias("string")
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Text))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("string")
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Text))
   }
 
   test("Uuid - prelude String with @sqlUuid maps to Uuid") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlUuid
         |
         |structure PreludeUuidMember {
@@ -102,16 +36,22 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    id: String
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeUuidMember", List("id" -> SqlColumnType.Uuid))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeUuidMember",
+      List("id" -> SqlColumnType.Uuid))
   }
 
   test("Uuid - string alias with @sqlUuid maps to Uuid") {
-    val model = modelWithTypeAlias("string", aliasTraits = List("@sqlUuid"))
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Uuid))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("string", aliasTraits = List("@sqlUuid"))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Uuid))
   }
 
   test("Uuid - @sqlAutoUuid without @sqlUuid maps to Uuid") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlAutoUuid
         |
         |structure AutoUuidMember {
@@ -119,11 +59,11 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    id: String
         |}""".stripMargin
     )
-    assertModelColumns(model, "AutoUuidMember", List("id" -> SqlColumnType.Uuid))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(model, "AutoUuidMember", List("id" -> SqlColumnType.Uuid))
   }
 
   test("Uuid -  prelude Integer with @sqlUuid is unsupported") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlUuid
         |
         |structure IntegerUuidMember {
@@ -131,44 +71,60 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    count: Integer
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "IntegerUuidMember", "count", InvalidMemberColumnType.Kind.SqlUuid)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "IntegerUuidMember",
+      "count",
+      InvalidMemberColumnType.Kind.SqlUuid)
   }
 
   test("Integer - prelude Integer maps to Integer") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PreludeIntegerMember {
         |    value: Integer
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeIntegerMember", List("value" -> SqlColumnType.Integer))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeIntegerMember",
+      List("value" -> SqlColumnType.Integer))
   }
 
   test("Integer - integer alias maps to Integer") {
-    val model = modelWithTypeAlias("integer")
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Integer))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("integer")
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Integer))
   }
 
   test("BigInt - prelude Long maps to BigInt") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PreludeLongMember {
         |    value: Long
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeLongMember", List("value" -> SqlColumnType.BigInt))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeLongMember",
+      List("value" -> SqlColumnType.BigInt))
   }
 
   test("BigInt - long alias maps to BigInt") {
-    val model = modelWithTypeAlias("long")
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.BigInt))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("long")
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.BigInt))
   }
 
   test("Timestamp - prelude Timestamp maps to Timestamp") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PreludeTimestampMember {
         |    value: Timestamp
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "PreludeTimestampMember",
       List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.DateTime))
@@ -176,16 +132,17 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Timestamp - timestamp alias maps to Timestamp") {
-    val model = modelWithTypeAlias("timestamp")
-    assertModelColumns(
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("timestamp")
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
-      AliasStructureName,
-      List(AliasMemberName -> SqlColumnType.Timestamp(SqlTimestampFormat.DateTime))
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(
+        SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Timestamp(SqlTimestampFormat.DateTime))
     )
   }
 
   test("Timestamp - @timestampFormat epoch-seconds on member") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithy.api#timestampFormat
 
         |structure EpochSecondsMember {
@@ -193,7 +150,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    value: Timestamp
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "EpochSecondsMember",
       List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds))
@@ -201,7 +158,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Timestamp - @timestampFormat on target shape") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithy.api#timestampFormat
 
         |@timestampFormat("epoch-seconds")
@@ -211,7 +168,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    value: EpochSecondsTimestamp
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "EpochSecondsAliasMember",
       List("value" -> SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds))
@@ -219,7 +176,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Timestamp - rejects @timestampFormat http-date") {
-    val model  = builder.assemble(
+    val model  = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithy.api#timestampFormat
 
         |structure HttpDateMember {
@@ -227,9 +184,9 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    value: Timestamp
         |}""".stripMargin
     )
-    val member = memberFromModel(model, "HttpDateMember", "value")
+    val member = SmithyColumnTypeConverterSpec.internal.memberFromModel(model, "HttpDateMember", "value")
     assertEquals(
-      converter.fromSmithyMember(model, member),
+      SmithyColumnTypeConverterSpec.internal.converter.fromSmithyMember(model, member),
       Left(
         UnsupportedColumnType(
           member.getTarget,
@@ -241,30 +198,39 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Boolean - prelude Boolean maps to Boolean") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PreludeBooleanMember {
         |    value: Boolean
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeBooleanMember", List("value" -> SqlColumnType.Boolean))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeBooleanMember",
+      List("value" -> SqlColumnType.Boolean))
   }
 
   test("Boolean - boolean alias maps to Boolean") {
-    val model = modelWithTypeAlias("boolean")
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Boolean))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias("boolean")
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Boolean))
   }
 
   test("Json - Document maps to Json") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure JsonMembers {
         |    payload: Document
         |}""".stripMargin
     )
-    assertModelColumns(model, "JsonMembers", List("payload" -> SqlColumnType.Json))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "JsonMembers",
+      List("payload" -> SqlColumnType.Json))
   }
 
   test("Varchar - prelude String with @sqlVarchar maps to Varchar") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure PreludeVarcharMember {
@@ -272,30 +238,48 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    name: String
         |}""".stripMargin
     )
-    assertModelColumns(model, "PreludeVarcharMember", List("name" -> SqlColumnType.Varchar(128)))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PreludeVarcharMember",
+      List("name" -> SqlColumnType.Varchar(128)))
   }
 
   test("Varchar - string alias with @sqlVarchar maps to Varchar") {
-    val model = modelWithTypeAlias("string", aliasTraits = List("@sqlVarchar(maxLength: 16)"))
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Varchar(16)))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias(
+      "string",
+      aliasTraits = List("@sqlVarchar(maxLength: 16)"))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Varchar(16))
+    )
   }
 
   test("Text - String without @sqlVarchar maps to Text") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure PlainStringMember {
         |    name: String
         |}""".stripMargin
     )
-    assertModelColumns(model, "PlainStringMember", List("name" -> SqlColumnType.Text))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "PlainStringMember",
+      List("name" -> SqlColumnType.Text))
   }
 
   test("Varchar - @sqlVarchar on string type alias maps to Varchar") {
-    val model = modelWithTypeAlias("string", aliasTraits = List("@sqlVarchar(maxLength: 36)"))
-    assertModelColumns(model, AliasStructureName, List(AliasMemberName -> SqlColumnType.Varchar(36)))
+    val model = SmithyColumnTypeConverterSpec.internal.modelWithTypeAlias(
+      "string",
+      aliasTraits = List("@sqlVarchar(maxLength: 36)"))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      SmithyColumnTypeConverterSpec.internal.AliasStructureName,
+      List(SmithyColumnTypeConverterSpec.internal.AliasMemberName -> SqlColumnType.Varchar(36))
+    )
   }
 
   test("Varchar - @sqlVarchar rejected on Integer") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure IntegerVarcharMember {
@@ -303,11 +287,15 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    count: Integer
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "IntegerVarcharMember", "count", InvalidMemberColumnType.Kind.SqlVarchar)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "IntegerVarcharMember",
+      "count",
+      InvalidMemberColumnType.Kind.SqlVarchar)
   }
 
   test("Varchar - @sqlVarchar rejected on Long") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure LongVarcharMember {
@@ -315,11 +303,15 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    total: Long
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "LongVarcharMember", "total", InvalidMemberColumnType.Kind.SqlVarchar)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "LongVarcharMember",
+      "total",
+      InvalidMemberColumnType.Kind.SqlVarchar)
   }
 
   test("Varchar - @sqlVarchar rejected on Timestamp") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure TimestampVarcharMember {
@@ -327,11 +319,15 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    created_at: Timestamp
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "TimestampVarcharMember", "created_at", InvalidMemberColumnType.Kind.SqlVarchar)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "TimestampVarcharMember",
+      "created_at",
+      InvalidMemberColumnType.Kind.SqlVarchar)
   }
 
   test("Varchar - @sqlVarchar rejected on Boolean") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure BooleanVarcharMember {
@@ -339,11 +335,15 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    active: Boolean
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "BooleanVarcharMember", "active", InvalidMemberColumnType.Kind.SqlVarchar)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "BooleanVarcharMember",
+      "active",
+      InvalidMemberColumnType.Kind.SqlVarchar)
   }
 
   test("Varchar - @sqlVarchar rejected on Document") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlVarchar
         |
         |structure DocumentVarcharMember {
@@ -351,22 +351,26 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    payload: Document
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "DocumentVarcharMember", "payload", InvalidMemberColumnType.Kind.SqlVarchar)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "DocumentVarcharMember",
+      "payload",
+      InvalidMemberColumnType.Kind.SqlVarchar)
   }
 
   test("List[String] - is unsupported without @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """list Names { member: String }
         |
         |structure ListMember {
         |    names: Names
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "ListMember", "names")
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(model, "ListMember", "names")
   }
 
   test("List[String] - maps to Json with @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlJson
         |
         |list Names { member: String }
@@ -376,11 +380,11 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    names: Names
         |}""".stripMargin
     )
-    assertModelColumns(model, "ListMember", List("names" -> SqlColumnType.Json))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(model, "ListMember", List("names" -> SqlColumnType.Json))
   }
 
   test("Map[String, String] - is unsupported without @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """map StringMap {
         |    key: String
         |    value: String
@@ -390,11 +394,11 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    tags: StringMap
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "MapMember", "tags")
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(model, "MapMember", "tags")
   }
 
   test("Map[String, String] - maps to Json with @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlJson
         |
         |map StringMap {
@@ -407,11 +411,11 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    tags: StringMap
         |}""".stripMargin
     )
-    assertModelColumns(model, "MapMember", List("tags" -> SqlColumnType.Json))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(model, "MapMember", List("tags" -> SqlColumnType.Json))
   }
 
   test("Structure - nested structure is unsupported without @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure Nested {
         |    field: String
         |}
@@ -420,11 +424,11 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    nested: Nested
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "StructureMember", "nested")
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(model, "StructureMember", "nested")
   }
 
   test("Structure - nested structure maps to Json with @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlJson
         |
         |structure Nested {
@@ -436,20 +440,23 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    nested: Nested
         |}""".stripMargin
     )
-    assertModelColumns(model, "StructureMember", List("nested" -> SqlColumnType.Json))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "StructureMember",
+      List("nested" -> SqlColumnType.Json))
   }
 
   test("Blob - prelude Blob maps to Blob") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """structure BlobMember {
         |    data: Blob
         |}""".stripMargin
     )
-    assertModelColumns(model, "BlobMember", List("data" -> SqlColumnType.Blob))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(model, "BlobMember", List("data" -> SqlColumnType.Blob))
   }
 
   test("Json - @sqlJson rejected on String") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlJson
         |
         |structure StringJsonMember {
@@ -457,11 +464,15 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    name: String
         |}""".stripMargin
     )
-    assertUnsupportedMember(model, "StringJsonMember", "name", InvalidMemberColumnType.Kind.SqlJson)
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(
+      model,
+      "StringJsonMember",
+      "name",
+      InvalidMemberColumnType.Kind.SqlJson)
   }
 
   test("Union - maps to Json with @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlJson
         |use smithplates.codegen.sql#sqlPrimaryKey
         |use smithplates.codegen.sql#sqlTable
@@ -479,11 +490,14 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    value: Measurement
         |}""".stripMargin
     )
-    assertModelColumns(model, "UnionMember", List("id" -> SqlColumnType.Text, "value" -> SqlColumnType.Json))
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
+      model,
+      "UnionMember",
+      List("id" -> SqlColumnType.Text, "value" -> SqlColumnType.Json))
   }
 
   test("Union - is unsupported on @sqlTable structure without @sqlJson") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """use smithplates.codegen.sql#sqlPrimaryKey
         |use smithplates.codegen.sql#sqlTable
         |
@@ -500,17 +514,17 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |}""".stripMargin
     )
 
-    val member = memberFromModel(model, "UnionMember", "value")
+    val member = SmithyColumnTypeConverterSpec.internal.memberFromModel(model, "UnionMember", "value")
     assertEquals(
       member.getTarget,
       ShapeId.from("example#Measurement"),
       "expected member to target the union shape, not a @sqlTable structure"
     )
-    assertUnsupportedMember(model, "UnionMember", "value")
+    SmithyColumnTypeConverterSpec.internal.assertUnsupportedMember(model, "UnionMember", "value")
   }
 
   test("Enum - enum without assignments maps to StringEnum") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """enum Direction {
         |    NORTH
         |    SOUTH
@@ -520,7 +534,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    direction: Direction
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "EnumMembers",
       List(
@@ -531,7 +545,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Enum - enum with string assignments maps to StringEnum") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """enum LabeledDirection {
         |    NORTH = "north"
         |    SOUTH = "south"
@@ -541,7 +555,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    direction: LabeledDirection
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "LabeledEnumMembers",
       List(
@@ -556,7 +570,7 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
   }
 
   test("Enum - intEnum maps to IntEnum") {
-    val model = builder.assemble(
+    val model = SmithyColumnTypeConverterSpec.internal.builder.assemble(
       """intEnum HttpStatus {
         |    OK = 200
         |    NOT_FOUND = 404
@@ -566,10 +580,89 @@ final class SmithyColumnTypeConverterSpec extends FunSuite {
         |    status: HttpStatus
         |}""".stripMargin
     )
-    assertModelColumns(
+    SmithyColumnTypeConverterSpec.internal.assertModelColumns(
       model,
       "StatusMember",
       List("status" -> SqlColumnType.IntEnum("example_httpstatus", List(404, 200)))
     )
+  }
+}
+
+object SmithyColumnTypeConverterSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val converter: ColumnTypeConverter = SmithyColumnTypeConverter
+    val builder                        = SqlTestModelBuilder
+
+    val AliasStructureName = "AliasMember"
+    val AliasMemberName    = "value"
+    val AliasTypeName      = "TypeAlias"
+
+    def modelWithTypeAlias(
+        aliasType: String,
+        aliasTraits: List[String] = Nil,
+        structurePropertyTraits: List[String] = Nil
+    ): Model = {
+      val uses       = sqlTraitUses(aliasTraits ++ structurePropertyTraits).map(u => s"use $u").mkString("\n")
+      val aliasLines = (aliasTraits :+ s"$aliasType $AliasTypeName").mkString("\n")
+
+      builder.assemble(
+        s"""$uses
+         |
+         |$aliasLines
+         |
+         |structure $AliasStructureName {
+         |    ${structurePropertyTraits.map(line => s"$line").mkString("    \n")}
+         |    $AliasMemberName: $AliasTypeName
+         |}""".stripMargin.linesIterator.filter(_.nonEmpty).mkString("\n")
+      )
+    }
+
+    def sqlTraitUses(traitLines: List[String]): List[String] = {
+      val text = traitLines.mkString(" ")
+      List(
+        Option.when(text.contains("sqlUuid"))("smithplates.codegen.sql#sqlUuid"),
+        Option.when(text.contains("sqlVarchar"))("smithplates.codegen.sql#sqlVarchar"),
+        Option.when(text.contains("sqlJson"))("smithplates.codegen.sql#sqlJson")
+      ).flatten
+    }
+
+    def memberFromModel(model: Model, structureName: String, memberName: String) =
+      model
+        .expectShape(ShapeId.from(builder.structureId(structureName)))
+        .asStructureShape
+        .get()
+        .getMember(memberName)
+        .get()
+
+    def assertModelColumns(
+        model: Model,
+        structureName: String,
+        expected: List[(String, SqlColumnType)]
+    ): Unit =
+      expected.foreach { case (memberName, expectedType) =>
+        val member = memberFromModel(model, structureName, memberName)
+        val actual = converter.fromSmithyMember(model, member)
+        Assertions.assertEquals(
+          actual,
+          Right(expectedType),
+          s"member '$memberName' on ${builder.structureId(structureName)}: expected Right($expectedType), got $actual"
+        )
+      }
+
+    def assertUnsupportedMember(
+        model: Model,
+        structureName: String,
+        memberName: String,
+        kind: InvalidMemberColumnType.Kind = InvalidMemberColumnType.Kind.Unsupported
+    ): Unit = {
+      val member = memberFromModel(model, structureName, memberName)
+      Assertions.assertEquals(
+        converter.fromSmithyMember(model, member),
+        Left(UnsupportedColumnType(member.getTarget, kind)),
+        s"member '$memberName' on ${builder.structureId(structureName)}: expected unsupported target ${member.getTarget}"
+      )
+    }
   }
 }

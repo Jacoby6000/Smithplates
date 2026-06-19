@@ -37,7 +37,7 @@ private[http] object HttpShapeGraph {
             .members()
             .asScala
             .foreach { member =>
-              enqueueMemberTargets(model, member, pendingStructures, structures, unions)
+              internal.enqueueMemberTargets(model, member, pendingStructures, structures, unions)
             }
         }
       }
@@ -46,58 +46,62 @@ private[http] object HttpShapeGraph {
     (structures.toList, unions.toList)
   }
 
-  private def enqueueMemberTargets(
-      model: Model,
-      member: MemberShape,
-      pendingStructures: scala.collection.mutable.Queue[ShapeId],
-      structures: scala.collection.mutable.Set[ShapeId],
-      unions: scala.collection.mutable.Set[ShapeId]
-  ): Unit = {
-    val targetShape = model.expectShape(member.getTarget)
-    if (targetShape.isUnionShape) {
-      val unionShapeId = targetShape.toShapeId
-      if (!unions.contains(unionShapeId)) {
-        unions += unionShapeId
-        targetShape
-          .asUnionShape()
-          .get()
-          .getAllMembers
-          .asScala
-          .values
-          .foreach { unionMember =>
-            memberTargets(model, unionMember).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
-              if (!structures.contains(referenced)) {
-                pendingStructures.enqueue(referenced)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def enqueueMemberTargets(
+        model: Model,
+        member: MemberShape,
+        pendingStructures: scala.collection.mutable.Queue[ShapeId],
+        structures: scala.collection.mutable.Set[ShapeId],
+        unions: scala.collection.mutable.Set[ShapeId]
+    ): Unit = {
+      val targetShape = model.expectShape(member.getTarget)
+      if (targetShape.isUnionShape) {
+        val unionShapeId = targetShape.toShapeId
+        if (!unions.contains(unionShapeId)) {
+          unions += unionShapeId
+          targetShape
+            .asUnionShape()
+            .get()
+            .getAllMembers
+            .asScala
+            .values
+            .foreach { unionMember =>
+              memberTargets(model, unionMember).filter(HttpShapeGraph.isUserDefinedStructure(model, _)).foreach {
+                referenced =>
+                  if (!structures.contains(referenced)) {
+                    pendingStructures.enqueue(referenced)
+                  }
               }
             }
+        }
+      } else {
+        memberTargets(model, member).filter(HttpShapeGraph.isUserDefinedStructure(model, _)).foreach { referenced =>
+          if (!structures.contains(referenced)) {
+            pendingStructures.enqueue(referenced)
           }
-      }
-    } else {
-      memberTargets(model, member).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
-        if (!structures.contains(referenced)) {
-          pendingStructures.enqueue(referenced)
         }
       }
     }
-  }
 
-  private def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
-    model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
+    def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
+      model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
 
-  private object MemberTargetShapeIds extends ShapeVisitor.Default[List[ShapeId]] {
-    override protected def getDefault(shape: Shape): List[ShapeId] =
-      Nil
+    object MemberTargetShapeIds extends ShapeVisitor.Default[List[ShapeId]] {
+      override protected def getDefault(shape: Shape): List[ShapeId] =
+        Nil
 
-    override def structureShape(shape: StructureShape): List[ShapeId] =
-      List(shape.getId)
+      override def structureShape(shape: StructureShape): List[ShapeId] =
+        List(shape.getId)
 
-    override def listShape(shape: ListShape): List[ShapeId] =
-      List(shape.getMember.getTarget)
+      override def listShape(shape: ListShape): List[ShapeId] =
+        List(shape.getMember.getTarget)
 
-    override def mapShape(shape: MapShape): List[ShapeId] =
-      List(shape.getValue.getTarget)
+      override def mapShape(shape: MapShape): List[ShapeId] =
+        List(shape.getValue.getTarget)
 
-    override def unionShape(shape: UnionShape): List[ShapeId] =
-      shape.getAllMembers.asScala.values.map(_.getTarget).toList
+      override def unionShape(shape: UnionShape): List[ShapeId] =
+        shape.getAllMembers.asScala.values.map(_.getTarget).toList
+    }
   }
 }

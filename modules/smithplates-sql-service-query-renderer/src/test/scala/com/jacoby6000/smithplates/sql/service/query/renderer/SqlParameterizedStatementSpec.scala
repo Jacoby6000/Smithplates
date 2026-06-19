@@ -4,9 +4,6 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import munit.FunSuite
 
 final class SqlParameterizedStatementSpec extends FunSuite {
-  private def fromConfig(value: String): Option[SqlBindPlaceholder] =
-    SqlShared.trimmedNonEmpty(value).map(SqlBindPlaceholder(_))
-
   test("format - inserts numbered placeholders when pattern contains ?{n}") {
     assertEquals(
       SqlBindPlaceholder.format(
@@ -29,10 +26,18 @@ final class SqlParameterizedStatementSpec extends FunSuite {
     )
   }
 
-  test("fromConfig - accepts driver placeholder strings") {
+  test("SqlParameterizedStatementSpec.internal.fromConfig - accepts driver placeholder strings") {
     assertEquals(
-      fromConfig("%s"),
+      SqlParameterizedStatementSpec.internal.fromConfig("%s"),
       Some(SqlBindPlaceholder("%s"))
     )
+  }
+}
+object SqlParameterizedStatementSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def fromConfig(value: String): Option[SqlBindPlaceholder] =
+      SqlShared.trimmedNonEmpty(value).map(SqlBindPlaceholder(_))
   }
 }

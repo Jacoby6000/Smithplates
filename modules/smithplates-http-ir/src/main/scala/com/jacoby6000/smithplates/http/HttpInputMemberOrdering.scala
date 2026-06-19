@@ -7,15 +7,13 @@ import com.jacoby6000.smithplates.http.model.HttpSchemaWarning
 import software.amazon.smithy.model.shapes.ShapeId
 
 private[http] object HttpInputMemberOrdering {
-  private val UriLabelPattern = """\{([^}]+)\}""".r
-
   def orderInputMembers(
       uri: String,
       members: List[HttpOperationInputMember]
   ): List[HttpOperationInputMember] = {
-    val (headers, pathLabels, queries, payloads) = partitionByBinding(members)
-    val uriLabels                                = uriLabelNames(uri)
-    val orderedPathLabels                        = sortPathLabels(pathLabels, uriLabels)
+    val (headers, pathLabels, queries, payloads) = internal.partitionByBinding(members)
+    val uriLabels                                = internal.uriLabelNames(uri)
+    val orderedPathLabels                        = internal.sortPathLabels(pathLabels, uriLabels)
     headers ++ orderedPathLabels ++ queries ++ payloads
   }
 
@@ -26,8 +24,8 @@ private[http] object HttpInputMemberOrdering {
       uri: String,
       members: List[HttpOperationInputMember]
   ): Option[HttpSchemaWarning] = {
-    val routeMembers         = members.filter(isRouteParameter)
-    val expectedRouteMembers = orderInputMembers(uri, members).filter(isRouteParameter)
+    val routeMembers         = members.filter(internal.isRouteParameter)
+    val expectedRouteMembers = orderInputMembers(uri, members).filter(internal.isRouteParameter)
     if (routeMembers.map(_.name) == expectedRouteMembers.map(_.name)) {
       None
     } else {
@@ -43,49 +41,54 @@ private[http] object HttpInputMemberOrdering {
     }
   }
 
-  private def isRouteParameter(member: HttpOperationInputMember): Boolean =
-    member.binding match {
-      case HttpInputMemberBinding.Payload() => false
-      case _                                => true
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val UriLabelPattern = """\{([^}]+)\}""".r
 
-  private def uriLabelNames(uri: String): List[String] =
-    UriLabelPattern.findAllMatchIn(uri).map(_.group(1)).toList
-
-  private def partitionByBinding(
-      members: List[HttpOperationInputMember]
-  ): (
-      List[HttpOperationInputMember],
-      List[HttpOperationInputMember],
-      List[HttpOperationInputMember],
-      List[HttpOperationInputMember]) = {
-    val headers    = List.newBuilder[HttpOperationInputMember]
-    val pathLabels = List.newBuilder[HttpOperationInputMember]
-    val queries    = List.newBuilder[HttpOperationInputMember]
-    val payloads   = List.newBuilder[HttpOperationInputMember]
-    members.foreach { member =>
+    def isRouteParameter(member: HttpOperationInputMember): Boolean =
       member.binding match {
-        case HttpInputMemberBinding.Header(_)   => headers += member
-        case HttpInputMemberBinding.PathLabel() => pathLabels += member
-        case HttpInputMemberBinding.Query(_)    => queries += member
-        case HttpInputMemberBinding.Payload()   => payloads += member
+        case HttpInputMemberBinding.Payload() => false
+        case _                                => true
       }
-    }
-    (headers.result(), pathLabels.result(), queries.result(), payloads.result())
-  }
 
-  private def sortPathLabels(
-      pathLabels: List[HttpOperationInputMember],
-      uriLabels: List[String]
-  ): List[HttpOperationInputMember] =
-    pathLabels.zipWithIndex
-      .sortBy { case (member, sourceIndex) =>
-        val uriIndex = uriLabels.indexOf(member.name)
-        if (uriIndex >= 0) {
-          uriIndex
-        } else {
-          uriLabels.length + sourceIndex
+    def uriLabelNames(uri: String): List[String] =
+      UriLabelPattern.findAllMatchIn(uri).map(_.group(1)).toList
+
+    def partitionByBinding(
+        members: List[HttpOperationInputMember]
+    ): (
+        List[HttpOperationInputMember],
+        List[HttpOperationInputMember],
+        List[HttpOperationInputMember],
+        List[HttpOperationInputMember]) = {
+      val headers    = List.newBuilder[HttpOperationInputMember]
+      val pathLabels = List.newBuilder[HttpOperationInputMember]
+      val queries    = List.newBuilder[HttpOperationInputMember]
+      val payloads   = List.newBuilder[HttpOperationInputMember]
+      members.foreach { member =>
+        member.binding match {
+          case HttpInputMemberBinding.Header(_)   => headers += member
+          case HttpInputMemberBinding.PathLabel() => pathLabels += member
+          case HttpInputMemberBinding.Query(_)    => queries += member
+          case HttpInputMemberBinding.Payload()   => payloads += member
         }
       }
-      .map(_._1)
+      (headers.result(), pathLabels.result(), queries.result(), payloads.result())
+    }
+
+    def sortPathLabels(
+        pathLabels: List[HttpOperationInputMember],
+        uriLabels: List[String]
+    ): List[HttpOperationInputMember] =
+      pathLabels.zipWithIndex
+        .sortBy { case (member, sourceIndex) =>
+          val uriIndex = uriLabels.indexOf(member.name)
+          if (uriIndex >= 0) {
+            uriIndex
+          } else {
+            uriLabels.length + sourceIndex
+          }
+        }
+        .map(_._1)
+  }
 }

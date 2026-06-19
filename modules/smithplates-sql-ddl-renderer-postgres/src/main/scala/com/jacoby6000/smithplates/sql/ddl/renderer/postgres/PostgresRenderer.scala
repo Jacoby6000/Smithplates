@@ -10,23 +10,9 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
     SqlShared.renderDdlStatements(
       schema = schema,
       renderColumn = renderColumn,
-      preTableStatements = preTableEnumStatements,
-      foreignKeyRendering = SqlShared.ForeignKeyRendering.Separate(renderForeignKeyConstraint)
+      preTableStatements = internal.preTableEnumStatements,
+      foreignKeyRendering = SqlShared.ForeignKeyRendering.Separate(internal.renderForeignKeyConstraint)
     )
-
-  private def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
-    schema.tables
-      .flatMap(_.columns.map(_.columnType))
-      .collect { case enumType: SqlColumnType.StringEnum => enumType }
-      .distinctBy(_.typeName)
-      .sortBy(_.typeName)
-      .map { enumType =>
-        val literals = SqlShared.quotedStringLiterals(enumType.values)
-        DDLStatement.CreateEnumType(
-          enumType = enumType,
-          statement = s"CREATE TYPE ${enumType.typeName} AS ENUM ($literals);"
-        )
-      }
 
   private[postgres] def renderColumn(column: SqlColumn): String = {
     val checks = column.columnType match {
@@ -36,7 +22,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
     }
     SqlShared.renderColumnLine(
       column.name,
-      sqlTypeFor(column.columnType),
+      internal.sqlTypeFor(column.columnType),
       column.nullable,
       checks,
       column.autoGeneration.map(
@@ -44,46 +30,63 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
           _,
           column.columnType,
           uuidExpression = "gen_random_uuid()",
-          timestampExpression = postgresTimestampExpression
+          timestampExpression = internal.postgresTimestampExpression
         )
       )
     )
   }
 
-  private def postgresTimestampExpression(format: SqlTimestampFormat): String =
-    format match {
-      case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
-      case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsExpression
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
+      schema.tables
+        .flatMap(_.columns.map(_.columnType))
+        .collect { case enumType: SqlColumnType.StringEnum => enumType }
+        .distinctBy(_.typeName)
+        .sortBy(_.typeName)
+        .map { enumType =>
+          val literals = SqlShared.quotedStringLiterals(enumType.values)
+          DDLStatement.CreateEnumType(
+            enumType = enumType,
+            statement = s"CREATE TYPE ${enumType.typeName} AS ENUM ($literals);"
+          )
+        }
 
-  private def renderForeignKeyConstraint(
-      table: SqlTable,
-      foreignKey: SqlForeignKey,
-      referencedTable: SqlTable
-  ): String = {
-    val constraintName = s"fk_${table.name}_${foreignKey.column}"
-    s"""ALTER TABLE ${table.name}
-       |    ADD CONSTRAINT $constraintName
-       |    FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn});""".stripMargin
-  }
-
-  private def sqlTypeFor(columnType: SqlColumnType): String =
-    SqlShared.baseSqlType(columnType).getOrElse {
-      columnType match {
-        case SqlColumnType.Varchar(maxLength)   => s"VARCHAR($maxLength)"
-        case SqlColumnType.Uuid                 => "UUID"
-        case SqlColumnType.Timestamp(format)    =>
-          format match {
-            case SqlTimestampFormat.DateTime     => "TIMESTAMP"
-            case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsSqlType
-          }
-        case SqlColumnType.Boolean              => "BOOLEAN"
-        case SqlColumnType.Json                 => "JSONB"
-        case SqlColumnType.Blob                 => "BYTEA"
-        case SqlColumnType.Text                 => "TEXT"
-        case enumType: SqlColumnType.StringEnum => enumType.typeName
-        case other                              =>
-          throw new IllegalStateException(s"Unsupported Postgres column type: $other")
+    def postgresTimestampExpression(format: SqlTimestampFormat): String =
+      format match {
+        case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
+        case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsExpression
       }
+
+    def renderForeignKeyConstraint(
+        table: SqlTable,
+        foreignKey: SqlForeignKey,
+        referencedTable: SqlTable
+    ): String = {
+      val constraintName = s"fk_${table.name}_${foreignKey.column}"
+      s"""ALTER TABLE ${table.name}
+         |    ADD CONSTRAINT $constraintName
+         |    FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn});""".stripMargin
     }
+
+    def sqlTypeFor(columnType: SqlColumnType): String =
+      SqlShared.baseSqlType(columnType).getOrElse {
+        columnType match {
+          case SqlColumnType.Varchar(maxLength)   => s"VARCHAR($maxLength)"
+          case SqlColumnType.Uuid                 => "UUID"
+          case SqlColumnType.Timestamp(format)    =>
+            format match {
+              case SqlTimestampFormat.DateTime     => "TIMESTAMP"
+              case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsSqlType
+            }
+          case SqlColumnType.Boolean              => "BOOLEAN"
+          case SqlColumnType.Json                 => "JSONB"
+          case SqlColumnType.Blob                 => "BYTEA"
+          case SqlColumnType.Text                 => "TEXT"
+          case enumType: SqlColumnType.StringEnum => enumType.typeName
+          case other                              =>
+            throw new IllegalStateException(s"Unsupported Postgres column type: $other")
+        }
+      }
+  }
 }

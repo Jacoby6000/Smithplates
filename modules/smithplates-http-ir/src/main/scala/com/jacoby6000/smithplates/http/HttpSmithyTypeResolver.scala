@@ -25,80 +25,11 @@ object HttpSmithyTypeResolver {
           s"input member '$memberName' targets undefined shape '${member.getTarget.toString}'"
         ).invalidNel
       case Some(targetShape) =>
-        resolveShapeType(model, serviceShape, operationName, memberName, member, targetShape)
-    }
-
-  private def resolveShapeType(
-      model: Model,
-      serviceShape: ShapeId,
-      operationName: String,
-      memberName: String,
-      member: MemberShape,
-      shape: Shape
-  ): HttpValidated[HttpMemberType] =
-    if (shape.getId == SmithyHttpTimestampFormatResolver.TimestampShapeId) {
-      SmithyHttpTimestampFormatResolver
-        .resolve(model, serviceShape, operationName, memberName, member)
-        .map { timestampFormat =>
-          HttpMemberType(
-            typeName = "Timestamp",
-            timestampFormat = Some(timestampFormat)
-          )
-        }
-    } else if (shape.isListShape) {
-      val elementTarget = shape.asListShape.get().getMember.getTarget
-      val elementShape  = model.expectShape(elementTarget)
-      resolveShapeType(model, serviceShape, operationName, memberName, member, elementShape).map { elementType =>
-        HttpMemberType(
-          typeName = s"List[${elementType.typeName}]",
-          timestampFormat = None
-        )
-      }
-    } else if (shape.isMapShape) {
-      val valueTarget = shape.asMapShape.get().getValue.getTarget
-      val valueShape  = model.expectShape(valueTarget)
-      resolveShapeType(model, serviceShape, operationName, memberName, member, valueShape).map { valueType =>
-        HttpMemberType(
-          typeName = s"Map[String, ${valueType.typeName}]",
-          timestampFormat = None
-        )
-      }
-    } else if (shape.isStructureShape && !isPreludeShape(shape.getId)) {
-      HttpMemberType(
-        typeName = shape.getId.getName,
-        timestampFormat = None
-      ).validNel
-    } else if (shape.isEnumShape || shape.isIntEnumShape || shape.isUnionShape) {
-      HttpMemberType(
-        typeName = shape.getId.getName,
-        timestampFormat = None
-      ).validNel
-    } else {
-      HttpMemberType(
-        typeName = primitiveTypeName(shape.getId),
-        timestampFormat = None
-      ).validNel
+        internal.resolveShapeType(model, serviceShape, operationName, memberName, member, targetShape)
     }
 
   def isPreludeShape(shapeId: ShapeId): Boolean =
     shapeId.getNamespace == "smithy.api"
-
-  private def primitiveTypeName(shapeId: ShapeId): String =
-    shapeId.getName match {
-      case "String"     => "String"
-      case "Integer"    => "Integer"
-      case "Long"       => "Long"
-      case "Float"      => "Float"
-      case "Double"     => "Double"
-      case "BigDecimal" => "BigDecimal"
-      case "BigInteger" => "BigInteger"
-      case "Boolean"    => "Boolean"
-      case "Blob"       => "Blob"
-      case "Timestamp"  => "Timestamp"
-      case "Document"   => "Document"
-      case "Unit"       => "Unit"
-      case other        => other
-    }
 
   val primitiveTypeNames: Set[String] =
     Set(
@@ -121,6 +52,77 @@ object HttpSmithyTypeResolver {
       !typeName.startsWith("List[") &&
       !typeName.startsWith("Map[String, ")
 
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def resolveShapeType(
+        model: Model,
+        serviceShape: ShapeId,
+        operationName: String,
+        memberName: String,
+        member: MemberShape,
+        shape: Shape
+    ): HttpValidated[HttpMemberType] =
+      if (shape.getId == SmithyHttpTimestampFormatResolver.TimestampShapeId) {
+        SmithyHttpTimestampFormatResolver
+          .resolve(model, serviceShape, operationName, memberName, member)
+          .map { timestampFormat =>
+            HttpMemberType(
+              typeName = "Timestamp",
+              timestampFormat = Some(timestampFormat)
+            )
+          }
+      } else if (shape.isListShape) {
+        val elementTarget = shape.asListShape.get().getMember.getTarget
+        val elementShape  = model.expectShape(elementTarget)
+        resolveShapeType(model, serviceShape, operationName, memberName, member, elementShape).map { elementType =>
+          HttpMemberType(
+            typeName = s"List[${elementType.typeName}]",
+            timestampFormat = None
+          )
+        }
+      } else if (shape.isMapShape) {
+        val valueTarget = shape.asMapShape.get().getValue.getTarget
+        val valueShape  = model.expectShape(valueTarget)
+        resolveShapeType(model, serviceShape, operationName, memberName, member, valueShape).map { valueType =>
+          HttpMemberType(
+            typeName = s"Map[String, ${valueType.typeName}]",
+            timestampFormat = None
+          )
+        }
+      } else if (shape.isStructureShape && !HttpSmithyTypeResolver.isPreludeShape(shape.getId)) {
+        HttpMemberType(
+          typeName = shape.getId.getName,
+          timestampFormat = None
+        ).validNel
+      } else if (shape.isEnumShape || shape.isIntEnumShape || shape.isUnionShape) {
+        HttpMemberType(
+          typeName = shape.getId.getName,
+          timestampFormat = None
+        ).validNel
+      } else {
+        HttpMemberType(
+          typeName = primitiveTypeName(shape.getId),
+          timestampFormat = None
+        ).validNel
+      }
+
+    def primitiveTypeName(shapeId: ShapeId): String =
+      shapeId.getName match {
+        case "String"     => "String"
+        case "Integer"    => "Integer"
+        case "Long"       => "Long"
+        case "Float"      => "Float"
+        case "Double"     => "Double"
+        case "BigDecimal" => "BigDecimal"
+        case "BigInteger" => "BigInteger"
+        case "Boolean"    => "Boolean"
+        case "Blob"       => "Blob"
+        case "Timestamp"  => "Timestamp"
+        case "Document"   => "Document"
+        case "Unit"       => "Unit"
+        case other        => other
+      }
+  }
 }
 
 final case class HttpMemberType(

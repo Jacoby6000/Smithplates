@@ -16,36 +16,37 @@ import software.amazon.smithy.model.traits.Trait
 
 import scala.jdk.OptionConverters.*
 
-private object SmithySqlServiceTraitLookup {
-  def traitOption[T <: Trait](shape: Shape, clazz: Class[T]): Option[T] =
-    shape.getTrait(clazz).toScala
-}
-
 private[service] object SmithySqlServiceTraitAccess {
   extension (operation: OperationShape) {
     def sqlDeriveInsert: Option[SqlDeriveInsertTrait] =
-      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveInsertTrait])
+      internal.traitOption(operation, classOf[SqlDeriveInsertTrait])
 
     def sqlDeriveUpdate: Option[SqlDeriveUpdateTrait] =
-      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveUpdateTrait])
+      internal.traitOption(operation, classOf[SqlDeriveUpdateTrait])
 
     def sqlDeriveDelete: Option[SqlDeriveDeleteTrait] =
-      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveDeleteTrait])
+      internal.traitOption(operation, classOf[SqlDeriveDeleteTrait])
 
     def sqlDeriveSelectOne: Option[SqlDeriveSelectOneTrait] =
-      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveSelectOneTrait])
+      internal.traitOption(operation, classOf[SqlDeriveSelectOneTrait])
 
     def sqlDeriveSelect: Option[SqlDeriveSelectTrait] =
-      SmithySqlServiceTraitLookup.traitOption(operation, classOf[SqlDeriveSelectTrait])
+      internal.traitOption(operation, classOf[SqlDeriveSelectTrait])
   }
 
   extension (structure: StructureShape) {
     def sqlUpdate: Option[SqlUpdateTrait] =
-      SmithySqlServiceTraitLookup.traitOption(structure, classOf[SqlUpdateTrait])
+      internal.traitOption(structure, classOf[SqlUpdateTrait])
   }
 
   extension (service: ServiceShape) {
     def sqlService: Option[SqlServiceTrait] =
-      SmithySqlServiceTraitLookup.traitOption(service, classOf[SqlServiceTrait])
+      internal.traitOption(service, classOf[SqlServiceTrait])
+  }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def traitOption[T <: Trait](shape: Shape, clazz: Class[T]): Option[T] =
+      shape.getTrait(clazz).toScala
   }
 }

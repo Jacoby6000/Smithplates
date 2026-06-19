@@ -19,8 +19,6 @@ import java.util.logging.Logger
 import scala.util.control.NonFatal
 
 final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
-  private val logger = Logger.getLogger(classOf[SmithplatesBuildPlugin].getName)
-
   override def getName: String = "smithplates"
 
   override def execute(context: PluginContext): Unit = {
@@ -31,130 +29,138 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
           s"smithplates plugin failed validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
         )
       case Validated.Valid(settings) =>
-        settings.sql.foreach(executeSql(context, model, _))
-        settings.http.foreach(executeHttp(context, model, _))
+        settings.sql.foreach(SmithplatesBuildPlugin.internal.executeSql(context, model, _))
+        settings.http.foreach(SmithplatesBuildPlugin.internal.executeHttp(context, model, _))
     }
   }
+}
 
-  private def executeSql(
-      context: PluginContext,
-      model: Model,
-      sqlSettings: SmithplatesSqlSettings
-  ): Unit =
-    (
-      SqlValidated.valid(sqlSettings),
-      SqlIrExtractor.extract(model)
-    ).mapN { (_, schema) =>
-      val serviceIr = SqlServiceIrExtractor.extractOrThrow(model, schema)
+object SmithplatesBuildPlugin {
 
-      if (sqlSettings.dialectMigrationDirectories.nonEmpty) {
-        if (schema.tables.isEmpty) {
-          logger.info("Skipping SQL schema generation: Smithy model contains no @sqlTable structures")
-        } else {
-          sqlSettings.dialectMigrationDirectories.foreach { case (dialectKey, migrationDirectory) =>
-            try {
-              val ddlOnly           = DialectRenderers.renderDdlOnly(schema, dialectKey)
-              val migrationFileName =
-                s"${normalizeDirectory(migrationDirectory)}/${SqlCodegenMigrationBuilder.InitialMigrationFileName}"
-              logger.info(s"Generating $dialectKey initial migration into '$migrationFileName'")
-              context.getFileManifest.writeFile(migrationFileName, ddlOnly)
-            } catch {
-              case NonFatal(ex) =>
-                logger.severe(s"Failed writing $dialectKey schema: ${ex.getMessage}")
-                throw ex
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val logger: Logger = Logger.getLogger(classOf[SmithplatesBuildPlugin].getName)
+
+    def executeSql(
+        context: PluginContext,
+        model: Model,
+        sqlSettings: SmithplatesSqlSettings
+    ): Unit =
+      (
+        SqlValidated.valid(sqlSettings),
+        SqlIrExtractor.extract(model)
+      ).mapN { (_, schema) =>
+        val serviceIr = SqlServiceIrExtractor.extractOrThrow(model, schema)
+
+        if (sqlSettings.dialectMigrationDirectories.nonEmpty) {
+          if (schema.tables.isEmpty) {
+            logger.info("Skipping SQL schema generation: Smithy model contains no @sqlTable structures")
+          } else {
+            sqlSettings.dialectMigrationDirectories.foreach { case (dialectKey, migrationDirectory) =>
+              try {
+                val ddlOnly           = DialectRenderers.renderDdlOnly(schema, dialectKey)
+                val migrationFileName =
+                  s"${normalizeDirectory(migrationDirectory)}/${SqlCodegenMigrationBuilder.InitialMigrationFileName}"
+                logger.info(s"Generating $dialectKey initial migration into '$migrationFileName'")
+                context.getFileManifest.writeFile(migrationFileName, ddlOnly)
+              } catch {
+                case NonFatal(ex) =>
+                  logger.severe(s"Failed writing $dialectKey schema: ${ex.getMessage}")
+                  throw ex
+              }
             }
           }
         }
-      }
 
-      sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
-        sqlSettings.toCodegenSettings(languageId) match {
-          case Some(codegenSettings) =>
-            if (serviceIr.services.isEmpty) {
-              logger.info(
-                s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
-              )
-            } else {
-              SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
-                case Validated.Valid(artifacts) =>
-                  artifacts.foreach { artifact =>
-                    writeArtifact(context, s"SQL service", artifact.relativePath, artifact.content)
-                  }
-                case Validated.Invalid(errors)  =>
-                  throw new IllegalArgumentException(
-                    s"smithplates plugin failed $languageId SQL codegen validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
-                  )
+        sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
+          sqlSettings.toCodegenSettings(languageId) match {
+            case Some(codegenSettings) =>
+              if (serviceIr.services.isEmpty) {
+                logger.info(
+                  s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
+                )
+              } else {
+                SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
+                  case Validated.Valid(artifacts) =>
+                    artifacts.foreach { artifact =>
+                      writeArtifact(context, s"SQL service", artifact.relativePath, artifact.content)
+                    }
+                  case Validated.Invalid(errors)  =>
+                    throw new IllegalArgumentException(
+                      s"smithplates plugin failed $languageId SQL codegen validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
+                    )
+                }
               }
-            }
-          case None                  => ()
+            case None                  => ()
+          }
+        }
+      } match {
+        case Validated.Valid(_)        => ()
+        case Validated.Invalid(errors) =>
+          throw new IllegalArgumentException(
+            s"smithplates plugin failed SQL validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
+          )
+      }
+
+    def executeHttp(
+        context: PluginContext,
+        model: Model,
+        httpSettings: SmithplatesHttpSettings
+    ): Unit = {
+      val serviceIr = HttpIrExtractor.extractOrThrow(model)
+      serviceIr.warnings.foreach(warning => logger.warning(warning.message))
+
+      httpSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
+        if (serviceIr.services.isEmpty) {
+          logger.info(
+            s"Skipping $languageId HTTP codegen: Smithy model contains no @httpService services"
+          )
+        } else {
+          httpSettings.toServerCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
+            renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
+          }
+          httpSettings.toClientCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
+            renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
+          }
         }
       }
-    } match {
-      case Validated.Valid(_)        => ()
-      case Validated.Invalid(errors) =>
-        throw new IllegalArgumentException(
-          s"smithplates plugin failed SQL validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
-        )
     }
 
-  private def executeHttp(
-      context: PluginContext,
-      model: Model,
-      httpSettings: SmithplatesHttpSettings
-  ): Unit = {
-    val serviceIr = HttpIrExtractor.extractOrThrow(model)
-    serviceIr.warnings.foreach(warning => logger.warning(warning.message))
-
-    httpSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
-      if (serviceIr.services.isEmpty) {
-        logger.info(
-          s"Skipping $languageId HTTP codegen: Smithy model contains no @httpService services"
-        )
-      } else {
-        httpSettings.toServerCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
-          renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
-        }
-        httpSettings.toClientCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
-          renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
-        }
+    def renderHttpArtifacts(
+        context: PluginContext,
+        model: Model,
+        serviceIr: com.jacoby6000.smithplates.http.model.HttpServiceIr,
+        languageId: String,
+        label: String,
+        codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
+    ): Unit =
+      HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {
+        case Validated.Valid(artifacts) =>
+          artifacts.foreach { artifact =>
+            writeArtifact(context, label, artifact.relativePath, artifact.content)
+          }
+        case Validated.Invalid(errors)  =>
+          throw new IllegalArgumentException(
+            s"smithplates plugin failed $languageId $label codegen validation: ${HttpValidated.toPluginExceptionMessage(errors)}"
+          )
       }
-    }
+
+    def writeArtifact(
+        context: PluginContext,
+        label: String,
+        relativePath: String,
+        content: String
+    ): Unit =
+      try {
+        logger.info(s"Generating $label artifact '$relativePath'")
+        val _ = context.getFileManifest.writeFile(relativePath, content)
+      } catch {
+        case NonFatal(ex) =>
+          logger.severe(s"Failed writing $label artifact '$relativePath': ${ex.getMessage}")
+          throw ex
+      }
+
+    def normalizeDirectory(directory: String): String =
+      directory.stripSuffix("/").stripSuffix("\\")
   }
-
-  private def renderHttpArtifacts(
-      context: PluginContext,
-      model: Model,
-      serviceIr: com.jacoby6000.smithplates.http.model.HttpServiceIr,
-      languageId: String,
-      label: String,
-      codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
-  ): Unit =
-    HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {
-      case Validated.Valid(artifacts) =>
-        artifacts.foreach { artifact =>
-          writeArtifact(context, label, artifact.relativePath, artifact.content)
-        }
-      case Validated.Invalid(errors)  =>
-        throw new IllegalArgumentException(
-          s"smithplates plugin failed $languageId $label codegen validation: ${HttpValidated.toPluginExceptionMessage(errors)}"
-        )
-    }
-
-  private def writeArtifact(
-      context: PluginContext,
-      label: String,
-      relativePath: String,
-      content: String
-  ): Unit =
-    try {
-      logger.info(s"Generating $label artifact '$relativePath'")
-      val _ = context.getFileManifest.writeFile(relativePath, content)
-    } catch {
-      case NonFatal(ex) =>
-        logger.severe(s"Failed writing $label artifact '$relativePath': ${ex.getMessage}")
-        throw ex
-    }
-
-  private def normalizeDirectory(directory: String): String =
-    directory.stripSuffix("/").stripSuffix("\\")
 }

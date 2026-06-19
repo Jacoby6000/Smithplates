@@ -5,30 +5,14 @@ import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
-  private val bookmarkTable =
-    SqlTable(
-      name = "bookmarks",
-      shapeId = ShapeId.from("example#Bookmark"),
-      columns = List(
-        SqlColumn(
-          name = "id",
-          columnType = SqlColumnType.Text,
-          nullable = false,
-          autoGeneration = Some(SqlAutoUuid)
-        ),
-        SqlColumn(name = "title", columnType = SqlColumnType.Text, nullable = true)
-      ),
-      primaryKeys = List("id"),
-      foreignKeys = Nil,
-      indexes = Nil
-    )
-
-  private val schema = SqlSchema(tables = List(bookmarkTable))
-
-  test("build initial migration metadata without build-time schema hash") {
+  test("build initial migration metadata without build-time SqlCodegenMigrationBuilderSpec.internal.schema hash") {
     val migration =
       SqlCodegenMigrationBuilder
-        .build(schema, "sqlite", Map("sqlite" -> SqliteRenderer), "db/migrations/sqlite")
+        .build(
+          SqlCodegenMigrationBuilderSpec.internal.schema,
+          "sqlite",
+          Map("sqlite" -> SqliteRenderer),
+          "db/migrations/sqlite")
         .getOrElse(fail("expected migration context"))
 
     assertEquals(migration.migrationsDirectory, "db/migrations/sqlite")
@@ -41,7 +25,7 @@ class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
     assert(migration.stateTableDdl.contains("_smithplates_migrations"))
   }
 
-  test("returns None when schema has no tables") {
+  test("returns None when SqlCodegenMigrationBuilderSpec.internal.schema has no tables") {
     assertEquals(
       SqlCodegenMigrationBuilder.build(
         SqlSchema(tables = Nil),
@@ -51,5 +35,29 @@ class SqlCodegenMigrationBuilderSpec extends munit.FunSuite {
       ),
       None
     )
+  }
+}
+object SqlCodegenMigrationBuilderSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val bookmarkTable =
+      SqlTable(
+        name = "bookmarks",
+        shapeId = ShapeId.from("example#Bookmark"),
+        columns = List(
+          SqlColumn(
+            name = "id",
+            columnType = SqlColumnType.Text,
+            nullable = false,
+            autoGeneration = Some(SqlAutoUuid)
+          ),
+          SqlColumn(name = "title", columnType = SqlColumnType.Text, nullable = true)
+        ),
+        primaryKeys = List("id"),
+        foreignKeys = Nil,
+        indexes = Nil
+      )
+    val schema        = SqlSchema(tables = List(bookmarkTable))
   }
 }

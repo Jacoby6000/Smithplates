@@ -26,3 +26,34 @@ alwaysApply: true
   may change without notice, using the language's nearest convention (e.g. a
   `_`-prefixed name, a `#[doc(hidden)]`/`@internal`/`@unstable` marker, or an
   "internal — not part of the public API; subject to change" note).
+
+## Scala: nested `internal` object (Smithplates)
+
+In this repository, move implementation helpers out of `private` into a public
+nested `object internal` on the enclosing companion:
+
+```scala
+object SqlIrExtractor {
+  def extract(model: Model): SqlValidated[SqlSchema] =
+    model.getStructureShapes.asScala.toList
+      .filter(_.sqlTable.isDefined)
+      .traverse(internal.extractTable(_, model))
+      .map(internal.buildSchema)
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def extractTable(...): SqlValidated[SqlTable] = ...
+    def buildSchema(...): SqlSchema = ...
+  }
+}
+```
+
+| Current shape | Target |
+|---------------|--------|
+| `private def/val` in companion `object Foo` | `object Foo { object internal { ... } }`; callers use `internal.x` |
+| Top-level `private object Helper` | Nest under the nearest public owner's `internal` |
+| `private object` inside a method/class | Move to the enclosing type's `internal` object |
+| `private[this]` | Same as plain `private` |
+| `private[package]` (e.g. `private[sql]`) | **Leave unchanged** — intentional package-scoped surface |
+
+Every `object internal` gets the Scaladoc banner shown above.

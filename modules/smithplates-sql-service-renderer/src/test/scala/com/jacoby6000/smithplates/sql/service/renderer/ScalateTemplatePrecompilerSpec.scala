@@ -12,36 +12,22 @@ import java.nio.file.Files
   * classes on the classpath must be loaded instead of being recompiled.
   */
 class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
-  private val templateRoot = "python/src/db"
-
-  private def dbTemplateDirectory: File =
-    Option(getClass.getResource(s"/$templateRoot"))
-      .map(url => new File(url.toURI))
-      .getOrElse(fail(s"bundled templates not found on classpath at /$templateRoot"))
-
-  private def sspFiles(directory: File): Seq[File] =
-    Option(directory.listFiles()).map(_.toSeq).getOrElse(Seq.empty).flatMap { entry =>
-      if (entry.isDirectory) {
-        sspFiles(entry)
-      } else if (entry.getName.endsWith(".ssp")) {
-        Seq(entry)
-      } else {
-        Seq.empty
-      }
-    }
-
-  private def relativeUri(root: File, file: File): String =
-    root.toURI.relativize(file.toURI).getPath
-
   test("generated class name matches the runtime class name for both URI conventions") {
-    val engine        = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
-    val templateFiles = sspFiles(dbTemplateDirectory)
+    val engine        = ScalateSspTemplateEngine.precompilationEngine(ScalateTemplatePrecompilerSpec.internal.templateRoot)
+    val templateFiles =
+      ScalateTemplatePrecompilerSpec.internal.sspFiles(
+        ScalateTemplatePrecompilerSpec.internal.dbTemplateDirectory(this, getClass)
+      )
     assert(templateFiles.nonEmpty, "expected bundled SQL templates to enumerate")
 
     templateFiles.foreach { templateFile =>
-      val relative = relativeUri(dbTemplateDirectory, templateFile)
+      val relative =
+        ScalateTemplatePrecompilerSpec.internal.relativeUri(
+          ScalateTemplatePrecompilerSpec.internal.dbTemplateDirectory(this, getClass),
+          templateFile
+        )
       if (!relative.endsWith("preamble.ssp")) {
-        Seq(relative, s"$templateRoot/$relative").foreach { uri =>
+        Seq(relative, s"${ScalateTemplatePrecompilerSpec.internal.templateRoot}/$relative").foreach { uri =>
           val source    = TemplateSource.fromUri(uri, engine.resourceLoader)
           source.engine = engine
           val generated = engine.generateScala(uri)
@@ -57,11 +43,13 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
   }
 
   test("class names are namespaced per template root by package prefix") {
-    val engine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
+    val engine = ScalateSspTemplateEngine.precompilationEngine(ScalateTemplatePrecompilerSpec.internal.templateRoot)
     val source = TemplateSource.fromUri("models/models.ssp", engine.resourceLoader)
     source.engine = engine
     assert(
-      source.className.startsWith(ScalateTemplatePrecompiler.packagePrefix(templateRoot)),
+      source.className.startsWith(
+        ScalateTemplatePrecompiler.packagePrefix(ScalateTemplatePrecompilerSpec.internal.templateRoot)
+      ),
       s"expected ${source.className} to start with the per-root package prefix"
     )
   }
@@ -69,7 +57,7 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
   test("a precompiled class on the classpath is loaded instead of recompiled") {
     val templateUri = "models/models.ssp"
 
-    val engine = ScalateSspTemplateEngine.precompilationEngine(templateRoot)
+    val engine = ScalateSspTemplateEngine.precompilationEngine(ScalateTemplatePrecompilerSpec.internal.templateRoot)
     // A fresh, empty working directory so any compilation would be observable here.
     engine.workingDirectory = Files.createTempDirectory("smithplates-precompiled-load").toFile
 
@@ -87,5 +75,32 @@ class ScalateTemplatePrecompilerSpec extends munit.FunSuite {
         s"${engine.bytecodeDirectory}"
     )
     assert(classOf[Template].isAssignableFrom(loaded.getClass), "loaded class is not a Scalate Template")
+  }
+}
+
+object ScalateTemplatePrecompilerSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val templateRoot = "python/src/db"
+
+    def dbTemplateDirectory(suite: munit.FunSuite, testClass: Class[?]): File =
+      Option(testClass.getResource(s"/$templateRoot"))
+        .map(url => new File(url.toURI))
+        .getOrElse(suite.fail(s"bundled templates not found on classpath at /$templateRoot"))
+
+    def sspFiles(directory: File): Seq[File] =
+      Option(directory.listFiles()).map(_.toSeq).getOrElse(Seq.empty).flatMap { entry =>
+        if (entry.isDirectory) {
+          sspFiles(entry)
+        } else if (entry.getName.endsWith(".ssp")) {
+          Seq(entry)
+        } else {
+          Seq.empty
+        }
+      }
+
+    def relativeUri(root: File, file: File): String =
+      root.toURI.relativize(file.toURI).getPath
   }
 }

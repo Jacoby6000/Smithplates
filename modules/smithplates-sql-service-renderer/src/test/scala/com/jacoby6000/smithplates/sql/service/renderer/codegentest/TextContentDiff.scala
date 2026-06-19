@@ -1,13 +1,11 @@
 package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 
 object TextContentDiff {
-  private val DefaultContextLines = 5
-
   def formatMismatch(
       fileLabel: String,
       expected: String,
       actual: String,
-      contextLines: Int = DefaultContextLines
+      contextLines: Int = internal.DefaultContextLines
   ): String = {
     val expectedLines = expected.linesIterator.toVector
     val actualLines   = actual.linesIterator.toVector
@@ -48,5 +46,10 @@ object TextContentDiff {
     }
 
     header + hunks.mkString("\n")
+  }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val DefaultContextLines = 5
   }
 }

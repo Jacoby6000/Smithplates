@@ -43,9 +43,9 @@ object SqlServiceCodegenContextBuilder {
 
     SqlShapeIrExtractor.extract(model, rootShapeIds ++ tableShapeIds).andThen { shapeIr =>
       service.operations
-        .traverse(buildOperation(model, shapeIr, queries, _, queryRenderer))
+        .traverse(internal.buildOperation(model, shapeIr, queries, _, queryRenderer))
         .map { operations =>
-          val (resolvedOperations, derivedModels) = applySelectOneDerivedOutputs(operations, queries)
+          val (resolvedOperations, derivedModels) = internal.applySelectOneDerivedOutputs(operations, queries)
           val uuidTypeNames                       = SqlCodegenUuidTypeNames.fromSchema(schema, shapeIr)
           val (stringEnums, intEnums)             =
             SqlEnumExtractor.extractReferenced(
@@ -95,117 +95,120 @@ object SqlServiceCodegenContextBuilder {
     }
   }
 
-  private def applySelectOneDerivedOutputs(
-      operations: List[SqlCodegenOperation],
-      queries: SqlQueries
-  ): (List[SqlCodegenOperation], List[SqlStructure]) = {
-    val derivedByOperation =
-      operations.flatMap { operation =>
-        SqlOperationQueryResolver.resolve(queries, operation.shapeId).flatMap {
-          case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) if selectOneQuery.hasNestedResults =>
-            val derived = SqlSelectOneDerivedOutputBuilder.build(operation.name, selectOneQuery)
-            Some(operation.shapeId -> derived)
-          case _                                                                                      =>
-            None
-        }
-      }.toMap
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def applySelectOneDerivedOutputs(
+        operations: List[SqlCodegenOperation],
+        queries: SqlQueries
+    ): (List[SqlCodegenOperation], List[SqlStructure]) = {
+      val derivedByOperation =
+        operations.flatMap { operation =>
+          SqlOperationQueryResolver.resolve(queries, operation.shapeId).flatMap {
+            case ResolvedSqlOperationQuery.SelectOne(selectOneQuery) if selectOneQuery.hasNestedResults =>
+              val derived = SqlSelectOneDerivedOutputBuilder.build(operation.name, selectOneQuery)
+              Some(operation.shapeId -> derived)
+            case _                                                                                      =>
+              None
+          }
+        }.toMap
 
-    val resolvedOperations =
-      operations.map { operation =>
-        derivedByOperation.get(operation.shapeId) match {
-          case Some(derived) =>
-            operation.copy(
-              outputShapeId = Some(derived.structure.shapeId),
-              outputTypeName = Some(derived.typeName)
-            )
-          case None          =>
-            operation
-        }
-      }
-
-    (resolvedOperations, derivedByOperation.values.map(_.structure).toList)
-  }
-
-  private def buildOperation(
-      model: Model,
-      shapeIr: SqlShapeIr,
-      queries: SqlQueries,
-      operation: SqlOperation,
-      queryRenderer: Option[SqlQueryRenderer]
-  ): SqlValidated[SqlCodegenOperation] = {
-    val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
-    val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
-
-    val parameters =
-      resolvedQuery match {
-        case Some(query) if usesDerivedInput =>
-          SqlOperationBindingBuilder.parametersFromQuery(operation, query)
-        case _                               =>
-          buildInputParameters(shapeIr, operation)
-      }
-
-    val sqlBinding =
-      (resolvedQuery, queryRenderer) match {
-        case (Some(query), Some(renderer)) =>
-          SqlOperationBindingBuilder.build(operation, query, renderer).map(Some(_))
-        case _                             =>
-          None.validNel
-      }
-
-    (parameters, sqlBinding).mapN { (resolvedParameters, resolvedSql) =>
-      val isSelectOne =
-        resolvedQuery.exists(_.isInstanceOf[ResolvedSqlOperationQuery.SelectOne])
-
-      val errors =
-        if (isSelectOne) {
-          Nil
-        } else {
-          operation.errorShapes.map { errorShapeId =>
-            SqlCodegenErrorType(
-              name = errorShapeId.getName
-            )
+      val resolvedOperations =
+        operations.map { operation =>
+          derivedByOperation.get(operation.shapeId) match {
+            case Some(derived) =>
+              operation.copy(
+                outputShapeId = Some(derived.structure.shapeId),
+                outputTypeName = Some(derived.typeName)
+              )
+            case None          =>
+              operation
           }
         }
 
-      val outputShapeId =
-        operation.outputShape.filter(_ != SqlShapeGraph.UnitShapeId)
-
-      val outputTypeName =
-        outputShapeId.map(shapeId => SqlIrTypeNameResolver.resolveShapeTypeName(model, shapeId))
-
-      SqlCodegenOperation(
-        shapeId = operation.shapeId,
-        name = operation.name,
-        parameters = resolvedParameters,
-        outputShapeId = outputShapeId,
-        outputTypeName = outputTypeName,
-        errors = errors,
-        isSelectOne = isSelectOne,
-        sql = resolvedSql
-      )
+      (resolvedOperations, derivedByOperation.values.map(_.structure).toList)
     }
-  }
 
-  private def buildInputParameters(
-      shapeIr: SqlShapeIr,
-      operation: SqlOperation
-  ): SqlValidated[List[SqlCodegenParameter]] =
-    if (operation.inputShape == SqlShapeGraph.UnitShapeId) {
-      Nil.validNel
-    } else {
-      shapeIr.structure(operation.inputShape) match {
-        case None                 =>
-          InvalidCodegenShape(operation.inputShape, "expected a structure shape").invalidNel
-        case Some(inputStructure) =>
-          inputStructure.members.map { member =>
-            SqlCodegenParameter(
-              name = member.name,
-              typeName = member.typeName,
-              optional = member.optional,
-              isStructure = member.isStructure,
-              structureShapeId = member.structureShapeId
-            )
-          }.validNel
+    def buildOperation(
+        model: Model,
+        shapeIr: SqlShapeIr,
+        queries: SqlQueries,
+        operation: SqlOperation,
+        queryRenderer: Option[SqlQueryRenderer]
+    ): SqlValidated[SqlCodegenOperation] = {
+      val resolvedQuery    = SqlOperationQueryResolver.resolve(queries, operation.shapeId)
+      val usesDerivedInput = operation.inputShape == SqlQueryExtractor.DerivedStructShapeId
+
+      val parameters =
+        resolvedQuery match {
+          case Some(query) if usesDerivedInput =>
+            SqlOperationBindingBuilder.parametersFromQuery(operation, query)
+          case _                               =>
+            buildInputParameters(shapeIr, operation)
+        }
+
+      val sqlBinding =
+        (resolvedQuery, queryRenderer) match {
+          case (Some(query), Some(renderer)) =>
+            SqlOperationBindingBuilder.build(operation, query, renderer).map(Some(_))
+          case _                             =>
+            None.validNel
+        }
+
+      (parameters, sqlBinding).mapN { (resolvedParameters, resolvedSql) =>
+        val isSelectOne =
+          resolvedQuery.exists(_.isInstanceOf[ResolvedSqlOperationQuery.SelectOne])
+
+        val errors =
+          if (isSelectOne) {
+            Nil
+          } else {
+            operation.errorShapes.map { errorShapeId =>
+              SqlCodegenErrorType(
+                name = errorShapeId.getName
+              )
+            }
+          }
+
+        val outputShapeId =
+          operation.outputShape.filter(_ != SqlShapeGraph.UnitShapeId)
+
+        val outputTypeName =
+          outputShapeId.map(shapeId => SqlIrTypeNameResolver.resolveShapeTypeName(model, shapeId))
+
+        SqlCodegenOperation(
+          shapeId = operation.shapeId,
+          name = operation.name,
+          parameters = resolvedParameters,
+          outputShapeId = outputShapeId,
+          outputTypeName = outputTypeName,
+          errors = errors,
+          isSelectOne = isSelectOne,
+          sql = resolvedSql
+        )
       }
     }
+
+    def buildInputParameters(
+        shapeIr: SqlShapeIr,
+        operation: SqlOperation
+    ): SqlValidated[List[SqlCodegenParameter]] =
+      if (operation.inputShape == SqlShapeGraph.UnitShapeId) {
+        Nil.validNel
+      } else {
+        shapeIr.structure(operation.inputShape) match {
+          case None                 =>
+            InvalidCodegenShape(operation.inputShape, "expected a structure shape").invalidNel
+          case Some(inputStructure) =>
+            inputStructure.members.map { member =>
+              SqlCodegenParameter(
+                name = member.name,
+                typeName = member.typeName,
+                optional = member.optional,
+                isStructure = member.isStructure,
+                structureShapeId = member.structureShapeId
+              )
+            }.validNel
+        }
+      }
+  }
 }

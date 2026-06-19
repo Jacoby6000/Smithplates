@@ -64,10 +64,10 @@ object SqlSelectOneDerivedOutputBuilder {
           columnName = projected.resultAlias.getOrElse(projected.column.columnName),
           columnIndex = index,
           typeName = projected.column.typeName,
-          readTypeName = rowReadTypeName(query.table, projected.column.columnName, projected.column.typeName),
+          readTypeName = internal.rowReadTypeName(query.table, projected.column.columnName, projected.column.typeName),
           optional = projected.column.nullable,
-          isJson = isJsonColumn(query.table, projected.column.columnName),
-          timestampFormat = timestampFormat(query.table, projected.column.columnName)
+          isJson = internal.isJsonColumn(query.table, projected.column.columnName),
+          timestampFormat = internal.timestampFormat(query.table, projected.column.columnName)
         )
       }
     val nestedBindings =
@@ -85,10 +85,10 @@ object SqlSelectOneDerivedOutputBuilder {
               columnName = projected.resultAlias.getOrElse(projected.column.columnName),
               columnIndex = startIndex + offset,
               typeName = column.typeName,
-              readTypeName = rowReadTypeName(nested.table, column.columnName, column.typeName),
+              readTypeName = internal.rowReadTypeName(nested.table, column.columnName, column.typeName),
               optional = column.nullable || nested.optional,
-              isJson = isJsonColumn(nested.table, column.columnName),
-              timestampFormat = timestampFormat(nested.table, column.columnName)
+              isJson = internal.isJsonColumn(nested.table, column.columnName),
+              timestampFormat = internal.timestampFormat(nested.table, column.columnName)
             )
           }
         SqlCodegenSelectOneNestedBinding(
@@ -110,22 +110,25 @@ object SqlSelectOneDerivedOutputBuilder {
     )
   }
 
-  private def isJsonColumn(table: SqlTable, columnName: String): Boolean =
-    table.columns.find(_.name == columnName).exists(_.columnType == SqlColumnType.Json)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def isJsonColumn(table: SqlTable, columnName: String): Boolean =
+      table.columns.find(_.name == columnName).exists(_.columnType == SqlColumnType.Json)
 
-  private def timestampFormat(table: SqlTable, columnName: String): Option[SqlTimestampFormat] =
-    table.columns
-      .find(_.name == columnName)
-      .collect {
-        case column if column.columnType.isInstanceOf[SqlColumnType.Timestamp] =>
-          column.columnType.asInstanceOf[SqlColumnType.Timestamp].format
+    def timestampFormat(table: SqlTable, columnName: String): Option[SqlTimestampFormat] =
+      table.columns
+        .find(_.name == columnName)
+        .collect {
+          case column if column.columnType.isInstanceOf[SqlColumnType.Timestamp] =>
+            column.columnType.asInstanceOf[SqlColumnType.Timestamp].format
+        }
+
+    def rowReadTypeName(table: SqlTable, columnName: String, typeName: String): String =
+      table.columns.find(_.name == columnName).map(_.columnType) match {
+        case Some(_: SqlColumnType.StringEnum) => "String"
+        case Some(_: SqlColumnType.IntEnum)    => "Integer"
+        case Some(SqlColumnType.Uuid)          => "String"
+        case _                                 => typeName
       }
-
-  private def rowReadTypeName(table: SqlTable, columnName: String, typeName: String): String =
-    table.columns.find(_.name == columnName).map(_.columnType) match {
-      case Some(_: SqlColumnType.StringEnum) => "String"
-      case Some(_: SqlColumnType.IntEnum)    => "Integer"
-      case Some(SqlColumnType.Uuid)          => "String"
-      case _                                 => typeName
-    }
+  }
 }

@@ -5,10 +5,8 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqlEnumExtractorSpec extends FunSuite {
-  private val builder = SqlTestModelBuilder
-
   test("extractReferenced - collects string and int enums from structure members") {
-    val model = builder.assemble(
+    val model = SqlEnumExtractorSpec.internal.builder.assemble(
       """enum TaskStatus {
         |    OPEN = "open"
         |    CLOSED = "closed"
@@ -43,5 +41,12 @@ final class SqlEnumExtractorSpec extends FunSuite {
     assertEquals(stringEnums.head.members.map(_.name), List("CLOSED", "OPEN"))
     assertEquals(intEnums.map(_.name), List("TaskPriority"))
     assertEquals(intEnums.head.members.map(_.value), List(2, 1))
+  }
+}
+object SqlEnumExtractorSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val builder = SqlTestModelBuilder
   }
 }

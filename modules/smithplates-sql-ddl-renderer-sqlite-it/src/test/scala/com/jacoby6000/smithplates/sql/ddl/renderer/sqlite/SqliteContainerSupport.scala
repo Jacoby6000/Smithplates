@@ -5,9 +5,6 @@ import com.dimafeng.testcontainers.GenericContainer.DockerImage
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 
 object SqliteContainerSupport {
-  private val dbDirectory = "/tmp/sql-plugin-it"
-  private val dbPath      = s"$dbDirectory/test.db"
-
   val containerDef: GenericContainer.Def[GenericContainer] =
     GenericContainer.Def(
       dockerImage = DockerImage(Left("keinos/sqlite3:latest")),
@@ -15,9 +12,9 @@ object SqliteContainerSupport {
     )
 
   def applyDdl(container: GenericContainer, statements: Iterable[DDLStatement]): Unit = {
-    container.container.execInContainer("mkdir", "-p", dbDirectory)
+    container.container.execInContainer("mkdir", "-p", internal.dbDirectory)
     statements.foreach { ddl =>
-      val exitCode = runSqlScript(container, ddl.statement)
+      val exitCode = internal.runSqlScript(container, ddl.statement)
       if (exitCode != 0) {
         throw new IllegalStateException(
           s"sqlite3 schema apply failed (exit $exitCode) for statement:\n${ddl.statement}"
@@ -28,7 +25,7 @@ object SqliteContainerSupport {
 
   def listTables(container: GenericContainer): Set[String] = {
     val result =
-      runSqlScriptWithOutput(
+      internal.runSqlScriptWithOutput(
         container,
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name;"
       )
@@ -42,19 +39,23 @@ object SqliteContainerSupport {
   }
 
   def execSql(container: GenericContainer, sql: String): Int =
-    runSqlScript(container, sql)
+    internal.runSqlScript(container, sql)
 
-  private def runSqlScript(container: GenericContainer, sql: String): Int =
-    runSqlScriptWithOutput(container, sql).getExitCode
-
-  private def runSqlScriptWithOutput(container: GenericContainer, sql: String) = {
-    val script =
-      s"""PRAGMA foreign_keys = ON;
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val dbDirectory                                                      = "/tmp/sql-plugin-it"
+    val dbPath                                                           = s"$dbDirectory/test.db"
+    def runSqlScript(container: GenericContainer, sql: String): Int      =
+      runSqlScriptWithOutput(container, sql).getExitCode
+    def runSqlScriptWithOutput(container: GenericContainer, sql: String) = {
+      val script =
+        s"""PRAGMA foreign_keys = ON;
          |$sql""".stripMargin
-    container.container.execInContainer(
-      "sh",
-      "-c",
-      s"sqlite3 $dbPath <<'SQLITESCRIPT'\n$script\nSQLITESCRIPT"
-    )
+      container.container.execInContainer(
+        "sh",
+        "-c",
+        s"sqlite3 $dbPath <<'SQLITESCRIPT'\n$script\nSQLITESCRIPT"
+      )
+    }
   }
 }

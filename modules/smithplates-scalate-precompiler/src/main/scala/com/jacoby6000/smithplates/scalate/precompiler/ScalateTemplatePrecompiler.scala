@@ -77,17 +77,9 @@ object ScalateTemplatePrecompiler {
     * with `_`.
     */
   def packagePrefix(templateRoot: String): String = {
-    val segments = normalizeRoot(templateRoot).split("/").toSeq.filter(_.nonEmpty).map(sanitizeSegment)
+    val segments =
+      internal.normalizeRoot(templateRoot).split("/").toSeq.filter(_.nonEmpty).map(internal.sanitizeSegment)
     (Seq("scalate", "precompiled") ++ segments).mkString(".")
-  }
-
-  private def sanitizeSegment(segment: String): String = {
-    val cleaned = segment.map(character => if (character.isLetterOrDigit || character == '_') character else '_')
-    if (cleaned.isEmpty || cleaned.charAt(0).isDigit) {
-      s"_$cleaned"
-    } else {
-      cleaned
-    }
   }
 
   def precompile(
@@ -98,88 +90,101 @@ object ScalateTemplatePrecompiler {
       log: String => Unit
   ): Unit = {
     val generatedSources =
-      roots.flatMap(root => generateRootSources(engineFactory, root, generatedSourceDirectory, log))
+      roots.flatMap(root => internal.generateRootSources(engineFactory, root, generatedSourceDirectory, log))
 
     if (generatedSources.isEmpty) {
       log("No SSP templates found to precompile.")
     } else {
-      compileAll(generatedSources, outputDirectory, log)
+      internal.compileAll(generatedSources, outputDirectory, log)
     }
   }
 
-  private def generateRootSources(
-      engineFactory: String => TemplateEngine,
-      root: PrecompileRoot,
-      generatedSourceDirectory: File,
-      log: String => Unit
-  ): Seq[File] = {
-    val engine         = engineFactory(root.templateRoot)
-    val normalizedRoot = normalizeRoot(root.templateRoot)
-    val templateFiles  = sspFiles(root.sourceDirectory)
-
-    templateFiles.flatMap { templateFile =>
-      val relativeUri = relativeTemplateUri(root.sourceDirectory, templateFile)
-      if (isInjectedPreamble(relativeUri)) {
-        Seq.empty
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def sanitizeSegment(segment: String): String = {
+      val cleaned = segment.map(character => if (character.isLetterOrDigit || character == '_') character else '_')
+      if (cleaned.isEmpty || cleaned.charAt(0).isDigit) {
+        s"_$cleaned"
       } else {
-        val templateUris = Seq(relativeUri, s"$normalizedRoot/$relativeUri")
-        templateUris.map(uri => generateSource(engine, uri, generatedSourceDirectory, log))
+        cleaned
       }
     }
-  }
 
-  private def generateSource(
-      engine: TemplateEngine,
-      templateUri: String,
-      generatedSourceDirectory: File,
-      log: String => Unit
-  ): File = {
-    val code   = engine.generateScala(templateUri)
-    val target = new File(generatedSourceDirectory, code.className.replace('.', '/') + ".scala")
-    val _      = Option(target.getParentFile).map(_.mkdirs())
-    val _      = Files.write(target.toPath, code.source.getBytes(StandardCharsets.UTF_8))
-    log(s"Generated ${code.className} from $templateUri")
-    target
-  }
+    def generateRootSources(
+        engineFactory: String => TemplateEngine,
+        root: PrecompileRoot,
+        generatedSourceDirectory: File,
+        log: String => Unit
+    ): Seq[File] = {
+      val engine         = engineFactory(root.templateRoot)
+      val normalizedRoot = normalizeRoot(root.templateRoot)
+      val templateFiles  = sspFiles(root.sourceDirectory)
 
-  private def compileAll(sources: Seq[File], outputDirectory: File, log: String => Unit): Unit = {
-    val _         = outputDirectory.mkdirs()
-    val classpath = System.getProperty("java.class.path")
-    // Compile generated template sources with the same options the runtime engine uses (see templateScalacOptions) so
-    // the build-time and runtime compilers behave identically. `-no-indent` removes the otherwise-pervasive
-    // optional-braces indentation warnings without suppressing genuine diagnostics.
-    val arguments =
-      Array("-classpath", classpath) ++ templateScalacOptions ++
-        Array("-d", outputDirectory.getAbsolutePath) ++ sources.map(_.getAbsolutePath)
-    log(s"Compiling ${sources.size.toString} generated template sources into ${outputDirectory.getAbsolutePath}")
-    val reporter  = dotty.tools.dotc.Main.process(arguments)
-    if (reporter.hasErrors) {
-      throw new RuntimeException(s"Scalate template precompilation failed:\n${reporter.summary}")
-    }
-  }
-
-  private def sspFiles(directory: File): Seq[File] =
-    if (!directory.isDirectory) {
-      Seq.empty
-    } else {
-      val entries = Option(directory.listFiles()).map(_.toSeq).getOrElse(Seq.empty)
-      entries.flatMap { entry =>
-        if (entry.isDirectory) {
-          sspFiles(entry)
-        } else if (entry.getName.endsWith(".ssp")) {
-          Seq(entry)
-        } else {
+      templateFiles.flatMap { templateFile =>
+        val relativeUri = relativeTemplateUri(root.sourceDirectory, templateFile)
+        if (isInjectedPreamble(relativeUri)) {
           Seq.empty
+        } else {
+          val templateUris = Seq(relativeUri, s"$normalizedRoot/$relativeUri")
+          templateUris.map(uri => generateSource(engine, uri, generatedSourceDirectory, log))
         }
       }
     }
 
-  private def relativeTemplateUri(rootDirectory: File, file: File): String =
-    rootDirectory.toURI.relativize(file.toURI).getPath
+    def generateSource(
+        engine: TemplateEngine,
+        templateUri: String,
+        generatedSourceDirectory: File,
+        log: String => Unit
+    ): File = {
+      val code   = engine.generateScala(templateUri)
+      val target = new File(generatedSourceDirectory, code.className.replace('.', '/') + ".scala")
+      val _      = Option(target.getParentFile).map(_.mkdirs())
+      val _      = Files.write(target.toPath, code.source.getBytes(StandardCharsets.UTF_8))
+      log(s"Generated ${code.className} from $templateUri")
+      target
+    }
 
-  private def isInjectedPreamble(relativeUri: String): Boolean =
-    relativeUri == "preamble.ssp" || relativeUri.endsWith("/preamble.ssp")
+    def compileAll(sources: Seq[File], outputDirectory: File, log: String => Unit): Unit = {
+      val _         = outputDirectory.mkdirs()
+      val classpath = System.getProperty("java.class.path")
+      // DESNOTE(jbarber, 2026-06-19): Compile generated template sources with the same options the
+      // runtime engine uses (see templateScalacOptions) so build-time and runtime compilers behave
+      // identically. `-no-indent` removes optional-braces indentation warnings without suppressing
+      // genuine diagnostics.
+      val arguments =
+        Array("-classpath", classpath) ++ templateScalacOptions ++
+          Array("-d", outputDirectory.getAbsolutePath) ++ sources.map(_.getAbsolutePath)
+      log(s"Compiling ${sources.size.toString} generated template sources into ${outputDirectory.getAbsolutePath}")
+      val reporter  = dotty.tools.dotc.Main.process(arguments)
+      if (reporter.hasErrors) {
+        throw new RuntimeException(s"Scalate template precompilation failed:\n${reporter.summary}")
+      }
+    }
 
-  private def normalizeRoot(templateRoot: String): String =
-    templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
+    def sspFiles(directory: File): Seq[File] =
+      if (!directory.isDirectory) {
+        Seq.empty
+      } else {
+        val entries = Option(directory.listFiles()).map(_.toSeq).getOrElse(Seq.empty)
+        entries.flatMap { entry =>
+          if (entry.isDirectory) {
+            sspFiles(entry)
+          } else if (entry.getName.endsWith(".ssp")) {
+            Seq(entry)
+          } else {
+            Seq.empty
+          }
+        }
+      }
+
+    def relativeTemplateUri(rootDirectory: File, file: File): String =
+      rootDirectory.toURI.relativize(file.toURI).getPath
+
+    def isInjectedPreamble(relativeUri: String): Boolean =
+      relativeUri == "preamble.ssp" || relativeUri.endsWith("/preamble.ssp")
+
+    def normalizeRoot(templateRoot: String): String =
+      templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
+  }
 }

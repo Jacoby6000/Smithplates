@@ -5,8 +5,6 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SmithyHttpTimestampFormatResolverSpec extends FunSuite {
-  private val serviceShape = ShapeId.from("example#AssetApi")
-
   test("member @timestampFormat overrides target shape format") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
@@ -26,7 +24,9 @@ class SmithyHttpTimestampFormatResolverSpec extends FunSuite {
     val structure = model.getShape(ShapeId.from("example#ListAssetsInput")).get().asStructureShape().get()
     val member    = structure.getAllMembers.get("since")
     val result    =
-      SmithyHttpTimestampFormatResolver.resolve(model, serviceShape, "ListAssets", "since", member).toEither
+      SmithyHttpTimestampFormatResolver
+        .resolve(model, SmithyHttpTimestampFormatResolverSpec.internal.serviceShape, "ListAssets", "since", member)
+        .toEither
     assertEquals(result, Right(HttpTimestampFormat.DateTime))
   }
 
@@ -48,7 +48,21 @@ class SmithyHttpTimestampFormatResolverSpec extends FunSuite {
     val structure = model.getShape(ShapeId.from("example#GetAssetInput")).get().asStructureShape().get()
     val member    = structure.getAllMembers.get("ifModifiedSince")
     val result    =
-      SmithyHttpTimestampFormatResolver.resolve(model, serviceShape, "GetAsset", "ifModifiedSince", member).toEither
+      SmithyHttpTimestampFormatResolver
+        .resolve(
+          model,
+          SmithyHttpTimestampFormatResolverSpec.internal.serviceShape,
+          "GetAsset",
+          "ifModifiedSince",
+          member)
+        .toEither
     assertEquals(result, Right(HttpTimestampFormat.HttpDate))
+  }
+}
+object SmithyHttpTimestampFormatResolverSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val serviceShape = ShapeId.from("example#AssetApi")
   }
 }

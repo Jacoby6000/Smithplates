@@ -13,31 +13,34 @@ private[http] object HttpServiceErrorExtractor {
   ): HttpValidated[(List[HttpServiceError], List[HttpSchemaWarning])] = {
     val context = HttpErrorShapeExtractor.ServiceContext(serviceShape)
     errorShapeIds.distinct
-      .traverse(errorShapeId => extractError(model, context, serviceShape, errorShapeId))
+      .traverse(errorShapeId => internal.extractError(model, context, serviceShape, errorShapeId))
       .map { results =>
         (results.map(_._1), results.flatMap(_._2))
       }
   }
 
-  private def extractError(
-      model: Model,
-      context: HttpErrorShapeExtractor.ServiceContext,
-      serviceShape: ShapeId,
-      errorShapeId: ShapeId
-  ): HttpValidated[(HttpServiceError, List[HttpSchemaWarning])] =
-    HttpErrorShapeExtractor.extract(model, context, errorShapeId).map { extracted =>
-      val problemBinding = HttpProblemBindingExtractor.extract(model, errorShapeId)
-      val warnings       = problemBinding.toList.flatMap { binding =>
-        HttpProblemBindingExtractor.lintProblemType(serviceShape, errorShapeId, binding.problemType)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def extractError(
+        model: Model,
+        context: HttpErrorShapeExtractor.ServiceContext,
+        serviceShape: ShapeId,
+        errorShapeId: ShapeId
+    ): HttpValidated[(HttpServiceError, List[HttpSchemaWarning])] =
+      HttpErrorShapeExtractor.extract(model, context, errorShapeId).map { extracted =>
+        val problemBinding = HttpProblemBindingExtractor.extract(model, errorShapeId)
+        val warnings       = problemBinding.toList.flatMap { binding =>
+          HttpProblemBindingExtractor.lintProblemType(serviceShape, errorShapeId, binding.problemType)
+        }
+        (
+          HttpServiceError(
+            shapeId = extracted.shapeId,
+            name = extracted.name,
+            statusCode = extracted.statusCode,
+            problemBinding = problemBinding
+          ),
+          warnings
+        )
       }
-      (
-        HttpServiceError(
-          shapeId = extracted.shapeId,
-          name = extracted.name,
-          statusCode = extracted.statusCode,
-          problemBinding = problemBinding
-        ),
-        warnings
-      )
-    }
+  }
 }

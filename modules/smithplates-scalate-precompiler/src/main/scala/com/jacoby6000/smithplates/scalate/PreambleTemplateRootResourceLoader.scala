@@ -11,7 +11,8 @@ final class PreambleTemplateRootResourceLoader(
     templateRoot: String,
     preamble: String
 ) extends ResourceLoader {
-  private val delegate = new TemplateRootResourceLoader(classLoader, templateRoot)
+  val delegate: TemplateRootResourceLoader =
+    PreambleTemplateRootResourceLoader.internal.delegate(classLoader, templateRoot)
 
   override def resource(uri: String): Option[Resource] =
     delegate.resource(uri).map { loaded =>
@@ -23,4 +24,13 @@ final class PreambleTemplateRootResourceLoader(
 
   override protected def createNotFoundException(uri: String): ResourceNotFoundException =
     new ResourceNotFoundException(uri, delegate.normalizedRoot)
+}
+
+object PreambleTemplateRootResourceLoader {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def delegate(classLoader: ClassLoader, templateRoot: String): TemplateRootResourceLoader =
+      new TemplateRootResourceLoader(classLoader, templateRoot)
+  }
 }

@@ -32,7 +32,7 @@ object CodegenTemplateTestDiscovery {
       .filterNot(_ == ExpectedDirectoryName)
       .toList
       .sorted
-      .map(testName => loadTestCase(testsRoot.resolve(testName), testName, variants))
+      .map(testName => internal.loadTestCase(testsRoot.resolve(testName), testName, variants))
   }
 
   def isVariantUnsupported(
@@ -60,185 +60,188 @@ object CodegenTemplateTestDiscovery {
     }
   }
 
-  private def loadTestCase(
-      caseDirectory: Path,
-      testName: String,
-      variants: Set[CodegenTemplateVariant]
-  ): CodegenTemplateTestCase = {
-    val smithyPath      = caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName)
-    val smithyContent   = Files.readString(smithyPath, StandardCharsets.UTF_8)
-    val smithyNamespace = SmithyNamespaceTestSupport.parseSmithyNamespace(smithyContent)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def loadTestCase(
+        caseDirectory: Path,
+        testName: String,
+        variants: Set[CodegenTemplateVariant]
+    ): CodegenTemplateTestCase = {
+      val smithyPath      = caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName)
+      val smithyContent   = Files.readString(smithyPath, StandardCharsets.UTF_8)
+      val smithyNamespace = SmithyNamespaceTestSupport.parseSmithyNamespace(smithyContent)
 
-    val expectedOutputsByVariant =
-      variants.toList.sorted.map { variant =>
-        variant -> listExpectedFiles(caseDirectory, variant, smithyNamespace)
-      }.toMap
+      val expectedOutputsByVariant =
+        variants.toList.sorted.map { variant =>
+          variant -> listExpectedFiles(caseDirectory, variant, smithyNamespace)
+        }.toMap
 
-    CodegenTemplateTestCase(
-      name = testName,
-      caseDirectory = caseDirectory,
-      smithyModelId = s"$testName/$SmithyDirectoryName/$SmithyFileName",
-      smithyContent = smithyContent,
-      smithyNamespace = smithyNamespace,
-      expectedOutputsByVariant = expectedOutputsByVariant
-    )
-  }
-
-  private def listExpectedFiles(
-      caseDirectory: Path,
-      variant: CodegenTemplateVariant,
-      smithyNamespace: String
-  ): List[CodegenTemplateExpectedFile] = {
-    val testCase =
       CodegenTemplateTestCase(
-        name = caseDirectory.getFileName.toString,
+        name = testName,
         caseDirectory = caseDirectory,
-        smithyModelId = "",
-        smithyContent = "",
+        smithyModelId = s"$testName/$SmithyDirectoryName/$SmithyFileName",
+        smithyContent = smithyContent,
         smithyNamespace = smithyNamespace,
-        expectedOutputsByVariant = Map.empty
+        expectedOutputsByVariant = expectedOutputsByVariant
       )
-    if (isVariantUnsupported(testCase, variant)) {
-      return Nil
     }
 
-    val namespacePathPrefix          = SmithyNamespaceTestSupport.namespacePathPrefix(smithyNamespace)
-    val expectedRoot                 = caseDirectory.resolve(ExpectedDirectoryName)
-    val namespaceRootPath            = expectedRoot.resolve(variant.namespaceResourcePath(namespacePathPrefix))
-    val implementationRootPath       = expectedRoot.resolve(variant.resourcePath(namespacePathPrefix))
-    val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath(namespacePathPrefix))
+    def listExpectedFiles(
+        caseDirectory: Path,
+        variant: CodegenTemplateVariant,
+        smithyNamespace: String
+    ): List[CodegenTemplateExpectedFile] = {
+      val testCase =
+        CodegenTemplateTestCase(
+          name = caseDirectory.getFileName.toString,
+          caseDirectory = caseDirectory,
+          smithyModelId = "",
+          smithyContent = "",
+          smithyNamespace = smithyNamespace,
+          expectedOutputsByVariant = Map.empty
+        )
+      if (CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant)) {
+        return Nil
+      }
 
-    val serviceTypeFiles        =
-      variant.goldenTestLayout match {
-        case GoldenTestLayout.HttpNested =>
-          listFilesRelativeToExpectedRoot(expectedRoot, namespaceRootPath)
-        case GoldenTestLayout.SqlDialect =>
-          val sharedModelFiles       =
-            variant.sharedModelsResourcePath(namespacePathPrefix).toList.flatMap { modelsPath =>
-              listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
-            }
-          val sharedServiceTypeFiles =
+      val namespacePathPrefix          = SmithyNamespaceTestSupport.namespacePathPrefix(smithyNamespace)
+      val expectedRoot                 = caseDirectory.resolve(ExpectedDirectoryName)
+      val namespaceRootPath            = expectedRoot.resolve(variant.namespaceResourcePath(namespacePathPrefix))
+      val implementationRootPath       = expectedRoot.resolve(variant.resourcePath(namespacePathPrefix))
+      val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath(namespacePathPrefix))
+
+      val serviceTypeFiles        =
+        variant.goldenTestLayout match {
+          case GoldenTestLayout.HttpNested =>
+            listFilesRelativeToExpectedRoot(expectedRoot, namespaceRootPath)
+          case GoldenTestLayout.SqlDialect =>
+            val sharedModelFiles       =
+              variant.sharedModelsResourcePath(namespacePathPrefix).toList.flatMap { modelsPath =>
+                listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
+              }
+            val sharedServiceTypeFiles =
+              listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+                expectedRoot,
+                namespaceRootPath
+              ).filter { expected =>
+                val fileName = expected.relativePath.split('/').last
+                fileName.endsWith(".py")
+              }
+            sharedModelFiles ++ sharedServiceTypeFiles
+        }
+      val implementationFiles     =
+        variant.goldenTestLayout match {
+          case GoldenTestLayout.SqlDialect =>
             listFilesDirectlyInDirectoryRelativeToExpectedRoot(
               expectedRoot,
-              namespaceRootPath
-            ).filter { expected =>
-              val fileName = expected.relativePath.split('/').last
-              fileName.endsWith(".py")
-            }
-          sharedModelFiles ++ sharedServiceTypeFiles
-      }
-    val implementationFiles     =
-      variant.goldenTestLayout match {
-        case GoldenTestLayout.SqlDialect =>
-          listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-            expectedRoot,
-            implementationRootPath
-          )
-        case _                           =>
-          Nil
-      }
-    val implementationTestFiles =
-      listFilesRelativeToExpectedRoot(
-        expectedRoot,
-        implementationTestOutputPath
-      )
-    val migrationFiles          =
-      variant.goldenTestLayout match {
-        case GoldenTestLayout.SqlDialect =>
-          listDialectMigrationFiles(
-            caseDirectory,
-            expectedRoot,
-            variant.implementationId
-          )
-        case _                           =>
-          Nil
-      }
-
-    (serviceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
-      .sortBy(_.relativePath)
-  }
-
-  private val GoldenFileSuffixes: Set[String] = Set(".py", ".sql", ".pyi")
-
-  private def isGoldenExpectedFile(path: Path): Boolean = {
-    val fileName = path.getFileName.toString
-    if (fileName == UnsupportedFileName) {
-      false
-    } else if (!Files.isRegularFile(path) || Files.size(path) == 0L) {
-      false
-    } else {
-      GoldenFileSuffixes.exists(suffix => fileName.endsWith(suffix))
-    }
-  }
-
-  private def listDialectMigrationFiles(
-      caseDirectory: Path,
-      expectedRoot: Path,
-      implementationId: String
-  ): List[CodegenTemplateExpectedFile] = {
-    val migrationDirectory =
-      resolveMigrationDirectory(caseDirectory, implementationId)
-    val migrationDir       = expectedRoot.resolve(migrationDirectory.stripPrefix("/"))
-    listFilesRelativeToExpectedRoot(expectedRoot, migrationDir)
-  }
-
-  private def resolveMigrationDirectory(caseDirectory: Path, dialectKey: String): String = {
-    val configPath = caseDirectory.resolve(SmithyBuildFileName)
-    if (!Files.isRegularFile(configPath)) {
-      return s"db/migrations/$dialectKey"
-    }
-    val content    = Files.readString(configPath, StandardCharsets.UTF_8)
-    val pattern    =
-      s""""$dialectKey"\\s*:\\s*\\{[^}]*"migrationLocation"\\s*:\\s*"([^"]+)"""".r
-    pattern
-      .findFirstMatchIn(content)
-      .map(_.group(1))
-      .getOrElse(s"db/migrations/$dialectKey")
-  }
-
-  private def listFilesRelativeToExpectedRoot(
-      expectedRoot: Path,
-      directoryPath: Path
-  ): List[CodegenTemplateExpectedFile] =
-    if (!Files.isDirectory(directoryPath)) {
-      Nil
-    } else {
-      Files
-        .walk(directoryPath)
-        .iterator()
-        .asScala
-        .filter(isGoldenExpectedFile)
-        .map { path =>
-          val relativePath =
-            expectedRoot.relativize(path).toString.replace('\\', '/')
-          CodegenTemplateExpectedFile(
-            relativePath = relativePath,
-            content = Files.readString(path, StandardCharsets.UTF_8)
-          )
+              implementationRootPath
+            )
+          case _                           =>
+            Nil
         }
-        .toList
+      val implementationTestFiles =
+        listFilesRelativeToExpectedRoot(
+          expectedRoot,
+          implementationTestOutputPath
+        )
+      val migrationFiles          =
+        variant.goldenTestLayout match {
+          case GoldenTestLayout.SqlDialect =>
+            listDialectMigrationFiles(
+              caseDirectory,
+              expectedRoot,
+              variant.implementationId
+            )
+          case _                           =>
+            Nil
+        }
+
+      (serviceTypeFiles ++ implementationFiles ++ implementationTestFiles ++ migrationFiles)
+        .sortBy(_.relativePath)
     }
 
-  private def listFilesDirectlyInDirectoryRelativeToExpectedRoot(
-      expectedRoot: Path,
-      directoryPath: Path
-  ): List[CodegenTemplateExpectedFile] =
-    if (!Files.isDirectory(directoryPath)) {
-      Nil
-    } else {
-      Files
-        .list(directoryPath)
-        .iterator()
-        .asScala
-        .filter(isGoldenExpectedFile)
-        .map { path =>
-          val relativePath =
-            expectedRoot.relativize(path).toString.replace('\\', '/')
-          CodegenTemplateExpectedFile(
-            relativePath = relativePath,
-            content = Files.readString(path, StandardCharsets.UTF_8)
-          )
-        }
-        .toList
+    val GoldenFileSuffixes: Set[String] = Set(".py", ".sql", ".pyi")
+
+    def isGoldenExpectedFile(path: Path): Boolean = {
+      val fileName = path.getFileName.toString
+      if (fileName == UnsupportedFileName) {
+        false
+      } else if (!Files.isRegularFile(path) || Files.size(path) == 0L) {
+        false
+      } else {
+        GoldenFileSuffixes.exists(suffix => fileName.endsWith(suffix))
+      }
     }
+
+    def listDialectMigrationFiles(
+        caseDirectory: Path,
+        expectedRoot: Path,
+        implementationId: String
+    ): List[CodegenTemplateExpectedFile] = {
+      val migrationDirectory =
+        resolveMigrationDirectory(caseDirectory, implementationId)
+      val migrationDir       = expectedRoot.resolve(migrationDirectory.stripPrefix("/"))
+      listFilesRelativeToExpectedRoot(expectedRoot, migrationDir)
+    }
+
+    def resolveMigrationDirectory(caseDirectory: Path, dialectKey: String): String = {
+      val configPath = caseDirectory.resolve(SmithyBuildFileName)
+      if (!Files.isRegularFile(configPath)) {
+        return s"db/migrations/$dialectKey"
+      }
+      val content    = Files.readString(configPath, StandardCharsets.UTF_8)
+      val pattern    =
+        s""""$dialectKey"\\s*:\\s*\\{[^}]*"migrationLocation"\\s*:\\s*"([^"]+)"""".r
+      pattern
+        .findFirstMatchIn(content)
+        .map(_.group(1))
+        .getOrElse(s"db/migrations/$dialectKey")
+    }
+
+    def listFilesRelativeToExpectedRoot(
+        expectedRoot: Path,
+        directoryPath: Path
+    ): List[CodegenTemplateExpectedFile] =
+      if (!Files.isDirectory(directoryPath)) {
+        Nil
+      } else {
+        Files
+          .walk(directoryPath)
+          .iterator()
+          .asScala
+          .filter(isGoldenExpectedFile)
+          .map { path =>
+            val relativePath =
+              expectedRoot.relativize(path).toString.replace('\\', '/')
+            CodegenTemplateExpectedFile(
+              relativePath = relativePath,
+              content = Files.readString(path, StandardCharsets.UTF_8)
+            )
+          }
+          .toList
+      }
+
+    def listFilesDirectlyInDirectoryRelativeToExpectedRoot(
+        expectedRoot: Path,
+        directoryPath: Path
+    ): List[CodegenTemplateExpectedFile] =
+      if (!Files.isDirectory(directoryPath)) {
+        Nil
+      } else {
+        Files
+          .list(directoryPath)
+          .iterator()
+          .asScala
+          .filter(isGoldenExpectedFile)
+          .map { path =>
+            val relativePath =
+              expectedRoot.relativize(path).toString.replace('\\', '/')
+            CodegenTemplateExpectedFile(
+              relativePath = relativePath,
+              content = Files.readString(path, StandardCharsets.UTF_8)
+            )
+          }
+          .toList
+      }
+  }
 }

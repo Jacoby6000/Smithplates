@@ -1,35 +1,12 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 class SspFragmentsSpec extends munit.FunSuite {
-  private val templateRoot = "python/src/db"
-
-  private def minimalServiceView: ServiceTemplateView =
-    ServiceTemplateView(
-      serviceShapeId = "example#WidgetRepository",
-      serviceName = "WidgetRepository",
-      dialectKey = "sqlite",
-      packageName = "generated.example",
-      models = Nil,
-      operationResultModels = Nil,
-      unions = Nil,
-      operations = Nil,
-      usedJsonTypeNames = Set.empty,
-      usedJsonTypeNamesCol = Set.empty,
-      classRowFactories = Nil,
-      protocolTableModelImportBlock = "",
-      enumImportBlock = "",
-      serviceLocalImportBlock = "",
-      integrationTest = None,
-      migration = None,
-      uuidTypeNames = Nil
-    )
-
   test("top-level template render prepends generated file header") {
     val output =
       ScalateSspTemplateEngine.renderClasspathTemplate(
-        s"classpath:$templateRoot/service_protocol.ssp",
-        minimalServiceView,
-        Some(templateRoot)
+        s"classpath:${SspFragmentsSpec.internal.templateRoot}/service_protocol.ssp",
+        SspFragmentsSpec.internal.minimalServiceView,
+        Some(SspFragmentsSpec.internal.templateRoot)
       )
 
     assert(
@@ -43,7 +20,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("partial render does not prepend generated file header") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
+        SspFragmentsSpec.internal.templateRoot,
         "fragments/row_readers/read_str_postgres",
         Map.empty
       )
@@ -54,7 +31,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("row reader fragment preserves internal newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
+        SspFragmentsSpec.internal.templateRoot,
         "fragments/row_readers/read_str_postgres",
         Map.empty
       )
@@ -66,7 +43,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("single-line import fragment does not add blank lines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
+        SspFragmentsSpec.internal.templateRoot,
         "fragments/helpers/imports_postgres",
         Map(
           "ctx" -> ServiceTemplateView(
@@ -97,7 +74,7 @@ class SspFragmentsSpec extends munit.FunSuite {
   test("member lines fragment preserves newlines") {
     val output =
       ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
+        SspFragmentsSpec.internal.templateRoot,
         "fragments/models/member_lines",
         Map(
           "members" -> List(
@@ -123,5 +100,32 @@ class SspFragmentsSpec extends munit.FunSuite {
         |    city: str
         |""".stripMargin
     )
+  }
+}
+object SspFragmentsSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val templateRoot                            = "python/src/db"
+    def minimalServiceView: ServiceTemplateView =
+      ServiceTemplateView(
+        serviceShapeId = "example#WidgetRepository",
+        serviceName = "WidgetRepository",
+        dialectKey = "sqlite",
+        packageName = "generated.example",
+        models = Nil,
+        operationResultModels = Nil,
+        unions = Nil,
+        operations = Nil,
+        usedJsonTypeNames = Set.empty,
+        usedJsonTypeNamesCol = Set.empty,
+        classRowFactories = Nil,
+        protocolTableModelImportBlock = "",
+        enumImportBlock = "",
+        serviceLocalImportBlock = "",
+        integrationTest = None,
+        migration = None,
+        uuidTypeNames = Nil
+      )
   }
 }

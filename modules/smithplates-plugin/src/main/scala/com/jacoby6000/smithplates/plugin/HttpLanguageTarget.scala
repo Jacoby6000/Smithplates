@@ -95,7 +95,7 @@ object HttpLanguageTarget {
         serverNode match {
           case None                              => None.validNel
           case Some(value) if value.isObjectNode =>
-            parseServer(languageId, value.expectObjectNode()).map(Some(_))
+            internal.parseServer(languageId, value.expectObjectNode()).map(Some(_))
           case Some(_)                           =>
             SqlValidated.invalid(
               InvalidPluginConfig(s"smithplates.$languageId.http.server must be an object")
@@ -104,7 +104,7 @@ object HttpLanguageTarget {
         clientNode match {
           case None                              => None.validNel
           case Some(value) if value.isObjectNode =>
-            parseClient(languageId, value.expectObjectNode()).map(Some(_))
+            internal.parseClient(languageId, value.expectObjectNode()).map(Some(_))
           case Some(_)                           =>
             SqlValidated.invalid(
               InvalidPluginConfig(s"smithplates.$languageId.http.client must be an object")
@@ -147,39 +147,42 @@ object HttpLanguageTarget {
       modelTemplateDirectory = Some(HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId))
     )
 
-  private val ServerAllowedMembers: Set[String] =
-    Set("webFramework", "templateDirectory", "packageName")
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val ServerAllowedMembers: Set[String] =
+      Set("webFramework", "templateDirectory", "packageName")
 
-  private val ClientAllowedMembers: Set[String] =
-    Set("httpLibrary", "templateDirectory", "packageName")
+    val ClientAllowedMembers: Set[String] =
+      Set("httpLibrary", "templateDirectory", "packageName")
 
-  private def parseServer(
-      languageId: String,
-      node: ObjectNode
-  ): SqlValidated[HttpServerTarget] =
-    (
-      PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node),
-      PluginConfigMembers.rejectUnknownMembers("http.server", languageId, node, ServerAllowedMembers)
-    ).mapN { (_, _) =>
-      HttpServerTarget(
-        webFramework = PluginConfigMembers.optionalStringMember(node, "webFramework").getOrElse("fastapi"),
-        templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
-        packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
-      )
-    }
+    def parseServer(
+        languageId: String,
+        node: ObjectNode
+    ): SqlValidated[HttpServerTarget] =
+      (
+        PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node),
+        PluginConfigMembers.rejectUnknownMembers("http.server", languageId, node, ServerAllowedMembers)
+      ).mapN { (_, _) =>
+        HttpServerTarget(
+          webFramework = PluginConfigMembers.optionalStringMember(node, "webFramework").getOrElse("fastapi"),
+          templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
+          packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
+        )
+      }
 
-  private def parseClient(
-      languageId: String,
-      node: ObjectNode
-  ): SqlValidated[HttpClientTarget] =
-    (
-      PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node),
-      PluginConfigMembers.rejectUnknownMembers("http.client", languageId, node, ClientAllowedMembers)
-    ).mapN { (_, _) =>
-      HttpClientTarget(
-        httpLibrary = PluginConfigMembers.optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
-        templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
-        packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
-      )
-    }
+    def parseClient(
+        languageId: String,
+        node: ObjectNode
+    ): SqlValidated[HttpClientTarget] =
+      (
+        PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node),
+        PluginConfigMembers.rejectUnknownMembers("http.client", languageId, node, ClientAllowedMembers)
+      ).mapN { (_, _) =>
+        HttpClientTarget(
+          httpLibrary = PluginConfigMembers.optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
+          templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
+          packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
+        )
+      }
+  }
 }

@@ -14,18 +14,21 @@ object SqliteSqlQueryRenderer {
       key = "sqlite",
       migrationBindPlaceholder = migrationBindPlaceholder,
       codegenBindPlaceholder = codegenBindPlaceholder,
-      autoUpdatedTimestampAssignment = autoUpdatedTimestampAssignment
+      autoUpdatedTimestampAssignment = internal.autoUpdatedTimestampAssignment
     )
 
-  private def autoUpdatedTimestampAssignment(columnName: String, columnType: SqlColumnType): String = {
-    val expression = columnType match {
-      case SqlColumnType.Timestamp(format) =>
-        format match {
-          case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
-          case SqlTimestampFormat.EpochSeconds => "unixepoch('subsec')"
-        }
-      case _                               => "CURRENT_TIMESTAMP"
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def autoUpdatedTimestampAssignment(columnName: String, columnType: SqlColumnType): String = {
+      val expression = columnType match {
+        case SqlColumnType.Timestamp(format) =>
+          format match {
+            case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
+            case SqlTimestampFormat.EpochSeconds => "unixepoch('subsec')"
+          }
+        case _                               => "CURRENT_TIMESTAMP"
+      }
+      s"$columnName = $expression"
     }
-    s"$columnName = $expression"
   }
 }

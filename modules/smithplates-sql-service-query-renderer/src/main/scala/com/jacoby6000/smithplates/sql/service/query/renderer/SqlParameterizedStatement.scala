@@ -30,7 +30,7 @@ object SqlBindPlaceholder {
     }.mkString
 }
 
-final class SqlQuerySegmentBuilder private (private var segments: List[String]) {
+final class SqlQuerySegmentBuilder(var segments: List[String]) {
   def appendText(text: String): Unit =
     if (text.nonEmpty) {
       segments = segments.updated(segments.length - 1, segments.last + text)
@@ -43,5 +43,10 @@ final class SqlQuerySegmentBuilder private (private var segments: List[String]) 
 }
 
 object SqlQuerySegmentBuilder {
-  def empty: SqlQuerySegmentBuilder = new SqlQuerySegmentBuilder(List(""))
+  def empty: SqlQuerySegmentBuilder = internal.empty
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def empty: SqlQuerySegmentBuilder = new SqlQuerySegmentBuilder(List(""))
+  }
 }

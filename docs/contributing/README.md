@@ -27,6 +27,6 @@ Guides for **developing** Smithplates itself.
 | [Docs maintenance](docs-maintenance.md) | Usage vs contributing docs ownership, reusable components, and drift prevention |
 | [Roadmap](roadmap.md) | Contributor-facing future work and roadmap hygiene |
 
-Agent and coding conventions: [`AGENTS.md`](../../AGENTS.md) at the repository root.
+Agent and coding conventions: [`AGENTS.md`](../../AGENTS.md) and [`.cursor/rules/`](../../.cursor/rules/) at the repository root.
 
 CI: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)

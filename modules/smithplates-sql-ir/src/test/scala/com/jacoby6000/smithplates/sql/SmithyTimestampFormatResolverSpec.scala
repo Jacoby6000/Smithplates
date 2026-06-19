@@ -5,10 +5,8 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SmithyTimestampFormatResolverSpec extends FunSuite {
-  private val builder = SqlTestModelBuilder
-
   test("member @timestampFormat overrides target shape format") {
-    val model  = builder.assemble(
+    val model  = SmithyTimestampFormatResolverSpec.internal.builder.assemble(
       """use smithy.api#timestampFormat
 
         |@timestampFormat("epoch-seconds")
@@ -20,7 +18,8 @@ final class SmithyTimestampFormatResolverSpec extends FunSuite {
         |}""".stripMargin
     )
     val member = model
-      .expectShape(ShapeId.from(builder.structureId("MemberOverridesTarget")))
+      .expectShape(
+        ShapeId.from(SmithyTimestampFormatResolverSpec.internal.builder.structureId("MemberOverridesTarget")))
       .asStructureShape
       .get()
       .getMember("value")
@@ -30,5 +29,12 @@ final class SmithyTimestampFormatResolverSpec extends FunSuite {
       SmithyTimestampFormatResolver.resolve(model, member),
       Right(SqlTimestampFormat.DateTime)
     )
+  }
+}
+object SmithyTimestampFormatResolverSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val builder = SqlTestModelBuilder
   }
 }

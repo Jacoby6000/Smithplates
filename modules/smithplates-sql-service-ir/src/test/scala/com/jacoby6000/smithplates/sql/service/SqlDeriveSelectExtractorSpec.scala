@@ -2,46 +2,13 @@ package com.jacoby6000.smithplates.sql.service
 
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
+import munit.Assertions
 
 class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
-  private def baseTableModel: String =
-    """
-      |use smithplates.codegen.sql#DerivedStruct
-      |use smithplates.codegen.sql#sqlDeriveSelect
-      |use smithplates.codegen.sql#sqlForeignKey
-      |use smithplates.codegen.sql#sqlPrimaryKey
-      |use smithplates.codegen.sql#sqlTable
-      |use smithplates.codegen.sql#sqlVarchar
-      |
-      |@sqlTable(name: "categories")
-      |structure Category {
-      |    @sqlPrimaryKey
-      |    id: String
-      |    name: String
-      |}
-      |
-      |@sqlTable(name: "items")
-      |structure Item {
-      |    @sqlPrimaryKey
-      |    id: String
-      |    @sqlForeignKey(references: "example#Category")
-      |    category_id: String
-      |    @sqlVarchar(maxLength: 64)
-      |    name: String
-      |}
-      |""".stripMargin
-
-  private def columnProjection(projection: SqlSelectProjection): SqlQualifiedColumn =
-    projection match {
-      case SqlSelectColumnProjection(_, column)    => column
-      case aggregate: SqlSelectAggregateProjection =>
-        fail(s"expected column projection, got aggregate ${aggregate.resultAlias}")
-    }
-
   test("StarProjection - expands default for from and joins") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemOnlySelectInput {
             |    category_id: String
@@ -70,7 +37,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   test("StarProjection - rejects with groupBy") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemCategorySelectInput {
             |    category_id: String
@@ -95,7 +62,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   test("ColumnReference - infers bare reference when table is unique") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemOnlySelectInput {
             |    category_id: String
@@ -115,13 +82,15 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
     )
 
     val select = schema.queries.selects.head
-    assertEquals(columnProjection(select.selectColumns.head), SqlQualifiedColumn("items", "category_id"))
+    assertEquals(
+      SqlDeriveSelectExtractorSpec.internal.columnProjection(select.selectColumns.head),
+      SqlQualifiedColumn("items", "category_id"))
   }
 
   test("Validation - fails when output is not DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemOnlySelectInput {
             |    category_id: String
@@ -151,7 +120,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   test("Validation - fails when input is DerivedStruct") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |@sqlDeriveSelect(
             |    from: { table: "example#Item" },
@@ -171,7 +140,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   test("Aggregates - fails when WHERE references aggregate projection") {
     val result = SqlModelExtractor.extract(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemCategorySelectInput {
             |    minCount: Integer
@@ -201,7 +170,7 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
   test("Aggregates - allows HAVING on aggregate projection") {
     val schema = SqlModelExtractor.extractOrThrow(
       SqlTestModelBuilder.assemble(
-        baseTableModel +
+        SqlDeriveSelectExtractorSpec.internal.baseTableModel +
           """
             |structure ItemCategorySelectInput {
             |    category_id: String
@@ -234,5 +203,43 @@ class SqlDeriveSelectExtractorSpec extends munit.FunSuite {
       },
       List("minCount")
     )
+  }
+}
+object SqlDeriveSelectExtractorSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def baseTableModel: String                                                =
+      """
+      |use smithplates.codegen.sql#DerivedStruct
+      |use smithplates.codegen.sql#sqlDeriveSelect
+      |use smithplates.codegen.sql#sqlForeignKey
+      |use smithplates.codegen.sql#sqlPrimaryKey
+      |use smithplates.codegen.sql#sqlTable
+      |use smithplates.codegen.sql#sqlVarchar
+      |
+      |@sqlTable(name: "categories")
+      |structure Category {
+      |    @sqlPrimaryKey
+      |    id: String
+      |    name: String
+      |}
+      |
+      |@sqlTable(name: "items")
+      |structure Item {
+      |    @sqlPrimaryKey
+      |    id: String
+      |    @sqlForeignKey(references: "example#Category")
+      |    category_id: String
+      |    @sqlVarchar(maxLength: 64)
+      |    name: String
+      |}
+      |""".stripMargin
+    def columnProjection(projection: SqlSelectProjection): SqlQualifiedColumn =
+      projection match {
+        case SqlSelectColumnProjection(_, column)    => column
+        case aggregate: SqlSelectAggregateProjection =>
+          Assertions.fail(s"expected column projection, got aggregate ${aggregate.resultAlias}")
+      }
   }
 }

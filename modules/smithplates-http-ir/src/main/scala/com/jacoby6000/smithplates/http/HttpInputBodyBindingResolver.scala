@@ -6,13 +6,11 @@ import com.jacoby6000.smithplates.http.model.HttpOperationInputMember
 import software.amazon.smithy.model.shapes.ShapeId
 
 private[http] object HttpInputBodyBindingResolver {
-  private val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
-
   def resolve(
       inputShape: ShapeId,
       members: List[HttpOperationInputMember]
   ): HttpOperationBodyBinding =
-    if (inputShape == UnitShapeId) {
+    if (inputShape == internal.UnitShapeId) {
       HttpOperationBodyBinding.None
     } else {
       val payloadMembers = members.filter {
@@ -33,4 +31,9 @@ private[http] object HttpInputBodyBindingResolver {
         }
       }
     }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
+  }
 }

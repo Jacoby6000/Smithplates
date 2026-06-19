@@ -5,30 +5,13 @@ import munit.FunSuite
 import java.nio.file.Paths
 
 class CodegenTemplateTestAssertionsSpec extends FunSuite {
-  private val variant = CodegenTemplateVariant("python", "db", "sqlite")
-
-  private val expectedFiles =
-    List(
-      CodegenTemplateExpectedFile("src/generated/example/sqlite/example.py", "expected\n")
-    )
-
-  private val testCase =
-    CodegenTemplateTestCase(
-      name = "sample-case",
-      caseDirectory = Paths.get("templates/python/tests/sample-case"),
-      smithyModelId = "smithy/smithy-files.smithy",
-      smithyContent = "namespace example",
-      smithyNamespace = "example",
-      expectedOutputsByVariant = Map(variant -> expectedFiles)
-    )
-
   test("reports missing generated files") {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
-          testCase,
-          variant,
-          expectedFiles,
+          CodegenTemplateTestAssertionsSpec.internal.testCase,
+          CodegenTemplateTestAssertionsSpec.internal.variant,
+          CodegenTemplateTestAssertionsSpec.internal.expectedFiles,
           rendered = Map.empty
         )
       }
@@ -41,9 +24,9 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
-          testCase,
-          variant,
-          expectedFiles,
+          CodegenTemplateTestAssertionsSpec.internal.testCase,
+          CodegenTemplateTestAssertionsSpec.internal.variant,
+          CodegenTemplateTestAssertionsSpec.internal.expectedFiles,
           rendered = Map(
             "src/generated/example/sqlite/example.py" -> "expected\n",
             "src/generated/example/sqlite/extra.py"   -> "extra\n"
@@ -59,9 +42,9 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
     val thrown =
       intercept[AssertionError] {
         CodegenTemplateTestAssertions.assertRenderedOutputs(
-          testCase,
-          variant,
-          expectedFiles,
+          CodegenTemplateTestAssertionsSpec.internal.testCase,
+          CodegenTemplateTestAssertionsSpec.internal.variant,
+          CodegenTemplateTestAssertionsSpec.internal.expectedFiles,
           rendered = Map("src/generated/example/sqlite/example.py" -> "actual\n")
         )
       }
@@ -73,5 +56,25 @@ class CodegenTemplateTestAssertionsSpec extends FunSuite {
     )
     assert(thrown.getMessage.contains("| - expected"))
     assert(thrown.getMessage.contains("| + actual"))
+  }
+}
+object CodegenTemplateTestAssertionsSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val variant       = CodegenTemplateVariant("python", "db", "sqlite")
+    val expectedFiles =
+      List(
+        CodegenTemplateExpectedFile("src/generated/example/sqlite/example.py", "expected\n")
+      )
+    val testCase      =
+      CodegenTemplateTestCase(
+        name = "sample-case",
+        caseDirectory = Paths.get("templates/python/tests/sample-case"),
+        smithyModelId = "smithy/smithy-files.smithy",
+        smithyContent = "namespace example",
+        smithyNamespace = "example",
+        expectedOutputsByVariant = Map(variant -> expectedFiles)
+      )
   }
 }

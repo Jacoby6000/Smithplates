@@ -11,7 +11,7 @@ object HttpTestModelLoader {
 
   def assemblerWithHttpTraits: ModelAssembler = {
     val assembler = Model.assembler().disableValidation()
-    assembler.addUnparsedModel(HttpTraitsModelId, readClasspathResource(HttpTraitsModelId))
+    assembler.addUnparsedModel(HttpTraitsModelId, internal.readClasspathResource(HttpTraitsModelId))
     assembler
   }
 
@@ -21,17 +21,19 @@ object HttpTestModelLoader {
     assembler.assemble().unwrap()
   }
 
-  private def readClasspathResource(path: String): String = {
-    val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
-      throw new IllegalStateException(
-        s"HTTP trait Smithy model not on classpath at '$path'. " +
-          "Ensure smithplates-http-ir is on the classpath."
-      )
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def readClasspathResource(path: String): String = {
+      val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
+        throw new IllegalStateException(
+          s"HTTP trait Smithy model not on classpath at '$path'. " +
+            "Ensure smithplates-http-ir is on the classpath."
+        )
+      }
+      try readStream(stream)
+      finally stream.close()
     }
-    try readStream(stream)
-    finally stream.close()
+    def readStream(stream: InputStream): String     =
+      new String(stream.readAllBytes(), StandardCharsets.UTF_8)
   }
-
-  private def readStream(stream: InputStream): String =
-    new String(stream.readAllBytes(), StandardCharsets.UTF_8)
 }

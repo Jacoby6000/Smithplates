@@ -32,7 +32,7 @@ object HttpLanguageTargetTemplateValidator {
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.server", target.templateDirectory)
       .andThen(_ =>
-        validateRequiredArtifactsExist(
+        internal.validateRequiredArtifactsExist(
           languageId = languageId,
           defaultTemplateDirectory = resolveServerTemplateDirectory(target, languageId),
           artifacts = HttpServiceCodegenApiArtifacts
@@ -50,50 +50,53 @@ object HttpLanguageTargetTemplateValidator {
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.client", target.templateDirectory)
       .andThen(_ =>
-        validateRequiredArtifactsExist(
+        internal.validateRequiredArtifactsExist(
           languageId = languageId,
           defaultTemplateDirectory = resolveClientTemplateDirectory(target, languageId),
           artifacts = clientArtifacts ++ modelArtifacts
         ))
   }
 
-  private def validateRequiredArtifactsExist(
-      languageId: String,
-      defaultTemplateDirectory: String,
-      artifacts: List[HttpServiceCodegenArtifactConfig]
-  ): SqlValidated[Unit] = {
-    val missingTemplates =
-      artifacts
-        .map { artifact =>
-          val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, artifact)
-          (templateDirectory, artifact.template)
-        }
-        .distinct
-        .filterNot { case (templateDirectory, template) =>
-          ScalateSspTemplateEngine.classpathResourceExists(
-            PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def validateRequiredArtifactsExist(
+        languageId: String,
+        defaultTemplateDirectory: String,
+        artifacts: List[HttpServiceCodegenArtifactConfig]
+    ): SqlValidated[Unit] = {
+      val missingTemplates =
+        artifacts
+          .map { artifact =>
+            val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, artifact)
+            (templateDirectory, artifact.template)
+          }
+          .distinct
+          .filterNot { case (templateDirectory, template) =>
+            ScalateSspTemplateEngine.classpathResourceExists(
+              PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+            )
+          }
+
+      if (missingTemplates.isEmpty) {
+        ().validNel
+      } else {
+        SqlValidated.invalid(
+          InvalidPluginConfig(
+            s"smithplates.$languageId.http is missing required templates: " +
+              missingTemplates.map { case (directory, template) => s"$directory/$template" }.sorted.mkString(", ")
           )
-        }
-
-    if (missingTemplates.isEmpty) {
-      ().validNel
-    } else {
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates.$languageId.http is missing required templates: " +
-            missingTemplates.map { case (directory, template) => s"$directory/$template" }.sorted.mkString(", ")
         )
-      )
+      }
     }
-  }
 
-  private def resolvedArtifactTemplateDirectory(
-      languageId: String,
-      defaultTemplateDirectory: String,
-      artifact: HttpServiceCodegenArtifactConfig
-  ): String =
-    artifact.templateSource match {
-      case HttpCodegenTemplateSource.Service => defaultTemplateDirectory
-      case HttpCodegenTemplateSource.Models  => defaultModelsTemplateDirectory(languageId)
-    }
+    def resolvedArtifactTemplateDirectory(
+        languageId: String,
+        defaultTemplateDirectory: String,
+        artifact: HttpServiceCodegenArtifactConfig
+    ): String =
+      artifact.templateSource match {
+        case HttpCodegenTemplateSource.Service => defaultTemplateDirectory
+        case HttpCodegenTemplateSource.Models  => defaultModelsTemplateDirectory(languageId)
+      }
+  }
 }

@@ -61,7 +61,7 @@ object SmithplatesHttpSettings {
   def validate(settings: SmithplatesHttpSettings): SqlValidated[SmithplatesHttpSettings] =
     settings.languageTargets.toList
       .traverse { case (languageId, languageTarget) =>
-        validateTarget(languageId, languageTarget.target)
+        internal.validateTarget(languageId, languageTarget.target)
       }
       .map(_ => settings)
 
@@ -78,39 +78,42 @@ object SmithplatesHttpSettings {
       emitModels = emitModels
     )
 
-  private def validateTarget(
-      languageId: String,
-      target: HttpLanguageTarget
-  ): SqlValidated[Unit] =
-    (
-      target.server match {
-        case None         => ().validNel
-        case Some(server) =>
-          PluginConstants
-            .validateSupportedValue(
-              languageId,
-              "http.server.webFramework",
-              server.webFramework,
-              SupportedWebFrameworks
-            )
-            .andThen(_ => HttpLanguageTargetTemplateValidator.validateServer(languageId, server))
-      },
-      target.client match {
-        case None         => ().validNel
-        case Some(client) =>
-          PluginConstants
-            .validateSupportedValue(
-              languageId,
-              "http.client.httpLibrary",
-              client.httpLibrary,
-              SupportedHttpLibraries
-            )
-            .andThen(_ =>
-              HttpLanguageTargetTemplateValidator.validateClient(
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def validateTarget(
+        languageId: String,
+        target: HttpLanguageTarget
+    ): SqlValidated[Unit] =
+      (
+        target.server match {
+          case None         => ().validNel
+          case Some(server) =>
+            PluginConstants
+              .validateSupportedValue(
                 languageId,
-                client,
-                emitModels = target.server.isEmpty
-              ))
-      }
-    ).mapN((_, _) => ())
+                "http.server.webFramework",
+                server.webFramework,
+                SupportedWebFrameworks
+              )
+              .andThen(_ => HttpLanguageTargetTemplateValidator.validateServer(languageId, server))
+        },
+        target.client match {
+          case None         => ().validNel
+          case Some(client) =>
+            PluginConstants
+              .validateSupportedValue(
+                languageId,
+                "http.client.httpLibrary",
+                client.httpLibrary,
+                SupportedHttpLibraries
+              )
+              .andThen(_ =>
+                HttpLanguageTargetTemplateValidator.validateClient(
+                  languageId,
+                  client,
+                  emitModels = target.server.isEmpty
+                ))
+        }
+      ).mapN((_, _) => ())
+  }
 }

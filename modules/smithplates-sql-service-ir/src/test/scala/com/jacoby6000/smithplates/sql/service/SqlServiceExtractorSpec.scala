@@ -5,34 +5,9 @@ import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 
 class SqlServiceExtractorSpec extends munit.FunSuite {
-  private val tableUses =
-    """
-      |use smithplates.codegen.sql#sqlPrimaryKey
-      |use smithplates.codegen.sql#sqlTable
-      |""".stripMargin
-
-  private val minimalTableStructure =
-    """
-      |@sqlTable(name: "items")
-      |structure Item {
-      |    @sqlPrimaryKey
-      |    id: String
-      |}
-      |""".stripMargin
-
-  private def assembleServiceModel(uses: String, shapes: String): Model =
-    SqlTestModelBuilder.assemble(
-      s"""$tableUses
-         |$uses
-         |
-         |$minimalTableStructure
-         |$shapes
-         |""".stripMargin
-    )
-
   test("extracts operations with input, output, and errors") {
     val schema = SqlModelExtractor.extractOrThrow(
-      assembleServiceModel(
+      SqlServiceExtractorSpec.internal.assembleServiceModel(
         """
           |use smithplates.codegen.sql#sqlService
           |use smithy.api#error
@@ -92,7 +67,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
 
   test("fails when no operations are declared") {
     val result = SqlModelExtractor.extract(
-      assembleServiceModel(
+      SqlServiceExtractorSpec.internal.assembleServiceModel(
         """
           |use smithplates.codegen.sql#sqlService
           |""".stripMargin,
@@ -112,7 +87,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
 
   test("fails when resources are declared") {
     val result = SqlModelExtractor.extract(
-      assembleServiceModel(
+      SqlServiceExtractorSpec.internal.assembleServiceModel(
         """
           |use smithplates.codegen.sql#sqlService
           |""".stripMargin,
@@ -142,7 +117,7 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
 
   test("ignores services without @sqlService") {
     val schema = SqlModelExtractor.extractOrThrow(
-      assembleServiceModel(
+      SqlServiceExtractorSpec.internal.assembleServiceModel(
         "",
         """
           |operation Ping {
@@ -159,5 +134,33 @@ class SqlServiceExtractorSpec extends munit.FunSuite {
     )
 
     assertEquals(schema.services, Nil)
+  }
+}
+object SqlServiceExtractorSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val tableUses                                                 =
+      """
+      |use smithplates.codegen.sql#sqlPrimaryKey
+      |use smithplates.codegen.sql#sqlTable
+      |""".stripMargin
+    val minimalTableStructure                                     =
+      """
+      |@sqlTable(name: "items")
+      |structure Item {
+      |    @sqlPrimaryKey
+      |    id: String
+      |}
+      |""".stripMargin
+    def assembleServiceModel(uses: String, shapes: String): Model =
+      SqlTestModelBuilder.assemble(
+        s"""$tableUses
+         |$uses
+         |
+         |$minimalTableStructure
+         |$shapes
+         |""".stripMargin
+      )
   }
 }

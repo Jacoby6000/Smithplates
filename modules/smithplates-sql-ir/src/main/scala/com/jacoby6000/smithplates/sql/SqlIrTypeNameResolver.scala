@@ -12,27 +12,11 @@ object SqlIrTypeNameResolver {
       structureShapeId: Option[ShapeId]
   )
 
-  private val PreludeShapeIds: Set[ShapeId] =
-    Set(
-      ShapeId.from("smithy.api#Unit"),
-      ShapeId.from("smithy.api#String"),
-      ShapeId.from("smithy.api#Integer"),
-      ShapeId.from("smithy.api#Long"),
-      ShapeId.from("smithy.api#Float"),
-      ShapeId.from("smithy.api#Double"),
-      ShapeId.from("smithy.api#BigDecimal"),
-      ShapeId.from("smithy.api#BigInteger"),
-      ShapeId.from("smithy.api#Boolean"),
-      ShapeId.from("smithy.api#Blob"),
-      ShapeId.from("smithy.api#Timestamp"),
-      ShapeId.from("smithy.api#Document")
-    )
-
   val PreludePrimitiveTypeNames: Set[String] =
-    PreludeShapeIds.map(_.getName)
+    internal.PreludeShapeIds.map(_.getName)
 
   def isPreludeShape(shapeId: ShapeId): Boolean =
-    PreludeShapeIds.contains(shapeId)
+    internal.PreludeShapeIds.contains(shapeId)
 
   def resolveTypeName(model: Model, shape: Shape): String =
     shape match {
@@ -93,4 +77,23 @@ object SqlIrTypeNameResolver {
       case "Unit"       => "Unit"
       case other        => other
     }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val PreludeShapeIds: Set[ShapeId] =
+      Set(
+        ShapeId.from("smithy.api#Unit"),
+        ShapeId.from("smithy.api#String"),
+        ShapeId.from("smithy.api#Integer"),
+        ShapeId.from("smithy.api#Long"),
+        ShapeId.from("smithy.api#Float"),
+        ShapeId.from("smithy.api#Double"),
+        ShapeId.from("smithy.api#BigDecimal"),
+        ShapeId.from("smithy.api#BigInteger"),
+        ShapeId.from("smithy.api#Boolean"),
+        ShapeId.from("smithy.api#Blob"),
+        ShapeId.from("smithy.api#Timestamp"),
+        ShapeId.from("smithy.api#Document")
+      )
+  }
 }

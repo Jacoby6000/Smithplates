@@ -55,11 +55,15 @@ line-length = 120
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+# DESNOTE(jbarber, 2026-06-19): UP017 flags datetime.UTC alias; example and generated code uses
+# timezone.utc for broader Python version compatibility.
 ignore = ["UP017"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Body", "fastapi.Depends", "fastapi.Header", "fastapi.Path", "fastapi.Query"]
 
+# DESNOTE(jbarber, 2026-06-19): Per-file ignores target generated/template Python where line length,
+# PEP 695 type params (UP047), ternary style (SIM108), or stub F821 are constrained by codegen output.
 [tool.ruff.lint.per-file-ignores]
 "**/sqlite_transaction_run.py" = ["UP047"]
 "**/psycopg_transaction_run.py" = ["UP047"]
