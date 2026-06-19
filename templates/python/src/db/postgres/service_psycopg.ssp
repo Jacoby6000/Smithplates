@@ -2,7 +2,7 @@
 <%@ val imports: com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations
 
-<% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override
+<% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %><% if (imports.needsAnyImport) { %>Any, <% } %>override
 
 import psycopg
 <% if (ctx.serviceLocalImportBlock != "") { %>
