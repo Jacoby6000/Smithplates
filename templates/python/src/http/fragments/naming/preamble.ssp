@@ -224,12 +224,18 @@ def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperat
   }
 
 def operationProtocolReturnType(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val hasEmptySuccess =
+    operation.responseBinding.successVariant.exists(_.variantTypeName == "__empty__")
   val types =
-    operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
-  if (types.isEmpty) {
+    operation.responseBinding.allVariants
+      .map(_.variantTypeName)
+      .filterNot(_ == "__empty__")
+      .distinct
+  val allTypes = if (hasEmptySuccess) types :+ "None" else types
+  if (allTypes.isEmpty) {
     "None"
   } else {
-    types.mkString(" | ")
+    allTypes.mkString(" | ")
   }
 }
 
@@ -267,6 +273,33 @@ def unionMemberPythonType(
     member: com.jacoby6000.smithplates.http.model.HttpUnionMember
 ): String =
   httpMemberPythonType(member.typeName, member.timestampFormat)
+
+def unionMemberTypeNameCollidesWithVariant(
+    unionName: String,
+    member: com.jacoby6000.smithplates.http.model.HttpUnionMember
+): Boolean =
+  unionVariantTypeName(unionName, member.name) == member.typeName
+
+def unionImportedTypeAlias(
+    typeName: String,
+    unionName: String,
+    members: Seq[com.jacoby6000.smithplates.http.model.HttpUnionMember]
+): String =
+  if (members.exists(member => unionMemberTypeNameCollidesWithVariant(unionName, member))) {
+    s"${typeName}Shape"
+  } else {
+    typeName
+  }
+
+def unionMemberAnnotatedTypeName(
+    unionName: String,
+    member: com.jacoby6000.smithplates.http.model.HttpUnionMember
+): String =
+  if (unionMemberTypeNameCollidesWithVariant(unionName, member)) {
+    s"${member.typeName}Shape"
+  } else {
+    unionMemberPythonType(member)
+  }
 
 def clientClassName(tag: String): String =
   tag

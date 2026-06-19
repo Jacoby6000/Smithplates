@@ -4,8 +4,8 @@ from typing import Annotated, Protocol  # noqa: F401
 from generated.example.asset_output import AssetOutput
 from generated.example.asset_state_patch import AssetStatePatch
 from generated.example.get_asset_content404 import GetAssetContent404
-from generated.example.problem import Problem
 from generated.example.redirect import Redirect
+from generated.example.update_asset_state409 import UpdateAssetState409
 from pydantic import Field  # noqa: F401
 
 
@@ -22,4 +22,4 @@ class AssetsApiServiceProtocol(Protocol):
         self,
         id: str,
         body: AssetStatePatch,
-    ) -> AssetOutput | Problem: ...
+    ) -> AssetOutput | UpdateAssetState409: ...

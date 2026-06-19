@@ -58,7 +58,8 @@ private[http] object HttpResponseVariantResolver {
             structureShapeId = shapeId,
             statusCode = successStatusCode,
             members = outputMembers,
-            serialization = serialization
+            serialization = serialization,
+            errorVariant = false
           ).map(Some(_))
       }
 
@@ -79,7 +80,8 @@ private[http] object HttpResponseVariantResolver {
             structureShapeId = operationError.shapeId,
             statusCode = operationError.statusCode,
             members = members,
-            serialization = serialization
+            serialization = serialization,
+            errorVariant = true
           )
         }
 
@@ -90,7 +92,8 @@ private[http] object HttpResponseVariantResolver {
         structureShapeId: ShapeId,
         statusCode: Int,
         members: List[HttpOperationOutputMember],
-        serialization: HttpSerialization
+        serialization: HttpSerialization,
+        errorVariant: Boolean
     ): HttpValidated[HttpResponseVariant] = {
       val headerMembers          = members.collect {
         case member @ HttpOperationOutputMember(_, _, _, _, _, HttpOutputMemberBinding.Header(_)) =>
@@ -124,12 +127,20 @@ private[http] object HttpResponseVariantResolver {
           if (explicitPayloadMembers.size == 1 && headerMembers.isEmpty) {
             val payload = explicitPayloadMembers.head
             HttpResponseVariant(
-              variantTypeName = payload.typeName,
+              variantTypeName = if (errorVariant) {
+                structureName
+              } else {
+                payload.typeName
+              },
               statusCode = statusCode,
               mediaType = mediaTypeForSerialization(serialization),
               headerBindings = Nil,
               staticHeaders = staticHeaders,
-              modelShapeId = payload.targetShape
+              modelShapeId = if (errorVariant) {
+                structureShapeId
+              } else {
+                payload.targetShape
+              }
             )
           } else if (headerMembers.nonEmpty && headerMembers.size == members.size) {
             HttpResponseVariant(
