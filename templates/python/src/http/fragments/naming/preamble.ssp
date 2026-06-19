@@ -224,12 +224,18 @@ def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperat
   }
 
 def operationProtocolReturnType(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
+  val hasEmptySuccess =
+    operation.responseBinding.successVariant.exists(_.variantTypeName == "__empty__")
   val types =
-    operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
-  if (types.isEmpty) {
+    operation.responseBinding.allVariants
+      .map(_.variantTypeName)
+      .filterNot(_ == "__empty__")
+      .distinct
+  val allTypes = if (hasEmptySuccess) types :+ "None" else types
+  if (allTypes.isEmpty) {
     "None"
   } else {
-    types.mkString(" | ")
+    allTypes.mkString(" | ")
   }
 }
 

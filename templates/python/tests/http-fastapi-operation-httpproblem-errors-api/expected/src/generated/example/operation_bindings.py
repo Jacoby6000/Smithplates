@@ -37,35 +37,15 @@ class OperationHttpBinding:
 
 
 OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
-    "get_asset": OperationHttpBinding(
+    "delete_widget": OperationHttpBinding(
         variants_by_type_name={
-            "AssetOutput": ResponseVariantBinding(
-                status_code=200,
-                media_type="application/json",
-                header_bindings=(),
-                static_headers=(),
-            ),
-        },
-    ),
-    "GetAsset": OperationHttpBinding(
-        variants_by_type_name={
-            "AssetOutput": ResponseVariantBinding(
-                status_code=200,
-                media_type="application/json",
-                header_bindings=(),
-                static_headers=(),
-            ),
-        },
-    ),
-    "get_asset_content": OperationHttpBinding(
-        variants_by_type_name={
-            "Redirect": ResponseVariantBinding(
-                status_code=302,
+            "__empty__": ResponseVariantBinding(
+                status_code=204,
                 media_type=None,
-                header_bindings=(("url", "Location"),),
+                header_bindings=(),
                 static_headers=(),
             ),
-            "GetAssetContent404": ResponseVariantBinding(
+            "DeleteWidget404": ResponseVariantBinding(
                 status_code=404,
                 media_type="application/json",
                 header_bindings=(),
@@ -73,15 +53,15 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             ),
         },
     ),
-    "GetAssetContent": OperationHttpBinding(
+    "DeleteWidget": OperationHttpBinding(
         variants_by_type_name={
-            "Redirect": ResponseVariantBinding(
-                status_code=302,
+            "__empty__": ResponseVariantBinding(
+                status_code=204,
                 media_type=None,
-                header_bindings=(("url", "Location"),),
+                header_bindings=(),
                 static_headers=(),
             ),
-            "GetAssetContent404": ResponseVariantBinding(
+            "DeleteWidget404": ResponseVariantBinding(
                 status_code=404,
                 media_type="application/json",
                 header_bindings=(),
@@ -89,15 +69,21 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             ),
         },
     ),
-    "update_asset_state": OperationHttpBinding(
+    "mutate_widget": OperationHttpBinding(
         variants_by_type_name={
-            "AssetOutput": ResponseVariantBinding(
+            "WidgetOutput": ResponseVariantBinding(
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
-            "UpdateAssetState409": ResponseVariantBinding(
+            "MutateWidget404": ResponseVariantBinding(
+                status_code=404,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
+            "MutateWidget409": ResponseVariantBinding(
                 status_code=409,
                 media_type="application/json",
                 header_bindings=(),
@@ -105,15 +91,21 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             ),
         },
     ),
-    "UpdateAssetState": OperationHttpBinding(
+    "MutateWidget": OperationHttpBinding(
         variants_by_type_name={
-            "AssetOutput": ResponseVariantBinding(
+            "WidgetOutput": ResponseVariantBinding(
                 status_code=200,
                 media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
             ),
-            "UpdateAssetState409": ResponseVariantBinding(
+            "MutateWidget404": ResponseVariantBinding(
+                status_code=404,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
+            "MutateWidget409": ResponseVariantBinding(
                 status_code=409,
                 media_type="application/json",
                 header_bindings=(),
