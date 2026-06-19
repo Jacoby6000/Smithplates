@@ -172,10 +172,34 @@ def operationBodyModelNames(operation: com.jacoby6000.smithplates.http.model.Htt
       Nil
   }
 
-def operationImportedModelNames(operation: com.jacoby6000.smithplates.http.model.HttpOperation): List[String] = {
+def operationImportedModelNames(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation,
+    service: com.jacoby6000.smithplates.http.model.HttpService
+): List[String] = {
+  val structureNames = service.structures.map(_.name).toSet
+  val unionNames     = service.unions.map(_.name).toSet
+  val enumNames      = (service.stringEnums.map(_.name) ++ service.intEnums.map(_.name)).toSet
   val variantTypes =
     operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
-  (operationBodyModelNames(operation) ++ variantTypes).distinct.sorted
+  val inputMemberModelTypes =
+    (operation.inputMembers ++ bodyBindingMembers(operation))
+      .flatMap { member =>
+        val referenced =
+          com.jacoby6000.smithplates.http.HttpModelTypeNames.referencedModelTypeNames(
+            member.typeName,
+            structureNames,
+            unionNames,
+            enumNames
+          )
+        val direct =
+          if (com.jacoby6000.smithplates.http.HttpSmithyTypeResolver.isStructureTypeName(member.typeName)) {
+            List(member.typeName)
+          } else {
+            Nil
+          }
+        referenced ++ direct
+      }
+  (operationBodyModelNames(operation) ++ variantTypes ++ inputMemberModelTypes).distinct.sorted
 }
 
 def bodyParameterBinding(required: Boolean): String =

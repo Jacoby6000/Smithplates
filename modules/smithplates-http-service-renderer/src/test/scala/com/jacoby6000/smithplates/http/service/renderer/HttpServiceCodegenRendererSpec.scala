@@ -288,6 +288,55 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     assert(mutateWidget404.contains("class MutateWidget404(Problem)"))
     assert(mutateWidget404.contains("title: str = Field(...)"))
   }
+
+  test("HttpServiceCodegenRenderer imports enum types used in route parameter signatures") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#readonly
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [SearchWidgets]
+          |}
+          |
+          |enum WidgetStatus {
+          |    ACTIVE
+          |    ARCHIVED
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |@readonly
+          |operation SearchWidgets {
+          |    input: SearchWidgetsInput
+          |    output: WidgetListOutput
+          |}
+          |
+          |structure SearchWidgetsInput {
+          |    @httpQuery("status")
+          |    status: WidgetStatus
+          |}
+          |
+          |structure WidgetListOutput {
+          |    @required
+          |    items: String
+          |}
+          |""".stripMargin
+    )
+
+    val protocolContent =
+      HttpServiceCodegenRendererSpec.internal.renderFastApiProtocolBase(model, "v1_widgets")
+
+    assert(protocolContent.contains("from generated.example.widget_status import WidgetStatus"))
+    assert(protocolContent.contains("status: WidgetStatus | None"))
+  }
 }
 object HttpServiceCodegenRendererSpec {
 
