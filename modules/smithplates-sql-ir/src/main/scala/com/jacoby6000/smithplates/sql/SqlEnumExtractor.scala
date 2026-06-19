@@ -8,22 +8,6 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 object SqlEnumExtractor {
-  private val primitiveTypeNames: Set[String] =
-    Set(
-      "String",
-      "Integer",
-      "Long",
-      "Float",
-      "Double",
-      "BigDecimal",
-      "BigInteger",
-      "Boolean",
-      "Blob",
-      "Timestamp",
-      "Document",
-      "Unit"
-    )
-
   def extractReferenced(
       model: Model,
       namespace: String,
@@ -49,7 +33,7 @@ object SqlEnumExtractor {
       componentTypeNames(typeName.substring(5, typeName.length - 1))
     } else if (typeName.startsWith("Map[String, ")) {
       componentTypeNames(typeName.substring(12, typeName.length - 1))
-    } else if (primitiveTypeNames.contains(typeName)) {
+    } else if (SqlIrTypeNameResolver.PreludePrimitiveTypeNames.contains(typeName)) {
       Nil
     } else {
       List(typeName)

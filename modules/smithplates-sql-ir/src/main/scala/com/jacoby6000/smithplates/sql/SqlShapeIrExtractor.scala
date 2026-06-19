@@ -99,8 +99,7 @@ object SqlShapeIrExtractor {
       typeName = memberType.typeName,
       optional = memberOptional(member, isSqlTable),
       isStructure = memberType.isStructure,
-      structureShapeId = memberType.structureShapeId,
-      isUnion = memberType.isUnion
+      structureShapeId = memberType.structureShapeId
     )
   }
 

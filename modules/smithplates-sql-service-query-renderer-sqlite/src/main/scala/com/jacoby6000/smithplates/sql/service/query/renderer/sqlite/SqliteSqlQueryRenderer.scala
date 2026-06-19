@@ -2,18 +2,20 @@ package com.jacoby6000.smithplates.sql.service.query.renderer.sqlite
 
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
-import com.jacoby6000.smithplates.sql.service.SqlQueries
-import com.jacoby6000.smithplates.sql.service.query.renderer.*
-import com.jacoby6000.smithplates.sql.service.query.renderer.common.SqlQueryRendering
+import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.query.renderer.common.DialectSqlQueryRenderer
 
-final class SqliteSqlQueryRenderer(
-    val migrationBindPlaceholder: SqlBindPlaceholder,
-    val codegenBindPlaceholder: SqlBindPlaceholder
-) extends SqlQueryRenderer {
-  override def key: String = "sqlite"
-
-  override def renderQueryUnits(queries: SqlQueries): List[SqlRenderedQuery] =
-    SqlQueryRendering.renderQueryUnits(queries, autoUpdatedTimestampAssignment)
+object SqliteSqlQueryRenderer {
+  def apply(
+      migrationBindPlaceholder: SqlBindPlaceholder,
+      codegenBindPlaceholder: SqlBindPlaceholder
+  ): DialectSqlQueryRenderer =
+    new DialectSqlQueryRenderer(
+      key = "sqlite",
+      migrationBindPlaceholder = migrationBindPlaceholder,
+      codegenBindPlaceholder = codegenBindPlaceholder,
+      autoUpdatedTimestampAssignment = autoUpdatedTimestampAssignment
+    )
 
   private def autoUpdatedTimestampAssignment(columnName: String, columnType: SqlColumnType): String = {
     val expression = columnType match {

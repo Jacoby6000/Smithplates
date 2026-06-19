@@ -56,10 +56,6 @@ object SqlTableTree {
     SqlTableGraph(edges)
   }
 
-  /** One node per @sqlTable structure; retained for callers that only need the table nodes. */
-  def forest(schema: SqlSchema): List[SqlTableTreeNode] =
-    graph(schema).edges.keys.toList
-
   /** Deterministic topological ordering. If foreign keys form a cycle, every acyclic table is still ordered by
     * dependencies and the cyclic remainder is appended by table name.
     */

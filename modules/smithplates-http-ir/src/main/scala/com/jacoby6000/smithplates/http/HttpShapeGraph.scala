@@ -14,20 +14,11 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 private[http] object HttpShapeGraph {
-  val UnitShapeId: ShapeId = ShapeId.from("smithy.api#Unit")
-
   def isUserDefinedStructure(model: Model, shapeId: ShapeId): Boolean =
     if (HttpSmithyTypeResolver.isPreludeShape(shapeId)) {
       false
     } else {
       model.getShape(shapeId).toScala.exists(_.isStructureShape)
-    }
-
-  def isUserDefinedUnion(model: Model, shapeId: ShapeId): Boolean =
-    if (HttpSmithyTypeResolver.isPreludeShape(shapeId)) {
-      false
-    } else {
-      model.getShape(shapeId).toScala.exists(_.isUnionShape)
     }
 
   def referencedShapes(model: Model, rootShapeIds: List[ShapeId]): (List[ShapeId], List[ShapeId]) = {

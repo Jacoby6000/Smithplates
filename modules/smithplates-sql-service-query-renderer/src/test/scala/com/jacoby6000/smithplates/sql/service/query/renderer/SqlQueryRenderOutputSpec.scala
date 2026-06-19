@@ -54,7 +54,7 @@ final class SqlQueryRenderOutputSpec extends FunSuite {
       )
 
     assertEquals(
-      SqlQueryRenderOutput.query(queries, shapeId).map(_.statement),
+      queries.find(_.shapeId == shapeId).map(_.statement),
       Some(statement)
     )
   }

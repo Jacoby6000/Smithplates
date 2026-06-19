@@ -10,7 +10,7 @@ import software.amazon.smithy.model.shapes.ShapeId
 
 final class PostgresSqlQueryRendererSpec extends munit.FunSuite {
   private lazy val renderer =
-    new PostgresSqlQueryRenderer(
+    PostgresSqlQueryRenderer(
       migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
       codegenBindPlaceholder = SqlBindPlaceholder("%s")
     )

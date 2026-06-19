@@ -4,11 +4,16 @@ import com.jacoby6000.smithplates.sql.SqlTableTree
 import com.jacoby6000.smithplates.sql.SqlText
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.NoSqlTables
+import com.jacoby6000.smithplates.sql.model.SqlAutoGeneration
+import com.jacoby6000.smithplates.sql.model.SqlAutoUuid
 import com.jacoby6000.smithplates.sql.model.SqlColumn
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlCreatedTimestamp
 import com.jacoby6000.smithplates.sql.model.SqlForeignKey
 import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.model.SqlTable
+import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
+import com.jacoby6000.smithplates.sql.model.SqlUpdatedTimestamp
 import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */
@@ -33,13 +38,6 @@ object SqlShared {
 
   def formatDdlStatements(statements: List[DDLStatement]): String =
     statements.map(_.formatted).filter(_.nonEmpty).mkString(StatementSeparator)
-
-  def renderSchema(
-      schema: SqlSchema,
-      renderColumn: SqlColumn => String,
-      preTableStatements: SqlSchema => List[DDLStatement] = _ => Nil
-  ): String =
-    formatDdlStatements(renderDdlStatements(schema, renderColumn, preTableStatements))
 
   def renderDdlStatements(
       schema: SqlSchema,
@@ -177,6 +175,24 @@ object SqlShared {
   def intEnumCheck(columnName: String, values: List[Int]): String =
     s" CHECK($columnName IN (${values.mkString(", ")}))"
 
+  def quotedStringLiterals(values: List[String]): String =
+    values.map(value => s"'${value.replace("'", "''")}'").mkString(", ")
+
+  def autoGenerationDefaultClause(
+      autoGeneration: SqlAutoGeneration,
+      columnType: SqlColumnType,
+      uuidExpression: String,
+      timestampExpression: SqlTimestampFormat => String
+  ): String =
+    autoGeneration match {
+      case SqlAutoUuid                               => uuidExpression
+      case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
+        columnType match {
+          case SqlColumnType.Timestamp(format) => timestampExpression(format)
+          case _                               => "CURRENT_TIMESTAMP"
+        }
+    }
+
   def baseSqlType(columnType: SqlColumnType): Option[String] =
     columnType match {
       case SqlColumnType.Integer           => Some("INTEGER")
@@ -188,9 +204,6 @@ object SqlShared {
         Some(storage)
       case _                               => None
     }
-
-  def enumTypeName(shapeId: ShapeId): String =
-    SqlText.enumTypeName(shapeId)
 
   // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows millisecond fractional seconds;
   //                                                  DECIMAL(13, 3) stores whole seconds plus millis.

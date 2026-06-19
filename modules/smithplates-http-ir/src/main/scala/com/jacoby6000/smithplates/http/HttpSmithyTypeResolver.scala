@@ -120,6 +120,7 @@ object HttpSmithyTypeResolver {
     !primitiveTypeNames.contains(typeName) &&
       !typeName.startsWith("List[") &&
       !typeName.startsWith("Map[String, ")
+
 }
 
 final case class HttpMemberType(

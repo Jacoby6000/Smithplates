@@ -10,7 +10,7 @@ import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqliteSqlQueryRendererSpec extends munit.FunSuite {
   private lazy val renderer =
-    new SqliteSqlQueryRenderer(
+    SqliteSqlQueryRenderer(
       migrationBindPlaceholder = SqlBindPlaceholder("?"),
       codegenBindPlaceholder = SqlBindPlaceholder("?")
     )

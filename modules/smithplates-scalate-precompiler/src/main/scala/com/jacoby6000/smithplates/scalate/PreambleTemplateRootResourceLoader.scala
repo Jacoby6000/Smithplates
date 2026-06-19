@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.http.service.renderer
+package com.jacoby6000.smithplates.scalate
 
 import org.fusesource.scalate.util.Resource
 import org.fusesource.scalate.util.ResourceLoader
