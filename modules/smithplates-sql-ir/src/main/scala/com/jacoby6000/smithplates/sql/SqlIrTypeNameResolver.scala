@@ -28,6 +28,9 @@ object SqlIrTypeNameResolver {
       ShapeId.from("smithy.api#Document")
     )
 
+  val PreludePrimitiveTypeNames: Set[String] =
+    PreludeShapeIds.map(_.getName)
+
   def isPreludeShape(shapeId: ShapeId): Boolean =
     PreludeShapeIds.contains(shapeId)
 
