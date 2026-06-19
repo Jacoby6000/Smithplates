@@ -5,7 +5,7 @@ from __future__ import annotations
 <% } %>from typing import Protocol, TypeVar
 
 <% if (ctx.protocolTableModelImportBlock != "") { %>${ctx.protocolTableModelImportBlock}
-<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
+<% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
 
 
 <% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (ctx.protocolTableModelImportBlock != "") { %>

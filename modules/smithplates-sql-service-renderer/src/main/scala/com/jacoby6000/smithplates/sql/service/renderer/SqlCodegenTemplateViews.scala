@@ -65,6 +65,7 @@ final case class TemplateResultFieldView(
     optional: Boolean,
     isJson: Boolean,
     timestampFormat: String,
+    isEnum: Boolean = false,
     last: Boolean = false
 )
 
@@ -169,6 +170,7 @@ final case class ServiceTemplateView(
     usedJsonTypeNamesCol: Set[String],
     classRowFactories: List[TemplateClassRowFactoryView],
     protocolTableModelImportBlock: String,
+    enumImportBlock: String,
     serviceLocalImportBlock: String,
     integrationTest: Option[IntegrationTestView],
     migration: Option[MigrationView],
@@ -177,8 +179,9 @@ final case class ServiceTemplateView(
 
 object SqlCodegenTemplateViews {
   def buildServiceView(context: SqlCodegenServiceContext): ServiceTemplateView = {
+    val enumTypeNames                        = SqlCodegenPythonImports.enumTypeNameSet(context)
     val operations                           = withLastFlag(
-      context.operations.map(operationView(context.bindPlaceholderStyle, context.dialectKey, _))
+      context.operations.map(operationView(context.bindPlaceholderStyle, context.dialectKey, enumTypeNames, _))
     )((operation, last) => operation.copy(last = last))
     val (tableModels, operationResultModels) =
       context.models.partition(_.namespace != SqlSelectOneDerivedOutputBuilder.DerivedNamespace)
@@ -195,12 +198,15 @@ object SqlCodegenTemplateViews {
       usedJsonTypeNamesCol = SqlCodegenHelperAttributes.usedJsonTypeNamesCol(operations),
       classRowFactories = if (context.dialectKey == "sqlite") {
         withLastFlag(
-          SqlCodegenHelperAttributes.classRowFactories(context.operations).map(classRowFactoryView)
+          SqlCodegenHelperAttributes
+            .classRowFactories(context.operations)
+            .map(classRowFactoryView(enumTypeNames, _))
         )((factory, last) => factory.copy(last = last))
       } else {
         Nil
       },
       protocolTableModelImportBlock = SqlCodegenPythonImports.protocolTableModelImportBlock(context),
+      enumImportBlock = SqlCodegenPythonImports.enumImportBlock(context),
       serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
       integrationTest = context.integrationTest.map(integrationTestView),
       migration = context.migration.map(migrationView),
@@ -299,6 +305,7 @@ object SqlCodegenTemplateViews {
   private def operationView(
       bindPlaceholderStyle: SqlBindPlaceholder,
       dialectKey: String,
+      enumTypeNames: Set[String],
       operation: SqlCodegenOperation
   ): TemplateOperationView = {
     val sqlFields                                                                                               = operation.sql match {
@@ -318,7 +325,8 @@ object SqlCodegenTemplateViews {
           withLastFlag(sql.bindParameters.map(bindParameterView(dialectKey, _)))((bindParameter, last) =>
             bindParameter.copy(last = last)),
           sql.returningColumnIndex.map(Integer.valueOf).orNull,
-          withLastFlag(sql.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last)),
+          withLastFlag(sql.resultFields.map(resultFieldView(enumTypeNames, _)))((resultField, last) =>
+            resultField.copy(last = last)),
           sql.booleanResultFieldName.getOrElse("")
         )
     }
@@ -333,8 +341,8 @@ object SqlCodegenTemplateViews {
             isCollection =
               nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection,
             optional = nested.optional,
-            fields =
-              withLastFlag(nested.fields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
+            fields = withLastFlag(nested.fields.map(resultFieldView(enumTypeNames, _)))((resultField, last) =>
+              resultField.copy(last = last))
           )
         }
       }
@@ -382,7 +390,10 @@ object SqlCodegenTemplateViews {
       dialectKey = dialectKey
     )
 
-  private def resultFieldView(resultField: SqlCodegenResultField): TemplateResultFieldView =
+  private def resultFieldView(
+      enumTypeNames: Set[String],
+      resultField: SqlCodegenResultField
+  ): TemplateResultFieldView =
     TemplateResultFieldView(
       fieldName = resultField.fieldName,
       columnNameLiteral = s"\"${resultField.columnName}\"",
@@ -391,15 +402,18 @@ object SqlCodegenTemplateViews {
       readTypeName = resultField.readTypeName,
       optional = resultField.optional,
       isJson = resultField.isJson,
-      timestampFormat = timestampFormatName(resultField.timestampFormat)
+      timestampFormat = timestampFormatName(resultField.timestampFormat),
+      isEnum = enumTypeNames.contains(resultField.typeName)
     )
 
   private def classRowFactoryView(
-      factory: SqlCodegenHelperAttributes.ClassRowFactorySpec): TemplateClassRowFactoryView =
+      enumTypeNames: Set[String],
+      factory: SqlCodegenHelperAttributes.ClassRowFactorySpec
+  ): TemplateClassRowFactoryView =
     TemplateClassRowFactoryView(
       name = factory.name,
-      resultFields =
-        withLastFlag(factory.resultFields.map(resultFieldView))((resultField, last) => resultField.copy(last = last))
+      resultFields = withLastFlag(factory.resultFields.map(resultFieldView(enumTypeNames, _)))((resultField, last) =>
+        resultField.copy(last = last))
     )
 
   private def timestampFormatName(format: Option[SqlTimestampFormat]): String =

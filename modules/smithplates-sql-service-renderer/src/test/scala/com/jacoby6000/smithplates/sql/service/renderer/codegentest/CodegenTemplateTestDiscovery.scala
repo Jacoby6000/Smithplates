@@ -123,7 +123,7 @@ object CodegenTemplateTestDiscovery {
               namespaceRootPath
             ).filter { expected =>
               val fileName = expected.relativePath.split('/').last
-              fileName.endsWith("_protocol.py")
+              fileName.endsWith(".py")
             }
           sharedModelFiles ++ sharedServiceTypeFiles
       }
