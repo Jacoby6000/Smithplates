@@ -15,7 +15,6 @@ T = TypeVar("T", contravariant=True)
 class TaskRepositoryServiceProtocol(Protocol[T]):
     async def create_task(
         self,
-        id: str,
         label: str | None,
         status: TaskStatus | None,
         priority: TaskPriority | None,

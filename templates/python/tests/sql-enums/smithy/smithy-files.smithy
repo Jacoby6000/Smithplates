@@ -2,6 +2,7 @@ $version: "2.0"
 namespace example
 
 use smithplates.codegen.sql#DerivedStruct
+use smithplates.codegen.sql#sqlAutoUuid
 use smithplates.codegen.sql#sqlDeriveInsert
 use smithplates.codegen.sql#sqlDeriveSelectOne
 use smithplates.codegen.sql#sqlPrimaryKey
@@ -21,6 +22,7 @@ intEnum TaskPriority {
 @sqlTable(name: "tasks")
 structure Task {
     @sqlPrimaryKey
+    @sqlAutoUuid
     id: String
     label: String
     status: TaskStatus

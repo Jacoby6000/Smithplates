@@ -8,6 +8,8 @@ from generated.petstore.db.models.order_repository_models import (
     CreateOrderRecordOutput,
     OrderLine,
 )
+from generated.petstore.db.order_priority import OrderPriority
+from generated.petstore.db.order_status import OrderStatus
 
 
 @dataclass

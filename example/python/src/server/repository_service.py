@@ -31,6 +31,10 @@ from generated.petstore.api.store_summary import StoreSummary
 from generated.petstore.api.update_pet_body import UpdatePetBody
 from generated.petstore.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
 from generated.petstore.db.models.pet_repository_models import PetTags as GeneratedPetTags
+from generated.petstore.db.order_priority import OrderPriority as DbOrderPriority
+from generated.petstore.db.order_status import OrderStatus as DbOrderStatus
+from generated.petstore.db.pet_species import PetSpecies as DbPetSpecies
+from generated.petstore.db.pet_status import PetStatus as DbPetStatus
 from server.database import RepositoryBundle
 
 
@@ -80,8 +84,8 @@ class PetstoreRepositoryService:
         featured = _attribute_value_from_union(request.attributes[0].value)
         created = await self._repositories.pets.create_pet_record(
             name=request.name,
-            status=str(request.status.value),
-            species=int(request.species.value),
+            status=DbPetStatus(request.status.value),
+            species=DbPetSpecies(request.species.value),
             category_id=request.category_id,
             owner_id=request.owner_id or "",
             tag_count=request.tag_count,
@@ -110,8 +114,8 @@ class PetstoreRepositoryService:
         return PetDetail(
             id=record.id,
             name=record.name,
-            status=PetStatus(record.status),
-            species=PetSpecies(record.species),
+            status=PetStatus(record.status.value),
+            species=PetSpecies(record.species.value),
             category_id=record.category_id,
             owner_id=record.owner_id or None,
             tag_count=record.tag_count,
@@ -146,8 +150,8 @@ class PetstoreRepositoryService:
         featured = _attribute_value_from_union(request.attributes[0].value)
         updated = await self._repositories.pets.update_pet_record(
             name=request.name,
-            status=str(request.status.value),
-            species=int(request.species.value),
+            status=DbPetStatus(request.status.value),
+            species=DbPetSpecies(request.species.value),
             category_id=request.category_id,
             owner_id=request.owner_id or "",
             tag_count=request.tag_count,
@@ -177,8 +181,8 @@ class PetstoreRepositoryService:
     async def place_order(self, request: PlaceOrderInput) -> str:
         created = await self._repositories.orders.create_order_record(
             label=request.label,
-            status=str(request.status.value),
-            priority=int(request.priority.value),
+            status=DbOrderStatus(request.status.value),
+            priority=DbOrderPriority(request.priority.value),
         )
         return created.id
 
@@ -189,8 +193,8 @@ class PetstoreRepositoryService:
         return OrderDetail(
             id=record.id,
             label=record.label,
-            status=OrderStatus(record.status),
-            priority=OrderPriority(record.priority),
+            status=OrderStatus(record.status.value),
+            priority=OrderPriority(record.priority.value),
             created_at=record.created_at,
             updated_at=record.updated_at,
             lines=[

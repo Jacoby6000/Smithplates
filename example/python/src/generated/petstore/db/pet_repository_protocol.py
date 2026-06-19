@@ -15,6 +15,8 @@ from generated.petstore.db.models.pet_repository_models import (
     Store,
     UpdatePetRecordOutput,
 )
+from generated.petstore.db.pet_species import PetSpecies
+from generated.petstore.db.pet_status import PetStatus
 
 
 @dataclass

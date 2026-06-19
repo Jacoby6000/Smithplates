@@ -32,16 +32,13 @@ async def task_repository_service() -> AsyncIterator[TaskRepositoryAiosqliteServ
 @pytest.mark.sqlite
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(task_repository_service: TaskRepositoryAiosqliteService) -> None:
-    entity_id_result = await task_repository_service.create_task(
-        id="668b917c-481f-3eaf-a504-a0b883aaff58", label=None, status=None, priority=None
-    )
+    entity_id_result = await task_repository_service.create_task(label=None, status=None, priority=None)
     entity_id = entity_id_result
     assert isinstance(entity_id, str)
     assert entity_id
 
     fetched = await task_repository_service.get_task(id=entity_id)
     assert isinstance(fetched, Task)
-    assert fetched.id == "668b917c-481f-3eaf-a504-a0b883aaff58"
     assert fetched.label is None
     assert fetched.status is None
     assert fetched.priority is None
@@ -55,7 +52,7 @@ async def test_derived_sql_methods_transaction_commit(task_repository_service: T
     await connection.execute("BEGIN")
     try:
         entity_id_result = await task_repository_service.create_task(
-            id="668b917c-481f-3eaf-a504-a0b883aaff58", label=None, status=None, priority=None, transaction=connection
+            label=None, status=None, priority=None, transaction=connection
         )
         entity_id = entity_id_result
         assert isinstance(entity_id, str)
@@ -63,7 +60,6 @@ async def test_derived_sql_methods_transaction_commit(task_repository_service: T
 
         fetched = await task_repository_service.get_task(id=entity_id, transaction=connection)
         assert isinstance(fetched, Task)
-        assert fetched.id == "668b917c-481f-3eaf-a504-a0b883aaff58"
         assert fetched.label is None
         assert fetched.status is None
         assert fetched.priority is None
@@ -74,7 +70,6 @@ async def test_derived_sql_methods_transaction_commit(task_repository_service: T
 
     fetched_after_commit = await task_repository_service.get_task(id=entity_id)
     assert isinstance(fetched_after_commit, Task)
-    assert fetched_after_commit.id == "668b917c-481f-3eaf-a504-a0b883aaff58"
     assert fetched_after_commit.label is None
     assert fetched_after_commit.status is None
     assert fetched_after_commit.priority is None
@@ -89,7 +84,7 @@ async def test_derived_sql_methods_transaction_rollback(
     connection = task_repository_service._connection
     await connection.execute("BEGIN")
     entity_id_result = await task_repository_service.create_task(
-        id="668b917c-481f-3eaf-a504-a0b883aaff58", label=None, status=None, priority=None, transaction=connection
+        label=None, status=None, priority=None, transaction=connection
     )
     entity_id = entity_id_result
     assert isinstance(entity_id, str)

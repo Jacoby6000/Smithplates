@@ -25,7 +25,6 @@ class TaskRepositoryPsycopgService(TaskRepositoryServiceProtocol[psycopg.AsyncTr
     @override
     async def create_task(
         self,
-        id: str,
         label: str | None,
         status: TaskStatus | None,
         priority: TaskPriority | None,
@@ -34,8 +33,8 @@ class TaskRepositoryPsycopgService(TaskRepositoryServiceProtocol[psycopg.AsyncTr
     ) -> str:
         async def execute() -> str:
             cur = await self._connection.execute(
-                """INSERT INTO tasks (id, label, status, priority) VALUES (%s, %s, %s, %s) RETURNING id;""",
-                (id, label, status, priority),
+                """INSERT INTO tasks (label, status, priority) VALUES (%s, %s, %s) RETURNING id;""",
+                (label, status, priority),
             )
             row = await cur.fetchone()
             if row is None:

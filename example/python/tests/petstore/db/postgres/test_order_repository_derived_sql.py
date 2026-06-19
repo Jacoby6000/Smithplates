@@ -9,9 +9,11 @@ import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
 
+from generated.petstore.db.order_priority import OrderPriority
 from generated.petstore.db.order_repository_protocol import (
     GetOrderRecordResult,
 )
+from generated.petstore.db.order_status import OrderStatus
 from generated.petstore.db.postgres.order_repository_psycopg import OrderRepositoryPsycopgService
 from generated.petstore.db.postgres.psycopg_migrations import PsycopgMigrationService
 
@@ -43,7 +45,7 @@ async def order_repository_service(
 @pytest.mark.asyncio
 async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepositoryPsycopgService) -> None:
     entity_id_result = await order_repository_service.create_order_record(
-        label="integration-label", status="approved", priority=3
+        label="integration-label", status=OrderStatus.APPROVED, priority=OrderPriority.HIGH
     )
     entity_id = entity_id_result.id
     assert isinstance(entity_id, str)
@@ -52,8 +54,8 @@ async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepo
     fetched = await order_repository_service.get_order_record(id=entity_id)
     assert isinstance(fetched, GetOrderRecordResult)
     assert fetched.label == "integration-label"
-    assert fetched.status == "approved"
-    assert fetched.priority == 3
+    assert fetched.status == OrderStatus.APPROVED
+    assert fetched.priority == OrderPriority.HIGH
 
 
 @pytest.mark.integration
@@ -63,7 +65,7 @@ async def test_derived_sql_methods_transaction_commit(order_repository_service: 
     connection = order_repository_service._connection
     async with connection.transaction() as tx:
         entity_id_result = await order_repository_service.create_order_record(
-            label="integration-label", status="approved", priority=3, transaction=tx
+            label="integration-label", status=OrderStatus.APPROVED, priority=OrderPriority.HIGH, transaction=tx
         )
         entity_id = entity_id_result.id
         assert isinstance(entity_id, str)
@@ -72,14 +74,14 @@ async def test_derived_sql_methods_transaction_commit(order_repository_service: 
         fetched = await order_repository_service.get_order_record(id=entity_id, transaction=tx)
         assert isinstance(fetched, GetOrderRecordResult)
         assert fetched.label == "integration-label"
-        assert fetched.status == "approved"
-        assert fetched.priority == 3
+        assert fetched.status == OrderStatus.APPROVED
+        assert fetched.priority == OrderPriority.HIGH
 
     fetched_after_commit = await order_repository_service.get_order_record(id=entity_id)
     assert isinstance(fetched_after_commit, GetOrderRecordResult)
     assert fetched_after_commit.label == "integration-label"
-    assert fetched_after_commit.status == "approved"
-    assert fetched_after_commit.priority == 3
+    assert fetched_after_commit.status == OrderStatus.APPROVED
+    assert fetched_after_commit.priority == OrderPriority.HIGH
 
 
 @pytest.mark.integration
@@ -93,7 +95,7 @@ async def test_derived_sql_methods_transaction_rollback(
     with pytest.raises(RuntimeError, match="rollback probe"):
         async with connection.transaction() as tx:
             entity_id_result = await order_repository_service.create_order_record(
-                label="integration-label", status="approved", priority=3, transaction=tx
+                label="integration-label", status=OrderStatus.APPROVED, priority=OrderPriority.HIGH, transaction=tx
             )
             entity_id = entity_id_result.id
             raise RuntimeError("rollback probe")

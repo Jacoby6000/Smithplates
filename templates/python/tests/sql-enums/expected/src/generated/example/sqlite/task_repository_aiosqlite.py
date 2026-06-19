@@ -22,7 +22,6 @@ class TaskRepositoryAiosqliteService(TaskRepositoryServiceProtocol[aiosqlite.Con
     @override
     async def create_task(
         self,
-        id: str,
         label: str | None,
         status: TaskStatus | None,
         priority: TaskPriority | None,
@@ -31,8 +30,8 @@ class TaskRepositoryAiosqliteService(TaskRepositoryServiceProtocol[aiosqlite.Con
     ) -> str:
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
-                """INSERT INTO tasks (id, label, status, priority) VALUES (?, ?, ?, ?) RETURNING id;""",
-                (id, label, status, priority),
+                """INSERT INTO tasks (label, status, priority) VALUES (?, ?, ?) RETURNING id;""",
+                (label, status, priority),
             )
             row = await cursor.fetchone()
             if row is None:
