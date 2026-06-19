@@ -6,10 +6,8 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
 
 object SqliteRenderer extends SqlSchemaDdlRenderer {
-  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
-    SqlShared.requireTables(schema)
+  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] =
     SqlShared.renderDdlStatements(schema, renderColumn)
-  }
 
   private[sqlite] def renderColumn(column: SqlColumn): String = {
     val checks = column.columnType match {

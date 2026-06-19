@@ -5,8 +5,6 @@ sealed trait HttpSerialization
 object HttpSerialization {
   case object Json extends HttpSerialization
 
-  val Default: HttpSerialization = Json
-
   def fromTraitValue(value: String): Either[String, HttpSerialization] =
     value match {
       case "json" => Right(Json)

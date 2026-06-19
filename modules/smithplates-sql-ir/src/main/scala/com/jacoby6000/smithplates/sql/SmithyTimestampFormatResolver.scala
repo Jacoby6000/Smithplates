@@ -3,7 +3,6 @@ package com.jacoby6000.smithplates.sql
 import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
-import software.amazon.smithy.model.shapes.Shape
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.traits.TimestampFormatTrait
 
@@ -12,9 +11,6 @@ import scala.jdk.OptionConverters.*
 object SmithyTimestampFormatResolver {
   def resolve(model: Model, member: MemberShape): Either[UnsupportedColumnType, SqlTimestampFormat] =
     parseFormat(timestampFormatValue(model, member), member.getTarget)
-
-  def resolve(model: Model, shape: Shape): Either[UnsupportedColumnType, SqlTimestampFormat] =
-    parseFormat(shape.getTrait(classOf[TimestampFormatTrait]).toScala.map(_.getFormat), shape.getId)
 
   private def timestampFormatValue(
       model: Model,

@@ -6,15 +6,13 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
 
 object PostgresRenderer extends SqlSchemaDdlRenderer {
-  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
-    SqlShared.requireTables(schema)
+  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] =
     SqlShared.renderDdlStatements(
       schema = schema,
       renderColumn = renderColumn,
       preTableStatements = preTableEnumStatements,
       foreignKeyRendering = SqlShared.ForeignKeyRendering.Separate(renderForeignKeyConstraint)
     )
-  }
 
   private def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
     schema.tables

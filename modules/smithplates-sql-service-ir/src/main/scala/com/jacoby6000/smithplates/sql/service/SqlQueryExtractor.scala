@@ -21,9 +21,6 @@ private[service] object SqlTableMemberCatalog {
       autoGeneration: Option[SqlAutoGeneration],
       isPrimaryKey: Boolean
   ) {
-    def omittableFromInsert: Boolean =
-      autoGeneration.isDefined || (!isPrimaryKey && !required)
-
     def databaseManagedOnInsert: Boolean =
       autoGeneration.isDefined
 

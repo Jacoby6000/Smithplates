@@ -5,9 +5,7 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.model.SqlSchema
-import com.jacoby6000.smithplates.sql.service.SqlServiceIr
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderOutput
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
@@ -32,15 +30,6 @@ object DialectRenderers {
 
   def schemaDdlRenderersForKeys(keys: List[String]): Map[String, SqlSchemaDdlRenderer] =
     keys.map(key => key -> schemaDdlRendererForKey(key)).toMap
-
-  def render(schema: SqlSchema, serviceIr: SqlServiceIr, dialectKey: String): String = {
-    val queryRenderer = queryRendererForKey(dialectKey)
-    SqlQueryRenderOutput.formatWithDdl(
-      schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema),
-      queryRenderer.renderQueryUnits(serviceIr.queries),
-      queryRenderer.migrationBindPlaceholder
-    )
-  }
 
   def renderDdlOnly(schema: SqlSchema, dialectKey: String): String =
     SqlShared.formatDdlStatements(schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema))

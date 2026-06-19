@@ -6,8 +6,6 @@ sealed trait HttpSchemaError {
   def message: String
 }
 
-final case class InvalidPluginConfig(message: String) extends HttpSchemaError
-
 final case class MissingHttpServiceVersion(serviceShape: ShapeId) extends HttpSchemaError {
   override def message: String =
     s"@httpService '${serviceShape.toString}' requires a non-empty service version"

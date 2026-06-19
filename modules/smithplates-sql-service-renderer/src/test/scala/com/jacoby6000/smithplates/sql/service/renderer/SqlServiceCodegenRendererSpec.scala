@@ -85,7 +85,6 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         version = "1",
         dialectKey = "sqlite",
         packageName = "generated.example",
-        queryRenderer = Some(queryRenderer),
         bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
         hasSqlOperations = true,
         models = Nil,

@@ -9,8 +9,7 @@ object SqlIrTypeNameResolver {
   final case class MemberType(
       typeName: String,
       isStructure: Boolean,
-      structureShapeId: Option[ShapeId],
-      isUnion: Boolean
+      structureShapeId: Option[ShapeId]
   )
 
   private val PreludeShapeIds: Set[ShapeId] =
@@ -71,8 +70,7 @@ object SqlIrTypeNameResolver {
     MemberType(
       typeName = resolveTypeName(model, targetShape),
       isStructure = structureShapeId.isDefined,
-      structureShapeId = structureShapeId,
-      isUnion = targetShape.isUnionShape
+      structureShapeId = structureShapeId
     )
   }
 

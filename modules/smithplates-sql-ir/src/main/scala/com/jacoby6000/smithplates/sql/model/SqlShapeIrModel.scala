@@ -22,8 +22,7 @@ final case class SqlStructureMember(
     typeName: String,
     optional: Boolean,
     isStructure: Boolean,
-    structureShapeId: Option[ShapeId],
-    isUnion: Boolean = false
+    structureShapeId: Option[ShapeId]
 )
 
 final case class SqlUnion(

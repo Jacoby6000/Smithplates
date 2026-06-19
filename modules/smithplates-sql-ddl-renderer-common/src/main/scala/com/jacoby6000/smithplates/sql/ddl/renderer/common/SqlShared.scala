@@ -34,13 +34,6 @@ object SqlShared {
   def formatDdlStatements(statements: List[DDLStatement]): String =
     statements.map(_.formatted).filter(_.nonEmpty).mkString(StatementSeparator)
 
-  def renderSchema(
-      schema: SqlSchema,
-      renderColumn: SqlColumn => String,
-      preTableStatements: SqlSchema => List[DDLStatement] = _ => Nil
-  ): String =
-    formatDdlStatements(renderDdlStatements(schema, renderColumn, preTableStatements))
-
   def renderDdlStatements(
       schema: SqlSchema,
       renderColumn: SqlColumn => String,
@@ -188,9 +181,6 @@ object SqlShared {
         Some(storage)
       case _                               => None
     }
-
-  def enumTypeName(shapeId: ShapeId): String =
-    SqlText.enumTypeName(shapeId)
 
   // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows millisecond fractional seconds;
   //                                                  DECIMAL(13, 3) stores whole seconds plus millis.

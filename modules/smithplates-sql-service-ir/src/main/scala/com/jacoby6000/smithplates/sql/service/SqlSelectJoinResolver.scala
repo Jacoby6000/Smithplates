@@ -3,7 +3,6 @@ package com.jacoby6000.smithplates.sql.service
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.shapes.StructureShape
 
@@ -18,57 +17,6 @@ private[service] object SqlSelectJoinResolver {
       targetTable: SqlTable,
       targetColumn: String
   )
-
-  def resolveJoinCondition(
-      model: Model,
-      queryShape: ShapeId,
-      primaryTable: SqlTable,
-      primaryStructure: StructureShape,
-      joinTable: SqlTable,
-      joinStructure: StructureShape,
-      joinType: SqlJoinType,
-      primaryReferenceAlias: String,
-      joinReferenceAlias: String
-  ): SqlValidated[Option[SqlJoinCondition]] =
-    resolveJoinCondition(
-      queryShape,
-      primaryTable,
-      primaryStructure,
-      joinTable,
-      joinStructure,
-      joinType,
-      primaryReferenceAlias,
-      joinReferenceAlias,
-      "sqlDeriveSelect"
-    )
-
-  def resolveJoinCondition(
-      queryShape: ShapeId,
-      leftTable: SqlTable,
-      leftStructure: StructureShape,
-      joinTable: SqlTable,
-      joinStructure: StructureShape,
-      joinType: SqlJoinType,
-      leftReferenceAlias: String,
-      joinReferenceAlias: String,
-      deriveTrait: String
-  ): SqlValidated[Option[SqlJoinCondition]] =
-    if (joinType == SqlJoinType.Cross) {
-      None.validNel
-    } else {
-      findForeignKeys(leftTable, leftStructure, joinTable, joinStructure) match {
-        case Nil           =>
-          SqlValidated.invalid(
-            MissingJoinForeignKey(queryShape, deriveTrait, leftTable.name, joinTable.name)
-          )
-        case single :: Nil =>
-          buildJoinCondition(single, leftTable, leftReferenceAlias, joinReferenceAlias).some.validNel
-        case _             =>
-          SqlValidated.invalid(
-            AmbiguousJoinForeignKey(queryShape, deriveTrait, leftTable.name, joinTable.name)
-          )
-      }
-    }
 
   def resolveTransitiveJoinCondition(
       queryShape: ShapeId,

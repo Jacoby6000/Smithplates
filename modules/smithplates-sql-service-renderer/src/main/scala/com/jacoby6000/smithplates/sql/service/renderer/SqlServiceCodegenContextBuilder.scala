@@ -68,7 +68,6 @@ object SqlServiceCodegenContextBuilder {
                 service.shapeId.getNamespace,
                 settings.packageNameOverride
               ),
-              queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
               models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
@@ -163,7 +162,6 @@ object SqlServiceCodegenContextBuilder {
         } else {
           operation.errorShapes.map { errorShapeId =>
             SqlCodegenErrorType(
-              shapeId = errorShapeId,
               name = errorShapeId.getName
             )
           }

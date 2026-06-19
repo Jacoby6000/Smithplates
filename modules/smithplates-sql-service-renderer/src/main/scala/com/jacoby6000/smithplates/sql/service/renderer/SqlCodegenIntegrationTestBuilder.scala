@@ -240,7 +240,6 @@ object SqlCodegenIntegrationTestBuilder {
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
         callArguments = renderCallArguments(context, operation.parameters, SampleVariant.Initial, enumSamples),
-        updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
         outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
@@ -269,7 +268,6 @@ object SqlCodegenIntegrationTestBuilder {
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
         callArguments = "id=entity_id",
-        updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
         outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = resultAssertions(context, insertParameters, "fetched", SampleVariant.Initial, enumSamples),
@@ -295,7 +293,6 @@ object SqlCodegenIntegrationTestBuilder {
             "id=entity_id"
           }
         },
-        updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
         outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
@@ -308,7 +305,6 @@ object SqlCodegenIntegrationTestBuilder {
       SqlCodegenIntegrationTestOperation(
         name = operation.name,
         callArguments = "id=entity_id",
-        updatedCallArguments = None,
         outputShapeId = operation.outputShapeId,
         outputValueAccessor = outputValueAccessor(operation),
         resultAssertions = Nil,
@@ -495,8 +491,7 @@ object SqlCodegenIntegrationTestBuilder {
     val callText             =
       List(
         Some(insertOperation.callArguments),
-        updateOperation.map(_.callArguments),
-        updateOperation.flatMap(_.updatedCallArguments)
+        updateOperation.map(_.callArguments)
       ).flatten.mkString(" ")
     val operationResultNames =
       context.models
