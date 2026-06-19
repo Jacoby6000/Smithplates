@@ -275,8 +275,18 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val protocolContent =
       HttpServiceCodegenRendererSpec.internal.renderFastApiProtocolBase(model, "v1_widgets")
 
-    assert(clue(protocolContent).contains(") -> WidgetOutput | Problem:"))
+    assert(
+      clue(protocolContent).contains(
+        ") -> WidgetOutput | MutateWidget404 | MutateWidget409 | MutateWidget422:"
+      )
+    )
     assert(!protocolContent.contains("Problem | Problem"))
+
+    val artifacts       = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
+    val mutateWidget404 =
+      artifacts.find(_.relativePath.endsWith("mutate_widget404.py")).map(_.content).getOrElse("")
+    assert(mutateWidget404.contains("class MutateWidget404(Problem)"))
+    assert(mutateWidget404.contains("title: str = Field(...)"))
   }
 }
 object HttpServiceCodegenRendererSpec {
@@ -288,7 +298,20 @@ object HttpServiceCodegenRendererSpec {
     val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
     val RootNamespace                 = Some("generated")
 
-    def renderFastApiProtocolBase(model: software.amazon.smithy.model.Model, routeGroupTag: String): String = {
+    def renderFastApiProtocolBase(model: software.amazon.smithy.model.Model, routeGroupTag: String): String =
+      renderFastApiArtifacts(model, routeGroupTag)
+        .find(_.relativePath == s"src/generated/example/apis/${routeGroupTag}_api_base.py")
+        .map(_.content)
+        .getOrElse(
+          throw new IllegalStateException(
+            s"Missing generated protocol artifact at src/generated/example/apis/${routeGroupTag}_api_base.py"
+          )
+        )
+
+    def renderFastApiArtifacts(
+        model: software.amazon.smithy.model.Model,
+        routeGroupTag: String = "v1_widgets"
+    ): List[HttpCodegenArtifact] = {
       val serviceIr = HttpIrExtractor.extractOrThrow(model)
       val settings  =
         HttpServiceCodegenSettings(
@@ -309,14 +332,7 @@ object HttpServiceCodegenRendererSpec {
         )
 
       HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
-        case Validated.Valid(artifacts) =>
-          val protocolPath = s"src/generated/example/apis/${routeGroupTag}_api_base.py"
-          artifacts
-            .find(_.relativePath == protocolPath)
-            .map(_.content)
-            .getOrElse(
-              throw new IllegalStateException(s"Missing generated protocol artifact at $protocolPath")
-            )
+        case Validated.Valid(artifacts) => artifacts
         case Validated.Invalid(errors)  =>
           throw new IllegalStateException(errors.map(_.message).toList.mkString("; "))
       }

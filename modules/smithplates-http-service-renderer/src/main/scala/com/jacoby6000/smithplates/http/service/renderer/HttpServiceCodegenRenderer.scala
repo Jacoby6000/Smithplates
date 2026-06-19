@@ -57,7 +57,7 @@ object HttpServiceCodegenRenderer {
             val enumNames           = (service.stringEnums.map(_.name) ++ service.intEnums.map(_.name)).toSet
             val structureArtifacts  =
               service.structures.map(structure =>
-                internal.renderStructureModelArtifact(settings, service, structure, enumNames))
+                internal.renderStructureModelArtifact(model, settings, service, structure, enumNames))
             val unionArtifacts      =
               service.unions.map(union => internal.renderUnionModelArtifact(settings, service, union, enumNames))
             val stringEnumArtifacts =
@@ -140,35 +140,33 @@ object HttpServiceCodegenRenderer {
       directory.stripSuffix("/")
 
     def renderStructureModelArtifact(
+        model: Model,
         settings: HttpServiceCodegenSettings,
         service: HttpService,
         structure: HttpStructure,
         enumNames: Set[String]
     ): HttpCodegenArtifact = {
-      val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
-      val structureNames  = service.structures.map(_.name).toSet
-      val unionNames      = service.unions.map(_.name).toSet
-      val importTypeNames =
-        HttpModelTypeNames.structureReferencedTypeNames(structure, structureNames, unionNames, enumNames)
-      val needsDatetime   = HttpModelTypeNames.needsDatetimeImport(structure.members)
-      val needsAny        = HttpModelTypeNames.needsAnyImport(structure.members)
-      val packageName     = HttpCodegenPackageNames.modelsPackageName(settings, structure.shapeId.getNamespace)
-      val content         =
+      val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
+      val packageName  = HttpCodegenPackageNames.modelsPackageName(settings, structure.shapeId.getNamespace)
+      val view         = HttpStructureModelTemplateAttributes.build(model, service, structure, enumNames, packageName)
+      val content      =
         ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
           resolveTemplatePath(
             settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
             "structure.ssp"),
           Map(
-            "structure"           -> structure,
-            "packageName"         -> packageName,
-            "importTypeNames"     -> importTypeNames,
-            "needsDatetimeImport" -> needsDatetime,
-            "needsAnyImport"      -> needsAny
+            "structure"           -> view.structure,
+            "structureMembers"    -> view.members,
+            "problemBinding"      -> view.problemBinding,
+            "packageName"         -> view.packageName,
+            "importTypeNames"     -> view.importTypeNames,
+            "needsDatetimeImport" -> view.needsDatetimeImport,
+            "needsAnyImport"      -> view.needsAnyImport
           ),
           Some(templateRoot)
         )
-      val moduleName      = HttpCodegenTemplateAttributes.toSnakeCase(structure.name)
-      val relativePath    = modelArtifactRelativePath(settings, moduleName, structure.shapeId.getNamespace)
+      val moduleName   = HttpCodegenTemplateAttributes.toSnakeCase(structure.name)
+      val relativePath = modelArtifactRelativePath(settings, moduleName, structure.shapeId.getNamespace)
       HttpCodegenArtifact(
         relativePath = relativePath,
         content = content,

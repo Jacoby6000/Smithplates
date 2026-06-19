@@ -14,7 +14,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         "python",
         Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
 
-    assertEquals(cases.size, 27)
+    assertEquals(cases.size, 28)
     val sqlCases = cases.filterNot(_.name.startsWith("http-"))
     assertEquals(sqlCases.size, 16)
     assert(

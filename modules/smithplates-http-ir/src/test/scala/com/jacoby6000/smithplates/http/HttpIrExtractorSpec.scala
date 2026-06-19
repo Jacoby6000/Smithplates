@@ -1327,7 +1327,7 @@ class HttpIrExtractorSpec extends FunSuite {
 
     val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
     val problem   = operation.responseBinding.errorVariants.head
-    assertEquals(problem.variantTypeName, "Problem")
+    assertEquals(problem.variantTypeName, "UpdateAssetState409")
     assertEquals(problem.mediaType, Some("application/json"))
     assertEquals(problem.staticHeaders, List(("Content-Type", "application/problem+json")))
   }
@@ -1404,7 +1404,7 @@ class HttpIrExtractorSpec extends FunSuite {
 
     val operation = HttpIrExtractor.extractOrThrow(model).services.head.routeGroups.head.operations.head
     val problem   = operation.responseBinding.errorVariants.head
-    assertEquals(problem.variantTypeName, "Problem")
+    assertEquals(problem.variantTypeName, "UpdateAssetState409")
     assertEquals(problem.mediaType, Some("application/json"))
     assertEquals(problem.staticHeaders, List(("Content-Type", "application/problem+json")))
   }
