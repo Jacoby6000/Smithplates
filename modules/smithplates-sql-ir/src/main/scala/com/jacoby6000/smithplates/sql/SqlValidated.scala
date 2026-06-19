@@ -4,7 +4,6 @@ import cats.data.NonEmptyList
 import cats.data.Validated
 import cats.data.ValidatedNel
 import cats.syntax.all.*
-import com.jacoby6000.smithplates.sql.model.InvalidMemberColumnType
 import com.jacoby6000.smithplates.sql.model.SqlSchemaError
 
 type SqlValidated[+A] = ValidatedNel[SqlSchemaError, A]
@@ -24,10 +23,4 @@ object SqlValidated {
 
   def toPluginExceptionMessage(errors: NonEmptyList[SqlSchemaError]): String =
     errors.map(_.message).toList.mkString("; ")
-
-  def hasInvalidMemberKind(errors: NonEmptyList[SqlSchemaError], kind: InvalidMemberColumnType.Kind): Boolean =
-    errors.exists {
-      case InvalidMemberColumnType(_, _, _, errorKind, _) => errorKind == kind
-      case _                                              => false
-    }
 }

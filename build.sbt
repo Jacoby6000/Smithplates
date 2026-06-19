@@ -315,7 +315,8 @@ lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-s
     publishedModuleSettings,
     name := "smithplates-scalate-precompiler",
     organization := "com.jacoby6000",
-    libraryDependencies += "org.scalatra.scalate" % "scalate-core_3" % scalateVersion
+    libraryDependencies += "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
 lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))

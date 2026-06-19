@@ -2,7 +2,6 @@ package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
-import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 import software.amazon.smithy.model.node.ObjectNode
@@ -32,20 +31,20 @@ final case class SmithplatesSqlSettings(
 
   def toCodegenSettings(languageId: String): Option[SqlServiceCodegenSettings] =
     languageTargets.get(languageId).map { languageTarget =>
-      val enabledKeys = languageTarget.enabledDialectKeys
-      languageTarget.toCodegenSettings(
+      val enabledKeys = languageTarget.target.enabledDialectKeys
+      languageTarget.target.toCodegenSettings(
         languageId = languageId,
         enabledDialectKeys = enabledKeys,
         queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
         schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys),
-        migrationDirectories = dialectMigrationDirectories.view.filterKeys(enabledKeys.toSet).toMap
+        migrationDirectories = dialectMigrationDirectories.view.filterKeys(enabledKeys.toSet).toMap,
+        sourceOutputDir = languageTarget.sourceOutputDir,
+        testOutputDir = languageTarget.testOutputDir
       )
     }
 }
 
 object SmithplatesSqlSettings {
-  val DialectKeys: Set[String] = Set("sqlite", "postgres")
-
   val OrderedDialectKeys: List[String] = List("sqlite", "postgres")
 
   def validate(settings: SmithplatesSqlSettings): SqlValidated[SmithplatesSqlSettings] =
@@ -62,7 +61,7 @@ object SmithplatesSqlSettings {
         LanguageTargetTemplateValidator.validate(
           languageId,
           languageTarget.target,
-          languageTarget.enabledDialectKeys
+          languageTarget.target.enabledDialectKeys
         )
       }
       .map(_ => settings)
@@ -97,8 +96,8 @@ object SmithplatesSqlSettings {
       key: String,
       node: ObjectNode
   ): SqlValidated[SqlDialectSettings] = {
-    val enabled = optionalBooleanMember(node, "enable").getOrElse(false)
-    optionalStringMember(node, "migrationLocation") match {
+    val enabled = PluginConfigMembers.optionalBooleanMember(node, "enable").getOrElse(false)
+    PluginConfigMembers.optionalStringMember(node, "migrationLocation") match {
       case Some(location) if enabled =>
         validateMigrationDirectory(key, location).map { directory =>
           SqlDialectSettings(enabled = true, migrationLocation = Some(directory))
@@ -125,17 +124,5 @@ object SmithplatesSqlSettings {
       )
     } else {
       location.validNel
-    }
-
-  private def optionalBooleanMember(node: ObjectNode, memberName: String): Option[Boolean] =
-    Option(node.getMember(memberName).orElse(null)).flatMap {
-      case value if value.isBooleanNode => Some(value.expectBooleanNode().getValue)
-      case _                            => None
-    }
-
-  private def optionalStringMember(node: ObjectNode, memberName: String): Option[String] =
-    Option(node.getMember(memberName).orElse(null)).flatMap {
-      case value if value.isStringNode => SqlShared.trimmedNonEmpty(value.expectStringNode().getValue)
-      case _                           => None
     }
 }

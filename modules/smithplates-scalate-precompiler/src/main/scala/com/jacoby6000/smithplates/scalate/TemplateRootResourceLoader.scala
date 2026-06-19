@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.renderer
+package com.jacoby6000.smithplates.scalate
 
 import org.fusesource.scalate.util.Resource
 import org.fusesource.scalate.util.ResourceLoader
@@ -15,11 +15,7 @@ final class TemplateRootResourceLoader(classLoader: ClassLoader, templateRoot: S
   }
 
   override def resolve(base: String, path: String): String =
-    if (path.startsWith("/")) {
-      normalizeUri(path)
-    } else {
-      normalizeUri(path)
-    }
+    normalizeUri(path)
 
   override protected def createNotFoundException(uri: String): ResourceNotFoundException =
     new ResourceNotFoundException(uri, normalizedRoot, s"Template not found under classpath root '$normalizedRoot'")

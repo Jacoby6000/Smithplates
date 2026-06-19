@@ -6,15 +6,13 @@ import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.*
 
 object PostgresRenderer extends SqlSchemaDdlRenderer {
-  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] = {
-    SqlShared.requireTables(schema)
+  override def renderSchemaDdlStatements(schema: SqlSchema): List[DDLStatement] =
     SqlShared.renderDdlStatements(
       schema = schema,
       renderColumn = renderColumn,
       preTableStatements = preTableEnumStatements,
       foreignKeyRendering = SqlShared.ForeignKeyRendering.Separate(renderForeignKeyConstraint)
     )
-  }
 
   private def preTableEnumStatements(schema: SqlSchema): List[DDLStatement] =
     schema.tables
@@ -23,7 +21,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       .distinctBy(_.typeName)
       .sortBy(_.typeName)
       .map { enumType =>
-        val literals = enumType.values.map(value => s"'${value.replace("'", "''")}'").mkString(", ")
+        val literals = SqlShared.quotedStringLiterals(enumType.values)
         DDLStatement.CreateEnumType(
           enumType = enumType,
           statement = s"CREATE TYPE ${enumType.typeName} AS ENUM ($literals);"
@@ -41,22 +39,16 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
       sqlTypeFor(column.columnType),
       column.nullable,
       checks,
-      column.autoGeneration.map(autoGenerationDefaultClause(_, column.columnType))
+      column.autoGeneration.map(
+        SqlShared.autoGenerationDefaultClause(
+          _,
+          column.columnType,
+          uuidExpression = "gen_random_uuid()",
+          timestampExpression = postgresTimestampExpression
+        )
+      )
     )
   }
-
-  private def autoGenerationDefaultClause(
-      autoGeneration: SqlAutoGeneration,
-      columnType: SqlColumnType
-  ): String =
-    autoGeneration match {
-      case SqlAutoUuid                               => "gen_random_uuid()"
-      case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
-        columnType match {
-          case SqlColumnType.Timestamp(format) => postgresTimestampExpression(format)
-          case _                               => "CURRENT_TIMESTAMP"
-        }
-    }
 
   private def postgresTimestampExpression(format: SqlTimestampFormat): String =
     format match {

@@ -103,7 +103,7 @@ final class SqlIrExtractorSpec extends FunSuite {
 
     SqlIrExtractor.extract(model) match {
       case Validated.Invalid(errors) =>
-        assert(SqlValidated.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlJson))
+        assert(SqlValidatedTestSupport.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlJson))
       case Validated.Valid(_)        =>
         fail("expected validation to fail")
     }
@@ -132,7 +132,7 @@ final class SqlIrExtractorSpec extends FunSuite {
 
     SqlIrExtractor.extract(model) match {
       case Validated.Invalid(errors) =>
-        assert(SqlValidated.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlUuid))
+        assert(SqlValidatedTestSupport.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.SqlUuid))
       case Validated.Valid(_)        =>
         fail("expected validation to fail")
     }
@@ -246,7 +246,7 @@ final class SqlIrExtractorSpec extends FunSuite {
 
     SqlIrExtractor.extract(model) match {
       case Validated.Invalid(errors) =>
-        assert(SqlValidated.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.Unsupported))
+        assert(SqlValidatedTestSupport.hasInvalidMemberKind(errors, InvalidMemberColumnType.Kind.Unsupported))
         assert(
           errors.exists { error =>
             error.message.contains("example#Measurement") && error.message.contains("value")

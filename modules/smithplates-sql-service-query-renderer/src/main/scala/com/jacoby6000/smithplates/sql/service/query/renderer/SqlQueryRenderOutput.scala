@@ -2,7 +2,6 @@ package com.jacoby6000.smithplates.sql.service.query.renderer
 
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.model.DDLStatement
-import software.amazon.smithy.model.shapes.ShapeId
 
 /** Formats rendered service queries into migration file text. */
 object SqlQueryRenderOutput {
@@ -26,6 +25,4 @@ object SqlQueryRenderOutput {
       format(queries, placeholderStyle)
     )
 
-  def query(queries: List[SqlRenderedQuery], shapeId: ShapeId): Option[SqlRenderedQuery] =
-    queries.find(_.shapeId == shapeId)
 }

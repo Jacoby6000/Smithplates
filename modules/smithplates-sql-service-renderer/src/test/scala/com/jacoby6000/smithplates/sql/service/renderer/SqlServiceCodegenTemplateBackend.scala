@@ -89,7 +89,7 @@ object SqlServiceCodegenTemplateBackend {
     db(
       templateVariant = CodegenTemplateVariant("python", "db", "sqlite"),
       dialectKey = "sqlite",
-      queryRenderer = new SqliteSqlQueryRenderer(
+      queryRenderer = SqliteSqlQueryRenderer(
         migrationBindPlaceholder = SqlBindPlaceholder("?"),
         codegenBindPlaceholder = SqlBindPlaceholder("?")
       ),
@@ -101,7 +101,7 @@ object SqlServiceCodegenTemplateBackend {
     db(
       templateVariant = CodegenTemplateVariant("python", "db", "postgres"),
       dialectKey = "postgres",
-      queryRenderer = new PostgresSqlQueryRenderer(
+      queryRenderer = PostgresSqlQueryRenderer(
         migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
         codegenBindPlaceholder = SqlBindPlaceholder("%s")
       ),

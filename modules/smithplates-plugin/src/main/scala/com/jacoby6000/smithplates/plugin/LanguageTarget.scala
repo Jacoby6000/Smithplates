@@ -31,7 +31,7 @@ final case class LanguageTarget(
   ): SqlServiceCodegenSettings = {
     val defaultDialectKey = enabledDialectKeys.headOption.getOrElse(SqlServiceCodegenSettings.SharedDialectKey)
     val templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId)
-    val rootNamespace     = LanguageTarget.resolvedRootNamespace(languageId, this)
+    val rootNamespace     = PluginConstants.resolvedRootNamespace(languageId, this.rootNamespace)
     SqlServiceCodegenSettings(
       templateDirectory = templateDirectory,
       defaultDialectKey = defaultDialectKey,
@@ -49,17 +49,6 @@ final case class LanguageTarget(
 }
 
 object LanguageTarget {
-  val DefaultRootNamespace: String = "generated"
-
-  def resolvedRootNamespace(languageId: String, target: LanguageTarget): Option[String] =
-    target.rootNamespace.orElse(
-      if (LanguageTargetTemplateValidator.bundledLanguageIds.contains(languageId.toLowerCase)) {
-        Some(DefaultRootNamespace)
-      } else {
-        None
-      }
-    )
-
   def parse(
       languageId: String,
       node: ObjectNode
@@ -68,7 +57,7 @@ object LanguageTarget {
       node.getMembers.asScala.toList.traverse { case (keyNode, memberNode) =>
         val key = keyNode.expectStringNode().getValue
         key.toLowerCase match {
-          case dialectKey if SmithplatesSqlSettings.DialectKeys.contains(dialectKey) =>
+          case dialectKey if SmithplatesSqlSettings.OrderedDialectKeys.toSet.contains(dialectKey) =>
             if (memberNode.isObjectNode) {
               SmithplatesSqlSettings
                 .parseDialect(dialectKey, memberNode.expectObjectNode())
@@ -78,16 +67,16 @@ object LanguageTarget {
                 InvalidPluginConfig(s"smithplates.$languageId.sql.$dialectKey must be an object")
               )
             }
-          case "sourceoutputdir" | "testoutputdir"                                   =>
+          case "sourceoutputdir" | "testoutputdir"                                                =>
             SqlValidated.invalid(
               InvalidPluginConfig(
                 s"smithplates.$languageId.sql.$key must not be set; " +
                   s"use smithplates.$languageId.sourceOutputDir and smithplates.$languageId.testOutputDir instead"
               )
             )
-          case "templatedirectory" | "rootnamespace" | "packagename"                 =>
+          case "templatedirectory" | "rootnamespace" | "packagename"                              =>
             SqlValidated.valid(Right(()))
-          case other                                                                 =>
+          case other                                                                              =>
             SqlValidated.invalid(
               InvalidPluginConfig(
                 s"smithplates.$languageId.sql contains unknown key '$other'; expected dialect (sqlite, postgres), " +

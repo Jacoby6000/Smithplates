@@ -4,7 +4,6 @@ import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class SqlCodegenParameter(
@@ -16,7 +15,6 @@ final case class SqlCodegenParameter(
 )
 
 final case class SqlCodegenErrorType(
-    shapeId: ShapeId,
     name: String
 )
 
@@ -85,7 +83,6 @@ final case class SqlCodegenServiceContext(
     version: String,
     dialectKey: String,
     packageName: String,
-    queryRenderer: Option[SqlQueryRenderer],
     bindPlaceholderStyle: SqlBindPlaceholder,
     hasSqlOperations: Boolean,
     models: List[SqlStructure],
@@ -127,7 +124,6 @@ final case class SqlCodegenIntegrationTestContext(
 final case class SqlCodegenIntegrationTestOperation(
     name: String,
     callArguments: String,
-    updatedCallArguments: Option[String],
     outputShapeId: Option[ShapeId],
     outputValueAccessor: String,
     resultAssertions: List[String],

@@ -4,7 +4,6 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.MemberShape
-import software.amazon.smithy.model.shapes.Shape
 import software.amazon.smithy.model.shapes.ShapeId
 import software.amazon.smithy.model.traits.TimestampFormatTrait
 
@@ -25,20 +24,6 @@ object SmithyHttpTimestampFormatResolver {
       operationName = operationName,
       memberName = memberName,
       value = timestampFormatValue(model, member)
-    )
-
-  def resolve(
-      model: Model,
-      serviceShape: ShapeId,
-      operationName: String,
-      memberName: String,
-      shape: Shape
-  ): HttpValidated[HttpTimestampFormat] =
-    parseFormat(
-      serviceShape = serviceShape,
-      operationName = operationName,
-      memberName = memberName,
-      value = shape.getTrait(classOf[TimestampFormatTrait]).toScala.map(_.getFormat)
     )
 
   private def timestampFormatValue(

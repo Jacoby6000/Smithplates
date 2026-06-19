@@ -9,8 +9,7 @@ object SqlIrTypeNameResolver {
   final case class MemberType(
       typeName: String,
       isStructure: Boolean,
-      structureShapeId: Option[ShapeId],
-      isUnion: Boolean
+      structureShapeId: Option[ShapeId]
   )
 
   private val PreludeShapeIds: Set[ShapeId] =
@@ -28,6 +27,9 @@ object SqlIrTypeNameResolver {
       ShapeId.from("smithy.api#Timestamp"),
       ShapeId.from("smithy.api#Document")
     )
+
+  val PreludePrimitiveTypeNames: Set[String] =
+    PreludeShapeIds.map(_.getName)
 
   def isPreludeShape(shapeId: ShapeId): Boolean =
     PreludeShapeIds.contains(shapeId)
@@ -71,8 +73,7 @@ object SqlIrTypeNameResolver {
     MemberType(
       typeName = resolveTypeName(model, targetShape),
       isStructure = structureShapeId.isDefined,
-      structureShapeId = structureShapeId,
-      isUnion = targetShape.isUnionShape
+      structureShapeId = structureShapeId
     )
   }
 

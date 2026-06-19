@@ -16,8 +16,6 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 private[service] object SqlDeriveSelectOneExtractor {
-  private val DerivedStructShapeId: ShapeId = ShapeId.from("smithplates.codegen.sql#DerivedStruct")
-
   def extract(
       model: Model,
       schema: SqlSchema,
@@ -78,7 +76,7 @@ private[service] object SqlDeriveSelectOneExtractor {
     ).mapN { (_, _, whereColumns) =>
       val primaryColumns =
         SqlTableMemberCatalog.membersFor(tableStructure).map { tableMember =>
-          queryColumn(model, tableStructure, table, tableMember)
+          SqlQueryColumnBuilder.queryColumn(model, tableStructure, table, tableMember)
         }
       SqlSelectOneQuery(
         shapeId = operationShape,
@@ -153,7 +151,7 @@ private[service] object SqlDeriveSelectOneExtractor {
                     .map { nestedResults =>
                       val primaryColumns =
                         SqlTableMemberCatalog.membersFor(tableStructure).map { tableMember =>
-                          queryColumn(model, tableStructure, table, tableMember)
+                          SqlQueryColumnBuilder.queryColumn(model, tableStructure, table, tableMember)
                         }
                       val selectColumns  =
                         buildSelectColumns(primaryContext, primaryColumns, nestedResults)
@@ -240,7 +238,7 @@ private[service] object SqlDeriveSelectOneExtractor {
   ): SqlValidated[SqlSelectOneNestedResult] = {
     val joinColumns =
       SqlTableMemberCatalog.membersFor(joinContext.structure).map { tableMember =>
-        queryColumn(model, joinContext.structure, joinContext.table, tableMember)
+        SqlQueryColumnBuilder.queryColumn(model, joinContext.structure, joinContext.table, tableMember)
       }
 
     if (foreignKey.sourceTable.name == joinContext.table.name &&
@@ -377,50 +375,26 @@ private[service] object SqlDeriveSelectOneExtractor {
       .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
       .toLowerCase
 
-  private def queryColumn(
-      model: Model,
-      tableStructure: StructureShape,
-      table: SqlTable,
-      tableMember: SqlTableMemberCatalog.TableMemberInfo
-  ): SqlQueryColumn = {
-    val member       = tableStructure.getMember(tableMember.memberName).get()
-    val memberType   = SqlIrTypeNameResolver.resolveMember(model, tableMember.memberName, member)
-    val tableColumn  = table.columns.find(_.name == tableMember.columnName)
-    val jsonTypeName =
-      table.columns
-        .find(_.name == tableMember.columnName)
-        .collect { case column if column.columnType == SqlColumnType.Json => memberType.typeName }
-    SqlQueryColumn(
-      memberName = tableMember.memberName,
-      columnName = tableMember.columnName,
-      typeName = memberType.typeName,
-      nullable = tableColumn.exists(_.nullable),
-      jsonTypeName = jsonTypeName,
-      isStructure = memberType.isStructure,
-      structureShapeId = memberType.structureShapeId
-    )
-  }
-
   private def requireDerivedStructInput(operation: OperationShape): SqlValidated[Unit] = {
     val inputShapeId = Option(operation.getInputShape).getOrElse(ShapeId.from("smithy.api#Unit"))
-    if (inputShapeId == DerivedStructShapeId) {
+    if (inputShapeId == SqlQueryExtractor.DerivedStructShapeId) {
       ().validNel
     } else {
       InvalidDeriveSelectOne(
         operation.getId,
-        s"input must be ${DerivedStructShapeId.toString}; codegen expands whereClause from the @sqlDeriveSelectOne targetTable"
+        s"input must be ${SqlQueryExtractor.DerivedStructShapeId.toString}; codegen expands whereClause from the @sqlDeriveSelectOne targetTable"
       ).invalidNel
     }
   }
 
   private def requireDerivedStructOutput(operation: OperationShape): SqlValidated[Unit] = {
     val outputShapeId = operation.getOutput.toScala.getOrElse(operation.getOutputShape)
-    if (outputShapeId == DerivedStructShapeId) {
+    if (outputShapeId == SqlQueryExtractor.DerivedStructShapeId) {
       ().validNel
     } else {
       InvalidDeriveSelectOne(
         operation.getId,
-        s"output must be ${DerivedStructShapeId.toString} when @sqlDeriveSelectOne declares joins; codegen expands nested join structures"
+        s"output must be ${SqlQueryExtractor.DerivedStructShapeId.toString} when @sqlDeriveSelectOne declares joins; codegen expands nested join structures"
       ).invalidNel
     }
   }
