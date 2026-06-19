@@ -15,7 +15,7 @@ from generated.petstore.db.category_repository_protocol import (
 from generated.petstore.db.postgres.category_repository_psycopg import CategoryRepositoryPsycopgService
 from generated.petstore.db.postgres.psycopg_migrations import PsycopgMigrationService
 
-MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[4] / "db" / "migrations" / "postgres"
 
 
 @pytest_asyncio.fixture

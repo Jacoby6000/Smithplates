@@ -14,7 +14,7 @@ from generated.petstore.db.category_repository_protocol import (
 from generated.petstore.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.petstore.db.sqlite.sqlite_migrations import SqliteMigrationService
 
-MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "sqlite"
+MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[4] / "db" / "migrations" / "sqlite"
 
 
 @pytest_asyncio.fixture

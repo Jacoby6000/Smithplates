@@ -18,8 +18,8 @@ BASE_URL="$(
   uv run python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["base_url"])' "${CONTEXT_FILE}"
 )"
 
-# Generated Smithplates HTTP client lives under src/generated/http/client.
-export PYTHONPATH="${EXAMPLE_PYTHON}/src:${EXAMPLE_PYTHON}/src/generated:${EXAMPLE_PYTHON}/src${PYTHONPATH:+:${PYTHONPATH}}"
+# Generated Smithplates HTTP client lives under generated.petstore.api.client.
+export PYTHONPATH="${EXAMPLE_PYTHON}/src${PYTHONPATH:+:${PYTHONPATH}}"
 
 cd "${EXAMPLE_PYTHON}"
 exec uv run python "${TARGET_DIR}/run_case.py" "${CASE_FILE}" "${BASE_URL}" --context "${CONTEXT_FILE}"
