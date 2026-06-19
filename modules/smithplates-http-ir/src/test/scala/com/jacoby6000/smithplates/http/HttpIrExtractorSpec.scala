@@ -396,6 +396,132 @@ class HttpIrExtractorSpec extends FunSuite {
     )
   }
 
+  test("HttpIrExtractor discovers unions referenced only through list members") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#readonly
+          |
+          |@httpService
+          |service EventApi {
+          |    version: "1"
+          |    operations: [ListEvents]
+          |}
+          |
+          |@tags(["events"])
+          |@http(method: "GET", uri: "/events", code: 200)
+          |@readonly
+          |operation ListEvents {
+          |    input: Unit
+          |    output: EventListOutput
+          |}
+          |
+          |structure EventListOutput {
+          |    @required
+          |    items: EventListItems
+          |}
+          |
+          |list EventListItems {
+          |    member: Event
+          |}
+          |
+          |union Event {
+          |    created: EventCreated
+          |    deleted: EventDeleted
+          |}
+          |
+          |structure EventCreated {
+          |    @required
+          |    eventId: String
+          |}
+          |
+          |structure EventDeleted {
+          |    @required
+          |    eventId: String
+          |}
+          |""".stripMargin
+    )
+
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.unions.map(_.name), List("Event"))
+    assertEquals(
+      service.unions.head.members.map(member => (member.name, member.typeName)),
+      List(("created", "EventCreated"), ("deleted", "EventDeleted"))
+    )
+    assertEquals(
+      service.structures.find(_.name == "EventListOutput").get.members.map(member => (member.name, member.typeName)),
+      List(("items", "List[Event]"))
+    )
+  }
+
+  test("HttpIrExtractor discovers unions referenced only through list members") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#readonly
+          |
+          |@httpService
+          |service EventApi {
+          |    version: "1"
+          |    operations: [ListEvents]
+          |}
+          |
+          |@tags(["events"])
+          |@http(method: "GET", uri: "/events", code: 200)
+          |@readonly
+          |operation ListEvents {
+          |    input: Unit
+          |    output: EventListOutput
+          |}
+          |
+          |structure EventListOutput {
+          |    @required
+          |    items: EventListItems
+          |}
+          |
+          |list EventListItems {
+          |    member: Event
+          |}
+          |
+          |union Event {
+          |    created: EventCreated
+          |    deleted: EventDeleted
+          |}
+          |
+          |structure EventCreated {
+          |    @required
+          |    eventId: String
+          |}
+          |
+          |structure EventDeleted {
+          |    @required
+          |    eventId: String
+          |}
+          |""".stripMargin
+    )
+
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.unions.map(_.name), List("Event"))
+    assertEquals(
+      service.unions.head.members.map(member => (member.name, member.typeName)),
+      List(("created", "EventCreated"), ("deleted", "EventDeleted"))
+    )
+    assertEquals(
+      service.structures.find(_.name == "EventListOutput").get.members.map(member => (member.name, member.typeName)),
+      List(("items", "List[Event]"))
+    )
+  }
+
   test("HttpIrExtractor extracts nested structures and Smithy tagged unions for HTTP bodies") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->

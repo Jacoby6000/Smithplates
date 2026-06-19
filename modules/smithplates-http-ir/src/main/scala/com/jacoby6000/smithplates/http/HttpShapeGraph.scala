@@ -57,16 +57,37 @@ private[http] object HttpShapeGraph {
     ): Unit = {
       val targetShape = model.expectShape(member.getTarget)
       if (targetShape.isUnionShape) {
-        val unionShapeId = targetShape.toShapeId
-        if (!unions.contains(unionShapeId)) {
-          unions += unionShapeId
-          targetShape
-            .asUnionShape()
-            .get()
-            .getAllMembers
-            .asScala
-            .values
-            .foreach { unionMember =>
+        enqueueUnion(model, targetShape.toShapeId, pendingStructures, structures, unions)
+      } else {
+        memberTargets(model, member).foreach { referenced =>
+          model.getShape(referenced).toScala.foreach { shape =>
+            if (shape.isUnionShape) {
+              enqueueUnion(model, referenced, pendingStructures, structures, unions)
+            } else if (HttpShapeGraph.isUserDefinedStructure(model, referenced)) {
+              if (!structures.contains(referenced)) {
+                pendingStructures.enqueue(referenced)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    def enqueueUnion(
+        model: Model,
+        unionShapeId: ShapeId,
+        pendingStructures: scala.collection.mutable.Queue[ShapeId],
+        structures: scala.collection.mutable.Set[ShapeId],
+        unions: scala.collection.mutable.Set[ShapeId]
+    ): Unit =
+      if (!unions.contains(unionShapeId)) {
+        unions += unionShapeId
+        model
+          .getShape(unionShapeId)
+          .toScala
+          .flatMap(_.asUnionShape().toScala)
+          .foreach { unionShape =>
+            unionShape.getAllMembers.asScala.values.foreach { unionMember =>
               memberTargets(model, unionMember).filter(HttpShapeGraph.isUserDefinedStructure(model, _)).foreach {
                 referenced =>
                   if (!structures.contains(referenced)) {
@@ -74,15 +95,8 @@ private[http] object HttpShapeGraph {
                   }
               }
             }
-        }
-      } else {
-        memberTargets(model, member).filter(HttpShapeGraph.isUserDefinedStructure(model, _)).foreach { referenced =>
-          if (!structures.contains(referenced)) {
-            pendingStructures.enqueue(referenced)
           }
-        }
       }
-    }
 
     def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
       model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
