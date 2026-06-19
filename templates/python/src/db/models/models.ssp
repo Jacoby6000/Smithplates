@@ -1,11 +1,9 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val needsDatetimeImport: Boolean = ctx.models.exists(_.members.exists(_.typeName == "Timestamp")) || ctx.unions.exists(_.members.exists(_.typeName == "Timestamp")) %>
-<%@ val needsAnyImport: Boolean = com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.usesDocument(ctx) %>
 from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
-<% } %><% if (needsAnyImport) { %>from typing import Any
 <% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
 <% for (uuidTypeName <- ctx.uuidTypeNames) { %>
 ${uuidTypeName} = str

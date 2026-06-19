@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import uuid
-from typing import Any, cast, override
+from typing import cast, override
 
 import psycopg
 from generated.example.models.record_repository_models import (
@@ -22,7 +22,7 @@ class RecordRepositoryPsycopgService(RecordRepositoryServiceProtocol[psycopg.Asy
     @override
     async def insert_record(
         self,
-        metadata: Any,
+        metadata: object,
         *,
         transaction: psycopg.AsyncTransaction | None = None,
     ) -> str:

@@ -21,7 +21,7 @@ def pythonTypeName(typeName: String): String =
       case "Boolean"                         => "bool"
       case "Blob"                            => "bytes"
       case "Timestamp"                       => "datetime"
-      case "Document"                        => "Any"
+      case "Document"                        => "object"
       case "Unit"                            => "None"
       case other                             => other
     }

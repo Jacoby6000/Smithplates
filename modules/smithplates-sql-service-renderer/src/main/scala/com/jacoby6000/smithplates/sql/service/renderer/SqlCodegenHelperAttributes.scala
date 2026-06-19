@@ -13,8 +13,7 @@ final case class ImportRequirements(
     needsClassRowImport: Boolean,
     needsDictRowImport: Boolean,
     needsUuidTextLoader: Boolean,
-    needsUuidImport: Boolean,
-    needsAnyImport: Boolean
+    needsUuidImport: Boolean
 )
 
 object SqlCodegenHelperAttributes {
@@ -169,13 +168,9 @@ object SqlCodegenHelperAttributes {
       needsDictRowImport = needsDictRow,
       needsUuidTextLoader = needsClassRow,
       needsUuidImport = ctx.dialectKey == "postgres" &&
-        (rowReadersSet.contains("_read_str") || rowReadersColSet.contains("_read_str_col")),
-      needsAnyImport = internal.usesDocument(ctx)
+        (rowReadersSet.contains("_read_str") || rowReadersColSet.contains("_read_str_col"))
     )
   }
-
-  def usesDocument(ctx: ServiceTemplateView): Boolean =
-    internal.usesDocument(ctx)
 
   def unionDiscriminatorKeys(union: TemplateUnionView): String =
     union.members.map(member => s"\"${member.name}\"").mkString(", ")
@@ -209,14 +204,6 @@ object SqlCodegenHelperAttributes {
     /** JSON columns on `@sqlDeriveSelectOne` join tables need their `_read_*` helpers emitted too. */
     def nestedJsonTypeNames(operation: TemplateOperationView): List[String] =
       operation.selectOneNestedBindings.flatMap(_.fields.filter(_.isJson).map(_.typeName))
-
-    def usesDocument(ctx: ServiceTemplateView): Boolean =
-      ctx.models.exists(model => model.members.exists(_.typeName == "Document")) ||
-        ctx.operations.exists { operation =>
-          operation.parameters.exists(_.typeName == "Document") ||
-          operation.resultFields.exists(_.typeName == "Document") ||
-          operation.bindParameters.exists(_.typeName == "Document")
-        }
 
     def usesDictRowFactory(sqlBodyKind: String): Boolean =
       sqlBodyKind == SqlCodegenSqlBodyKind.InsertStructureDict ||

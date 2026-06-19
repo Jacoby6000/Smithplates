@@ -151,7 +151,6 @@ object HttpServiceCodegenRenderer {
       val importTypeNames =
         HttpModelTypeNames.structureReferencedTypeNames(structure, structureNames, unionNames, enumNames)
       val needsDatetime   = HttpModelTypeNames.needsDatetimeImport(structure.members)
-      val needsAny        = HttpModelTypeNames.needsAnyImport(structure.members)
       val packageName     = HttpCodegenPackageNames.modelsPackageName(settings, structure.shapeId.getNamespace)
       val content         =
         ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
@@ -162,8 +161,7 @@ object HttpServiceCodegenRenderer {
             "structure"           -> structure,
             "packageName"         -> packageName,
             "importTypeNames"     -> importTypeNames,
-            "needsDatetimeImport" -> needsDatetime,
-            "needsAnyImport"      -> needsAny
+            "needsDatetimeImport" -> needsDatetime
           ),
           Some(templateRoot)
         )

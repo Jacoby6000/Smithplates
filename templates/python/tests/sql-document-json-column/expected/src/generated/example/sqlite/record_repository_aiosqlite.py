@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from typing import Any, cast, override
+from typing import cast, override
 
 import aiosqlite
 from generated.example.models.record_repository_models import (
@@ -21,7 +21,7 @@ class RecordRepositoryAiosqliteService(RecordRepositoryServiceProtocol[aiosqlite
     @override
     async def insert_record(
         self,
-        metadata: Any,
+        metadata: object,
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:

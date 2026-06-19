@@ -41,9 +41,6 @@ object HttpModelTypeNames {
   def needsDatetimeImport(members: List[HttpStructureMember]): Boolean =
     members.exists(member => internal.referencesTimestamp(member.typeName))
 
-  def needsAnyImport(members: List[HttpStructureMember]): Boolean =
-    members.exists(member => internal.referencesDocument(member.typeName))
-
   def unionNeedsDatetimeImport(members: List[HttpUnionMember]): Boolean =
     members.exists(member => internal.referencesTimestamp(member.typeName))
 
@@ -65,17 +62,6 @@ object HttpModelTypeNames {
         Set(typeName)
       } else {
         Set.empty
-      }
-
-    def referencesDocument(typeName: String): Boolean =
-      if (typeName == "Document") {
-        true
-      } else if (typeName.startsWith("List[")) {
-        referencesDocument(typeName.substring(5, typeName.length - 1))
-      } else if (typeName.startsWith("Map[String, ")) {
-        referencesDocument(typeName.substring(12, typeName.length - 1))
-      } else {
-        false
       }
 
     def referencesTimestamp(typeName: String): Boolean =

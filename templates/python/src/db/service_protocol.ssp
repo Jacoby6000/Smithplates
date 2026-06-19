@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 <% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass
-<% } %>from typing import Protocol, TypeVar<% if (com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.usesDocument(ctx)) { %>, Any<% } %>
+<% } %>from typing import Protocol, TypeVar
 
 <% if (ctx.protocolTableModelImportBlock != "") { %>${ctx.protocolTableModelImportBlock}
 <% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
