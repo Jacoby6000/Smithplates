@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import httpx
 from generated.example.shelf_item_output import ShelfItemOutput
 from generated.example.shelf_sku_output import ShelfSkuOutput
@@ -35,7 +33,7 @@ def parse_client_response(
     type_name = binding.type_name_for_status(response.status_code)
     model_type = _resolve_model_type(type_name)
 
-    payload: dict[str, Any] = {}
+    payload: dict[str, object] = {}
     if variant.media_type is not None and response.content:
         body = response.json()
         if isinstance(body, dict):
