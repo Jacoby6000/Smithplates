@@ -17,7 +17,7 @@ object HttpProblemHttpErrorModelTransformer {
         .shapes(classOf[software.amazon.smithy.model.shapes.StructureShape])
         .iterator()
         .asScala
-        .map(transformShape)
+        .map(internal.transformShape)
         .filter { shape =>
           val original = model.getShape(shape.getId).get()
           !original.equals(shape)
@@ -31,25 +31,28 @@ object HttpProblemHttpErrorModelTransformer {
     }
   }
 
-  private def transformShape(shape: Shape): Shape =
-    if (!shape.isStructureShape) {
-      shape
-    } else {
-      val structure = shape.asStructureShape.get()
-      if (structure.getTrait(classOf[HttpErrorTrait]).isPresent) {
-        structure
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def transformShape(shape: Shape): Shape =
+      if (!shape.isStructureShape) {
+        shape
       } else {
-        structure.getTrait(classOf[HttpProblemTrait]).toScala.flatMap { httpProblem =>
-          Option(httpProblem.getCode)
-        } match {
-          case Some(code) =>
-            structure
-              .toBuilder()
-              .addTrait(new HttpErrorTrait(code.intValue(), structure.getSourceLocation))
-              .build()
-          case None       =>
-            structure
+        val structure = shape.asStructureShape.get()
+        if (structure.getTrait(classOf[HttpErrorTrait]).isPresent) {
+          structure
+        } else {
+          structure.getTrait(classOf[HttpProblemTrait]).toScala.flatMap { httpProblem =>
+            Option(httpProblem.getCode)
+          } match {
+            case Some(code) =>
+              structure
+                .toBuilder()
+                .addTrait(new HttpErrorTrait(code.intValue(), structure.getSourceLocation))
+                .build()
+            case None       =>
+              structure
+          }
         }
       }
-    }
+  }
 }

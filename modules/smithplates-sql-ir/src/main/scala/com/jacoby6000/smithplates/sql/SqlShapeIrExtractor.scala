@@ -18,95 +18,98 @@ object SqlShapeIrExtractor {
       SqlShapeGraph.referencedUnionIds(model, rootShapeIds).distinct
 
     (
-      structureIds.traverse(extractStructure(model, _)),
-      unionIds.traverse(extractUnion(model, _))
+      structureIds.traverse(internal.extractStructure(model, _)),
+      unionIds.traverse(internal.extractUnion(model, _))
     ).mapN(SqlShapeIr(_, _))
   }
 
-  private def extractStructure(model: Model, shapeId: ShapeId): SqlValidated[SqlStructure] =
-    model.getShape(shapeId).toScala.flatMap(_.asStructureShape.toScala) match {
-      case None            =>
-        InvalidCodegenShape(shapeId, "expected a structure shape").invalidNel
-      case Some(structure) =>
-        extractStructureMembers(model, structure).map { members =>
-          SqlStructure(
-            shapeId = shapeId,
-            name = shapeId.getName,
-            namespace = shapeId.getNamespace,
-            members = members
-          )
-        }
-    }
-
-  private def extractUnion(model: Model, shapeId: ShapeId): SqlValidated[SqlUnion] =
-    model.getShape(shapeId).toScala.flatMap(_.asUnionShape.toScala) match {
-      case None             =>
-        InvalidCodegenShape(shapeId, "expected a union shape").invalidNel
-      case Some(unionShape) =>
-        unionShape.getAllMembers.asScala.toList
-          .map { case (memberName, member) =>
-            val targetShape = model.expectShape(member.getTarget)
-            SqlUnionMember(
-              name = memberName,
-              typeName = SqlIrTypeNameResolver.resolveTypeName(model, targetShape)
-            )
-          }
-          .validNel
-          .map { members =>
-            SqlUnion(
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def extractStructure(model: Model, shapeId: ShapeId): SqlValidated[SqlStructure] =
+      model.getShape(shapeId).toScala.flatMap(_.asStructureShape.toScala) match {
+        case None            =>
+          InvalidCodegenShape(shapeId, "expected a structure shape").invalidNel
+        case Some(structure) =>
+          extractStructureMembers(model, structure).map { members =>
+            SqlStructure(
               shapeId = shapeId,
               name = shapeId.getName,
               namespace = shapeId.getNamespace,
               members = members
             )
           }
-    }
-
-  private def extractStructureMembers(
-      model: Model,
-      structure: StructureShape
-  ): SqlValidated[List[SqlStructureMember]] = {
-    val isSqlTable         = structure.sqlTable.isDefined
-    val orderedMemberNames =
-      if (isSqlTable) {
-        SqlTableMemberOrdering
-          .orderedMembers(structure)
-          .map { case (memberName, _) => memberName }
-      } else {
-        structure.getAllMembers.asScala.keys.toList
       }
 
-    orderedMemberNames
-      .traverse { memberName =>
-        structure.getMember(memberName).toScala match {
-          case None         =>
-            InvalidCodegenShape(structure.getId, s"missing structure member '$memberName'").invalidNel
-          case Some(member) =>
-            toStructureMember(model, memberName, member, isSqlTable).validNel
+    def extractUnion(model: Model, shapeId: ShapeId): SqlValidated[SqlUnion] =
+      model.getShape(shapeId).toScala.flatMap(_.asUnionShape.toScala) match {
+        case None             =>
+          InvalidCodegenShape(shapeId, "expected a union shape").invalidNel
+        case Some(unionShape) =>
+          unionShape.getAllMembers.asScala.toList
+            .map { case (memberName, member) =>
+              val targetShape = model.expectShape(member.getTarget)
+              SqlUnionMember(
+                name = memberName,
+                typeName = SqlIrTypeNameResolver.resolveTypeName(model, targetShape)
+              )
+            }
+            .validNel
+            .map { members =>
+              SqlUnion(
+                shapeId = shapeId,
+                name = shapeId.getName,
+                namespace = shapeId.getNamespace,
+                members = members
+              )
+            }
+      }
+
+    def extractStructureMembers(
+        model: Model,
+        structure: StructureShape
+    ): SqlValidated[List[SqlStructureMember]] = {
+      val isSqlTable         = structure.sqlTable.isDefined
+      val orderedMemberNames =
+        if (isSqlTable) {
+          SqlTableMemberOrdering
+            .orderedMembers(structure)
+            .map { case (memberName, _) => memberName }
+        } else {
+          structure.getAllMembers.asScala.keys.toList
         }
+
+      orderedMemberNames
+        .traverse { memberName =>
+          structure.getMember(memberName).toScala match {
+            case None         =>
+              InvalidCodegenShape(structure.getId, s"missing structure member '$memberName'").invalidNel
+            case Some(member) =>
+              toStructureMember(model, memberName, member, isSqlTable).validNel
+          }
+        }
+    }
+
+    def toStructureMember(
+        model: Model,
+        memberName: String,
+        member: MemberShape,
+        isSqlTable: Boolean
+    ): SqlStructureMember = {
+      val memberType = SqlIrTypeNameResolver.resolveMember(model, memberName, member)
+      SqlStructureMember(
+        name = memberName,
+        typeName = memberType.typeName,
+        optional = memberOptional(member, isSqlTable),
+        isStructure = memberType.isStructure,
+        structureShapeId = memberType.structureShapeId
+      )
+    }
+
+    def memberOptional(member: MemberShape, isSqlTable: Boolean): Boolean =
+      if (isSqlTable) {
+        !member.isRequired && !member.sqlPrimaryKey && member.autoGeneration.isEmpty
+      } else {
+        !member.isRequired
       }
   }
-
-  private def toStructureMember(
-      model: Model,
-      memberName: String,
-      member: MemberShape,
-      isSqlTable: Boolean
-  ): SqlStructureMember = {
-    val memberType = SqlIrTypeNameResolver.resolveMember(model, memberName, member)
-    SqlStructureMember(
-      name = memberName,
-      typeName = memberType.typeName,
-      optional = memberOptional(member, isSqlTable),
-      isStructure = memberType.isStructure,
-      structureShapeId = memberType.structureShapeId
-    )
-  }
-
-  private def memberOptional(member: MemberShape, isSqlTable: Boolean): Boolean =
-    if (isSqlTable) {
-      !member.isRequired && !member.sqlPrimaryKey && member.autoGeneration.isEmpty
-    } else {
-      !member.isRequired
-    }
 }

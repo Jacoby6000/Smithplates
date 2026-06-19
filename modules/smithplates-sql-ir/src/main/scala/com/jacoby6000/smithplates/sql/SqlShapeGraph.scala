@@ -41,7 +41,7 @@ object SqlShapeGraph {
             .members()
             .asScala
             .foreach { member =>
-              memberTargets(model, member).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
+              internal.memberTargets(model, member).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
                 if (!visited.contains(referenced)) {
                   pending.enqueue(referenced)
                 }
@@ -83,7 +83,7 @@ object SqlShapeGraph {
                   collectedUnions += unionShapeId
                 }
               } else {
-                memberTargets(model, member).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
+                internal.memberTargets(model, member).filter(isUserDefinedStructure(model, _)).foreach { referenced =>
                   if (!visitedStructures.contains(referenced)) {
                     pendingStructures.enqueue(referenced)
                   }
@@ -97,23 +97,26 @@ object SqlShapeGraph {
     collectedUnions.toList
   }
 
-  private def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
-    model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
+      model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
 
-  private object MemberTargetShapeIds extends ShapeVisitor.Default[List[ShapeId]] {
-    override protected def getDefault(shape: Shape): List[ShapeId] =
-      Nil
+    object MemberTargetShapeIds extends ShapeVisitor.Default[List[ShapeId]] {
+      override protected def getDefault(shape: Shape): List[ShapeId] =
+        Nil
 
-    override def structureShape(shape: StructureShape): List[ShapeId] =
-      List(shape.getId)
+      override def structureShape(shape: StructureShape): List[ShapeId] =
+        List(shape.getId)
 
-    override def listShape(shape: ListShape): List[ShapeId] =
-      List(shape.getMember.getTarget)
+      override def listShape(shape: ListShape): List[ShapeId] =
+        List(shape.getMember.getTarget)
 
-    override def mapShape(shape: MapShape): List[ShapeId] =
-      List(shape.getValue.getTarget)
+      override def mapShape(shape: MapShape): List[ShapeId] =
+        List(shape.getValue.getTarget)
 
-    override def unionShape(shape: UnionShape): List[ShapeId] =
-      shape.getAllMembers.asScala.values.map(_.getTarget).toList
+      override def unionShape(shape: UnionShape): List[ShapeId] =
+        shape.getAllMembers.asScala.values.map(_.getTarget).toList
+    }
   }
 }

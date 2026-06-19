@@ -27,22 +27,25 @@ private[http] object HttpStaticHeaderExtractor {
             case None             => Nil
             case Some(traitValue) => List((traitValue.getName, traitValue.getValue))
           }
-        val impliedHeaders  = impliedProblemContentType(model, structureShapeId :: relatedShapeIds)
-        mergeStaticHeaders(impliedHeaders, explicitHeaders).validNel
+        val impliedHeaders  = internal.impliedProblemContentType(model, structureShapeId :: relatedShapeIds)
+        internal.mergeStaticHeaders(impliedHeaders, explicitHeaders).validNel
     }
 
-  private def impliedProblemContentType(model: Model, shapeIds: List[ShapeId]): List[(String, String)] =
-    if (shapeIds.exists(HttpProblemBindingExtractor.hasProblemTrait(model, _))) {
-      List(HttpProblemBindingExtractor.ProblemContentTypeHeader)
-    } else {
-      Nil
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def impliedProblemContentType(model: Model, shapeIds: List[ShapeId]): List[(String, String)] =
+      if (shapeIds.exists(HttpProblemBindingExtractor.hasProblemTrait(model, _))) {
+        List(HttpProblemBindingExtractor.ProblemContentTypeHeader)
+      } else {
+        Nil
+      }
 
-  private def mergeStaticHeaders(
-      implied: List[(String, String)],
-      explicit: List[(String, String)]
-  ): List[(String, String)] = {
-    val explicitNames = explicit.map(_._1).toSet
-    (implied.filterNot { case (name, _) => explicitNames.contains(name) } ++ explicit).sortBy(_._1)
+    def mergeStaticHeaders(
+        implied: List[(String, String)],
+        explicit: List[(String, String)]
+    ): List[(String, String)] = {
+      val explicitNames = explicit.map(_._1).toSet
+      (implied.filterNot { case (name, _) => explicitNames.contains(name) } ++ explicit).sortBy(_._1)
+    }
   }
 }

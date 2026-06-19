@@ -52,8 +52,8 @@ private[http] object HttpErrorShapeExtractor {
           .invalidNel
       case Some(_)                                =>
         (
-          requireErrorTrait(model, context, errorShapeId),
-          resolveStatusCode(model, context, errorShapeId)
+          internal.requireErrorTrait(model, context, errorShapeId),
+          internal.resolveStatusCode(model, context, errorShapeId)
         ).mapN { (_, statusCode) =>
           ExtractedError(
             shapeId = errorShapeId,
@@ -63,46 +63,49 @@ private[http] object HttpErrorShapeExtractor {
         }
     }
 
-  private def requireErrorTrait(
-      model: Model,
-      context: Context,
-      errorShapeId: ShapeId
-  ): HttpValidated[ErrorTrait] =
-    model.getShape(errorShapeId).toScala.flatMap(_.getTrait(classOf[ErrorTrait]).toScala) match {
-      case Some(errorTrait) => errorTrait.validNel
-      case None             =>
-        context.invalid(s"${context.errorPrefix} '${errorShapeId.toString}' must declare @error").invalidNel
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def requireErrorTrait(
+        model: Model,
+        context: Context,
+        errorShapeId: ShapeId
+    ): HttpValidated[ErrorTrait] =
+      model.getShape(errorShapeId).toScala.flatMap(_.getTrait(classOf[ErrorTrait]).toScala) match {
+        case Some(errorTrait) => errorTrait.validNel
+        case None             =>
+          context.invalid(s"${context.errorPrefix} '${errorShapeId.toString}' must declare @error").invalidNel
+      }
 
-  private def resolveStatusCode(
-      model: Model,
-      context: Context,
-      errorShapeId: ShapeId
-  ): HttpValidated[Int] = {
-    val shape           = model.getShape(errorShapeId).toScala
-    val httpErrorCode   = shape.flatMap(_.getTrait(classOf[HttpErrorTrait]).toScala).map(_.getCode)
-    val httpProblemCode =
-      shape.flatMap(_.getTrait(classOf[HttpProblemTrait]).toScala).flatMap(traitValue => Option(traitValue.getCode))
+    def resolveStatusCode(
+        model: Model,
+        context: Context,
+        errorShapeId: ShapeId
+    ): HttpValidated[Int] = {
+      val shape           = model.getShape(errorShapeId).toScala
+      val httpErrorCode   = shape.flatMap(_.getTrait(classOf[HttpErrorTrait]).toScala).map(_.getCode)
+      val httpProblemCode =
+        shape.flatMap(_.getTrait(classOf[HttpProblemTrait]).toScala).flatMap(traitValue => Option(traitValue.getCode))
 
-    (httpErrorCode, httpProblemCode) match {
-      case (Some(httpError), Some(problemCode)) if httpError != problemCode =>
-        context
-          .invalid(
-            s"${context.errorPrefix} '${errorShapeId.toString}' declares @httpError($httpError) " +
-              s"and @httpProblem(code: $problemCode) with different status codes"
-          )
-          .invalidNel
-      case (Some(httpError), _)                                             =>
-        httpError.validNel
-      case (None, Some(problemCode))                                        =>
-        problemCode.intValue().validNel
-      case (None, None)                                                     =>
-        context
-          .invalid(
-            s"${context.errorPrefix} '${errorShapeId.toString}' must declare @httpError " +
-              s"or @httpProblem(code: ...)"
-          )
-          .invalidNel
+      (httpErrorCode, httpProblemCode) match {
+        case (Some(httpError), Some(problemCode)) if httpError != problemCode =>
+          context
+            .invalid(
+              s"${context.errorPrefix} '${errorShapeId.toString}' declares @httpError($httpError) " +
+                s"and @httpProblem(code: $problemCode) with different status codes"
+            )
+            .invalidNel
+        case (Some(httpError), _)                                             =>
+          httpError.validNel
+        case (None, Some(problemCode))                                        =>
+          problemCode.intValue().validNel
+        case (None, None)                                                     =>
+          context
+            .invalid(
+              s"${context.errorPrefix} '${errorShapeId.toString}' must declare @httpError " +
+                s"or @httpProblem(code: ...)"
+            )
+            .invalidNel
+      }
     }
   }
 }

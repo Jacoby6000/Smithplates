@@ -6,20 +6,10 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqlQueryRenderOutputSpec extends FunSuite {
-  private def widgetTable: SqlTable =
-    SqlTable(
-      name = "widgets",
-      shapeId = ShapeId.from("example#Widget"),
-      columns = Nil,
-      primaryKeys = List("id"),
-      foreignKeys = Nil,
-      indexes = Nil
-    )
-
   test("formatWithDdl - joins DDL statements and query units with section headers") {
     val ddlStatements =
       List(
-        DDLStatement.CreateTable(widgetTable, "CREATE TABLE widgets (id TEXT);")
+        DDLStatement.CreateTable(SqlQueryRenderOutputSpec.internal.widgetTable, "CREATE TABLE widgets (id TEXT);")
       )
     val queries       =
       List(
@@ -57,5 +47,20 @@ final class SqlQueryRenderOutputSpec extends FunSuite {
       queries.find(_.shapeId == shapeId).map(_.statement),
       Some(statement)
     )
+  }
+}
+object SqlQueryRenderOutputSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def widgetTable: SqlTable =
+      SqlTable(
+        name = "widgets",
+        shapeId = ShapeId.from("example#Widget"),
+        columns = Nil,
+        primaryKeys = List("id"),
+        foreignKeys = Nil,
+        indexes = Nil
+      )
   }
 }

@@ -47,7 +47,7 @@ object SqlServiceCodegenRenderer {
       .traverse { service =>
         settings.artifacts
           .traverse { artifactConfig =>
-            val queryRenderer        = queryRendererForArtifact(artifactConfig, settings)
+            val queryRenderer        = internal.queryRendererForArtifact(artifactConfig, settings)
             val bindPlaceholderStyle = queryRenderer
               .map(_.codegenBindPlaceholder)
               .getOrElse(SqlBindPlaceholder("?"))
@@ -79,7 +79,7 @@ object SqlServiceCodegenRenderer {
                       kind = artifactConfig.kind
                     )
                   if (artifactConfig.template == "models/models.ssp") {
-                    artifact :: renderEnumArtifacts(settings, context)
+                    artifact :: internal.renderEnumArtifacts(settings, context)
                   } else {
                     List(artifact)
                   }
@@ -89,71 +89,6 @@ object SqlServiceCodegenRenderer {
           .map(_.flatten)
       }
       .map(_.flatten)
-
-  private def renderEnumArtifacts(
-      settings: SqlServiceCodegenSettings,
-      context: SqlCodegenServiceContext
-  ): List[SqlCodegenArtifact] = {
-    val templateRoot        = settings.templateDirectory.stripPrefix("classpath:")
-    val stringEnumArtifacts =
-      context.stringEnums.map(stringEnum => renderStringEnumArtifact(settings, templateRoot, context, stringEnum))
-    val intEnumArtifacts    =
-      context.intEnums.map(intEnum => renderIntEnumArtifact(settings, templateRoot, context, intEnum))
-    stringEnumArtifacts ++ intEnumArtifacts
-  }
-
-  private def renderStringEnumArtifact(
-      settings: SqlServiceCodegenSettings,
-      templateRoot: String,
-      context: SqlCodegenServiceContext,
-      stringEnum: SqlStringEnum
-  ): SqlCodegenArtifact = {
-    val content =
-      ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
-        "string_enum",
-        Map("stringEnum" -> stringEnum)
-      )
-    SqlCodegenArtifact(
-      relativePath = enumArtifactRelativePath(settings, context, stringEnum.name),
-      content = content,
-      kind = SqlServiceCodegenArtifactKind.Src
-    )
-  }
-
-  private def renderIntEnumArtifact(
-      settings: SqlServiceCodegenSettings,
-      templateRoot: String,
-      context: SqlCodegenServiceContext,
-      intEnum: SqlIntEnum
-  ): SqlCodegenArtifact = {
-    val content =
-      ScalateSspTemplateEngine.renderClasspathPartial(
-        templateRoot,
-        "int_enum",
-        Map("intEnum" -> intEnum)
-      )
-    SqlCodegenArtifact(
-      relativePath = enumArtifactRelativePath(settings, context, intEnum.name),
-      content = content,
-      kind = SqlServiceCodegenArtifactKind.Src
-    )
-  }
-
-  private def enumArtifactRelativePath(
-      settings: SqlServiceCodegenSettings,
-      context: SqlCodegenServiceContext,
-      enumName: String
-  ): String = {
-    val namespacePathPrefix = CodegenPackageNames.outputPathPrefix(context.namespace)
-    val relativeOutputFile  = s"$namespacePathPrefix/${SqlCodegenSnakeCase.toSnakeCase(enumName)}.py"
-    settings.sourceOutputDirectory match {
-      case Some(sourceOutputDirectory) =>
-        s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
-      case None                        =>
-        relativeOutputFile
-    }
-  }
 
   def resolveOutputPath(
       settings: SqlServiceCodegenSettings,
@@ -174,54 +109,20 @@ object SqlServiceCodegenRenderer {
         case SqlServiceCodegenArtifactKind.Src  =>
           settings.sourceOutputDirectory match {
             case Some(sourceOutputDirectory) =>
-              s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
+              s"${internal.normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
             case None                        =>
               relativeOutputFile
           }
         case SqlServiceCodegenArtifactKind.Test =>
           settings.testOutputDirectory match {
             case Some(testOutputDirectory) =>
-              s"${normalizeDirectory(testOutputDirectory)}/$relativeOutputFile"
+              s"${internal.normalizeDirectory(testOutputDirectory)}/$relativeOutputFile"
             case None                      =>
               relativeOutputFile
           }
       }
     prefixedOutputFile
   }
-
-  private def queryRendererForArtifact(
-      artifactConfig: SqlServiceCodegenArtifactConfig,
-      settings: SqlServiceCodegenSettings
-  ): Option[SqlQueryRenderer] = {
-    val dialectKey = dialectKeyForArtifact(artifactConfig, settings)
-    settings.queryRenderers.get(dialectKey) match {
-      case some @ Some(_)                                                   => some
-      case None if dialectKey == SqlServiceCodegenSettings.SharedDialectKey =>
-        None
-      case None                                                             =>
-        throw new IllegalStateException(s"query renderer for dialect '$dialectKey' is required")
-    }
-  }
-
-  private def dialectKeyForArtifact(
-      artifactConfig: SqlServiceCodegenArtifactConfig,
-      settings: SqlServiceCodegenSettings
-  ): String = {
-    val paths = List(artifactConfig.template, artifactConfig.outputFile)
-    if (paths.exists(artifactPathRefersToDialect(_, "sqlite"))) {
-      "sqlite"
-    } else if (paths.exists(artifactPathRefersToDialect(_, "postgres"))) {
-      "postgres"
-    } else {
-      settings.defaultDialectKey
-    }
-  }
-
-  private def artifactPathRefersToDialect(path: String, dialectKey: String): Boolean =
-    path.startsWith(s"$dialectKey/") || path.contains(s"/$dialectKey/")
-
-  private def normalizeDirectory(directory: String): String =
-    directory.stripSuffix("/").stripSuffix("\\")
 
   def resolveTemplatePath(
       settings: SqlServiceCodegenSettings,
@@ -235,5 +136,107 @@ object SqlServiceCodegenRenderer {
         artifactConfig.template
       }
     s"classpath:$baseDirectory/$normalizedTemplate"
+  }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def renderEnumArtifacts(
+        settings: SqlServiceCodegenSettings,
+        context: SqlCodegenServiceContext
+    ): List[SqlCodegenArtifact] = {
+      val templateRoot        = settings.templateDirectory.stripPrefix("classpath:")
+      val stringEnumArtifacts =
+        context.stringEnums.map(stringEnum => renderStringEnumArtifact(settings, templateRoot, context, stringEnum))
+      val intEnumArtifacts    =
+        context.intEnums.map(intEnum => renderIntEnumArtifact(settings, templateRoot, context, intEnum))
+      stringEnumArtifacts ++ intEnumArtifacts
+    }
+
+    def renderStringEnumArtifact(
+        settings: SqlServiceCodegenSettings,
+        templateRoot: String,
+        context: SqlCodegenServiceContext,
+        stringEnum: SqlStringEnum
+    ): SqlCodegenArtifact = {
+      val content =
+        ScalateSspTemplateEngine.renderClasspathPartial(
+          templateRoot,
+          "string_enum",
+          Map("stringEnum" -> stringEnum)
+        )
+      SqlCodegenArtifact(
+        relativePath = enumArtifactRelativePath(settings, context, stringEnum.name),
+        content = content,
+        kind = SqlServiceCodegenArtifactKind.Src
+      )
+    }
+
+    def renderIntEnumArtifact(
+        settings: SqlServiceCodegenSettings,
+        templateRoot: String,
+        context: SqlCodegenServiceContext,
+        intEnum: SqlIntEnum
+    ): SqlCodegenArtifact = {
+      val content =
+        ScalateSspTemplateEngine.renderClasspathPartial(
+          templateRoot,
+          "int_enum",
+          Map("intEnum" -> intEnum)
+        )
+      SqlCodegenArtifact(
+        relativePath = enumArtifactRelativePath(settings, context, intEnum.name),
+        content = content,
+        kind = SqlServiceCodegenArtifactKind.Src
+      )
+    }
+
+    def enumArtifactRelativePath(
+        settings: SqlServiceCodegenSettings,
+        context: SqlCodegenServiceContext,
+        enumName: String
+    ): String = {
+      val namespacePathPrefix = CodegenPackageNames.outputPathPrefix(context.namespace)
+      val relativeOutputFile  = s"$namespacePathPrefix/${SqlCodegenSnakeCase.toSnakeCase(enumName)}.py"
+      settings.sourceOutputDirectory match {
+        case Some(sourceOutputDirectory) =>
+          s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
+        case None                        =>
+          relativeOutputFile
+      }
+    }
+
+    def queryRendererForArtifact(
+        artifactConfig: SqlServiceCodegenArtifactConfig,
+        settings: SqlServiceCodegenSettings
+    ): Option[SqlQueryRenderer] = {
+      val dialectKey = dialectKeyForArtifact(artifactConfig, settings)
+      settings.queryRenderers.get(dialectKey) match {
+        case some @ Some(_)                                                   => some
+        case None if dialectKey == SqlServiceCodegenSettings.SharedDialectKey =>
+          None
+        case None                                                             =>
+          throw new IllegalStateException(s"query renderer for dialect '$dialectKey' is required")
+      }
+    }
+
+    def dialectKeyForArtifact(
+        artifactConfig: SqlServiceCodegenArtifactConfig,
+        settings: SqlServiceCodegenSettings
+    ): String = {
+      val paths = List(artifactConfig.template, artifactConfig.outputFile)
+      if (paths.exists(artifactPathRefersToDialect(_, "sqlite"))) {
+        "sqlite"
+      } else if (paths.exists(artifactPathRefersToDialect(_, "postgres"))) {
+        "postgres"
+      } else {
+        settings.defaultDialectKey
+      }
+    }
+
+    def artifactPathRefersToDialect(path: String, dialectKey: String): Boolean =
+      path.startsWith(s"$dialectKey/") || path.contains(s"/$dialectKey/")
+
+    def normalizeDirectory(directory: String): String =
+      directory.stripSuffix("/").stripSuffix("\\")
   }
 }

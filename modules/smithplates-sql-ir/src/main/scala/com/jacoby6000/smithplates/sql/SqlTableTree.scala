@@ -23,9 +23,7 @@ final case class SqlTableGraph(
 )
 
 object SqlTableTree {
-  private given Ordering[ShapeId]          = Ordering.by(_.toString)
-  private given Ordering[SqlTableTreeNode] =
-    Ordering.by(node => (node.table.name, node.table.shapeId.toString))
+  import internal.given
 
   /** One node per @sqlTable structure; edge values are in-schema FK targets keyed by source member id. */
   def graph(schema: SqlSchema): SqlTableGraph = {
@@ -102,5 +100,12 @@ object SqlTableTree {
       }
 
     visits(tableShapeId, tableShapeId, Set(tableShapeId))
+  }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    given Ordering[ShapeId]          = Ordering.by(_.toString)
+    given Ordering[SqlTableTreeNode] =
+      Ordering.by(node => (node.table.name, node.table.shapeId.toString))
   }
 }

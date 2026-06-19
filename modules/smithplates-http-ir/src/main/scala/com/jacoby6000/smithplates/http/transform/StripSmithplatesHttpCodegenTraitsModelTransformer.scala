@@ -10,18 +10,21 @@ import software.amazon.smithy.model.transform.ModelTransformer
 
 /** Removes smithplates HTTP codegen traits after implied Smithy traits are materialized. */
 object StripSmithplatesHttpCodegenTraitsModelTransformer {
-  private val StripTraitIds =
-    Set(
-      HttpServiceTrait.ID,
-      HttpProblemTrait.ID,
-      HttpStaticHeaderTrait.ID
-    )
-
   def transform(model: Model): Model =
     ModelTransformer
       .create()
       .removeTraitsIf(
         model,
-        (_: Shape, traitShape: Trait) => StripTraitIds.contains(traitShape.toShapeId)
+        (_: Shape, traitShape: Trait) => internal.StripTraitIds.contains(traitShape.toShapeId)
       )
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val StripTraitIds =
+      Set(
+        HttpServiceTrait.ID,
+        HttpProblemTrait.ID,
+        HttpStaticHeaderTrait.ID
+      )
+  }
 }

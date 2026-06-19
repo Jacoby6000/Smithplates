@@ -12,8 +12,8 @@ object SqlTestModelLoader {
 
   def assemblerWithSqlTraits = {
     val assembler = Model.assembler().disableValidation()
-    assembler.addUnparsedModel(SqlSchemaTraitsModelId, readClasspathResource(SqlSchemaTraitsModelId))
-    addServiceTraitsIfPresent(assembler)
+    assembler.addUnparsedModel(SqlSchemaTraitsModelId, internal.readClasspathResource(SqlSchemaTraitsModelId))
+    internal.addServiceTraitsIfPresent(assembler)
     assembler
   }
 
@@ -23,25 +23,28 @@ object SqlTestModelLoader {
     assembler.assemble().unwrap()
   }
 
-  private def addServiceTraitsIfPresent(assembler: ModelAssembler): Unit =
-    Option(getClass.getClassLoader.getResourceAsStream(SqlServiceTraitsModelId)).foreach { stream =>
-      try
-        assembler.addUnparsedModel(SqlServiceTraitsModelId, readStream(stream))
-      finally
-        stream.close()
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def addServiceTraitsIfPresent(assembler: ModelAssembler): Unit =
+      Option(getClass.getClassLoader.getResourceAsStream(SqlServiceTraitsModelId)).foreach { stream =>
+        try
+          assembler.addUnparsedModel(SqlServiceTraitsModelId, readStream(stream))
+        finally
+          stream.close()
+      }
+
+    def readClasspathResource(path: String): String = {
+      val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
+        throw new IllegalStateException(
+          s"SQL schema traits Smithy model not on classpath at '$path'. " +
+            "Ensure smithplates-sql-ir is on the classpath."
+        )
+      }
+      try readStream(stream)
+      finally stream.close()
     }
 
-  private def readClasspathResource(path: String): String = {
-    val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
-      throw new IllegalStateException(
-        s"SQL schema traits Smithy model not on classpath at '$path'. " +
-          "Ensure smithplates-sql-ir is on the classpath."
-      )
-    }
-    try readStream(stream)
-    finally stream.close()
+    def readStream(stream: InputStream): String =
+      new String(stream.readAllBytes(), StandardCharsets.UTF_8)
   }
-
-  private def readStream(stream: InputStream): String =
-    new String(stream.readAllBytes(), StandardCharsets.UTF_8)
 }

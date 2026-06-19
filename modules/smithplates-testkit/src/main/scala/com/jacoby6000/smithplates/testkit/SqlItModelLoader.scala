@@ -10,31 +10,34 @@ object SqlItModelLoader {
   val SqlServiceTraitsModelId: String = "META-INF/smithy/smithplates.codegen.sql.service.smithy"
 
   def assemble(additionalModels: (String, String)*): Model = {
-    val assembler = assemblerWithSqlTraits
+    val assembler = internal.assemblerWithSqlTraits
     additionalModels.foreach { case (id, content) => assembler.addUnparsedModel(id, content) }
     assembler.assemble().unwrap()
   }
 
-  private def assemblerWithSqlTraits = {
-    val assembler = Model.assembler().disableValidation()
-    assembler.addUnparsedModel(SqlSchemaTraitsModelId, readClasspathResource(SqlSchemaTraitsModelId))
-    assembler.addUnparsedModel(SqlServiceTraitsModelId, readClasspathResource(SqlServiceTraitsModelId))
-    assembler
-  }
-
-  private def readClasspathResource(path: String): String = {
-    val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
-      throw new IllegalStateException(
-        s"SQL traits Smithy model not on classpath at '$path'. " +
-          "Ensure smithplates-sql-ir and smithplates-sql-service-ir are on the classpath."
-      )
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def assemblerWithSqlTraits = {
+      val assembler = Model.assembler().disableValidation()
+      assembler.addUnparsedModel(SqlSchemaTraitsModelId, readClasspathResource(SqlSchemaTraitsModelId))
+      assembler.addUnparsedModel(SqlServiceTraitsModelId, readClasspathResource(SqlServiceTraitsModelId))
+      assembler
     }
-    try
-      readStream(stream)
-    finally
-      stream.close()
-  }
 
-  private def readStream(stream: InputStream): String =
-    new String(stream.readAllBytes(), StandardCharsets.UTF_8)
+    def readClasspathResource(path: String): String = {
+      val stream = Option(SqlItModelLoader.getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
+        throw new IllegalStateException(
+          s"SQL traits Smithy model not on classpath at '$path'. " +
+            "Ensure smithplates-sql-ir and smithplates-sql-service-ir are on the classpath."
+        )
+      }
+      try
+        readStream(stream)
+      finally
+        stream.close()
+    }
+
+    def readStream(stream: InputStream): String =
+      new String(stream.readAllBytes(), StandardCharsets.UTF_8)
+  }
 }

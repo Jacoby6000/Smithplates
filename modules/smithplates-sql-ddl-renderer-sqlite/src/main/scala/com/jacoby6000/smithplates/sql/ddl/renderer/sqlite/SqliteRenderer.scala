@@ -21,49 +21,52 @@ object SqliteRenderer extends SqlSchemaDdlRenderer {
     }
     SqlShared.renderColumnLine(
       column.name,
-      sqlTypeFor(column.columnType),
+      internal.sqlTypeFor(column.columnType),
       column.nullable,
       checks,
       column.autoGeneration.map(
         SqlShared.autoGenerationDefaultClause(
           _,
           column.columnType,
-          uuidExpression = sqliteAutoUuidDefault,
-          timestampExpression = sqliteTimestampExpression
+          uuidExpression = internal.sqliteAutoUuidDefault,
+          timestampExpression = internal.sqliteTimestampExpression
         )
       )
     )
   }
 
-  private def sqliteTimestampExpression(format: SqlTimestampFormat): String =
-    format match {
-      case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
-      case SqlTimestampFormat.EpochSeconds => "unixepoch('subsec')"
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def sqliteTimestampExpression(format: SqlTimestampFormat): String =
+      format match {
+        case SqlTimestampFormat.DateTime     => "CURRENT_TIMESTAMP"
+        case SqlTimestampFormat.EpochSeconds => "unixepoch('subsec')"
+      }
 
-  private val sqliteAutoUuidDefault: String =
-    "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
-      "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
-      "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
+    val sqliteAutoUuidDefault: String =
+      "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+        "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
+        "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
 
-  private def sqlTypeFor(columnType: SqlColumnType): String =
-    SqlShared.baseSqlType(columnType) match {
-      case Some(storage) => storage
-      case None          =>
-        columnType match {
-          case SqlColumnType.Timestamp(SqlTimestampFormat.DateTime)     => "TEXT"
-          // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows fractional seconds (e.g. millis).
-          //                               SQLite REAL matches that wire format; precision beyond milliseconds
-          //                               is truncated by the spec. REAL is a 64-bit floating point number.
-          //                               Eventually, this may cause floating point rounding issues, but sqlite
-          //                               has no better alternative format to match the spec.
-          case SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds) => "REAL"
-          case SqlColumnType.Blob                                       => "BLOB"
-          case SqlColumnType.Text | SqlColumnType.Uuid | SqlColumnType.Boolean | SqlColumnType.Json |
-              SqlColumnType.Varchar(_) | _: SqlColumnType.StringEnum =>
-            "TEXT"
-          case other                                                    =>
-            throw new IllegalStateException(s"Unsupported SQLite column type: $other")
-        }
-    }
+    def sqlTypeFor(columnType: SqlColumnType): String =
+      SqlShared.baseSqlType(columnType) match {
+        case Some(storage) => storage
+        case None          =>
+          columnType match {
+            case SqlColumnType.Timestamp(SqlTimestampFormat.DateTime)     => "TEXT"
+            // DESNOTE(jbarber, 2026-06-05): Smithy epoch-seconds allows fractional seconds (e.g. millis).
+            //                               SQLite REAL matches that wire format; precision beyond milliseconds
+            //                               is truncated by the spec. REAL is a 64-bit floating point number.
+            //                               Eventually, this may cause floating point rounding issues, but sqlite
+            //                               has no better alternative format to match the spec.
+            case SqlColumnType.Timestamp(SqlTimestampFormat.EpochSeconds) => "REAL"
+            case SqlColumnType.Blob                                       => "BLOB"
+            case SqlColumnType.Text | SqlColumnType.Uuid | SqlColumnType.Boolean | SqlColumnType.Json |
+                SqlColumnType.Varchar(_) | _: SqlColumnType.StringEnum =>
+              "TEXT"
+            case other                                                    =>
+              throw new IllegalStateException(s"Unsupported SQLite column type: $other")
+          }
+      }
+  }
 }

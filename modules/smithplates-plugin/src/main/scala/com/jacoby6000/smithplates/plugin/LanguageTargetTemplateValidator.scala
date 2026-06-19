@@ -20,39 +20,42 @@ object LanguageTargetTemplateValidator {
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "sql", target.templateDirectory)
       .andThen(_ =>
-        validateRequiredTemplatesExist(
+        internal.validateRequiredTemplatesExist(
           languageId = languageId,
           templateDirectory = resolveTemplateDirectory(target, languageId),
           enabledDialectKeys = enabledDialectKeys
         ))
 
-  private def validateRequiredTemplatesExist(
-      languageId: String,
-      templateDirectory: String,
-      enabledDialectKeys: List[String]
-  ): SqlValidated[Unit] = {
-    val requiredTemplates =
-      SqlServiceCodegenDbArtifacts
-        .forEnabledDialects(enabledDialectKeys)
-        .map(_.template)
-        .distinct
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def validateRequiredTemplatesExist(
+        languageId: String,
+        templateDirectory: String,
+        enabledDialectKeys: List[String]
+    ): SqlValidated[Unit] = {
+      val requiredTemplates =
+        SqlServiceCodegenDbArtifacts
+          .forEnabledDialects(enabledDialectKeys)
+          .map(_.template)
+          .distinct
 
-    val missingTemplates =
-      requiredTemplates.filterNot { template =>
-        ScalateSspTemplateEngine.classpathResourceExists(
-          PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+      val missingTemplates =
+        requiredTemplates.filterNot { template =>
+          ScalateSspTemplateEngine.classpathResourceExists(
+            PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+          )
+        }
+
+      if (missingTemplates.isEmpty) {
+        ().validNel
+      } else {
+        SqlValidated.invalid(
+          com.jacoby6000.smithplates.sql.model.InvalidPluginConfig(
+            s"smithplates.$languageId.sql templateDirectory '$templateDirectory' " +
+              s"is missing required templates: ${missingTemplates.sorted.mkString(", ")}"
+          )
         )
       }
-
-    if (missingTemplates.isEmpty) {
-      ().validNel
-    } else {
-      SqlValidated.invalid(
-        com.jacoby6000.smithplates.sql.model.InvalidPluginConfig(
-          s"smithplates.$languageId.sql templateDirectory '$templateDirectory' " +
-            s"is missing required templates: ${missingTemplates.sorted.mkString(", ")}"
-        )
-      )
     }
   }
 }

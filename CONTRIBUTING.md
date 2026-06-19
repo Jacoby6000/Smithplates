@@ -156,7 +156,7 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 | Published plugin | `modules/smithplates-plugin/` | `sbtn smithplatesPlugin/test` |
 | Dialect IT | `modules/smithplates-sql-ddl-renderer-*-it/` | `sbtn smithplatesSqlDdlRendererPostgresIt/test`, … |
 
-**Conventions:** see [`AGENTS.md`](AGENTS.md) (Scala 3.3.6, strict options, `sbtn`, functional validation with `ValidatedNel`). Pre-commit hooks (`scripts/pre-commit-scala.sh`) run scalafmt, scalafix, and compile on staged Scala/SBT changes.
+**Conventions:** see [`AGENTS.md`](AGENTS.md) and [`.cursor/rules/smithplates-build.mdc`](.cursor/rules/smithplates-build.mdc) (Scala toolchain, `sbtn`, `ValidatedNel`, pre-commit hooks).
 
 **Typical loop:**
 

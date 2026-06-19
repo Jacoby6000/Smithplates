@@ -22,20 +22,16 @@ object SqlCodegenHelperAttributes {
       operation.bindParameters.flatMap(bind =>
         Option.when(bind.isJson && bind.jsonTypeName.nonEmpty)(bind.jsonTypeName)) ++
         operation.resultFields.filter(_.isJson).map(_.typeName) ++
-        nestedJsonTypeNames(operation)
+        internal.nestedJsonTypeNames(operation)
     }.toSet
 
   def usedJsonTypeNamesCol(operations: List[TemplateOperationView]): Set[String] =
     operations
-      .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
+      .filter(operation => internal.usesDictRowFactory(operation.sqlBodyKind))
       .flatMap(operation =>
         operation.resultFields.filter(_.isJson).map(_.typeName) ++
-          nestedJsonTypeNames(operation))
+          internal.nestedJsonTypeNames(operation))
       .toSet
-
-  /** JSON columns on `@sqlDeriveSelectOne` join tables need their `_read_*` helpers emitted too. */
-  private def nestedJsonTypeNames(operation: TemplateOperationView): List[String] =
-    operation.selectOneNestedBindings.flatMap(_.fields.filter(_.isJson).map(_.typeName))
 
   def classRowFactories(operations: List[SqlCodegenOperation]): List[ClassRowFactorySpec] =
     operations
@@ -73,7 +69,7 @@ object SqlCodegenHelperAttributes {
               SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
             operation.resultFields
               .filterNot(_.isJson)
-              .flatMap(field => rowReaderForType(field.readTypeName, field.timestampFormat))
+              .flatMap(field => internal.rowReaderForType(field.readTypeName, field.timestampFormat))
           case _                                                                               =>
             Nil
         }
@@ -83,9 +79,9 @@ object SqlCodegenHelperAttributes {
 
   def rowReadersCol(operations: List[TemplateOperationView]): Set[String] =
     operations
-      .filter(operation => usesDictRowFactory(operation.sqlBodyKind))
+      .filter(operation => internal.usesDictRowFactory(operation.sqlBodyKind))
       .flatMap(_.resultFields.filterNot(_.isJson).flatMap { field =>
-        rowReaderForType(field.readTypeName, field.timestampFormat).map(reader => s"${reader}_col")
+        internal.rowReaderForType(field.readTypeName, field.timestampFormat).map(reader => s"${reader}_col")
       })
       .toSet
 
@@ -95,7 +91,7 @@ object SqlCodegenHelperAttributes {
       .flatMap(bind =>
         SqlCodegenNeutralTypeUsage.timestampBindHelper(
           bind.typeName,
-          parseTimestampFormat(bind.timestampFormat),
+          internal.parseTimestampFormat(bind.timestampFormat),
           dialectKey
         ))
       .toSet
@@ -105,7 +101,7 @@ object SqlCodegenHelperAttributes {
     val timestampBindsSet = timestampBinds(ctx.operations, ctx.dialectKey)
     val namedRowMapper    =
       ctx.dialectKey == "sqlite" &&
-        ctx.operations.exists(operation => usesDictRowFactory(operation.sqlBodyKind))
+        ctx.operations.exists(operation => internal.usesDictRowFactory(operation.sqlBodyKind))
     val sqliteIncludes    =
       if (namedRowMapper) {
         List("fragments/row_mappers/sqlite_named_row")
@@ -113,17 +109,17 @@ object SqlCodegenHelperAttributes {
         Nil
       }
     val readerIncludes    =
-      rowReaderIncludeOrder.flatMap { reader =>
+      internal.rowReaderIncludeOrder.flatMap { reader =>
         if (rowReadersSet.contains(reader)) {
-          rowReaderPartialPath(reader, ctx.dialectKey)
+          internal.rowReaderPartialPath(reader, ctx.dialectKey)
         } else {
           None
         }
       }
     val bindIncludes      =
-      timestampBindIncludeOrder.flatMap { bindHelper =>
+      internal.timestampBindIncludeOrder.flatMap { bindHelper =>
         if (timestampBindsSet.contains(bindHelper)) {
-          timestampBindPartialPath(bindHelper, ctx.dialectKey)
+          internal.timestampBindPartialPath(bindHelper, ctx.dialectKey)
         } else {
           None
         }
@@ -133,9 +129,9 @@ object SqlCodegenHelperAttributes {
 
   def helperColPartialPaths(ctx: ServiceTemplateView): List[String] = {
     val rowReadersColSet = rowReadersCol(ctx.operations)
-    colReaderIncludeOrder.flatMap { reader =>
+    internal.colReaderIncludeOrder.flatMap { reader =>
       if (rowReadersColSet.contains(reader)) {
-        colReaderPartialPath(reader, ctx.dialectKey)
+        internal.colReaderPartialPath(reader, ctx.dialectKey)
       } else {
         None
       }
@@ -152,14 +148,14 @@ object SqlCodegenHelperAttributes {
         ctx.operations.exists(_.sqlBodyKind == SqlCodegenSqlBodyKind.SelectOneClassRow)
     val needsDictRow      =
       ctx.dialectKey == "postgres" &&
-        ctx.operations.exists(operation => usesDictRowFactory(operation.sqlBodyKind))
+        ctx.operations.exists(operation => internal.usesDictRowFactory(operation.sqlBodyKind))
     ImportRequirements(
       needsCastImport = rowReadersSet.nonEmpty || rowReadersColSet.nonEmpty || usesJson,
       needsJsonImport = usesJson,
-      needsDecimalImport = needsDecimalImport(ctx.dialectKey, rowReadersSet, timestampBindsSet) ||
+      needsDecimalImport = internal.needsDecimalImport(ctx.dialectKey, rowReadersSet, timestampBindsSet) ||
         rowReadersColSet.contains("_read_decimal_col") ||
         rowReadersColSet.contains("_read_epoch_seconds_col"),
-      needsDatetimeImports = needsDatetimeImports(rowReadersSet, timestampBindsSet) ||
+      needsDatetimeImports = internal.needsDatetimeImports(rowReadersSet, timestampBindsSet) ||
         rowReadersColSet.contains("_read_datetime_col") ||
         rowReadersColSet.contains("_read_epoch_seconds_col"),
       needsTimezoneImport = ctx.dialectKey == "sqlite" ||
@@ -196,101 +192,109 @@ object SqlCodegenHelperAttributes {
       resultFields: List[SqlCodegenResultField]
   )
 
-  private def usesDictRowFactory(sqlBodyKind: String): Boolean =
-    sqlBodyKind == SqlCodegenSqlBodyKind.InsertStructureDict ||
-      sqlBodyKind == SqlCodegenSqlBodyKind.SelectOneDict
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
 
-  private def rowReaderForType(typeName: String, timestampFormat: String): Option[String] =
-    SqlCodegenNeutralTypeUsage.rowReaderForType(
-      typeName,
-      parseTimestampFormat(timestampFormat)
-    )
+    /** JSON columns on `@sqlDeriveSelectOne` join tables need their `_read_*` helpers emitted too. */
+    def nestedJsonTypeNames(operation: TemplateOperationView): List[String] =
+      operation.selectOneNestedBindings.flatMap(_.fields.filter(_.isJson).map(_.typeName))
 
-  private def parseTimestampFormat(timestampFormat: String): Option[SqlTimestampFormat] =
-    timestampFormat match {
-      case "DateTime"     => Some(SqlTimestampFormat.DateTime)
-      case "EpochSeconds" => Some(SqlTimestampFormat.EpochSeconds)
-      case _              => None
-    }
+    def usesDictRowFactory(sqlBodyKind: String): Boolean =
+      sqlBodyKind == SqlCodegenSqlBodyKind.InsertStructureDict ||
+        sqlBodyKind == SqlCodegenSqlBodyKind.SelectOneDict
 
-  private val rowReaderIncludeOrder: List[String] =
-    List(
-      "_read_bool",
-      "_read_bytes",
-      "_read_datetime",
-      "_read_decimal",
-      "_read_epoch_seconds",
-      "_read_float",
-      "_read_int",
-      "_read_str"
-    )
+    def rowReaderForType(typeName: String, timestampFormat: String): Option[String] =
+      SqlCodegenNeutralTypeUsage.rowReaderForType(
+        typeName,
+        parseTimestampFormat(timestampFormat)
+      )
 
-  private val timestampBindIncludeOrder: List[String] =
-    List(
-      "_timestamp_bind_datetime",
-      "_timestamp_bind_epoch_seconds"
-    )
+    def parseTimestampFormat(timestampFormat: String): Option[SqlTimestampFormat] =
+      timestampFormat match {
+        case "DateTime"     => Some(SqlTimestampFormat.DateTime)
+        case "EpochSeconds" => Some(SqlTimestampFormat.EpochSeconds)
+        case _              => None
+      }
 
-  private val colReaderIncludeOrder: List[String] =
-    List(
-      "_read_bool_col",
-      "_read_bytes_col",
-      "_read_datetime_col",
-      "_read_decimal_col",
-      "_read_epoch_seconds_col",
-      "_read_float_col",
-      "_read_int_col",
-      "_read_str_col"
-    )
+    val rowReaderIncludeOrder: List[String] =
+      List(
+        "_read_bool",
+        "_read_bytes",
+        "_read_datetime",
+        "_read_decimal",
+        "_read_epoch_seconds",
+        "_read_float",
+        "_read_int",
+        "_read_str"
+      )
 
-  private def rowReaderPartialPath(reader: String, dialectKey: String): Option[String] =
-    reader match {
-      case "_read_bool" | "_read_bytes" | "_read_decimal" | "_read_float" | "_read_int" =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
-      case "_read_datetime" | "_read_epoch_seconds" | "_read_str"                       =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
-      case _                                                                            =>
-        None
-    }
+    val timestampBindIncludeOrder: List[String] =
+      List(
+        "_timestamp_bind_datetime",
+        "_timestamp_bind_epoch_seconds"
+      )
 
-  private def colReaderPartialPath(reader: String, dialectKey: String): Option[String] =
-    reader match {
-      case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
-      case "_read_datetime_col" | "_read_str_col"                                                           =>
-        Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
-      case "_read_epoch_seconds_col"                                                                        =>
-        Some("fragments/row_readers/read_epoch_seconds_postgres_col")
-      case _                                                                                                =>
-        None
-    }
+    val colReaderIncludeOrder: List[String] =
+      List(
+        "_read_bool_col",
+        "_read_bytes_col",
+        "_read_datetime_col",
+        "_read_decimal_col",
+        "_read_epoch_seconds_col",
+        "_read_float_col",
+        "_read_int_col",
+        "_read_str_col"
+      )
 
-  private def timestampBindPartialPath(bindHelper: String, dialectKey: String): Option[String] =
-    bindHelper match {
-      case "_timestamp_bind_datetime"      =>
-        Some("fragments/timestamps/bind_datetime")
-      case "_timestamp_bind_epoch_seconds" =>
-        Some(s"fragments/timestamps/bind_epoch_seconds_$dialectKey")
-      case _                               =>
-        None
-    }
+    def rowReaderPartialPath(reader: String, dialectKey: String): Option[String] =
+      reader match {
+        case "_read_bool" | "_read_bytes" | "_read_decimal" | "_read_float" | "_read_int" =>
+          Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
+        case "_read_datetime" | "_read_epoch_seconds" | "_read_str"                       =>
+          Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
+        case _                                                                            =>
+          None
+      }
 
-  private def needsDecimalImport(
-      dialectKey: String,
-      readers: Set[String],
-      timestampBinds: Set[String]
-  ): Boolean =
-    readers.contains("_read_decimal") ||
-      (dialectKey == "postgres" && (
+    def colReaderPartialPath(reader: String, dialectKey: String): Option[String] =
+      reader match {
+        case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
+          Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
+        case "_read_datetime_col" | "_read_str_col"                                                           =>
+          Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
+        case "_read_epoch_seconds_col"                                                                        =>
+          Some("fragments/row_readers/read_epoch_seconds_postgres_col")
+        case _                                                                                                =>
+          None
+      }
+
+    def timestampBindPartialPath(bindHelper: String, dialectKey: String): Option[String] =
+      bindHelper match {
+        case "_timestamp_bind_datetime"      =>
+          Some("fragments/timestamps/bind_datetime")
+        case "_timestamp_bind_epoch_seconds" =>
+          Some(s"fragments/timestamps/bind_epoch_seconds_$dialectKey")
+        case _                               =>
+          None
+      }
+
+    def needsDecimalImport(
+        dialectKey: String,
+        readers: Set[String],
+        timestampBinds: Set[String]
+    ): Boolean =
+      readers.contains("_read_decimal") ||
+        (dialectKey == "postgres" && (
+          readers.contains("_read_epoch_seconds") ||
+            timestampBinds.contains("_timestamp_bind_epoch_seconds")
+        ))
+
+    def needsDatetimeImports(
+        readers: Set[String],
+        timestampBinds: Set[String]
+    ): Boolean =
+      readers.exists(_.startsWith("_read_datetime")) ||
         readers.contains("_read_epoch_seconds") ||
-          timestampBinds.contains("_timestamp_bind_epoch_seconds")
-      ))
-
-  private def needsDatetimeImports(
-      readers: Set[String],
-      timestampBinds: Set[String]
-  ): Boolean =
-    readers.exists(_.startsWith("_read_datetime")) ||
-      readers.contains("_read_epoch_seconds") ||
-      timestampBinds.nonEmpty
+        timestampBinds.nonEmpty
+  }
 }

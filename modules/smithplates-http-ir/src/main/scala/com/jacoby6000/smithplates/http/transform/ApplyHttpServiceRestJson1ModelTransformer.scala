@@ -16,7 +16,7 @@ object ApplyHttpServiceRestJson1ModelTransformer {
         .shapes(classOf[ServiceShape])
         .iterator()
         .asScala
-        .flatMap(transformService)
+        .flatMap(internal.transformService)
         .toList
 
     if (replacements.isEmpty) {
@@ -26,23 +26,26 @@ object ApplyHttpServiceRestJson1ModelTransformer {
     }
   }
 
-  private def transformService(service: ServiceShape): Option[ServiceShape] =
-    service.httpService match {
-      case None                                                           =>
-        None
-      case Some(_) if service.getTrait(classOf[RestJson1Trait]).isPresent =>
-        None
-      case Some(_)                                                        =>
-        Some(
-          service
-            .toBuilder()
-            .addTrait(
-              RestJson1Trait
-                .builder()
-                .sourceLocation(service.getSourceLocation)
-                .build()
-            )
-            .build()
-        )
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def transformService(service: ServiceShape): Option[ServiceShape] =
+      service.httpService match {
+        case None                                                           =>
+          None
+        case Some(_) if service.getTrait(classOf[RestJson1Trait]).isPresent =>
+          None
+        case Some(_)                                                        =>
+          Some(
+            service
+              .toBuilder()
+              .addTrait(
+                RestJson1Trait
+                  .builder()
+                  .sourceLocation(service.getSourceLocation)
+                  .build()
+              )
+              .build()
+          )
+      }
+  }
 }

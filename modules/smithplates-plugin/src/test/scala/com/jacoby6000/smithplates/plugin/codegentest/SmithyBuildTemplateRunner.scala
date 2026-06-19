@@ -33,10 +33,10 @@ object SmithyBuildTemplateRunner {
 
     val outputDirectory = caseDirectory.resolve("out")
     logPhase(s"preparing output directory $outputDirectory")
-    deleteRecursively(outputDirectory)
+    internal.deleteRecursively(outputDirectory)
     Files.createDirectories(outputDirectory)
 
-    val pluginsByName                                                = loadPlugins(classLoader)
+    val pluginsByName                                                = internal.loadPlugins(classLoader)
     val pluginFactory: Function[String, Optional[SmithyBuildPlugin]] =
       (name: String) =>
         pluginsByName.get(name) match {
@@ -52,7 +52,7 @@ object SmithyBuildTemplateRunner {
       logPhase("running smithy build")
       val result =
         SmithyBuild
-          .create(classLoader, () => modelAssemblerFor(loadedConfig, classLoader))
+          .create(classLoader, () => internal.modelAssemblerFor(loadedConfig, classLoader))
           .config(loadedConfig)
           .outputDirectory(outputDirectory)
           .pluginClassLoader(classLoader)
@@ -61,7 +61,7 @@ object SmithyBuildTemplateRunner {
       logPhase("smithy build finished")
 
       if (result.anyBroken()) {
-        Left(formatBrokenBuild(result))
+        Left(internal.formatBrokenBuild(result))
       } else {
         PythonCodegenRuffFormatter.formatGeneratedPython(
           outputDirectory,
@@ -79,66 +79,65 @@ object SmithyBuildTemplateRunner {
     }
   }
 
-  private val TraitModelResources =
-    List(
-      "META-INF/smithy/smithplates.codegen.sql.smithy",
-      "META-INF/smithy/smithplates.codegen.sql.service.smithy",
-      "META-INF/smithy/smithplates.codegen.http.smithy"
-    )
-
-  private def modelAssemblerFor(config: SmithyBuildConfig, classLoader: ClassLoader): ModelAssembler = {
-    // Match SqlTestModelLoader: @sqlDerive* operations use primitive outputs rejected by stock Smithy validation.
-    val assembler = Model.assembler(classLoader).discoverModels(classLoader).disableValidation()
-    TraitModelResources.foreach { resource =>
-      Option(classLoader.getResource(resource)).foreach { url =>
-        assembler.addImport(url); ()
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val TraitModelResources                                                                    =
+      List(
+        "META-INF/smithy/smithplates.codegen.sql.smithy",
+        "META-INF/smithy/smithplates.codegen.sql.service.smithy",
+        "META-INF/smithy/smithplates.codegen.http.smithy"
+      )
+    def modelAssemblerFor(config: SmithyBuildConfig, classLoader: ClassLoader): ModelAssembler = {
+      // Match SqlTestModelLoader: @sqlDerive* operations use primitive outputs rejected by stock Smithy validation.
+      val assembler = Model.assembler(classLoader).discoverModels(classLoader).disableValidation()
+      TraitModelResources.foreach { resource =>
+        Option(classLoader.getResource(resource)).foreach { url =>
+          assembler.addImport(url); ()
+        }
       }
+      config.getSources.forEach { source =>
+        assembler.addImport(source); ()
+      }
+      config.getImports.forEach { importPath =>
+        assembler.addImport(importPath); ()
+      }
+      assembler
     }
-    config.getSources.forEach { source =>
-      assembler.addImport(source); ()
+    def loadPlugins(classLoader: ClassLoader): Map[String, SmithyBuildPlugin]                  = {
+      val fromServiceLoader =
+        ServiceLoader
+          .load(classOf[SmithyBuildPlugin], classLoader)
+          .iterator()
+          .asScala
+          .map(plugin => plugin.getName -> plugin)
+          .toMap
+
+      fromServiceLoader ++ Map(
+        PluginName -> new SmithplatesBuildPlugin(),
+        "openapi"  -> new Smithy2OpenApi()
+      )
     }
-    config.getImports.forEach { importPath =>
-      assembler.addImport(importPath); ()
-    }
-    assembler
+    def formatBrokenBuild(result: software.amazon.smithy.build.SmithyBuildResult): String      =
+      result.getProjectionResults.asScala
+        .filter(_.isBroken)
+        .map { projection =>
+          val events =
+            projection.getEvents.asScala
+              .map(event => s"${event.getSeverity}: ${event.getMessage}")
+              .mkString("\n")
+          s"Projection '${projection.getProjectionName}' failed:\n$events"
+        }
+        .mkString("\n\n")
+    def deleteRecursively(path: Path): Unit                                                    =
+      try
+        if (Files.exists(path)) {
+          Files
+            .walk(path)
+            .sorted(java.util.Comparator.reverseOrder[Path]())
+            .forEach(Files.delete(_))
+        }
+      catch {
+        case _: NoSuchFileException => ()
+      }
   }
-
-  private def loadPlugins(classLoader: ClassLoader): Map[String, SmithyBuildPlugin] = {
-    val fromServiceLoader =
-      ServiceLoader
-        .load(classOf[SmithyBuildPlugin], classLoader)
-        .iterator()
-        .asScala
-        .map(plugin => plugin.getName -> plugin)
-        .toMap
-
-    fromServiceLoader ++ Map(
-      PluginName -> new SmithplatesBuildPlugin(),
-      "openapi"  -> new Smithy2OpenApi()
-    )
-  }
-
-  private def formatBrokenBuild(result: software.amazon.smithy.build.SmithyBuildResult): String =
-    result.getProjectionResults.asScala
-      .filter(_.isBroken)
-      .map { projection =>
-        val events =
-          projection.getEvents.asScala
-            .map(event => s"${event.getSeverity}: ${event.getMessage}")
-            .mkString("\n")
-        s"Projection '${projection.getProjectionName}' failed:\n$events"
-      }
-      .mkString("\n\n")
-
-  private def deleteRecursively(path: Path): Unit =
-    try
-      if (Files.exists(path)) {
-        Files
-          .walk(path)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
-          .forEach(Files.delete(_))
-      }
-    catch {
-      case _: NoSuchFileException => ()
-    }
 }

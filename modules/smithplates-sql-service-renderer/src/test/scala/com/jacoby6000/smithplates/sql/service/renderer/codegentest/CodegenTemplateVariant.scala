@@ -52,44 +52,10 @@ final case class CodegenTemplateVariant(
         None
     }
 
-  private def isHttpClientPath(outputRelativePath: String): Boolean =
-    outputRelativePath.contains("/client/") || outputRelativePath.contains("/clients/")
-
-  private def isHttpServerPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
-    val namespaceRoot = namespaceRootPrefix(namespacePathPrefix)
-    outputRelativePath.startsWith(namespaceRoot) &&
-    !isHttpClientPath(outputRelativePath) &&
-    (outputRelativePath.startsWith(s"${namespaceRoot}apis/") ||
-      outputRelativePath.startsWith(s"${namespaceRoot}app_") ||
-      outputRelativePath.startsWith(s"${namespaceRoot}api_") ||
-      outputRelativePath == s"${namespaceRoot}operation_bindings.py")
-  }
-
-  private def isSqlProtocolOutputPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
-    val namespaceRoot = namespaceRootPrefix(namespacePathPrefix)
-    if (!outputRelativePath.startsWith(namespaceRoot)) {
-      false
-    } else {
-      val relativeToRoot = outputRelativePath.stripPrefix(namespaceRoot)
-      relativeToRoot.endsWith("_protocol.py") && !relativeToRoot.contains("/")
-    }
-  }
-
-  private def isSqlNamespaceRootEnumPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
-    val namespaceRoot = namespaceRootPrefix(namespacePathPrefix)
-    if (!outputRelativePath.startsWith(namespaceRoot)) {
-      false
-    } else {
-      val relativeToRoot = outputRelativePath.stripPrefix(namespaceRoot)
-      relativeToRoot.endsWith(".py") &&
-      !relativeToRoot.contains("/") &&
-      !relativeToRoot.endsWith("_protocol.py")
-    }
-  }
-
   def matchesGeneratedOutputPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
     val sharedModelPrefix =
       sharedModelsResourcePath(namespacePathPrefix).map(path => s"$path/").getOrElse("")
+    val namespaceRoot     = namespaceRootPrefix(namespacePathPrefix)
 
     if (sharedModelPrefix.nonEmpty && outputRelativePath.startsWith(sharedModelPrefix)) {
       true
@@ -100,28 +66,28 @@ final case class CodegenTemplateVariant(
         case GoldenTestLayout.SqlDialect =>
           if (outputRelativePath.startsWith(implementationSrcPrefix(namespacePathPrefix))) {
             true
-          } else if (isSqlProtocolOutputPath(outputRelativePath, namespacePathPrefix)) {
+          } else if (CodegenTemplateVariant.internal.isSqlProtocolOutputPath(outputRelativePath, namespaceRoot)) {
             true
-          } else if (isSqlNamespaceRootEnumPath(outputRelativePath, namespacePathPrefix)) {
+          } else if (CodegenTemplateVariant.internal.isSqlNamespaceRootEnumPath(outputRelativePath, namespaceRoot)) {
             true
           } else {
             false
           }
         case GoldenTestLayout.HttpNested =>
           if (implementationId == "server") {
-            isHttpServerPath(outputRelativePath, namespacePathPrefix) ||
-            (outputRelativePath.startsWith(namespaceRootPrefix(namespacePathPrefix)) &&
+            CodegenTemplateVariant.internal.isHttpServerPath(outputRelativePath, namespaceRoot) ||
+            (outputRelativePath.startsWith(namespaceRoot) &&
               outputRelativePath.endsWith(".py") &&
-              !isHttpClientPath(outputRelativePath) &&
-              !outputRelativePath.startsWith(s"${namespaceRootPrefix(namespacePathPrefix)}apis/") &&
-              !outputRelativePath.startsWith(s"${namespaceRootPrefix(namespacePathPrefix)}app_") &&
-              !outputRelativePath.startsWith(s"${namespaceRootPrefix(namespacePathPrefix)}api_") &&
-              outputRelativePath != s"${namespaceRootPrefix(namespacePathPrefix)}operation_bindings.py")
+              !CodegenTemplateVariant.internal.isHttpClientPath(outputRelativePath) &&
+              !outputRelativePath.startsWith(s"${namespaceRoot}apis/") &&
+              !outputRelativePath.startsWith(s"${namespaceRoot}app_") &&
+              !outputRelativePath.startsWith(s"${namespaceRoot}api_") &&
+              outputRelativePath != s"${namespaceRoot}operation_bindings.py")
           } else {
-            isHttpClientPath(outputRelativePath) ||
-            (outputRelativePath.startsWith(namespaceRootPrefix(namespacePathPrefix)) &&
+            CodegenTemplateVariant.internal.isHttpClientPath(outputRelativePath) ||
+            (outputRelativePath.startsWith(namespaceRoot) &&
               outputRelativePath.endsWith(".py") &&
-              !isHttpServerPath(outputRelativePath, namespacePathPrefix))
+              !CodegenTemplateVariant.internal.isHttpServerPath(outputRelativePath, namespaceRoot))
           }
       }
     }
@@ -130,6 +96,41 @@ final case class CodegenTemplateVariant(
   override def compare(that: CodegenTemplateVariant): Int =
     s"$languageId/$serviceTypeId/$implementationId".compare(
       that.languageId + "/" + that.serviceTypeId + "/" + that.implementationId)
+}
+
+object CodegenTemplateVariant {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def isHttpClientPath(outputRelativePath: String): Boolean =
+      outputRelativePath.contains("/client/") || outputRelativePath.contains("/clients/")
+
+    def isHttpServerPath(outputRelativePath: String, namespaceRoot: String): Boolean =
+      outputRelativePath.startsWith(namespaceRoot) &&
+        !isHttpClientPath(outputRelativePath) &&
+        (outputRelativePath.startsWith(s"${namespaceRoot}apis/") ||
+          outputRelativePath.startsWith(s"${namespaceRoot}app_") ||
+          outputRelativePath.startsWith(s"${namespaceRoot}api_") ||
+          outputRelativePath == s"${namespaceRoot}operation_bindings.py")
+
+    def isSqlProtocolOutputPath(outputRelativePath: String, namespaceRoot: String): Boolean =
+      if (!outputRelativePath.startsWith(namespaceRoot)) {
+        false
+      } else {
+        val relativeToRoot = outputRelativePath.stripPrefix(namespaceRoot)
+        relativeToRoot.endsWith("_protocol.py") && !relativeToRoot.contains("/")
+      }
+
+    def isSqlNamespaceRootEnumPath(outputRelativePath: String, namespaceRoot: String): Boolean =
+      if (!outputRelativePath.startsWith(namespaceRoot)) {
+        false
+      } else {
+        val relativeToRoot = outputRelativePath.stripPrefix(namespaceRoot)
+        relativeToRoot.endsWith(".py") &&
+        !relativeToRoot.contains("/") &&
+        !relativeToRoot.endsWith("_protocol.py")
+      }
+  }
 }
 
 enum GoldenTestLayout {

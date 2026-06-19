@@ -13,8 +13,8 @@ import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQue
 object DialectRenderers {
   def queryRendererForKey(key: String): SqlQueryRenderer =
     key match {
-      case "sqlite"   => sqliteQueryRenderer()
-      case "postgres" => postgresQueryRenderer()
+      case "sqlite"   => internal.sqliteQueryRenderer()
+      case "postgres" => internal.postgresQueryRenderer()
       case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
     }
 
@@ -34,15 +34,18 @@ object DialectRenderers {
   def renderDdlOnly(schema: SqlSchema, dialectKey: String): String =
     SqlShared.formatDdlStatements(schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema))
 
-  private def sqliteQueryRenderer(): SqlQueryRenderer =
-    SqliteSqlQueryRenderer(
-      migrationBindPlaceholder = SqlBindPlaceholder("?"),
-      codegenBindPlaceholder = SqlBindPlaceholder("?")
-    )
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def sqliteQueryRenderer(): SqlQueryRenderer =
+      SqliteSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("?"),
+        codegenBindPlaceholder = SqlBindPlaceholder("?")
+      )
 
-  private def postgresQueryRenderer(): SqlQueryRenderer =
-    PostgresSqlQueryRenderer(
-      migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
-      codegenBindPlaceholder = SqlBindPlaceholder("%s")
-    )
+    def postgresQueryRenderer(): SqlQueryRenderer =
+      PostgresSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
+        codegenBindPlaceholder = SqlBindPlaceholder("%s")
+      )
+  }
 }

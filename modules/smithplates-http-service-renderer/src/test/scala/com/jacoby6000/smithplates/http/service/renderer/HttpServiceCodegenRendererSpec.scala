@@ -6,11 +6,6 @@ import com.jacoby6000.smithplates.http.HttpTestModelLoader
 import munit.FunSuite
 
 class HttpServiceCodegenRendererSpec extends FunSuite {
-  private val PythonServerTemplateDirectory = "classpath:python/src/http/server"
-  private val PythonClientTemplateDirectory = "classpath:python/src/http/client"
-  private val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
-  private val RootNamespace                 = Some("generated")
-
   test("HttpServiceCodegenRenderer emits configured HTTP server artifacts") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
@@ -50,18 +45,18 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val serviceIr = HttpIrExtractor.extractOrThrow(model)
     val settings  =
       HttpServiceCodegenSettings(
-        templateDirectory = PythonServerTemplateDirectory,
+        templateDirectory = HttpServiceCodegenRendererSpec.internal.PythonServerTemplateDirectory,
         defaultFrameworkKey = "fastapi",
         enabledFrameworkKeys = List("fastapi"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
         artifacts =
           HttpServiceCodegenApiArtifacts.forEnabledFrameworks(List("fastapi"), List("v1_widgets"), emitModels = true),
-        rootNamespace = RootNamespace,
+        rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
         emitModels = true,
-        modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
+        modelTemplateDirectory = Some(HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory)
       )
 
     HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
@@ -115,18 +110,18 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val serviceIr = HttpIrExtractor.extractOrThrow(model)
     val settings  =
       HttpServiceCodegenSettings(
-        templateDirectory = PythonClientTemplateDirectory,
+        templateDirectory = HttpServiceCodegenRendererSpec.internal.PythonClientTemplateDirectory,
         defaultFrameworkKey = "httpx",
         enabledFrameworkKeys = List("httpx"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
         artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List("httpx"), List("v1_widgets")) ++
           HttpServiceCodegenApiArtifacts.sharedModels,
-        rootNamespace = RootNamespace,
+        rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
         emitModels = true,
-        modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
+        modelTemplateDirectory = Some(HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory)
       )
 
     HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
@@ -138,5 +133,15 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
       case Validated.Invalid(errors)  =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
+  }
+}
+object HttpServiceCodegenRendererSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val PythonServerTemplateDirectory = "classpath:python/src/http/server"
+    val PythonClientTemplateDirectory = "classpath:python/src/http/client"
+    val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
+    val RootNamespace                 = Some("generated")
   }
 }

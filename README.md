@@ -128,7 +128,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 
 **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Testing](docs/contributing/testing.md) · [Template authoring](docs/contributing/template-authoring.md)
 
-Conventions: [`AGENTS.md`](AGENTS.md)
+Conventions: [`AGENTS.md`](AGENTS.md) and [`.cursor/rules/`](.cursor/rules/)
 
 ## Quick start
 

@@ -6,77 +6,66 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class PostgresColumnRendererSpec extends FunSuite {
-  private def validateColumnRender(
-      typeLabel: String,
-      column: SqlColumn,
-      requiredSuffix: String,
-      nullableSuffix: String
-  ): Unit = {
-    test(s"$typeLabel - renders required columns") {
-      assertEquals(
-        PostgresRenderer.renderColumn(column.copy(nullable = false)),
-        s"${column.name} $requiredSuffix"
-      )
-    }
-    test(s"$typeLabel - renders nullable columns") {
-      assertEquals(
-        PostgresRenderer.renderColumn(column.copy(nullable = true)),
-        s"${column.name} $nullableSuffix"
-      )
-    }
-  }
-
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Text",
     SqlColumn(name = "label", columnType = SqlColumnType.Text, nullable = false),
     "TEXT NOT NULL",
     "TEXT"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Integer",
     SqlColumn(name = "count", columnType = SqlColumnType.Integer, nullable = false),
     "INTEGER NOT NULL",
     "INTEGER"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "BigInt",
     SqlColumn(name = "size_bytes", columnType = SqlColumnType.BigInt, nullable = false),
     "BIGINT NOT NULL",
     "BIGINT"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Boolean",
     SqlColumn(name = "active", columnType = SqlColumnType.Boolean, nullable = false),
     "BOOLEAN NOT NULL",
     "BOOLEAN"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Json",
     SqlColumn(name = "payload", columnType = SqlColumnType.Json, nullable = false),
     "JSONB NOT NULL",
     "JSONB"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Blob",
     SqlColumn(name = "data", columnType = SqlColumnType.Blob, nullable = false),
     "BYTEA NOT NULL",
     "BYTEA"
   )
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Uuid",
     SqlColumn(name = "owner_id", columnType = SqlColumnType.Uuid, nullable = false),
     "UUID NOT NULL",
     "UUID"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Varchar",
     SqlColumn(name = "code", columnType = SqlColumnType.Varchar(maxLength = 64), nullable = false),
     "VARCHAR(64) NOT NULL",
     "VARCHAR(64)"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "StringEnum",
     SqlColumn(
       name = "direction",
@@ -91,7 +80,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "example_direction"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "IntEnum",
     SqlColumn(
       name = "status",
@@ -102,7 +92,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "INTEGER CHECK(status IN (404, 200))"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "AutoUuid",
     SqlColumn(
       name = "id",
@@ -114,7 +105,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "UUID DEFAULT gen_random_uuid()"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Timestamp (date-time)",
     SqlColumn(
       name = "updated_at",
@@ -125,7 +117,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "TIMESTAMP"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Timestamp (epoch-seconds)",
     SqlColumn(
       name = "occurred_at",
@@ -136,7 +129,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "DECIMAL(13, 3)"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "CreatedTimestamp (date-time)",
     SqlColumn(
       name = "created_at",
@@ -148,7 +142,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
   )
 
-  validateColumnRender(
+  PostgresColumnRendererSpec.internal.validateColumnRender(
+    this,
     "CreatedTimestamp (epoch-seconds)",
     SqlColumn(
       name = "recorded_at",
@@ -159,4 +154,31 @@ final class PostgresColumnRendererSpec extends FunSuite {
     "DECIMAL(13, 3) NOT NULL DEFAULT ROUND(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::numeric, 3)",
     "DECIMAL(13, 3) DEFAULT ROUND(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::numeric, 3)"
   )
+}
+
+object PostgresColumnRendererSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def validateColumnRender(
+        suite: FunSuite,
+        typeLabel: String,
+        column: SqlColumn,
+        requiredSuffix: String,
+        nullableSuffix: String
+    ): Unit = {
+      suite.test(s"$typeLabel - renders required columns") {
+        suite.assertEquals(
+          PostgresRenderer.renderColumn(column.copy(nullable = false)),
+          s"${column.name} $requiredSuffix"
+        )
+      }
+      suite.test(s"$typeLabel - renders nullable columns") {
+        suite.assertEquals(
+          PostgresRenderer.renderColumn(column.copy(nullable = true)),
+          s"${column.name} $nullableSuffix"
+        )
+      }
+    }
+  }
 }

@@ -1,12 +1,10 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 object ScalateTemplateHelpers {
-  private val generatorName = "sql-service-codegen"
-
   def generatedFileHeader(serviceShapeId: String, language: String): String =
     language match {
       case "python" =>
-        s"# Generated from $serviceShapeId by $generatorName. Do not edit by hand."
+        s"# Generated from $serviceShapeId by ${internal.generatorName}. Do not edit by hand."
       case other    =>
         throw new IllegalArgumentException(s"unsupported codegen language for generated file header: $other")
     }
@@ -43,4 +41,9 @@ object ScalateTemplateHelpers {
       case other                   =>
         other != None
     }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val generatorName: String = "sql-service-codegen"
+  }
 }

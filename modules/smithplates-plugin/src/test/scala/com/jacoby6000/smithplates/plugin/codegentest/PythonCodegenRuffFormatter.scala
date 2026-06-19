@@ -13,8 +13,8 @@ object PythonCodegenRuffFormatter {
       return
     }
 
-    val formatRoot = resolveFormatRoot(root.toAbsolutePath.normalize())
-    if (!Files.isDirectory(formatRoot) || !containsPythonFiles(formatRoot)) {
+    val formatRoot = internal.resolveFormatRoot(root.toAbsolutePath.normalize())
+    if (!Files.isDirectory(formatRoot) || !internal.containsPythonFiles(formatRoot)) {
       TemplateBuildLog.phase(label, s"skipping ruff (no generated Python under $formatRoot)", startedAt)
       return
     }
@@ -36,23 +36,25 @@ object PythonCodegenRuffFormatter {
   def inferRepoRoot(caseDirectory: Path): Path =
     caseDirectory.toAbsolutePath.normalize().resolve("../../../..").normalize()
 
-  private def resolveFormatRoot(root: Path): Path = {
-    val pluginOutput = root.resolve(s"source/${SmithyBuildTemplateRunner.PluginName}")
-    if (Files.isDirectory(pluginOutput)) {
-      pluginOutput
-    } else {
-      root
-    }
-  }
-
-  private def containsPythonFiles(root: Path): Boolean = {
-    val iterator = Files.walk(root).iterator()
-    while (iterator.hasNext) {
-      val path = iterator.next()
-      if (Files.isRegularFile(path) && path.getFileName.toString.endsWith(".py")) {
-        return true
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def resolveFormatRoot(root: Path): Path      = {
+      val pluginOutput = root.resolve(s"source/${SmithyBuildTemplateRunner.PluginName}")
+      if (Files.isDirectory(pluginOutput)) {
+        pluginOutput
+      } else {
+        root
       }
     }
-    false
+    def containsPythonFiles(root: Path): Boolean = {
+      val iterator = Files.walk(root).iterator()
+      while (iterator.hasNext) {
+        val path = iterator.next()
+        if (Files.isRegularFile(path) && path.getFileName.toString.endsWith(".py")) {
+          return true
+        }
+      }
+      false
+    }
   }
 }

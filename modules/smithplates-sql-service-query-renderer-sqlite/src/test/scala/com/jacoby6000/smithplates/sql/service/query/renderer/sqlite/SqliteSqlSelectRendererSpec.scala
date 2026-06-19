@@ -8,26 +8,42 @@ import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqliteSqlSelectRendererSpec extends munit.FunSuite {
-  private lazy val renderer =
-    SqliteSqlQueryRenderer(
-      migrationBindPlaceholder = SqlBindPlaceholder("?"),
-      codegenBindPlaceholder = SqlBindPlaceholder("?")
+
+  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
+    assertEquals(
+      SqliteSqlSelectRendererSpec.internal.queryStatement(
+        SqliteSqlSelectRendererSpec.internal.schema.queries,
+        SqliteSqlSelectRendererSpec.internal.renderer),
+      """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
+        |FROM items AS i
+        |INNER JOIN categories AS c ON i.category_id = c.id
+        |WHERE i.category_id = ?
+        |GROUP BY i.id, c.name
+        |HAVING COUNT(i.id) = ?;""".stripMargin
     )
+  }
+}
+object SqliteSqlSelectRendererSpec {
 
-  private def queryStatement(queries: SqlQueries, renderer: SqlQueryRenderer): String =
-    renderer
-      .renderQueryUnits(queries)
-      .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
-      .map { query =>
-        SqlBindPlaceholder.format(
-          query.statement.segments,
-          renderer.migrationBindPlaceholder
-        )
-      }
-      .getOrElse(fail("query 'example#ListItemCategories' was not rendered"))
-
-  private lazy val queryModel = SqlTestModelBuilder.assemble(
-    """
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    lazy val renderer                                                           =
+      SqliteSqlQueryRenderer(
+        migrationBindPlaceholder = SqlBindPlaceholder("?"),
+        codegenBindPlaceholder = SqlBindPlaceholder("?")
+      )
+    def queryStatement(queries: SqlQueries, renderer: SqlQueryRenderer): String =
+      renderer
+        .renderQueryUnits(queries)
+        .find(_.shapeId == ShapeId.from("example#ListItemCategories"))
+        .map { query =>
+          SqlBindPlaceholder.format(
+            query.statement.segments,
+            renderer.migrationBindPlaceholder
+          )
+        }
+        .getOrElse(throw new AssertionError("query 'example#ListItemCategories' was not rendered"))
+    lazy val queryModel                                                         = SqlTestModelBuilder.assemble("""
       |use smithplates.codegen.sql#DerivedStruct
       |use smithplates.codegen.sql#sqlDeriveSelect
       |use smithplates.codegen.sql#sqlForeignKey
@@ -73,20 +89,7 @@ final class SqliteSqlSelectRendererSpec extends munit.FunSuite {
       |    input: ListItemCategoriesInput
       |    output: DerivedStruct
       |}
-      |""".stripMargin
-  )
-
-  private lazy val schema = SqlModelExtractor.extractOrThrow(queryModel)
-
-  test("DeriveSelect - renders join, filters, and HAVING placeholders") {
-    assertEquals(
-      queryStatement(schema.queries, renderer),
-      """SELECT i.id AS itemId, c.name AS categoryName, COUNT(i.id) AS itemCount
-        |FROM items AS i
-        |INNER JOIN categories AS c ON i.category_id = c.id
-        |WHERE i.category_id = ?
-        |GROUP BY i.id, c.name
-        |HAVING COUNT(i.id) = ?;""".stripMargin
-    )
+      |""".stripMargin)
+    lazy val schema                                                             = SqlModelExtractor.extractOrThrow(queryModel)
   }
 }

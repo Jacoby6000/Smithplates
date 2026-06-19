@@ -6,82 +6,66 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 final class SqliteColumnRendererSpec extends FunSuite {
-  private val sqliteAutoUuidDefault: String =
-    "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
-      "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
-      "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
-
-  private def validateColumnRender(
-      typeLabel: String,
-      column: SqlColumn,
-      requiredSuffix: String,
-      nullableSuffix: String
-  ): Unit = {
-    test(s"$typeLabel - renders required columns") {
-      assertEquals(
-        SqliteRenderer.renderColumn(column.copy(nullable = false)),
-        s"${column.name} $requiredSuffix"
-      )
-    }
-    test(s"$typeLabel - renders nullable columns") {
-      assertEquals(
-        SqliteRenderer.renderColumn(column.copy(nullable = true)),
-        s"${column.name} $nullableSuffix"
-      )
-    }
-  }
-
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Text",
     SqlColumn(name = "label", columnType = SqlColumnType.Text, nullable = false),
     "TEXT NOT NULL",
     "TEXT"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Integer",
     SqlColumn(name = "count", columnType = SqlColumnType.Integer, nullable = false),
     "INTEGER NOT NULL",
     "INTEGER"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "BigInt",
     SqlColumn(name = "size_bytes", columnType = SqlColumnType.BigInt, nullable = false),
     "BIGINT NOT NULL",
     "BIGINT"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Boolean",
     SqlColumn(name = "active", columnType = SqlColumnType.Boolean, nullable = false),
     "TEXT NOT NULL",
     "TEXT"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Json",
     SqlColumn(name = "payload", columnType = SqlColumnType.Json, nullable = false),
     "TEXT NOT NULL",
     "TEXT"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Blob",
     SqlColumn(name = "data", columnType = SqlColumnType.Blob, nullable = false),
     "BLOB NOT NULL",
     "BLOB"
   )
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Uuid",
     SqlColumn(name = "owner_id", columnType = SqlColumnType.Uuid, nullable = false),
     "TEXT NOT NULL",
     "TEXT"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Varchar",
     SqlColumn(name = "code", columnType = SqlColumnType.Varchar(maxLength = 64), nullable = false),
     "TEXT NOT NULL CHECK(length(code) <= 64)",
     "TEXT CHECK(length(code) <= 64)"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "StringEnum",
     SqlColumn(
       name = "direction",
@@ -96,7 +80,8 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "TEXT CHECK(direction IN ('NORTH', 'SOUTH'))"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "IntEnum",
     SqlColumn(
       name = "status",
@@ -107,7 +92,8 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "INTEGER CHECK(status IN (404, 200))"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "AutoUuid",
     SqlColumn(
       name = "id",
@@ -115,11 +101,12 @@ final class SqliteColumnRendererSpec extends FunSuite {
       nullable = false,
       autoGeneration = Some(SqlAutoUuid)
     ),
-    s"TEXT NOT NULL DEFAULT $sqliteAutoUuidDefault",
-    s"TEXT DEFAULT $sqliteAutoUuidDefault"
+    s"TEXT NOT NULL DEFAULT ${SqliteColumnRendererSpec.internal.sqliteAutoUuidDefault}",
+    s"TEXT DEFAULT ${SqliteColumnRendererSpec.internal.sqliteAutoUuidDefault}"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Timestamp (date-time)",
     SqlColumn(
       name = "updated_at",
@@ -130,7 +117,8 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "TEXT"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "Timestamp (epoch-seconds)",
     SqlColumn(
       name = "occurred_at",
@@ -141,7 +129,8 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "REAL"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "CreatedTimestamp (date-time)",
     SqlColumn(
       name = "created_at",
@@ -153,7 +142,8 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "TEXT DEFAULT CURRENT_TIMESTAMP"
   )
 
-  validateColumnRender(
+  SqliteColumnRendererSpec.internal.validateColumnRender(
+    this,
     "CreatedTimestamp (epoch-seconds)",
     SqlColumn(
       name = "recorded_at",
@@ -164,4 +154,36 @@ final class SqliteColumnRendererSpec extends FunSuite {
     "REAL NOT NULL DEFAULT unixepoch('subsec')",
     "REAL DEFAULT unixepoch('subsec')"
   )
+}
+
+object SqliteColumnRendererSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val sqliteAutoUuidDefault: String =
+      "(lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || " +
+        "substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || " +
+        "substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6))))"
+
+    def validateColumnRender(
+        suite: FunSuite,
+        typeLabel: String,
+        column: SqlColumn,
+        requiredSuffix: String,
+        nullableSuffix: String
+    ): Unit = {
+      suite.test(s"$typeLabel - renders required columns") {
+        suite.assertEquals(
+          SqliteRenderer.renderColumn(column.copy(nullable = false)),
+          s"${column.name} $requiredSuffix"
+        )
+      }
+      suite.test(s"$typeLabel - renders nullable columns") {
+        suite.assertEquals(
+          SqliteRenderer.renderColumn(column.copy(nullable = true)),
+          s"${column.name} $nullableSuffix"
+        )
+      }
+    }
+  }
 }

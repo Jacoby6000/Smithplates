@@ -18,8 +18,6 @@ import software.amazon.smithy.model.shapes.ShapeId
 
 /** Shared SQL DDL helpers, rendering, and Smithy enum utilities for dialect plugins. */
 object SqlShared {
-  private val StatementSeparator: String = "\n\n"
-
   enum ForeignKeyRendering {
     case Inline
     case Separate(renderStatement: (SqlTable, SqlForeignKey, SqlTable) => String)
@@ -37,7 +35,7 @@ object SqlShared {
     SqlText.trimmedNonEmpty(opt)
 
   def formatDdlStatements(statements: List[DDLStatement]): String =
-    statements.map(_.formatted).filter(_.nonEmpty).mkString(StatementSeparator)
+    statements.map(_.formatted).filter(_.nonEmpty).mkString(internal.StatementSeparator)
 
   def renderDdlStatements(
       schema: SqlSchema,
@@ -53,12 +51,12 @@ object SqlShared {
         .tablesInRenderOrder(schema)
         .flatMap { table =>
           val columnLines     =
-            table.columns.map(column => renderColumnWithForeignKeyComment(table, column, schema, renderColumn))
+            table.columns.map(column => internal.renderColumnWithForeignKeyComment(table, column, schema, renderColumn))
           val primaryKeyLine  = s"PRIMARY KEY (${table.primaryKeys.mkString(", ")})"
           val foreignKeyLines =
             foreignKeyRendering match {
               case ForeignKeyRendering.Inline      =>
-                table.foreignKeys.map(foreignKey => renderInlineForeignKey(tableById, foreignKey))
+                table.foreignKeys.map(foreignKey => internal.renderInlineForeignKey(tableById, foreignKey))
               case ForeignKeyRendering.Separate(_) =>
                 Nil
             }
@@ -99,7 +97,7 @@ object SqlShared {
               table.foreignKeys
                 .sortBy(_.sourceMember.toString)
                 .map { foreignKey =>
-                  val referencedTable = requireReferencedTable(tableById, foreignKey)
+                  val referencedTable = internal.requireReferencedTable(tableById, foreignKey)
                   DDLStatement.AddForeignKey(
                     table = table,
                     foreignKey = foreignKey,
@@ -111,52 +109,13 @@ object SqlShared {
     prefix ++ tables ++ foreignKeys
   }
 
-  private def renderColumnWithForeignKeyComment(
-      table: SqlTable,
-      column: SqlColumn,
-      schema: SqlSchema,
-      renderColumn: SqlColumn => String
-  ): String = {
-    val base = renderColumn(column)
-    table.foreignKeys.find(_.column == column.name) match {
-      case Some(foreignKey) =>
-        val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
-          throw new IllegalStateException(
-            s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
-          )
-        }
-        s"$base /* FK -> ${referencedTable.name} (${foreignKey.referencesColumn}) */"
-      case None             =>
-        base
-    }
-  }
-
-  private def renderInlineForeignKey(
-      tableById: Map[ShapeId, SqlTable],
-      foreignKey: SqlForeignKey
-  ): String = {
-    val referencedTable = requireReferencedTable(tableById, foreignKey)
-    s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
-  }
-
-  private def requireReferencedTable(
-      tableById: Map[ShapeId, SqlTable],
-      foreignKey: SqlForeignKey
-  ): SqlTable =
-    tableById.getOrElse(
-      foreignKey.referencesShape,
-      throw new IllegalStateException(
-        s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
-      )
-    )
-
   def appendSection(prefix: String, suffix: String): String =
     if (suffix.isEmpty) {
       prefix
     } else if (prefix.isEmpty) {
       suffix
     } else {
-      s"$prefix$StatementSeparator$suffix"
+      s"$prefix${internal.StatementSeparator}$suffix"
     }
 
   def renderColumnLine(
@@ -211,4 +170,48 @@ object SqlShared {
 
   def postgresEpochSecondsExpression: String =
     "ROUND(EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::numeric, 3)"
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val StatementSeparator: String = "\n\n"
+
+    def renderColumnWithForeignKeyComment(
+        table: SqlTable,
+        column: SqlColumn,
+        schema: SqlSchema,
+        renderColumn: SqlColumn => String
+    ): String = {
+      val base = renderColumn(column)
+      table.foreignKeys.find(_.column == column.name) match {
+        case Some(foreignKey) =>
+          val referencedTable = schema.tables.find(_.shapeId == foreignKey.referencesShape).getOrElse {
+            throw new IllegalStateException(
+              s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
+            )
+          }
+          s"$base /* FK -> ${referencedTable.name} (${foreignKey.referencesColumn}) */"
+        case None             =>
+          base
+      }
+    }
+
+    def renderInlineForeignKey(
+        tableById: Map[ShapeId, SqlTable],
+        foreignKey: SqlForeignKey
+    ): String = {
+      val referencedTable = requireReferencedTable(tableById, foreignKey)
+      s"FOREIGN KEY (${foreignKey.column}) REFERENCES ${referencedTable.name} (${foreignKey.referencesColumn})"
+    }
+
+    def requireReferencedTable(
+        tableById: Map[ShapeId, SqlTable],
+        foreignKey: SqlForeignKey
+    ): SqlTable =
+      tableById.getOrElse(
+        foreignKey.referencesShape,
+        throw new IllegalStateException(
+          s"Missing referenced sql table for shape ${foreignKey.referencesShape.toString}"
+        )
+      )
+  }
 }

@@ -49,48 +49,9 @@ object SmithplatesSqlSettings {
 
   def validate(settings: SmithplatesSqlSettings): SqlValidated[SmithplatesSqlSettings] =
     (
-      validateLanguageTargets(settings),
-      validateMigrationDirectoryConflicts(settings)
+      internal.validateLanguageTargets(settings),
+      internal.validateMigrationDirectoryConflicts(settings)
     ).mapN((_, _) => settings)
-
-  private def validateLanguageTargets(
-      settings: SmithplatesSqlSettings
-  ): SqlValidated[SmithplatesSqlSettings] =
-    settings.languageTargets.toList
-      .traverse { case (languageId, languageTarget) =>
-        LanguageTargetTemplateValidator.validate(
-          languageId,
-          languageTarget.target,
-          languageTarget.target.enabledDialectKeys
-        )
-      }
-      .map(_ => settings)
-
-  private def validateMigrationDirectoryConflicts(
-      settings: SmithplatesSqlSettings
-  ): SqlValidated[Unit] = {
-    val conflicts =
-      OrderedDialectKeys.flatMap { dialectKey =>
-        val locations         =
-          settings.languageTargets.toList.flatMap { case (languageId, languageTarget) =>
-            languageTarget.target.dialects.get(dialectKey).flatMap {
-              case SqlDialectSettings(true, Some(location)) => Some(languageId -> location)
-              case _                                        => None
-            }
-          }
-        val distinctLocations = locations.map(_._2).distinct
-        Option.when(distinctLocations.size > 1)(dialectKey -> locations)
-      }
-
-    conflicts.traverse_ { case (dialectKey, locations) =>
-      val details = locations.map { case (languageId, location) => s"$languageId=$location" }.mkString(", ")
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates language SQL blocks configure conflicting $dialectKey migrationLocation values: $details"
-        )
-      )
-    }
-  }
 
   def parseDialect(
       key: String,
@@ -99,7 +60,7 @@ object SmithplatesSqlSettings {
     val enabled = PluginConfigMembers.optionalBooleanMember(node, "enable").getOrElse(false)
     PluginConfigMembers.optionalStringMember(node, "migrationLocation") match {
       case Some(location) if enabled =>
-        validateMigrationDirectory(key, location).map { directory =>
+        internal.validateMigrationDirectory(key, location).map { directory =>
           SqlDialectSettings(enabled = true, migrationLocation = Some(directory))
         }
       case Some(location)            =>
@@ -115,14 +76,56 @@ object SmithplatesSqlSettings {
     }
   }
 
-  private def validateMigrationDirectory(key: String, location: String): SqlValidated[String] =
-    if (location.endsWith(".sql")) {
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates language sql.$key `migrationLocation` must be a directory path for versioned migrations, not a .sql file: $location"
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def validateLanguageTargets(
+        settings: SmithplatesSqlSettings
+    ): SqlValidated[SmithplatesSqlSettings] =
+      settings.languageTargets.toList
+        .traverse { case (languageId, languageTarget) =>
+          LanguageTargetTemplateValidator.validate(
+            languageId,
+            languageTarget.target,
+            languageTarget.target.enabledDialectKeys
+          )
+        }
+        .map(_ => settings)
+
+    def validateMigrationDirectoryConflicts(
+        settings: SmithplatesSqlSettings
+    ): SqlValidated[Unit] = {
+      val conflicts =
+        OrderedDialectKeys.flatMap { dialectKey =>
+          val locations         =
+            settings.languageTargets.toList.flatMap { case (languageId, languageTarget) =>
+              languageTarget.target.dialects.get(dialectKey).flatMap {
+                case SqlDialectSettings(true, Some(location)) => Some(languageId -> location)
+                case _                                        => None
+              }
+            }
+          val distinctLocations = locations.map(_._2).distinct
+          Option.when(distinctLocations.size > 1)(dialectKey -> locations)
+        }
+
+      conflicts.traverse_ { case (dialectKey, locations) =>
+        val details = locations.map { case (languageId, location) => s"$languageId=$location" }.mkString(", ")
+        SqlValidated.invalid(
+          InvalidPluginConfig(
+            s"smithplates language SQL blocks configure conflicting $dialectKey migrationLocation values: $details"
+          )
         )
-      )
-    } else {
-      location.validNel
+      }
     }
+
+    def validateMigrationDirectory(key: String, location: String): SqlValidated[String] =
+      if (location.endsWith(".sql")) {
+        SqlValidated.invalid(
+          InvalidPluginConfig(
+            s"smithplates language sql.$key `migrationLocation` must be a directory path for versioned migrations, not a .sql file: $location"
+          )
+        )
+      } else {
+        location.validNel
+      }
+  }
 }

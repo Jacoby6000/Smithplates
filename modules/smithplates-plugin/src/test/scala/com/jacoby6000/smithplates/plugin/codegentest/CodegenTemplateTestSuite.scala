@@ -24,43 +24,19 @@ import scala.jdk.CollectionConverters.*
 class CodegenTemplateTestSuite extends FunSuite {
   override val munitTimeout = 120.seconds
 
-  private val variants: Set[CodegenTemplateVariant] = Set(
-    CodegenTemplateVariant("python", "http", "server"),
-    CodegenTemplateVariant("python", "http", "client"),
-    CodegenTemplateVariant("python", "db", "sqlite"),
-    CodegenTemplateVariant("python", "db", "postgres")
-  )
-
-  private val buildOutputs =
-    new ConcurrentHashMap[String, Either[String, Path]]()
-
-  private lazy val repoRoot: Path =
-    Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
-
-  private val variantsByLanguage: List[(String, Set[CodegenTemplateVariant])] =
-    variants.groupBy(_.languageId).toList.sortBy(_._1)
-
-  private def hasActiveVariantExpectations(
-      testCase: CodegenTemplateTestCase,
-      languageVariants: Set[CodegenTemplateVariant]
-  ): Boolean =
-    languageVariants.exists { variant =>
-      val expectedFiles = testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
-      !CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant) && expectedFiles.nonEmpty
-    }
-
-  variantsByLanguage.foreach { case (languageId, languageVariants) =>
+  CodegenTemplateTestSuite.internal.variantsByLanguage.foreach { case (languageId, languageVariants) =>
     val testCases =
-      CodegenTemplateTestDiscovery.discover(repoRoot, languageId, languageVariants)
+      CodegenTemplateTestDiscovery.discover(CodegenTemplateTestSuite.internal.repoRoot, languageId, languageVariants)
 
     val casesRequiringBuild =
-      testCases.filter(testCase => hasActiveVariantExpectations(testCase, languageVariants))
+      testCases.filter(testCase =>
+        CodegenTemplateTestSuite.internal.hasActiveVariantExpectations(testCase, languageVariants))
 
     casesRequiringBuild.foreach { testCase =>
       test(s"build - ${testCase.name}") {
         val result =
           SmithyBuildTemplateRunner.run(testCase.caseDirectory, getClass.getClassLoader)
-        buildOutputs.put(testCase.name, result)
+        CodegenTemplateTestSuite.internal.buildOutputs.put(testCase.name, result)
         result.fold(
           message => fail(s"Smithy build failed for '${testCase.name}': $message"),
           _ => ()
@@ -80,8 +56,8 @@ class CodegenTemplateTestSuite extends FunSuite {
         if (!unsupported && expectedFiles.nonEmpty) {
           test(
             s"${testCase.name} - ${variant.resourcePath(SmithyNamespaceTestSupport.namespacePathPrefix(testCase.smithyNamespace))}") {
-            val outputDirectory = outputDirectoryFor(testCase)
-            val actualOutputs   = readBuildOutputs(outputDirectory)
+            val outputDirectory = CodegenTemplateTestSuite.internal.outputDirectoryFor(this, testCase)
+            val actualOutputs   = CodegenTemplateTestSuite.internal.readBuildOutputs(outputDirectory)
             CodegenTemplateTestAssertions.assertRenderedOutputs(
               testCase,
               variant,
@@ -93,47 +69,78 @@ class CodegenTemplateTestSuite extends FunSuite {
       }
     }
   }
+}
 
-  private def outputDirectoryFor(testCase: CodegenTemplateTestCase): Path =
-    Option(buildOutputs.get(testCase.name)) match {
-      case None                         =>
-        fail(
-          s"Missing Smithy build output for '${testCase.name}'; expected a preceding build - ${testCase.name} test"
-        )
-      case Some(Left(message))          =>
-        fail(s"Smithy build failed for '${testCase.name}': $message")
-      case Some(Right(outputDirectory)) =>
-        outputDirectory
-    }
+object CodegenTemplateTestSuite {
 
-  private def readBuildOutputs(outputDirectory: Path): Map[String, String] =
-    if (!Files.isDirectory(outputDirectory)) {
-      Map.empty
-    } else {
-      Files
-        .walk(outputDirectory)
-        .iterator()
-        .asScala
-        .filter(Files.isRegularFile(_))
-        .flatMap { path =>
-          val relativePath =
-            normalizeBuildOutputPath(
-              outputDirectory.relativize(path).toString.replace('\\', '/')
-            )
-          relativePath.map(_ -> Files.readString(path, StandardCharsets.UTF_8))
-        }
-        .toMap
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    val variants: Set[CodegenTemplateVariant] = Set(
+      CodegenTemplateVariant("python", "http", "server"),
+      CodegenTemplateVariant("python", "http", "client"),
+      CodegenTemplateVariant("python", "db", "sqlite"),
+      CodegenTemplateVariant("python", "db", "postgres")
+    )
 
-  /** Smithy writes plugin artifacts under `{projection}/{pluginName}/`; strip that prefix for comparison. */
-  private def normalizeBuildOutputPath(relativePath: String): Option[String] = {
-    val pluginPrefix = s"source/${SmithyBuildTemplateRunner.PluginName}/"
-    if (relativePath.startsWith(pluginPrefix)) {
-      Some(relativePath.stripPrefix(pluginPrefix))
-    } else if (relativePath.startsWith("source/")) {
-      None
-    } else {
-      Some(relativePath)
+    val buildOutputs =
+      new ConcurrentHashMap[String, Either[String, Path]]()
+
+    lazy val repoRoot: Path =
+      Paths.get(sys.props.getOrElse("user.dir", ".")).toAbsolutePath.normalize
+
+    val variantsByLanguage: List[(String, Set[CodegenTemplateVariant])] =
+      variants.groupBy(_.languageId).toList.sortBy(_._1)
+
+    def hasActiveVariantExpectations(
+        testCase: CodegenTemplateTestCase,
+        languageVariants: Set[CodegenTemplateVariant]
+    ): Boolean =
+      languageVariants.exists { variant =>
+        val expectedFiles = testCase.expectedOutputsByVariant.getOrElse(variant, Nil)
+        !CodegenTemplateTestDiscovery.isVariantUnsupported(testCase, variant) && expectedFiles.nonEmpty
+      }
+
+    def outputDirectoryFor(suite: FunSuite, testCase: CodegenTemplateTestCase): Path =
+      Option(buildOutputs.get(testCase.name)) match {
+        case None                         =>
+          suite.fail(
+            s"Missing Smithy build output for '${testCase.name}'; expected a preceding build - ${testCase.name} test"
+          )
+        case Some(Left(message))          =>
+          suite.fail(s"Smithy build failed for '${testCase.name}': $message")
+        case Some(Right(outputDirectory)) =>
+          outputDirectory
+      }
+
+    def readBuildOutputs(outputDirectory: Path): Map[String, String] =
+      if (!Files.isDirectory(outputDirectory)) {
+        Map.empty
+      } else {
+        Files
+          .walk(outputDirectory)
+          .iterator()
+          .asScala
+          .filter(Files.isRegularFile(_))
+          .flatMap { path =>
+            val relativePath =
+              normalizeBuildOutputPath(
+                outputDirectory.relativize(path).toString.replace('\\', '/')
+              )
+            relativePath.map(_ -> Files.readString(path, StandardCharsets.UTF_8))
+          }
+          .toMap
+      }
+
+    /** Smithy writes plugin artifacts under `{projection}/{pluginName}/`; strip that prefix for comparison. */
+    def normalizeBuildOutputPath(relativePath: String): Option[String] = {
+      val pluginPrefix = s"source/${SmithyBuildTemplateRunner.PluginName}/"
+      if (relativePath.startsWith(pluginPrefix)) {
+        Some(relativePath.stripPrefix(pluginPrefix))
+      } else if (relativePath.startsWith("source/")) {
+        None
+      } else {
+        Some(relativePath)
+      }
     }
   }
 }

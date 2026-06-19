@@ -12,10 +12,12 @@ object CodegenTemplateTestAssertions {
     val namespacePathPrefix  = SmithyNamespaceTestSupport.namespacePathPrefix(testCase.smithyNamespace)
     val variantLabel         = variant.resourcePath(namespacePathPrefix)
     val variantExpectedFiles =
-      expectedFiles.filter(expected => variantMatchesExpectedPath(variant, expected.relativePath, namespacePathPrefix))
+      expectedFiles.filter(expected =>
+        internal.variantMatchesExpectedPath(variant, expected.relativePath, namespacePathPrefix))
 
     val missingFiles =
-      variantExpectedFiles.filterNot(expected => rendered.contains(toOutputRelativePath(expected.relativePath)))
+      variantExpectedFiles.filterNot(expected =>
+        rendered.contains(internal.toOutputRelativePath(expected.relativePath)))
     if (missingFiles.nonEmpty) {
       val renderedListing = rendered.keys.toList.sorted.mkString(", ")
       val missingListing  = missingFiles.map(_.relativePath).sorted.mkString(", ")
@@ -28,10 +30,10 @@ object CodegenTemplateTestAssertions {
     }
 
     val expectedOutputPaths =
-      variantExpectedFiles.map(expected => toOutputRelativePath(expected.relativePath)).toSet
+      variantExpectedFiles.map(expected => internal.toOutputRelativePath(expected.relativePath)).toSet
     val unexpectedFiles     =
       rendered.keys
-        .filter(path => variantMatchesOutputPath(variant, path, namespacePathPrefix))
+        .filter(path => internal.variantMatchesOutputPath(variant, path, namespacePathPrefix))
         .toSet -- expectedOutputPaths
     if (unexpectedFiles.nonEmpty) {
       val unexpectedListing = unexpectedFiles.toList.sorted.mkString(", ")
@@ -44,7 +46,7 @@ object CodegenTemplateTestAssertions {
     }
 
     variantExpectedFiles.foreach { expected =>
-      val outputRelativePath = toOutputRelativePath(expected.relativePath)
+      val outputRelativePath = internal.toOutputRelativePath(expected.relativePath)
       val actual             = rendered.getOrElse(
         outputRelativePath,
         Assertions.fail(
@@ -62,26 +64,29 @@ object CodegenTemplateTestAssertions {
     }
   }
 
-  private def toOutputRelativePath(expectedRelativePath: String): String =
-    if (expectedRelativePath.startsWith(s"${CodegenTemplateTestDiscovery.ExpectedDirectoryName}/")) {
-      expectedRelativePath.stripPrefix(s"${CodegenTemplateTestDiscovery.ExpectedDirectoryName}/")
-    } else {
-      expectedRelativePath
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def toOutputRelativePath(expectedRelativePath: String): String =
+      if (expectedRelativePath.startsWith(s"${CodegenTemplateTestDiscovery.ExpectedDirectoryName}/")) {
+        expectedRelativePath.stripPrefix(s"${CodegenTemplateTestDiscovery.ExpectedDirectoryName}/")
+      } else {
+        expectedRelativePath
+      }
+
+    def variantMatchesExpectedPath(
+        variant: CodegenTemplateVariant,
+        expectedRelativePath: String,
+        namespacePathPrefix: String
+    ): Boolean = {
+      val outputRelativePath = toOutputRelativePath(expectedRelativePath)
+      variantMatchesOutputPath(variant, outputRelativePath, namespacePathPrefix)
     }
 
-  private def variantMatchesExpectedPath(
-      variant: CodegenTemplateVariant,
-      expectedRelativePath: String,
-      namespacePathPrefix: String
-  ): Boolean = {
-    val outputRelativePath = toOutputRelativePath(expectedRelativePath)
-    variantMatchesOutputPath(variant, outputRelativePath, namespacePathPrefix)
+    def variantMatchesOutputPath(
+        variant: CodegenTemplateVariant,
+        outputRelativePath: String,
+        namespacePathPrefix: String
+    ): Boolean =
+      variant.matchesGeneratedOutputPath(outputRelativePath, namespacePathPrefix)
   }
-
-  private def variantMatchesOutputPath(
-      variant: CodegenTemplateVariant,
-      outputRelativePath: String,
-      namespacePathPrefix: String
-  ): Boolean =
-    variant.matchesGeneratedOutputPath(outputRelativePath, namespacePathPrefix)
 }

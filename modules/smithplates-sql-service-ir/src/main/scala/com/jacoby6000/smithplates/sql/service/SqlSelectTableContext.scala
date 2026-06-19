@@ -62,7 +62,9 @@ private[service] object SqlSelectTableContext {
   ): SqlValidated[List[TableContext]] =
     joins.asScala.toList.traverse { join =>
       if (join.getTable == primaryContext.tableRef) {
-        SqlValidated.invalid(duplicateJoinError(queryShape, join.getTable, primaryContext.tableRef, queryKind))
+        SqlValidated.invalid(
+          internal.duplicateJoinError(queryShape, join.getTable, primaryContext.tableRef, queryKind)
+        )
       } else {
         resolveTable(model, schema, queryShape, join.getTable, queryKind).map { case (table, structure) =>
           TableContext(
@@ -85,7 +87,7 @@ private[service] object SqlSelectTableContext {
       joinSpecs: java.util.List[SqlSelectJoinValue],
       queryKind: InvalidQueryTableReference.Kind = InvalidQueryTableReference.Kind.DeriveSelect
   ): SqlValidated[List[SqlSelectJoin]] = {
-    val deriveTrait = deriveTraitName(queryKind)
+    val deriveTrait = internal.deriveTraitName(queryKind)
     joinContexts.zip(joinSpecs.asScala.toList).zipWithIndex.traverse { case ((joinContext, joinSpec), index) =>
       SqlJoinType.fromString(joinSpec.getType) match {
         case None           =>
@@ -116,13 +118,6 @@ private[service] object SqlSelectTableContext {
     }
   }
 
-  private def deriveTraitName(queryKind: InvalidQueryTableReference.Kind): String =
-    queryKind match {
-      case InvalidQueryTableReference.Kind.DeriveSelectOne => "sqlDeriveSelectOne"
-      case InvalidQueryTableReference.Kind.DeriveSelect    => "sqlDeriveSelect"
-      case _                                               => "sqlDeriveSelect"
-    }
-
   def validateUniqueAliases(
       queryShape: ShapeId,
       primaryContext: TableContext,
@@ -136,36 +131,46 @@ private[service] object SqlSelectTableContext {
       .toList match {
       case Nil            => ().validNel
       case duplicate :: _ =>
-        duplicateAliasError(queryShape, duplicate, queryKind).invalidNel
+        internal.duplicateAliasError(queryShape, duplicate, queryKind).invalidNel
     }
   }
 
-  private def duplicateAliasError(
-      queryShape: ShapeId,
-      alias: String,
-      queryKind: InvalidQueryTableReference.Kind
-  ): SqlSchemaError =
-    queryKind match {
-      case InvalidQueryTableReference.Kind.DeriveSelectOne =>
-        InvalidDeriveSelectOne(queryShape, s"duplicate table alias '$alias'")
-      case InvalidQueryTableReference.Kind.DeriveSelect    =>
-        InvalidDeriveSelect(queryShape, s"duplicate table alias '$alias'")
-      case other                                           =>
-        InvalidQueryTableReference(queryShape, alias, other)
-    }
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def deriveTraitName(queryKind: InvalidQueryTableReference.Kind): String =
+      queryKind match {
+        case InvalidQueryTableReference.Kind.DeriveSelectOne => "sqlDeriveSelectOne"
+        case InvalidQueryTableReference.Kind.DeriveSelect    => "sqlDeriveSelect"
+        case _                                               => "sqlDeriveSelect"
+      }
 
-  private def duplicateJoinError(
-      queryShape: ShapeId,
-      joinTable: String,
-      primaryTable: String,
-      queryKind: InvalidQueryTableReference.Kind
-  ): SqlSchemaError =
-    queryKind match {
-      case InvalidQueryTableReference.Kind.DeriveSelectOne =>
-        InvalidDeriveSelectOne(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
-      case InvalidQueryTableReference.Kind.DeriveSelect    =>
-        InvalidDeriveSelect(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
-      case other                                           =>
-        InvalidQueryTableReference(queryShape, joinTable, other)
-    }
+    def duplicateAliasError(
+        queryShape: ShapeId,
+        alias: String,
+        queryKind: InvalidQueryTableReference.Kind
+    ): SqlSchemaError =
+      queryKind match {
+        case InvalidQueryTableReference.Kind.DeriveSelectOne =>
+          InvalidDeriveSelectOne(queryShape, s"duplicate table alias '$alias'")
+        case InvalidQueryTableReference.Kind.DeriveSelect    =>
+          InvalidDeriveSelect(queryShape, s"duplicate table alias '$alias'")
+        case other                                           =>
+          InvalidQueryTableReference(queryShape, alias, other)
+      }
+
+    def duplicateJoinError(
+        queryShape: ShapeId,
+        joinTable: String,
+        primaryTable: String,
+        queryKind: InvalidQueryTableReference.Kind
+    ): SqlSchemaError =
+      queryKind match {
+        case InvalidQueryTableReference.Kind.DeriveSelectOne =>
+          InvalidDeriveSelectOne(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
+        case InvalidQueryTableReference.Kind.DeriveSelect    =>
+          InvalidDeriveSelect(queryShape, s"join table '$joinTable' duplicates primary table '$primaryTable'")
+        case other                                           =>
+          InvalidQueryTableReference(queryShape, joinTable, other)
+      }
+  }
 }
