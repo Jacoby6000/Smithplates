@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
-import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
@@ -30,12 +29,9 @@ final case class LanguageTarget(
       sourceOutputDir: String,
       testOutputDir: String
   ): SqlServiceCodegenSettings = {
-    val defaultDialectKey   = enabledDialectKeys.headOption.getOrElse(SqlServiceCodegenSettings.SharedDialectKey)
-    val templateDirectory   = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId)
-    val outputPrefix        = TemplateOutputPrefix.fromTemplateDirectory(templateDirectory)
-    val rootNamespace       = LanguageTarget.resolvedRootNamespace(languageId, this)
-    val resolvedPackageName =
-      packageName.getOrElse(TemplateOutputPrefix.toPackageName(outputPrefix, rootNamespace))
+    val defaultDialectKey = enabledDialectKeys.headOption.getOrElse(SqlServiceCodegenSettings.SharedDialectKey)
+    val templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId)
+    val rootNamespace     = LanguageTarget.resolvedRootNamespace(languageId, this)
     SqlServiceCodegenSettings(
       templateDirectory = templateDirectory,
       defaultDialectKey = defaultDialectKey,
@@ -46,8 +42,8 @@ final case class LanguageTarget(
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
       artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(enabledDialectKeys),
-      outputPrefix = outputPrefix,
-      packageName = resolvedPackageName
+      rootNamespace = rootNamespace,
+      packageNameOverride = packageName
     )
   }
 }

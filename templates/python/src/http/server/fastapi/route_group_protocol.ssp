@@ -9,7 +9,7 @@ from pydantic import Field  # noqa: F401
 from datetime import datetime  # noqa: F401
 <% } %>
 <% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
-from ${ctx.modelsPackageName}.${snakeCase(typeName)} import ${typeName}
+from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 
 class ${protocolClassName(routeGroup.tag)}(Protocol):

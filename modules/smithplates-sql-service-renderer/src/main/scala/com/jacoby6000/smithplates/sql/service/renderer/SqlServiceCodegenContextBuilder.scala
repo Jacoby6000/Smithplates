@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.CodegenPackageNames
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
 import com.jacoby6000.smithplates.sql.service.SqlOperation
@@ -53,7 +54,11 @@ object SqlServiceCodegenContextBuilder {
               namespace = service.shapeId.getNamespace,
               version = service.version,
               dialectKey = queryRenderer.map(_.key).getOrElse(SqlServiceCodegenSettings.SharedDialectKey),
-              packageName = settings.packageName,
+              packageName = CodegenPackageNames.resolvePackageName(
+                settings.rootNamespace,
+                service.shapeId.getNamespace,
+                settings.packageNameOverride
+              ),
               queryRenderer = queryRenderer,
               bindPlaceholderStyle = bindPlaceholderStyle,
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),

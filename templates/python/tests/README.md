@@ -11,15 +11,17 @@ templates/python/tests/<case-name>/
   expected/
     db/migrations/postgres/        # golden versioned migration SQL (when dialect enabled)
     db/migrations/sqlite/
-    src/db/model/*_models.py       # shared query models
-    src/db/*_protocol.py           # shared Protocol interface
-    src/db/sqlite/*_aiosqlite.py   # per-dialect implementation
-    src/db/postgres/*_psycopg.py
-    test/db/sqlite/test_*_derived_sql.py
-    test/db/postgres/test_*_derived_sql.py
+    src/generated/<smithy namespace>/models/*_models.py       # shared query models
+    src/generated/<smithy namespace>/*_protocol.py            # shared Protocol interface
+    src/generated/<smithy namespace>/sqlite/*_aiosqlite.py    # per-dialect implementation
+    src/generated/<smithy namespace>/postgres/*_psycopg.py
+    test/<smithy namespace>/sqlite/test_*_derived_sql.py
+    test/<smithy namespace>/postgres/test_*_derived_sql.py
 ```
 
-Optional variant skip marker: `expected/src/db/<implementation>/unsupported.md`.
+Golden fixtures use `namespace example` and `sourceOutputDir: "src/generated"`, so paths look like `src/generated/example/...`.
+
+Optional variant skip marker: `expected/src/generated/<smithy namespace>/<implementation>/unsupported.md`.
 
 ## HTTP cases
 
@@ -41,16 +43,16 @@ templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
   smithy-build.json                # http.python.server config; no maven block in golden fixtures
   expected/
-    src/http/server/app_factory.py
-    src/http/server/app_services.py
-    src/http/server/api_response.py
-    src/http/server/operation_bindings.py
-    src/http/server/api_exceptions.py
-    src/http/server/api_exception_handler.py
-    src/http/models/problem.py
-    src/http/models/<output_shape>.py
-    src/http/server/apis/<route_group>_api.py
-    src/http/server/apis/<route_group>_api_base.py
+    src/generated/<smithy namespace>/app_factory.py
+    src/generated/<smithy namespace>/app_services.py
+    src/generated/<smithy namespace>/api_response.py
+    src/generated/<smithy namespace>/operation_bindings.py
+    src/generated/<smithy namespace>/api_exceptions.py
+    src/generated/<smithy namespace>/api_exception_handler.py
+    src/generated/<smithy namespace>/problem.py
+    src/generated/<smithy namespace>/<output_shape>.py
+    src/generated/<smithy namespace>/apis/<route_group>_api.py
+    src/generated/<smithy namespace>/apis/<route_group>_api_base.py
 ```
 
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).

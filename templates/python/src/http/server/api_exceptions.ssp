@@ -7,7 +7,7 @@ from __future__ import annotations
 from ${ctx.modelsPackageName}.problem import Problem
 <% } %>
 <% for (error <- ctx.service.serviceErrors if !serviceErrorUsesProblem(error)) { %>
-from ${ctx.modelsPackageName}.${snakeCase(error.name)} import ${error.name}
+from ${modelTypeImportModule(ctx, error.name)} import ${error.name}
 <% } %>
 
 

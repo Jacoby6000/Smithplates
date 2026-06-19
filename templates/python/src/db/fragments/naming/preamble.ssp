@@ -121,7 +121,10 @@ def resultFieldAssignmentBindings(
 def configuredMigrationsDirectory(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String =
   ctx.migration.map(_.migrationsDirectory).getOrElse(s"db/migrations/${ctx.dialectKey}")
 
-def migrationsDirectoryFromTestFile(migrationsDirectory: String): String = {
+def migrationsDirectoryFromTestFile(serviceShapeId: String, migrationsDirectory: String): String = {
+  val namespace = serviceShapeId.takeWhile(_ != '#')
+  val namespaceDepth = namespace.split('.').toList.filter(_.nonEmpty).size
+  val parentIndex = namespaceDepth + 2
   val parts = migrationsDirectory
     .stripPrefix("/")
     .stripSuffix("/")
@@ -129,6 +132,6 @@ def migrationsDirectoryFromTestFile(migrationsDirectory: String): String = {
     .split("/")
     .filter(_.nonEmpty)
   val pathExpr = parts.map(part => s""""$part"""").mkString(" / ")
-  s"Path(__file__).resolve().parents[3] / $pathExpr"
+  s"Path(__file__).resolve().parents[$parentIndex] / $pathExpr"
 }
 %>

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.CodegenPackageNames
 import com.jacoby6000.smithplates.http.HttpModelTypeNames
 import com.jacoby6000.smithplates.http.HttpValidated
 import com.jacoby6000.smithplates.http.model.HttpIntEnum
@@ -20,11 +21,15 @@ object HttpServiceCodegenRenderer {
     val _ = model
     serviceIr.services
       .traverse { service =>
+        val servicePackageName  = HttpCodegenPackageNames.servicePackageName(settings, service)
+        val modelsPackageName   = HttpCodegenPackageNames.modelsPackageName(settings, service.shapeId.getNamespace)
+        val typePackageNames    = HttpCodegenPackageNames.buildTypePackageNames(service, settings)
         val view                =
           HttpCodegenTemplateView(
             service = service,
-            packageName = settings.packageName,
-            modelsPackageName = settings.modelsPackageName
+            packageName = servicePackageName,
+            modelsPackageName = modelsPackageName,
+            typePackageNames = typePackageNames
           )
         val configuredArtifacts =
           settings.artifacts
@@ -94,10 +99,10 @@ object HttpServiceCodegenRenderer {
   private def resolveOutputPath(
       settings: HttpServiceCodegenSettings,
       artifactConfig: HttpServiceCodegenArtifactConfig,
-      service: com.jacoby6000.smithplates.http.model.HttpService,
+      service: HttpService,
       packageName: String
   ): String = {
-    val outputPrefix       = artifactOutputPrefix(settings, artifactConfig)
+    val outputPrefix       = CodegenPackageNames.outputPathPrefix(service.shapeId.getNamespace)
     val renderedOutputFile =
       HttpCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, service, packageName)
     val relativeOutputFile = s"$outputPrefix/$renderedOutputFile"
@@ -128,15 +133,6 @@ object HttpServiceCodegenRenderer {
       case HttpCodegenTemplateSource.Models  => settings.resolvedModelTemplateDirectory
     }
 
-  private def artifactOutputPrefix(
-      settings: HttpServiceCodegenSettings,
-      artifactConfig: HttpServiceCodegenArtifactConfig
-  ): String =
-    artifactConfig.templateSource match {
-      case HttpCodegenTemplateSource.Models  => settings.modelsOutputPrefix
-      case HttpCodegenTemplateSource.Service => settings.outputPrefix
-    }
-
   private def normalizeDirectory(directory: String): String =
     directory.stripSuffix("/")
 
@@ -153,6 +149,7 @@ object HttpServiceCodegenRenderer {
       HttpModelTypeNames.structureReferencedTypeNames(structure, structureNames, unionNames, enumNames)
     val needsDatetime   = HttpModelTypeNames.needsDatetimeImport(structure.members)
     val needsAny        = HttpModelTypeNames.needsAnyImport(structure.members)
+    val packageName     = HttpCodegenPackageNames.modelsPackageName(settings, structure.shapeId.getNamespace)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
         resolveTemplatePath(
@@ -160,7 +157,7 @@ object HttpServiceCodegenRenderer {
           "structure.ssp"),
         Map(
           "structure"           -> structure,
-          "packageName"         -> settings.modelsPackageName,
+          "packageName"         -> packageName,
           "importTypeNames"     -> importTypeNames,
           "needsDatetimeImport" -> needsDatetime,
           "needsAnyImport"      -> needsAny
@@ -168,7 +165,7 @@ object HttpServiceCodegenRenderer {
         Some(templateRoot)
       )
     val moduleName      = HttpCodegenTemplateAttributes.toSnakeCase(structure.name)
-    val relativePath    = modelArtifactRelativePath(settings, moduleName)
+    val relativePath    = modelArtifactRelativePath(settings, moduleName, structure.shapeId.getNamespace)
     HttpCodegenArtifact(
       relativePath = relativePath,
       content = content,
@@ -187,19 +184,20 @@ object HttpServiceCodegenRenderer {
     val unionNames      = service.unions.map(_.name).toSet
     val importTypeNames = HttpModelTypeNames.unionReferencedTypeNames(union, structureNames, unionNames, enumNames)
     val needsDatetime   = HttpModelTypeNames.unionNeedsDatetimeImport(union.members)
+    val packageName     = HttpCodegenPackageNames.modelsPackageName(settings, union.shapeId.getNamespace)
     val content         =
       ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
         resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "union.ssp"),
         Map(
           "union"               -> union,
-          "packageName"         -> settings.modelsPackageName,
+          "packageName"         -> packageName,
           "importTypeNames"     -> importTypeNames,
           "needsDatetimeImport" -> needsDatetime
         ),
         Some(templateRoot)
       )
     val moduleName      = HttpCodegenTemplateAttributes.toSnakeCase(union.name)
-    val relativePath    = modelArtifactRelativePath(settings, moduleName)
+    val relativePath    = modelArtifactRelativePath(settings, moduleName, union.shapeId.getNamespace)
     HttpCodegenArtifact(
       relativePath = relativePath,
       content = content,
@@ -207,13 +205,19 @@ object HttpServiceCodegenRenderer {
     )
   }
 
-  private def modelArtifactRelativePath(settings: HttpServiceCodegenSettings, moduleName: String): String =
+  private def modelArtifactRelativePath(
+      settings: HttpServiceCodegenSettings,
+      moduleName: String,
+      smithyNamespace: String
+  ): String = {
+    val outputPrefix = CodegenPackageNames.outputPathPrefix(smithyNamespace)
     settings.sourceOutputDirectory match {
       case Some(sourceOutputDirectory) =>
-        s"${normalizeDirectory(sourceOutputDirectory)}/${settings.modelsOutputPrefix}/$moduleName.py"
+        s"${normalizeDirectory(sourceOutputDirectory)}/$outputPrefix/$moduleName.py"
       case None                        =>
-        s"${settings.modelsOutputPrefix}/$moduleName.py"
+        s"$outputPrefix/$moduleName.py"
     }
+  }
 
   private def renderStringEnumModelArtifact(
       settings: HttpServiceCodegenSettings,
@@ -229,7 +233,10 @@ object HttpServiceCodegenRenderer {
         Some(templateRoot)
       )
     HttpCodegenArtifact(
-      relativePath = modelArtifactRelativePath(settings, HttpCodegenTemplateAttributes.toSnakeCase(stringEnum.name)),
+      relativePath = modelArtifactRelativePath(
+        settings,
+        HttpCodegenTemplateAttributes.toSnakeCase(stringEnum.name),
+        stringEnum.shapeId.getNamespace),
       content = content,
       kind = HttpServiceCodegenArtifactKind.Src
     )
@@ -247,7 +254,10 @@ object HttpServiceCodegenRenderer {
         Some(templateRoot)
       )
     HttpCodegenArtifact(
-      relativePath = modelArtifactRelativePath(settings, HttpCodegenTemplateAttributes.toSnakeCase(intEnum.name)),
+      relativePath = modelArtifactRelativePath(
+        settings,
+        HttpCodegenTemplateAttributes.toSnakeCase(intEnum.name),
+        intEnum.shapeId.getNamespace),
       content = content,
       kind = HttpServiceCodegenArtifactKind.Src
     )

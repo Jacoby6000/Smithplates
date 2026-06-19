@@ -123,7 +123,7 @@ responses, and exit non-zero on failure.
 Optional `target.json` documents the target for tooling.
 
 The Python target (`targets/python/`) boots the FastAPI server via `uvicorn` and
-executes cases through the generated Smithplates httpx client (`generated.http.client` with
+executes cases through the generated Smithplates httpx client (`generated.petstore.api.client` with
 `parse_client_response` and `OPERATION_HTTP_BINDINGS`).
 
 The OpenAPI reference target (`targets/openapi-reference-python/`) is client-only:

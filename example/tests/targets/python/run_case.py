@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from generated.http.client.client_response import parse_client_response
-from generated.http.client.operation_bindings import OPERATION_HTTP_BINDINGS
+from generated.petstore.api.client.client_response import parse_client_response
+from generated.petstore.api.client.operation_bindings import OPERATION_HTTP_BINDINGS
 
 VARIABLE_PATTERN = re.compile(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}")
 SERVER_VARIABLE_PATTERN = re.compile(r"^\$\{server\.([a-zA-Z_][a-zA-Z0-9_]*)\}$")

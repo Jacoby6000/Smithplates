@@ -36,13 +36,7 @@ def pick_free_port() -> int:
 
 
 def seed_database(database_path: Path) -> dict[str, str]:
-    pythonpath_entries = [
-        str(SRC_ROOT),
-        str(SRC_ROOT / "generated"),
-        str(SRC_ROOT / "generated" / "db" / "model"),
-        str(SRC_ROOT / "generated" / "db"),
-        str(SRC_ROOT / "generated" / "db" / "sqlite"),
-    ]
+    pythonpath_entries = [str(SRC_ROOT)]
     existing = os.environ.get("PYTHONPATH")
     if existing:
         pythonpath_entries.append(existing)
@@ -98,16 +92,7 @@ def main() -> int:
     seed_variables = seed_database(database_path)
 
     env = os.environ.copy()
-    env["PYTHONPATH"] = ":".join(
-        [
-            str(SRC_ROOT),
-            str(SRC_ROOT / "generated"),
-            str(SRC_ROOT / "generated" / "db" / "model"),
-            str(SRC_ROOT / "generated" / "db"),
-            str(SRC_ROOT / "generated" / "db" / "sqlite"),
-            env.get("PYTHONPATH", ""),
-        ]
-    ).strip(":")
+    env["PYTHONPATH"] = str(SRC_ROOT)
     env["PETSTORE_DATABASE_PATH"] = str(database_path)
 
     process = subprocess.Popen(

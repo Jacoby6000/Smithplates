@@ -149,7 +149,7 @@ Do not set `sourceOutputDir` or `testOutputDir` under `sql`, `http.server`, or `
 SQL configuration has two independent concerns:
 
 - Dialect keys (`sqlite`, `postgres`) control build-time migration DDL and dialect-specific generated implementations.
-- `templateDirectory`, `rootNamespace`, and `packageName` control generated source layout and Python import packages for `@sqlService` models in that language.
+- `templateDirectory`, `rootNamespace`, and `packageName` control template selection and Python import packages for `@sqlService` artifacts in that language.
 
 ```json
 {
@@ -175,8 +175,8 @@ SQL configuration has two independent concerns:
 |-------|----------|---------|
 | `sqlite.enable` / `postgres.enable` | No; default `false` | Enables that dialect's DDL migration files and dialect-specific generated implementation artifacts. |
 | `sqlite.migrationLocation` / `postgres.migrationLocation` | Yes when `enable` is `true` | Directory for versioned migration SQL files, such as `db/migrations/sqlite`. The value must be a directory path, not a `.sql` file. |
-| `rootNamespace` | No; default `generated` for bundled Python | Prefix for Python import packages derived from the template layout (for example `generated.db`). Filesystem paths are unchanged. |
-| `packageName` | No | Override the derived SQL import package (for example `generated.db`). |
+| `rootNamespace` | No; default `generated` for bundled Python | Prefix for Python import packages (for example `generated.example` for a service in namespace `example`). |
+| `packageName` | No | Override the derived SQL import package exactly (for example `generated.db`). When omitted, packages include the Smithy service namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. |
 
 When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
@@ -208,9 +208,9 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 |-------|----------|---------|
 | `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled implementation today. |
 | `httpLibrary` | No; default `httpx` | HTTP client library for generated client artifacts. Python/httpx is the bundled implementation today. |
-| `packageName` | No | Override the derived import package for server or client output. |
-| `rootNamespace` | No; default `generated` for bundled Python | Prefix for shared HTTP model import packages. |
-| `modelsPackageName` | No | Override the derived shared models import package. |
+| `packageName` | No | Override the derived import package for server or client output exactly. When omitted, packages include the Smithy service namespace. |
+| `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
+| `modelsPackageName` | No | Override the derived models import package exactly. When omitted, per-shape model packages include each shape's Smithy namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root for custom HTTP templates. |
 
 ## Output root
@@ -226,6 +226,27 @@ For example, `sourceOutputDir: "src/generated"` writes under:
 ```text
 build/smithy/source/smithplates/src/generated/
 ```
+
+### Namespace-aware layout
+
+Generated source and test artifacts are placed under the Smithy namespace of the `@sqlService` or `@httpService` shape:
+
+```text
+<sourceOutputDir>/<smithy namespace path>/<artifact file>
+<testOutputDir>/<smithy namespace path>/<artifact file>
+```
+
+For a service in namespace `com.example.inventory`, bundled Python SQL output looks like:
+
+```text
+src/generated/com/example/inventory/{{serviceFileName}}_protocol.py
+src/generated/com/example/inventory/models/{{serviceFileName}}_models.py
+src/generated/com/example/inventory/sqlite/{{serviceFileName}}_aiosqlite.py
+```
+
+Default Python import packages mirror the Smithy namespace (for example `generated.com.example.inventory`). Explicit `packageName` overrides use the configured value as-is; filesystem paths still follow the Smithy namespace.
+
+Migration SQL files remain under each dialect `migrationLocation` and are not namespace-prefixed.
 
 ## Generated output ownership
 

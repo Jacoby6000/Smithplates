@@ -38,8 +38,10 @@ object CodegenTemplateTestDiscovery {
   def isVariantUnsupported(
       testCase: CodegenTemplateTestCase,
       variant: CodegenTemplateVariant
-  ): Boolean =
-    Files.isRegularFile(testCase.caseDirectory.resolve(variant.unsupportedFilePath))
+  ): Boolean = {
+    val namespacePathPrefix = SmithyNamespaceTestSupport.namespacePathPrefix(testCase.smithyNamespace)
+    Files.isRegularFile(testCase.caseDirectory.resolve(variant.unsupportedFilePath(namespacePathPrefix)))
+  }
 
   def warnMissingVariantExpectations(
       testCase: CodegenTemplateTestCase,
@@ -51,8 +53,9 @@ object CodegenTemplateTestDiscovery {
 
     val hasExpectedOutputs = testCase.expectedOutputsByVariant.get(variant).exists(_.nonEmpty)
     if (!hasExpectedOutputs) {
+      val namespacePathPrefix = SmithyNamespaceTestSupport.namespacePathPrefix(testCase.smithyNamespace)
       Console.err.println(
-        s"WARNING: Test case '${testCase.name}' has no expected output data for variant ${variant.resourcePath} under ${testCase.caseDirectory}"
+        s"WARNING: Test case '${testCase.name}' has no expected output data for variant ${variant.resourcePath(namespacePathPrefix)} under ${testCase.caseDirectory}"
       )
     }
   }
@@ -62,12 +65,13 @@ object CodegenTemplateTestDiscovery {
       testName: String,
       variants: Set[CodegenTemplateVariant]
   ): CodegenTemplateTestCase = {
-    val smithyPath    = caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName)
-    val smithyContent = Files.readString(smithyPath, StandardCharsets.UTF_8)
+    val smithyPath      = caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName)
+    val smithyContent   = Files.readString(smithyPath, StandardCharsets.UTF_8)
+    val smithyNamespace = SmithyNamespaceTestSupport.parseSmithyNamespace(smithyContent)
 
     val expectedOutputsByVariant =
       variants.toList.sorted.map { variant =>
-        variant -> listExpectedFiles(caseDirectory, variant)
+        variant -> listExpectedFiles(caseDirectory, variant, smithyNamespace)
       }.toMap
 
     CodegenTemplateTestCase(
@@ -75,47 +79,52 @@ object CodegenTemplateTestDiscovery {
       caseDirectory = caseDirectory,
       smithyModelId = s"$testName/$SmithyDirectoryName/$SmithyFileName",
       smithyContent = smithyContent,
+      smithyNamespace = smithyNamespace,
       expectedOutputsByVariant = expectedOutputsByVariant
     )
   }
 
   private def listExpectedFiles(
       caseDirectory: Path,
-      variant: CodegenTemplateVariant
+      variant: CodegenTemplateVariant,
+      smithyNamespace: String
   ): List[CodegenTemplateExpectedFile] = {
-    val testCase = CodegenTemplateTestCase(
-      name = caseDirectory.getFileName.toString,
-      caseDirectory = caseDirectory,
-      smithyModelId = "",
-      smithyContent = "",
-      expectedOutputsByVariant = Map.empty
-    )
+    val testCase =
+      CodegenTemplateTestCase(
+        name = caseDirectory.getFileName.toString,
+        caseDirectory = caseDirectory,
+        smithyModelId = "",
+        smithyContent = "",
+        smithyNamespace = smithyNamespace,
+        expectedOutputsByVariant = Map.empty
+      )
     if (isVariantUnsupported(testCase, variant)) {
       return Nil
     }
 
+    val namespacePathPrefix          = SmithyNamespaceTestSupport.namespacePathPrefix(smithyNamespace)
     val expectedRoot                 = caseDirectory.resolve(ExpectedDirectoryName)
-    val serviceTypeRootPath          = expectedRoot.resolve(variant.serviceTypeResourcePath)
-    val implementationRootPath       = expectedRoot.resolve(variant.resourcePath)
-    val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath)
+    val namespaceRootPath            = expectedRoot.resolve(variant.namespaceResourcePath(namespacePathPrefix))
+    val implementationRootPath       = expectedRoot.resolve(variant.resourcePath(namespacePathPrefix))
+    val implementationTestOutputPath = expectedRoot.resolve(variant.testOutputResourcePath(namespacePathPrefix))
 
     val serviceTypeFiles        =
       variant.goldenTestLayout match {
         case GoldenTestLayout.HttpNested =>
-          listFilesRelativeToExpectedRoot(expectedRoot, implementationRootPath) ++
-            variant.sharedModelsResourcePath.toList.flatMap { modelsPath =>
-              listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
-            }
+          listFilesRelativeToExpectedRoot(expectedRoot, namespaceRootPath)
         case GoldenTestLayout.SqlDialect =>
           val sharedModelFiles       =
-            variant.sharedModelsResourcePath.toList.flatMap { modelsPath =>
+            variant.sharedModelsResourcePath(namespacePathPrefix).toList.flatMap { modelsPath =>
               listFilesRelativeToExpectedRoot(expectedRoot, expectedRoot.resolve(modelsPath))
             }
           val sharedServiceTypeFiles =
             listFilesDirectlyInDirectoryRelativeToExpectedRoot(
               expectedRoot,
-              serviceTypeRootPath
-            )
+              namespaceRootPath
+            ).filter { expected =>
+              val fileName = expected.relativePath.split('/').last
+              fileName.endsWith("_protocol.py")
+            }
           sharedModelFiles ++ sharedServiceTypeFiles
       }
     val implementationFiles     =

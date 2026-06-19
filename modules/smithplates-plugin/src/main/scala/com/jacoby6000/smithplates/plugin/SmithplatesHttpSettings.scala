@@ -19,7 +19,7 @@ final case class SmithplatesHttpSettings(
           languageId = languageId,
           routeGroupTags = routeGroupTags,
           rootNamespace = rootNamespace,
-          modelsPackageName = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
+          modelsPackageNameOverride = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
           emitModels = true,
           sourceOutputDir = languageTarget.sourceOutputDir,
           testOutputDir = languageTarget.testOutputDir
@@ -38,7 +38,7 @@ final case class SmithplatesHttpSettings(
           languageId = languageId,
           routeGroupTags = routeGroupTags,
           rootNamespace = rootNamespace,
-          modelsPackageName = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
+          modelsPackageNameOverride = HttpLanguageTarget.resolvedModelsPackageName(languageId, languageTarget.target),
           emitModels = emitModels,
           sourceOutputDir = languageTarget.sourceOutputDir,
           testOutputDir = languageTarget.testOutputDir

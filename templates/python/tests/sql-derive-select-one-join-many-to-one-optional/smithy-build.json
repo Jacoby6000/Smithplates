@@ -6,7 +6,7 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src",
+        "sourceOutputDir": "src/generated",
         "testOutputDir": "test",
         "sql": {
           "sqlite": {

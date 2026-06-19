@@ -14,7 +14,7 @@ ${test.localImportBlock}
 <% } %>
 from ${qualifiedModule(ctx.packageName, migrationServiceModulePath(ctx.dialectKey))} import ${migrationServiceClassName(ctx.dialectKey)}
 
-MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(configuredMigrationsDirectory(ctx))}
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(ctx.serviceShapeId, configuredMigrationsDirectory(ctx))}
 
 
 @pytest_asyncio.fixture

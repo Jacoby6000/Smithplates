@@ -1,6 +1,5 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-import com.jacoby6000.smithplates.codegen.TemplateOutputPrefix
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
@@ -69,8 +68,6 @@ object SqlServiceCodegenTemplateBackend {
       artifacts: List[SqlServiceCodegenArtifactConfig]
   ): ConfiguredBackend = {
     val templateDirectory = "classpath:python/src/db"
-    val outputPrefix      = TemplateOutputPrefix.fromTemplateDirectory(templateDirectory)
-    val packageName       = TemplateOutputPrefix.toPackageName(outputPrefix, Some("generated"))
     apply(
       templateVariant = templateVariant,
       settings = SqlServiceCodegenSettings(
@@ -82,8 +79,8 @@ object SqlServiceCodegenTemplateBackend {
         migrationDirectories = Map(dialectKey -> s"db/migrations/$dialectKey"),
         testOutputDirectory = Some(GoldenTestOutputDirectory),
         artifacts = artifacts,
-        outputPrefix = outputPrefix,
-        packageName = packageName
+        rootNamespace = Some("generated"),
+        packageNameOverride = None
       )
     )
   }

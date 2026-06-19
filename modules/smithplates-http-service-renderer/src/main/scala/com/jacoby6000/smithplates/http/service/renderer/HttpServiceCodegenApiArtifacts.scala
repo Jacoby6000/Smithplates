@@ -125,13 +125,12 @@ final case class HttpServiceCodegenSettings(
     templateDirectory: String,
     defaultFrameworkKey: String,
     enabledFrameworkKeys: List[String],
-    packageName: String,
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
     artifacts: List[HttpServiceCodegenArtifactConfig],
-    outputPrefix: String,
-    modelsPackageName: String,
-    modelsOutputPrefix: String,
+    rootNamespace: Option[String],
+    packageNameOverride: Option[String] = None,
+    modelsPackageNameOverride: Option[String] = None,
     emitModels: Boolean = true,
     modelTemplateDirectory: Option[String] = None
 ) {

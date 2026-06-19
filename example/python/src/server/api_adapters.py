@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 
-from generated.http.models.category_not_found import CategoryNotFound
-from generated.http.models.create_pet_input import CreatePetInput
-from generated.http.models.create_pet_output import CreatePetOutput
-from generated.http.models.get_category_output import GetCategoryOutput
-from generated.http.models.get_order_output import GetOrderOutput
-from generated.http.models.get_pet_output import GetPetOutput
-from generated.http.models.health_check_output import HealthCheckOutput
-from generated.http.models.order_not_found import OrderNotFound
-from generated.http.models.pet_location_redirect import PetLocationRedirect
-from generated.http.models.pet_not_found import PetNotFound
-from generated.http.models.place_order_input import PlaceOrderInput
-from generated.http.models.place_order_output import PlaceOrderOutput
-from generated.http.models.update_pet_body import UpdatePetBody
-from generated.http.models.update_pet_output import UpdatePetOutput
-from generated.http.server.apis.categories_api_base import CategoriesApiServiceProtocol
-from generated.http.server.apis.health_api_base import HealthApiServiceProtocol
-from generated.http.server.apis.orders_api_base import OrdersApiServiceProtocol
-from generated.http.server.apis.pets_api_base import PetsApiServiceProtocol
+from generated.petstore.api.apis.categories_api_base import CategoriesApiServiceProtocol
+from generated.petstore.api.apis.health_api_base import HealthApiServiceProtocol
+from generated.petstore.api.apis.orders_api_base import OrdersApiServiceProtocol
+from generated.petstore.api.apis.pets_api_base import PetsApiServiceProtocol
+from generated.petstore.api.category_not_found import CategoryNotFound
+from generated.petstore.api.create_pet_input import CreatePetInput
+from generated.petstore.api.create_pet_output import CreatePetOutput
+from generated.petstore.api.get_category_output import GetCategoryOutput
+from generated.petstore.api.get_order_output import GetOrderOutput
+from generated.petstore.api.get_pet_output import GetPetOutput
+from generated.petstore.api.health_check_output import HealthCheckOutput
+from generated.petstore.api.order_not_found import OrderNotFound
+from generated.petstore.api.pet_location_redirect import PetLocationRedirect
+from generated.petstore.api.pet_not_found import PetNotFound
+from generated.petstore.api.place_order_input import PlaceOrderInput
+from generated.petstore.api.place_order_output import PlaceOrderOutput
+from generated.petstore.api.update_pet_body import UpdatePetBody
+from generated.petstore.api.update_pet_output import UpdatePetOutput
 from server.repository_service import PetstoreRepositoryService
 
 

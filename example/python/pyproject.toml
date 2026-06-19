@@ -45,13 +45,7 @@ local_partial_types = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 mypy_path = [
-    "tests/db/postgres/stubs",
-    "src/generated",
-    "src/generated/db/models",
-    "src/generated/db",
-    "src/generated/db/sqlite",
-    "src/generated/db/postgres",
-    "src/generated",
+    "tests/petstore/db/postgres/stubs",
     "src",
 ]
 

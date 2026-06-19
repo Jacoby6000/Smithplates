@@ -43,7 +43,7 @@ Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) 
 | One-to-many join | `GetOrderRecord` → `order_lines` |
 | HTTP + SQL wiring | `src/server/api_adapters.py` and `repository_service.py` bridge `petstore.api` to `petstore.db` |
 
-Generated HTTP server code lives under `src/generated/http/server/` and imports as `generated.http.server.*`. Shared models live under `src/generated/http/models/` (`generated.http.models.*`). The httpx client lives under `src/generated/http/client/` (`generated.http.client.*`). SQL repository code lives under `src/generated/db/` and imports as `generated.db.*` (for example `generated.db.sqlite.pet_repository_aiosqlite`). Put `src` on `PYTHONPATH` before the stdlib shadows the top-level `http` package (see `rootNamespace` in `smithy-build.json`).
+Generated HTTP code lives under `src/generated/petstore/api/` and imports as `generated.petstore.api.*`. SQL repository code lives under `src/generated/petstore/db/` and imports as `generated.petstore.db.*`. Put `src` on `PYTHONPATH` so the `generated` package resolves from `src/generated/`.
 
 For an OpenAPI Generator reference client (comparison / regression checks), see [`../openapi-reference-python/`](../openapi-reference-python/).
 
@@ -109,7 +109,7 @@ Postgres generated tests require Docker (`tests/db/postgres`).
 import asyncio
 
 import httpx
-from generated.http.client.client_registry import create_api_clients
+from generated.petstore.api.client.client_registry import create_api_clients
 
 
 async def main() -> None:

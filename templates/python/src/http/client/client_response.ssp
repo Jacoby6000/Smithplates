@@ -9,9 +9,9 @@ from typing import Any
 import httpx
 from pydantic import BaseModel
 
-from ${ctx.packageName}.operation_bindings import ClientOperationHttpBinding
+from ${ctx.packageName}.client.operation_bindings import ClientOperationHttpBinding
 <% for (typeName <- responseTypes) { %>
-from ${ctx.modelsPackageName}.${snakeCase(typeName)} import ${typeName}
+from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 
 

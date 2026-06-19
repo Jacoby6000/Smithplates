@@ -9,10 +9,10 @@ from pathlib import Path
 
 import aiosqlite
 
-from generated.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
-from generated.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
-from generated.db.sqlite.pet_repository_aiosqlite import PetRepositoryAiosqliteService
-from generated.db.sqlite.sqlite_migrations import SqliteMigrationService
+from generated.petstore.db.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
+from generated.petstore.db.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
+from generated.petstore.db.sqlite.pet_repository_aiosqlite import PetRepositoryAiosqliteService
+from generated.petstore.db.sqlite.sqlite_migrations import SqliteMigrationService
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[2] / "db" / "migrations" / "sqlite"
 DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[2] / "data" / "petstore.sqlite3"
