@@ -268,6 +268,33 @@ def unionMemberPythonType(
 ): String =
   httpMemberPythonType(member.typeName, member.timestampFormat)
 
+def unionMemberTypeNameCollidesWithVariant(
+    unionName: String,
+    member: com.jacoby6000.smithplates.http.model.HttpUnionMember
+): Boolean =
+  unionVariantTypeName(unionName, member.name) == member.typeName
+
+def unionImportedTypeAlias(
+    typeName: String,
+    unionName: String,
+    members: Seq[com.jacoby6000.smithplates.http.model.HttpUnionMember]
+): String =
+  if (members.exists(member => unionMemberTypeNameCollidesWithVariant(unionName, member))) {
+    s"${typeName}Shape"
+  } else {
+    typeName
+  }
+
+def unionMemberAnnotatedTypeName(
+    unionName: String,
+    member: com.jacoby6000.smithplates.http.model.HttpUnionMember
+): String =
+  if (unionMemberTypeNameCollidesWithVariant(unionName, member)) {
+    s"${member.typeName}Shape"
+  } else {
+    unionMemberPythonType(member)
+  }
+
 def clientClassName(tag: String): String =
   tag
     .split("[_\\-]+")
