@@ -1,0 +1,9 @@
+<%@ val dialectKey: String %>
+def _read_Document_col(row: dict[str, object], column: str) -> object:
+#match (dialectKey)
+#case ("sqlite")    return cast(object, json.loads(_read_str_col(row, column)))
+#case ("postgres")    value = row[column]
+    if isinstance(value, str):
+        return cast(object, json.loads(value))
+    return cast(object, value)
+#end

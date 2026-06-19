@@ -187,6 +187,12 @@ object SqlCodegenHelperAttributes {
   def modelsUsedAsJsonCol(ctx: ServiceTemplateView): List[TemplateModelView] =
     ctx.models.filter(model => ctx.usedJsonTypeNamesCol.contains(model.name))
 
+  def documentUsedAsJson(ctx: ServiceTemplateView): Boolean =
+    ctx.usedJsonTypeNames.contains("Document")
+
+  def documentUsedAsJsonCol(ctx: ServiceTemplateView): Boolean =
+    ctx.usedJsonTypeNamesCol.contains("Document")
+
   final case class ClassRowFactorySpec(
       name: String,
       resultFields: List[SqlCodegenResultField]
