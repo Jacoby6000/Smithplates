@@ -14,13 +14,13 @@ example/
     db/migrations/           Versioned schema DDL (generated)
     src/
       generated/
-        http/
-          server/            Generated FastAPI routes and protocols
-          client/            Generated httpx async clients
-          models/            Shared Pydantic HTTP models (server + client)
-        db/                  Generated repository services
+        petstore/
+          api/                 Generated FastAPI routes, httpx clients, HTTP models
+          db/                  Generated repository services
       server/                Protocol adapters + app wiring
-    tests/                   Generated repository tests + API smoke tests
+    tests/
+      petstore/db/           Generated repository integration tests
+      test_api.py            Hand-written API smoke tests
   tests/                   Cross-language HTTP scenario suite
 ```
 
@@ -33,7 +33,7 @@ Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) 
 | Separate API/DB Smithy namespaces | `petstore.api` (HTTP) and `petstore.db` (SQL); mapped in `src/server/repository_service.py` |
 | `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` in `petstore.db` |
 | `@httpService`, `@http`, `@tags` | `Petstore` service in [`petstore-smithy-spec/petstore/api/http-service.smithy`](../petstore-smithy-spec/petstore/api/http-service.smithy) (`petstore.api`) |
-| Smithplates httpx HTTP client | `smithplates.python.http.client` → `src/generated/http/client/` |
+| Smithplates httpx HTTP client | `smithplates.python.http.client` → `src/generated/petstore/api/client/` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |
 | `@sqlAutoUuid`, `@sqlVarchar`, indexes | `Pet`, `Store`, … |
@@ -90,7 +90,7 @@ The server applies SQLite migrations on startup, seeds a demo store/category, an
 ```bash
 cd example/python
 uv run pytest tests/test_api.py
-uv run pytest tests/db/sqlite -m "integration and sqlite"
+uv run pytest tests/petstore/db/sqlite -m "integration and sqlite"
 ```
 
 Cross-language HTTP scenarios live under [`../tests/`](../tests/). Run the Python server and client together:
@@ -101,7 +101,7 @@ Cross-language HTTP scenarios live under [`../tests/`](../tests/). Run the Pytho
 
 The shared runner sets `PETSTORE_DATABASE_PATH` for an isolated SQLite file during each run.
 
-Postgres generated tests require Docker (`tests/db/postgres`).
+Postgres generated tests require Docker (`tests/petstore/db/postgres`).
 
 ## Client example
 

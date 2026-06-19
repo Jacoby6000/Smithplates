@@ -73,7 +73,7 @@ When inspecting only the generated consumer project:
 cd example/python
 uv sync
 uv run pytest tests/test_api.py
-uv run pytest tests/db/sqlite -m "integration and sqlite"
+uv run pytest tests/petstore/db/sqlite -m "integration and sqlite"
 ```
 
 Postgres generated tests require Docker.

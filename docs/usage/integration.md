@@ -139,9 +139,9 @@ The Python petstore reference uses this split:
 
 | Concern | Tool | Output |
 |---------|------|--------|
-| FastAPI server wiring | Smithplates HTTP server codegen | `src/generated/http/server/` |
-| Shared HTTP Pydantic models | Smithplates HTTP codegen (`modelsPackageName`) | `src/generated/http/models/` |
-| httpx async HTTP client | Smithplates HTTP client codegen | `example/python/src/generated/http/client/` |
+| FastAPI server wiring | Smithplates HTTP server codegen | `src/generated/petstore/api/` |
+| Shared HTTP Pydantic models | Smithplates HTTP codegen | `src/generated/petstore/api/` (same namespace root as the server) |
+| httpx async HTTP client | Smithplates HTTP client codegen | `example/python/src/generated/petstore/api/client/` |
 | OpenAPI document + reference Python client | Smithy OpenAPI plugin + OpenAPI Generator | `example/openapi-reference-python/` |
 
 Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL Smithy files in the OpenAPI projection, and keep hand-written adapters responsible for mapping generated API models to generated DB models.

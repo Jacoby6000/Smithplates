@@ -99,6 +99,30 @@ format_generated_python() {
   )
 }
 
+validate_smithplates_build_output() {
+  local build_root=$1
+  local generated="${build_root}/src/generated"
+  local legacy_path
+
+  if [[ ! -d "${generated}" ]]; then
+    echo "error: missing Smithplates generated output at ${generated}" >&2
+    exit 1
+  fi
+
+  for legacy_path in db http; do
+    if [[ -d "${generated}/${legacy_path}" ]]; then
+      echo "error: Smithy build emitted legacy template-layout output at src/generated/${legacy_path}/" >&2
+      echo "hint: run publishM2 and rebuild; namespace-aware output should live under src/generated/<smithy namespace>/" >&2
+      exit 1
+    fi
+  done
+
+  if [[ -d "${build_root}/tests/db" ]]; then
+    echo "error: Smithy build emitted legacy generated tests under tests/db/" >&2
+    exit 1
+  fi
+}
+
 sync_smithplates_output() {
   local example_dir=$1
   local build_root="${example_dir}/build/smithy/source/smithplates"
@@ -108,7 +132,20 @@ sync_smithplates_output() {
     exit 1
   fi
 
-  cp -a "${build_root}/." "${example_dir}/"
+  validate_smithplates_build_output "${build_root}"
+
+  rm -rf "${example_dir}/src/generated"
+  cp -a "${build_root}/src/generated" "${example_dir}/src/"
+
+  rm -rf "${example_dir}/tests/petstore" "${example_dir}/tests/db"
+  if [[ -d "${build_root}/tests/petstore" ]]; then
+    cp -a "${build_root}/tests/petstore" "${example_dir}/tests/"
+  fi
+
+  if [[ -d "${build_root}/db" ]]; then
+    mkdir -p "${example_dir}/db"
+    cp -a "${build_root}/db/." "${example_dir}/db/"
+  fi
 }
 
 build_python_example() {
