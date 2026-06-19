@@ -134,6 +134,150 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         fail(errors.map(_.message).toList.mkString("; "))
     }
   }
+
+  test("HttpServiceCodegenRenderer includes None in protocol return type for Unit success responses") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [DeleteWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "DELETE", uri: "/v1/widgets/{id}", code: 204)
+          |operation DeleteWidget {
+          |    input: DeleteWidgetInput
+          |    output: Unit
+          |    errors: [DeleteWidget404]
+          |}
+          |
+          |structure DeleteWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |@error("client")
+          |@httpError(404)
+          |structure DeleteWidget404 {
+          |    @required
+          |    message: String
+          |}
+          |""".stripMargin
+    )
+
+    val protocolContent =
+      HttpServiceCodegenRendererSpec.internal.renderFastApiProtocolBase(model, "v1_widgets")
+
+    assert(clue(protocolContent).contains(") -> DeleteWidget404 | None:"))
+  }
+
+  test("HttpServiceCodegenRenderer deduplicates protocol return types for shared @httpProblem error shapes") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [MutateWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "PATCH", uri: "/v1/widgets/{id}", code: 200)
+          |operation MutateWidget {
+          |    input: MutateWidgetInput
+          |    output: WidgetOutput
+          |    errors: [MutateWidget404, MutateWidget409, MutateWidget422]
+          |}
+          |
+          |structure MutateWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |
+          |    @httpPayload
+          |    @required
+          |    body: WidgetPatch
+          |}
+          |
+          |structure WidgetPatch {
+          |    @required
+          |    status: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure Problem {
+          |    @required
+          |    title: String
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/widget-not-found"
+          |    title: "Widget not found"
+          |    code: 404
+          |)
+          |@error("client")
+          |structure MutateWidget404 {
+          |    @httpPayload
+          |    @required
+          |    body: Problem
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/widget-conflict"
+          |    title: "Widget conflict"
+          |    code: 409
+          |)
+          |@error("client")
+          |structure MutateWidget409 {
+          |    @httpPayload
+          |    @required
+          |    body: Problem
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/widget-invalid"
+          |    title: "Widget invalid"
+          |    code: 422
+          |)
+          |@error("client")
+          |structure MutateWidget422 {
+          |    @httpPayload
+          |    @required
+          |    body: Problem
+          |}
+          |""".stripMargin
+    )
+
+    val protocolContent =
+      HttpServiceCodegenRendererSpec.internal.renderFastApiProtocolBase(model, "v1_widgets")
+
+    assert(clue(protocolContent).contains(") -> WidgetOutput | Problem:"))
+    assert(!protocolContent.contains("Problem | Problem"))
+  }
 }
 object HttpServiceCodegenRendererSpec {
 
@@ -143,5 +287,39 @@ object HttpServiceCodegenRendererSpec {
     val PythonClientTemplateDirectory = "classpath:python/src/http/client"
     val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
     val RootNamespace                 = Some("generated")
+
+    def renderFastApiProtocolBase(model: software.amazon.smithy.model.Model, routeGroupTag: String): String = {
+      val serviceIr = HttpIrExtractor.extractOrThrow(model)
+      val settings  =
+        HttpServiceCodegenSettings(
+          templateDirectory = PythonServerTemplateDirectory,
+          defaultFrameworkKey = "fastapi",
+          enabledFrameworkKeys = List("fastapi"),
+          sourceOutputDirectory = Some("src/generated"),
+          testOutputDirectory = Some("tests"),
+          artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+            List("fastapi"),
+            List(routeGroupTag),
+            emitModels = true),
+          rootNamespace = RootNamespace,
+          packageNameOverride = None,
+          modelsPackageNameOverride = None,
+          emitModels = true,
+          modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
+        )
+
+      HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
+        case Validated.Valid(artifacts) =>
+          val protocolPath = s"src/generated/example/apis/${routeGroupTag}_api_base.py"
+          artifacts
+            .find(_.relativePath == protocolPath)
+            .map(_.content)
+            .getOrElse(
+              throw new IllegalStateException(s"Missing generated protocol artifact at $protocolPath")
+            )
+        case Validated.Invalid(errors)  =>
+          throw new IllegalStateException(errors.map(_.message).toList.mkString("; "))
+      }
+    }
   }
 }
