@@ -11,12 +11,17 @@ from typing import TypedDict
 from datetime import datetime
 <% } %>
 <% for (typeName <- importTypeNames) { %>
+<% val importAlias = unionImportedTypeAlias(typeName, union.name, union.members) %>
+<% if (importAlias == typeName) { %>
 from ${packageName}.${snakeCase(typeName)} import ${typeName}
+<% } else { %>
+from ${packageName}.${snakeCase(typeName)} import ${typeName} as ${importAlias}
+<% } %>
 <% } %>
 
 
 <% for (member <- union.members) { %>
 class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
-    ${member.name}: ${unionMemberPythonType(member)}
+    ${member.name}: ${unionMemberAnnotatedTypeName(union.name, member)}
 
 <% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
