@@ -1,5 +1,7 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.scalate.PreambleTemplateRootResourceLoader
+import com.jacoby6000.smithplates.scalate.ScalateTemplatePaths
 import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
 import com.jacoby6000.smithplates.scalate.precompiler.ScalateTemplatePrecompiler
 import org.fusesource.scalate.Template
@@ -15,12 +17,14 @@ object ScalateSspTemplateEngine {
 """
 
   def readClasspathResource(resourceClasspath: String): String = {
-    val resourcePath = normalizeResourcePath(normalizeClasspathUri(resourceClasspath))
-    normalizeRenderedOutput(readClasspathTemplate(resourcePath))
+    val resourcePath = ScalateTemplatePaths.normalizeResourcePath(
+      ScalateTemplatePaths.normalizeClasspathUri(resourceClasspath)
+    )
+    ScalateTemplatePaths.normalizeRenderedOutput(readClasspathTemplate(resourcePath))
   }
 
   def classpathResourceExists(resourcePath: String): Boolean = {
-    val normalized = normalizeResourcePath(resourcePath)
+    val normalized = ScalateTemplatePaths.normalizeResourcePath(resourcePath)
     Option(getClass.getResource(normalized)).isDefined
   }
 
@@ -29,19 +33,20 @@ object ScalateSspTemplateEngine {
       view: ServiceTemplateView,
       templateRoot: Option[String] = None
   ): String = {
-    val normalizedTemplatePath = normalizeClasspathUri(templateClasspath)
+    val normalizedTemplatePath = ScalateTemplatePaths.normalizeClasspathUri(templateClasspath)
     val resolvedTemplateRoot   =
       templateRoot
-        .map(normalizeTemplateRoot)
+        .map(ScalateTemplatePaths.normalizeTemplateRoot)
         .getOrElse(inferTemplateRoot(normalizedTemplatePath))
-    val templateUri            = templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
+    val templateUri            =
+      ScalateTemplatePaths.templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
     val engine                 = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template               = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$templateUri",
       _ => engine.load(templateUri)
     )
     val renderedBody           =
-      normalizeRenderedOutput(
+      ScalateTemplatePaths.normalizeRenderedOutput(
         engine.layout(templateUri, template, toObjectMap(Map("ctx" -> view)))
       )
     prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
@@ -77,14 +82,14 @@ object ScalateSspTemplateEngine {
       partialReference: String,
       attributes: Map[String, Any]
   ): String = {
-    val resolvedTemplateRoot = normalizeTemplateRoot(templateRoot)
-    val partialUri           = partialUriRelativeToRoot(partialReference)
+    val resolvedTemplateRoot = ScalateTemplatePaths.normalizeTemplateRoot(templateRoot)
+    val partialUri           = ScalateTemplatePaths.partialUriRelativeToRoot(partialReference)
     val engine               = templateEngine(resolvedTemplateRoot, Some(resolvedTemplateRoot))
     val template             = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$partialUri",
       _ => engine.load(partialUri)
     )
-    normalizeRenderedOutput(
+    ScalateTemplatePaths.normalizeRenderedOutput(
       engine.layout(partialUri, template, toObjectMap(attributes))
     )
   }
@@ -94,7 +99,7 @@ object ScalateSspTemplateEngine {
     * the runtime [[org.fusesource.scalate.TemplateEngine]] resolves.
     */
   def precompilationEngine(templateRoot: String): TemplateEngine = {
-    val normalized = normalizeTemplateRoot(templateRoot)
+    val normalized = ScalateTemplatePaths.normalizeTemplateRoot(templateRoot)
     templateEngine(normalized, Some(normalized))
   }
 
@@ -125,24 +130,18 @@ object ScalateSspTemplateEngine {
   }
 
   private def readOptionalClasspathTemplate(resourcePath: String): Option[String] =
-    readClasspathTemplateOptional(normalizeResourcePath(resourcePath))
+    readClasspathTemplateOptional(ScalateTemplatePaths.normalizeResourcePath(resourcePath))
 
   private def readClasspathTemplateOptional(resourcePath: String): Option[String] =
-    Option(getClass.getResourceAsStream(normalizeResourcePath(resourcePath))).map { stream =>
+    Option(getClass.getResourceAsStream(ScalateTemplatePaths.normalizeResourcePath(resourcePath))).map { stream =>
       try
         scala.io.Source.fromInputStream(stream, "UTF-8").mkString
       finally
         stream.close()
     }
 
-  private def normalizeClasspathUri(templateClasspath: String): String =
-    templateClasspath.stripPrefix("classpath:")
-
-  private def normalizeTemplateRoot(templateRoot: String): String =
-    templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
-
   private def inferTemplateRoot(templateClasspath: String): String = {
-    val normalized = normalizeTemplateRoot(templateClasspath)
+    val normalized = ScalateTemplatePaths.normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
       case "python" :: "src" :: feature :: _             =>
@@ -156,33 +155,6 @@ object ScalateSspTemplateEngine {
     }
   }
 
-  private def templateUriRelativeToRoot(templateClasspath: String, templateRoot: String): String = {
-    val normalizedTemplate = normalizeTemplateRoot(templateClasspath)
-    val root               = normalizeTemplateRoot(templateRoot)
-    if (normalizedTemplate.startsWith(s"$root/")) {
-      normalizedTemplate.stripPrefix(s"$root/")
-    } else {
-      normalizedTemplate
-    }
-  }
-
-  private def partialUriRelativeToRoot(partialReference: String): String = {
-    val normalizedReference =
-      if (partialReference.endsWith(".ssp")) {
-        partialReference
-      } else {
-        s"$partialReference.ssp"
-      }
-    normalizedReference.stripPrefix("/")
-  }
-
-  private def normalizeResourcePath(resourcePath: String): String =
-    if (resourcePath.startsWith("/")) {
-      resourcePath
-    } else {
-      s"/$resourcePath"
-    }
-
   private def readClasspathTemplate(resourcePath: String): String = {
     val stream =
       Option(getClass.getResourceAsStream(resourcePath)).getOrElse {
@@ -192,15 +164,6 @@ object ScalateSspTemplateEngine {
       scala.io.Source.fromInputStream(stream, "UTF-8").mkString.stripTrailing()
     finally
       stream.close()
-  }
-
-  private def normalizeRenderedOutput(output: String): String = {
-    val trimmed = output.stripTrailing()
-    if (trimmed.isEmpty) {
-      trimmed
-    } else {
-      s"$trimmed\n"
-    }
   }
 
   private def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =

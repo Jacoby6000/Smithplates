@@ -2,6 +2,8 @@ package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.http.model.HttpRouteGroup
 import com.jacoby6000.smithplates.http.model.HttpStructure
+import com.jacoby6000.smithplates.scalate.PreambleTemplateRootResourceLoader
+import com.jacoby6000.smithplates.scalate.ScalateTemplatePaths
 import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
 import com.jacoby6000.smithplates.scalate.precompiler.ScalateTemplatePrecompiler
 import org.fusesource.scalate.Template
@@ -39,7 +41,7 @@ object ScalateSspTemplateEngine {
   }
 
   private def readClasspathTemplate(classLoader: ClassLoader, resourcePath: String): Option[String] =
-    readClasspathTemplateOptional(classLoader, normalizeResourcePath(resourcePath))
+    readClasspathTemplateOptional(classLoader, ScalateTemplatePaths.normalizeResourcePath(resourcePath))
 
   def renderClasspathTemplate(
       templateClasspath: String,
@@ -53,26 +55,27 @@ object ScalateSspTemplateEngine {
       attributes: Map[String, Any],
       templateRoot: Option[String]
   ): String = {
-    val normalizedTemplatePath = normalizeClasspathUri(templateClasspath)
+    val normalizedTemplatePath = ScalateTemplatePaths.normalizeClasspathUri(templateClasspath)
     val resolvedTemplateRoot   =
       templateRoot
-        .map(normalizeTemplateRoot)
+        .map(ScalateTemplatePaths.normalizeTemplateRoot)
         .getOrElse(inferTemplateRoot(normalizedTemplatePath))
-    val templateUri            = templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
+    val templateUri            =
+      ScalateTemplatePaths.templateUriRelativeToRoot(normalizedTemplatePath, resolvedTemplateRoot)
     val engine                 = templateEngine(resolvedTemplateRoot)
     val template               = compiledTemplateCache.computeIfAbsent(
       s"$resolvedTemplateRoot:$templateUri",
       _ => engine.load(templateUri)
     )
     val renderedBody           =
-      normalizeRenderedOutput(
+      ScalateTemplatePaths.normalizeRenderedOutput(
         engine.layout(templateUri, template, toObjectMap(attributes))
       )
     prependGeneratedFileHeader(attributes, resolvedTemplateRoot, renderedBody)
   }
 
   def classpathResourceExists(resourcePath: String): Boolean = {
-    val normalized = normalizeResourcePath(resourcePath)
+    val normalized = ScalateTemplatePaths.normalizeResourcePath(resourcePath)
     Option(getClass.getResource(normalized)).isDefined
   }
 
@@ -109,7 +112,7 @@ object ScalateSspTemplateEngine {
     * the runtime [[org.fusesource.scalate.TemplateEngine]] resolves.
     */
   def precompilationEngine(templateRoot: String): TemplateEngine =
-    templateEngine(normalizeTemplateRoot(templateRoot))
+    templateEngine(ScalateTemplatePaths.normalizeTemplateRoot(templateRoot))
 
   private def templateEngine(normalizedTemplateRoot: String): TemplateEngine = {
     val created = new ConfiguredTemplateEngine
@@ -134,14 +137,8 @@ object ScalateSspTemplateEngine {
   private def readStream(stream: java.io.InputStream): String =
     scala.io.Source.fromInputStream(stream, "UTF-8").mkString
 
-  private def normalizeClasspathUri(templateClasspath: String): String =
-    templateClasspath.stripPrefix("classpath:")
-
-  private def normalizeTemplateRoot(templateRoot: String): String =
-    templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
-
   private def inferTemplateRoot(templateClasspath: String): String = {
-    val normalized = normalizeTemplateRoot(templateClasspath)
+    val normalized = ScalateTemplatePaths.normalizeTemplateRoot(templateClasspath)
     val segments   = normalized.split("/").toList
     segments match {
       case "python" :: "src" :: "http" :: "server" :: _                =>
@@ -162,32 +159,6 @@ object ScalateSspTemplateEngine {
         segments.take(2).mkString("/")
       case _                                                           =>
         normalized
-    }
-  }
-
-  private def templateUriRelativeToRoot(templateClasspath: String, templateRoot: String): String = {
-    val normalizedTemplate = normalizeTemplateRoot(templateClasspath)
-    val root               = normalizeTemplateRoot(templateRoot)
-    if (normalizedTemplate.startsWith(s"$root/")) {
-      normalizedTemplate.stripPrefix(s"$root/")
-    } else {
-      normalizedTemplate
-    }
-  }
-
-  private def normalizeResourcePath(resourcePath: String): String =
-    if (resourcePath.startsWith("/")) {
-      resourcePath
-    } else {
-      s"/$resourcePath"
-    }
-
-  private def normalizeRenderedOutput(output: String): String = {
-    val trimmed = output.stripTrailing()
-    if (trimmed.isEmpty) {
-      trimmed
-    } else {
-      s"$trimmed\n"
     }
   }
 
