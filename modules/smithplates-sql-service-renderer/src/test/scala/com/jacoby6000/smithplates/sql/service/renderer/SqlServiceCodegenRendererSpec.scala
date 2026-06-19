@@ -73,7 +73,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
 
   test("OutputPath - expands placeholders per service") {
     val queryRenderer           =
-      new SqliteSqlQueryRenderer(
+      SqliteSqlQueryRenderer(
         migrationBindPlaceholder = SqlBindPlaceholder("?"),
         codegenBindPlaceholder = SqlBindPlaceholder("?")
       )

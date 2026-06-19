@@ -34,14 +34,14 @@ object DialectRenderers {
   def renderDdlOnly(schema: SqlSchema, dialectKey: String): String =
     SqlShared.formatDdlStatements(schemaDdlRendererForKey(dialectKey).renderSchemaDdlStatements(schema))
 
-  private def sqliteQueryRenderer(): SqliteSqlQueryRenderer =
-    new SqliteSqlQueryRenderer(
+  private def sqliteQueryRenderer(): SqlQueryRenderer =
+    SqliteSqlQueryRenderer(
       migrationBindPlaceholder = SqlBindPlaceholder("?"),
       codegenBindPlaceholder = SqlBindPlaceholder("?")
     )
 
-  private def postgresQueryRenderer(): PostgresSqlQueryRenderer =
-    new PostgresSqlQueryRenderer(
+  private def postgresQueryRenderer(): SqlQueryRenderer =
+    PostgresSqlQueryRenderer(
       migrationBindPlaceholder = SqlBindPlaceholder("$" + SqlBindPlaceholder.NumberToken),
       codegenBindPlaceholder = SqlBindPlaceholder("%s")
     )
