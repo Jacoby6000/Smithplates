@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
-<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
+<% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
 <% for (uuidTypeName <- ctx.uuidTypeNames) { %>
 ${uuidTypeName} = str
 <% } %>

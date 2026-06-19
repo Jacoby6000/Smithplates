@@ -111,6 +111,7 @@ def resultFieldAssignmentBindings(
     "readTypeName"      -> resultField.readTypeName,
     "optional"          -> resultField.optional,
     "isJson"            -> resultField.isJson,
+    "isEnum"            -> resultField.isEnum,
     "readMode"          -> readMode,
     "columnIndex"       -> resultField.columnIndex,
     "columnNameLiteral" -> resultField.columnNameLiteral,

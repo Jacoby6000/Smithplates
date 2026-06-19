@@ -213,11 +213,17 @@ object SqlCodegenIntegrationTestBuilder {
         model.members.flatMap { member =>
           table.columns.find(_.name == member.name).flatMap { column =>
             column.columnType match {
-              case SqlColumnType.StringEnum(_, _, values) if values.nonEmpty =>
-                Some(member.typeName -> s"\"${values.head}\"")
-              case SqlColumnType.IntEnum(_, values) if values.nonEmpty       =>
-                Some(member.typeName -> values.head.toString)
-              case _                                                         =>
+              case _: SqlColumnType.StringEnum =>
+                context.stringEnums
+                  .find(_.name == member.typeName)
+                  .flatMap(_.members.headOption.map(enumMember =>
+                    member.typeName -> s"${member.typeName}.${enumMember.name}"))
+              case _: SqlColumnType.IntEnum    =>
+                context.intEnums
+                  .find(_.name == member.typeName)
+                  .flatMap(_.members.headOption.map(enumMember =>
+                    member.typeName -> s"${member.typeName}.${enumMember.name}"))
+              case _                           =>
                 None
             }
           }
@@ -503,15 +509,19 @@ object SqlCodegenIntegrationTestBuilder {
         .map(_.name)
         .toSet
     val unionNames           = context.unions.map(_.name).toSet
+    val enumNames            = SqlCodegenPythonImports.enumTypeNameSet(context)
 
     val modelImportNames    = scala.collection.mutable.LinkedHashSet.empty[String]
     val protocolImportNames = scala.collection.mutable.LinkedHashSet.empty[String]
+    val enumImportNames     = scala.collection.mutable.LinkedHashSet.empty[String]
 
     def assignImportName(name: String): Unit =
       if (operationResultNames.contains(name)) {
         protocolImportNames += name
       } else if (tableModelNames.contains(name) || unionNames.contains(name)) {
         modelImportNames += name
+      } else if (enumNames.contains(name)) {
+        enumImportNames += name
       }
 
     selectOneOperation.outputShapeId.foreach(shapeId => assignImportName(shapeId.getName))
@@ -525,6 +535,13 @@ object SqlCodegenIntegrationTestBuilder {
         modelImportNames += name
       }
     }
+    val assertionText =
+      (selectOneOperation.resultAssertions ++ selectOneOperation.updatedResultAssertions).mkString("\n")
+    enumNames.foreach { name =>
+      if (callText.contains(name) || assertionText.contains(name)) {
+        enumImportNames += name
+      }
+    }
 
     val importBlocks = List.newBuilder[String]
     if (modelImportNames.nonEmpty) {
@@ -536,6 +553,10 @@ object SqlCodegenIntegrationTestBuilder {
       importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"${serviceModuleBase}_protocol")} import ("
       importBlocks ++= protocolImportNames.toList.sorted.map(name => s"    $name,")
       importBlocks += ")"
+    }
+    enumImportNames.toList.sorted.foreach { enumName =>
+      importBlocks +=
+        s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, SqlCodegenSnakeCase.toSnakeCase(enumName))} import $enumName"
     }
 
     val blocks = importBlocks.result()

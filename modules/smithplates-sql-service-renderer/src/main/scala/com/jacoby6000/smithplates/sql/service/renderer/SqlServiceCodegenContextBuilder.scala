@@ -47,6 +47,15 @@ object SqlServiceCodegenContextBuilder {
         .map { operations =>
           val (resolvedOperations, derivedModels) = applySelectOneDerivedOutputs(operations, queries)
           val uuidTypeNames                       = SqlCodegenUuidTypeNames.fromSchema(schema, shapeIr)
+          val (stringEnums, intEnums)             =
+            SqlEnumExtractor.extractReferenced(
+              model = model,
+              namespace = service.shapeId.getNamespace,
+              structures = shapeIr.structures ++ derivedModels,
+              unions = shapeIr.unions,
+              extraTypeNames = resolvedOperations.flatMap(_.parameters.map(_.typeName)) ++
+                resolvedOperations.flatMap(_.outputTypeName)
+            )
           val baseContext                         =
             SqlCodegenServiceContext(
               shapeId = service.shapeId,
@@ -64,6 +73,8 @@ object SqlServiceCodegenContextBuilder {
               hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
               models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
               unions = shapeIr.unions.sortBy(_.shapeId.toString),
+              stringEnums = stringEnums,
+              intEnums = intEnums,
               operations = resolvedOperations,
               uuidTypeNames = uuidTypeNames
             )

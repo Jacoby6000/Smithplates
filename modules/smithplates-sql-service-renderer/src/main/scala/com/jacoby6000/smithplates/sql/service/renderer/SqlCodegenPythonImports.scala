@@ -23,6 +23,51 @@ object SqlCodegenPythonNaming {
 object SqlCodegenPythonImports {
   import SqlCodegenPythonNaming.*
 
+  def enumTypeNameSet(context: SqlCodegenServiceContext): Set[String] =
+    (context.stringEnums.map(_.name) ++ context.intEnums.map(_.name)).toSet
+
+  def enumImportBlock(context: SqlCodegenServiceContext): String = {
+    val enumNames = referencedEnumTypeNames(context).toList.sorted
+    if (enumNames.isEmpty) {
+      ""
+    } else {
+      enumNames
+        .map(enumName =>
+          s"from ${qualifiedModule(context.packageName, SqlCodegenSnakeCase.toSnakeCase(enumName))} import $enumName")
+        .mkString("\n", "\n", "\n")
+    }
+  }
+
+  def referencedEnumTypeNames(context: SqlCodegenServiceContext): Set[String] = {
+    val enumNames  = enumTypeNameSet(context)
+    val referenced = scala.collection.mutable.LinkedHashSet.empty[String]
+
+    def reference(typeName: String): Unit =
+      referencedTypeNames(typeName).foreach { candidate =>
+        if (enumNames.contains(candidate)) {
+          referenced += candidate
+        }
+      }
+
+    context.models.flatMap(_.members).foreach(member => reference(member.typeName))
+    context.unions.flatMap(_.members).foreach(member => reference(member.typeName))
+    context.operations.foreach { operation =>
+      operation.parameters.foreach(parameter => reference(parameter.typeName))
+      operation.outputTypeName.foreach(reference)
+      operation.sql.foreach { sql =>
+        sql.bindParameters.foreach(bind => reference(bind.typeName))
+        sql.resultFields.foreach(field => reference(field.typeName))
+        sql.selectOneOutput.foreach { output =>
+          output.nestedBindings.foreach { nested =>
+            nested.fields.foreach(field => reference(field.typeName))
+          }
+        }
+      }
+    }
+
+    referenced.toSet
+  }
+
   def qualifiedModule(packageName: String, relativeModulePath: String): String = {
     val suffix = relativeModulePath.stripPrefix("/").replace('/', '.')
     s"$packageName.$suffix"
@@ -41,6 +86,7 @@ object SqlCodegenPythonImports {
     val blocks = List.newBuilder[String]
     renderModelsImport(context.packageName, moduleBase, tableModels, unions).foreach(blocks += _)
     renderProtocolImport(context.packageName, moduleBase, operationResultNames, context.name).foreach(blocks += _)
+    Option(enumImportBlock(context)).filter(_.nonEmpty).foreach(blocks += _)
     if (context.hasSqlOperations) {
       blocks += s"from ${qualifiedModule(context.packageName, s"${context.dialectKey}/${transactionRunModuleName(context.dialectKey)}")} import run"
     }

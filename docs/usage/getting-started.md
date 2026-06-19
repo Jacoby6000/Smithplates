@@ -114,8 +114,8 @@ service WidgetRepository {
 With the SQL configuration above, this model generates:
 
 - a `v1_initial_schema.sql` migration file under `db/migrations/sqlite`;
-- shared Python model and repository protocol files under `src/generated/db/`;
-- a SQLite implementation, migration service, transaction helper, and generated pytest file under dialect-specific paths.
+- shared Python model and repository protocol files under `src/generated/example/db/`;
+- a SQLite implementation, migration service, transaction helper, and generated pytest file under `src/generated/example/db/sqlite/` and `tests/example/db/sqlite/`.
 
 ## HTTP quickstart
 
@@ -183,7 +183,7 @@ structure HealthCheckOutput {
 
 ### HTTP output
 
-With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers under `src/generated/http/server/`, and shared Pydantic models under `src/generated/http/models/`.
+With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers, and shared Pydantic models under `src/generated/example/api/` (for a service in namespace `example.api`).
 
 ## Using SQL and HTTP together
 

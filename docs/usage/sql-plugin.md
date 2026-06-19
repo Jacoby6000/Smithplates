@@ -75,6 +75,7 @@ service FooRepository {
 | Artifact | Pipeline stage |
 |----------|----------------|
 | `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
+| `db/{{enum_name_snake_case}}.py` | Python `StrEnum` / `IntEnum` classes for referenced Smithy `enum` / `intEnum` shapes |
 | `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
 | `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
 | `db/<dialect>/<dialect>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files from a migrations directory, creates `_smithplates_migrations` state table, validates the live schema hash against the last recorded hash before applying pending migrations, applies one migration at a time, and records version plus a schema hash computed from database catalog metadata after each migration |
@@ -86,6 +87,7 @@ Layout for the bundled `db` service type:
 ```
 db/
   model/models.ssp                → db/model/{{serviceFileName}}_models.py
+  string_enum.ssp / int_enum.ssp  → db/{{enum_name_snake_case}}.py
   service_protocol.ssp            → db/{{serviceFileName}}_protocol.py
   sqlite/service_aiosqlite.ssp
   postgres/service_psycopg.ssp

@@ -13,10 +13,12 @@ from generated.petstore.db.models.order_repository_models import (
     FulfillmentState,
     OrderLine,
 )
+from generated.petstore.db.order_priority import OrderPriority
 from generated.petstore.db.order_repository_protocol import (
     GetOrderRecordResult,
     OrderRepositoryServiceProtocol,
 )
+from generated.petstore.db.order_status import OrderStatus
 from generated.petstore.db.sqlite.sqlite_transaction_run import run
 
 
@@ -84,8 +86,8 @@ WHERE orders.id = ?;""",
             return GetOrderRecordResult(
                 id=_read_str(row, 0),
                 label=_read_str(row, 1),
-                status=_read_str(row, 2),
-                priority=_read_int(row, 3),
+                status=OrderStatus(_read_str(row, 2)),
+                priority=OrderPriority(_read_int(row, 3)),
                 created_at=_read_datetime(row, 4),
                 updated_at=_read_datetime(row, 5),
                 order_lines=order_lines,

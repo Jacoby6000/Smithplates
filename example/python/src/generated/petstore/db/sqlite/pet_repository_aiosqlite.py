@@ -24,6 +24,8 @@ from generated.petstore.db.pet_repository_protocol import (
     GetPetRecordResult,
     PetRepositoryServiceProtocol,
 )
+from generated.petstore.db.pet_species import PetSpecies
+from generated.petstore.db.pet_status import PetStatus
 from generated.petstore.db.sqlite.sqlite_transaction_run import run
 
 
@@ -109,8 +111,8 @@ WHERE pets.id = ?;""",
             return GetPetRecordResult(
                 id=_read_str(row, 0),
                 name=_read_str(row, 1),
-                status=_read_str(row, 2),
-                species=_read_int(row, 3),
+                status=PetStatus(_read_str(row, 2)),
+                species=PetSpecies(_read_int(row, 3)),
                 category_id=_read_str(row, 4),
                 owner_id=None if row[5] is None else _read_str(row, 5),
                 tag_count=_read_int(row, 6),

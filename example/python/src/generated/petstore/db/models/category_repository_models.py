@@ -5,6 +5,11 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TypedDict
 
+from generated.petstore.db.order_priority import OrderPriority
+from generated.petstore.db.order_status import OrderStatus
+from generated.petstore.db.pet_species import PetSpecies
+from generated.petstore.db.pet_status import PetStatus
+
 
 class FulfillmentStatePending(TypedDict):
     pending: str

@@ -1,8 +1,11 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.CodegenPackageNames
 import com.jacoby6000.smithplates.sql.SqlValidated
+import com.jacoby6000.smithplates.sql.model.SqlIntEnum
 import com.jacoby6000.smithplates.sql.model.SqlSchema
+import com.jacoby6000.smithplates.sql.model.SqlStringEnum
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
@@ -69,19 +72,88 @@ object SqlServiceCodegenRenderer {
                       ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
                     }
                   val relativePath = resolveOutputPath(settings, artifactConfig, context)
-                  List(
+                  val artifact     =
                     SqlCodegenArtifact(
                       relativePath = relativePath,
                       content = content,
                       kind = artifactConfig.kind
                     )
-                  )
+                  if (artifactConfig.template == "models/models.ssp") {
+                    artifact :: renderEnumArtifacts(settings, context)
+                  } else {
+                    List(artifact)
+                  }
                 }
               }
           }
           .map(_.flatten)
       }
       .map(_.flatten)
+
+  private def renderEnumArtifacts(
+      settings: SqlServiceCodegenSettings,
+      context: SqlCodegenServiceContext
+  ): List[SqlCodegenArtifact] = {
+    val templateRoot        = settings.templateDirectory.stripPrefix("classpath:")
+    val stringEnumArtifacts =
+      context.stringEnums.map(stringEnum => renderStringEnumArtifact(settings, templateRoot, context, stringEnum))
+    val intEnumArtifacts    =
+      context.intEnums.map(intEnum => renderIntEnumArtifact(settings, templateRoot, context, intEnum))
+    stringEnumArtifacts ++ intEnumArtifacts
+  }
+
+  private def renderStringEnumArtifact(
+      settings: SqlServiceCodegenSettings,
+      templateRoot: String,
+      context: SqlCodegenServiceContext,
+      stringEnum: SqlStringEnum
+  ): SqlCodegenArtifact = {
+    val content =
+      ScalateSspTemplateEngine.renderClasspathPartial(
+        templateRoot,
+        "string_enum",
+        Map("stringEnum" -> stringEnum)
+      )
+    SqlCodegenArtifact(
+      relativePath = enumArtifactRelativePath(settings, context, stringEnum.name),
+      content = content,
+      kind = SqlServiceCodegenArtifactKind.Src
+    )
+  }
+
+  private def renderIntEnumArtifact(
+      settings: SqlServiceCodegenSettings,
+      templateRoot: String,
+      context: SqlCodegenServiceContext,
+      intEnum: SqlIntEnum
+  ): SqlCodegenArtifact = {
+    val content =
+      ScalateSspTemplateEngine.renderClasspathPartial(
+        templateRoot,
+        "int_enum",
+        Map("intEnum" -> intEnum)
+      )
+    SqlCodegenArtifact(
+      relativePath = enumArtifactRelativePath(settings, context, intEnum.name),
+      content = content,
+      kind = SqlServiceCodegenArtifactKind.Src
+    )
+  }
+
+  private def enumArtifactRelativePath(
+      settings: SqlServiceCodegenSettings,
+      context: SqlCodegenServiceContext,
+      enumName: String
+  ): String = {
+    val namespacePathPrefix = CodegenPackageNames.outputPathPrefix(context.namespace)
+    val relativeOutputFile  = s"$namespacePathPrefix/${SqlCodegenSnakeCase.toSnakeCase(enumName)}.py"
+    settings.sourceOutputDirectory match {
+      case Some(sourceOutputDirectory) =>
+        s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
+      case None                        =>
+        relativeOutputFile
+    }
+  }
 
   def resolveOutputPath(
       settings: SqlServiceCodegenSettings,

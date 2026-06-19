@@ -16,6 +16,8 @@ from generated.petstore.db.models.pet_repository_models import (
 from generated.petstore.db.pet_repository_protocol import (
     GetPetRecordResult,
 )
+from generated.petstore.db.pet_species import PetSpecies
+from generated.petstore.db.pet_status import PetStatus
 from generated.petstore.db.postgres.pet_repository_psycopg import PetRepositoryPsycopgService
 from generated.petstore.db.postgres.psycopg_migrations import PsycopgMigrationService
 
@@ -60,8 +62,8 @@ async def pet_repository_service(
 async def test_derived_sql_methods_lifecycle(pet_repository_service: PetRepositoryPsycopgService) -> None:
     entity_id_result = await pet_repository_service.create_pet_record(
         name="integration-name",
-        status="available",
-        species=3,
+        status=PetStatus.AVAILABLE,
+        species=PetSpecies.BIRD,
         category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
         owner_id=None,
         tag_count=42,
@@ -77,8 +79,8 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
     fetched = await pet_repository_service.get_pet_record(id=entity_id)
     assert isinstance(fetched, GetPetRecordResult)
     assert fetched.name == "integration-name"
-    assert fetched.status == "available"
-    assert fetched.species == 3
+    assert fetched.status == PetStatus.AVAILABLE
+    assert fetched.species == PetSpecies.BIRD
     assert fetched.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
     assert fetched.owner_id is None
     assert fetched.tag_count == 42
@@ -90,8 +92,8 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
 
     updated = await pet_repository_service.update_pet_record(
         name="integration-updated-name",
-        status="available",
-        species=3,
+        status=PetStatus.AVAILABLE,
+        species=PetSpecies.BIRD,
         category_id="068b7b16-6db9-35b9-8a2b-093326b15812",
         owner_id=None,
         tag_count=84,
@@ -106,8 +108,8 @@ async def test_derived_sql_methods_lifecycle(pet_repository_service: PetReposito
     fetched_after_update = await pet_repository_service.get_pet_record(id=entity_id)
     assert isinstance(fetched_after_update, GetPetRecordResult)
     assert fetched_after_update.name == "integration-updated-name"
-    assert fetched_after_update.status == "available"
-    assert fetched_after_update.species == 3
+    assert fetched_after_update.status == PetStatus.AVAILABLE
+    assert fetched_after_update.species == PetSpecies.BIRD
     assert fetched_after_update.category_id == "068b7b16-6db9-35b9-8a2b-093326b15812"
     assert fetched_after_update.owner_id is None
     assert fetched_after_update.tag_count == 84
@@ -132,8 +134,8 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
     async with connection.transaction() as tx:
         entity_id_result = await pet_repository_service.create_pet_record(
             name="integration-name",
-            status="available",
-            species=3,
+            status=PetStatus.AVAILABLE,
+            species=PetSpecies.BIRD,
             category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
             owner_id=None,
             tag_count=42,
@@ -150,8 +152,8 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
         fetched = await pet_repository_service.get_pet_record(id=entity_id, transaction=tx)
         assert isinstance(fetched, GetPetRecordResult)
         assert fetched.name == "integration-name"
-        assert fetched.status == "available"
-        assert fetched.species == 3
+        assert fetched.status == PetStatus.AVAILABLE
+        assert fetched.species == PetSpecies.BIRD
         assert fetched.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
         assert fetched.owner_id is None
         assert fetched.tag_count == 42
@@ -164,8 +166,8 @@ async def test_derived_sql_methods_transaction_commit(pet_repository_service: Pe
     fetched_after_commit = await pet_repository_service.get_pet_record(id=entity_id)
     assert isinstance(fetched_after_commit, GetPetRecordResult)
     assert fetched_after_commit.name == "integration-name"
-    assert fetched_after_commit.status == "available"
-    assert fetched_after_commit.species == 3
+    assert fetched_after_commit.status == PetStatus.AVAILABLE
+    assert fetched_after_commit.species == PetSpecies.BIRD
     assert fetched_after_commit.category_id == "783e2af0-df1e-3d3d-aa50-3d085860a405"
     assert fetched_after_commit.owner_id is None
     assert fetched_after_commit.tag_count == 42
@@ -186,8 +188,8 @@ async def test_derived_sql_methods_transaction_rollback(pet_repository_service: 
         async with connection.transaction() as tx:
             entity_id_result = await pet_repository_service.create_pet_record(
                 name="integration-name",
-                status="available",
-                species=3,
+                status=PetStatus.AVAILABLE,
+                species=PetSpecies.BIRD,
                 category_id="783e2af0-df1e-3d3d-aa50-3d085860a405",
                 owner_id=None,
                 tag_count=42,

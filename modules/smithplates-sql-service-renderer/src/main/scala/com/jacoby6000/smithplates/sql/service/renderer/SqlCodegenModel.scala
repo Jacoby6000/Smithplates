@@ -90,6 +90,8 @@ final case class SqlCodegenServiceContext(
     hasSqlOperations: Boolean,
     models: List[SqlStructure],
     unions: List[SqlUnion],
+    stringEnums: List[SqlStringEnum] = Nil,
+    intEnums: List[SqlIntEnum] = Nil,
     operations: List[SqlCodegenOperation],
     uuidTypeNames: Set[String] = Set.empty,
     integrationTest: Option[SqlCodegenIntegrationTestContext] = None,

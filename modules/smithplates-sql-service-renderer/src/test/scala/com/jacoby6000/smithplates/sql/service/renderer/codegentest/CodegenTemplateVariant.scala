@@ -75,6 +75,18 @@ final case class CodegenTemplateVariant(
     }
   }
 
+  private def isSqlNamespaceRootEnumPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
+    val namespaceRoot = namespaceRootPrefix(namespacePathPrefix)
+    if (!outputRelativePath.startsWith(namespaceRoot)) {
+      false
+    } else {
+      val relativeToRoot = outputRelativePath.stripPrefix(namespaceRoot)
+      relativeToRoot.endsWith(".py") &&
+      !relativeToRoot.contains("/") &&
+      !relativeToRoot.endsWith("_protocol.py")
+    }
+  }
+
   def matchesGeneratedOutputPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
     val sharedModelPrefix =
       sharedModelsResourcePath(namespacePathPrefix).map(path => s"$path/").getOrElse("")
@@ -89,6 +101,8 @@ final case class CodegenTemplateVariant(
           if (outputRelativePath.startsWith(implementationSrcPrefix(namespacePathPrefix))) {
             true
           } else if (isSqlProtocolOutputPath(outputRelativePath, namespacePathPrefix)) {
+            true
+          } else if (isSqlNamespaceRootEnumPath(outputRelativePath, namespacePathPrefix)) {
             true
           } else {
             false
