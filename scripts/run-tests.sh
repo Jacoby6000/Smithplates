@@ -53,6 +53,7 @@ run_template_pytest() {
 }
 
 run_template_tests() {
+  "${ROOT}/scripts/clean-template-test-artifacts.sh"
   run_template_golden_tests
   run_template_pytest
 }

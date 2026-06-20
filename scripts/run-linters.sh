@@ -23,6 +23,7 @@ run_scala_linters() {
 }
 
 run_template_linters() {
+  "${ROOT}/scripts/clean-template-test-artifacts.sh"
   local found=0
   shopt -s nullglob
   for linter in language-test-harnesses/*/run-linters.sh; do

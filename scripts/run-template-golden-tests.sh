@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
 
+"${ROOT}/scripts/clean-template-test-artifacts.sh"
+
 if ! command -v sbtn >/dev/null 2>&1; then
   echo "error: sbtn not on PATH. Install with: coursier install sbtn" >&2
   exit 1

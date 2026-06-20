@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.sql.service.renderer.codegentest
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.*
 
@@ -18,6 +19,8 @@ object CodegenTemplateTestDiscovery {
       languageId: String,
       variants: Set[CodegenTemplateVariant]
   ): List[CodegenTemplateTestCase] = {
+    cleanupTransientArtifacts(repoRoot, languageId)
+
     val testsRoot = repoRoot.resolve("templates").resolve(languageId).resolve(TestsDirectoryName)
     if (!Files.isDirectory(testsRoot)) {
       return Nil
@@ -28,11 +31,35 @@ object CodegenTemplateTestDiscovery {
       .iterator()
       .asScala
       .filter(Files.isDirectory(_))
+      .filter(path => isGoldenTestCaseDirectory(path))
       .map(_.getFileName.toString)
-      .filterNot(_ == ExpectedDirectoryName)
       .toList
       .sorted
       .map(testName => internal.loadTestCase(testsRoot.resolve(testName), testName, variants))
+  }
+
+  def isGoldenTestCaseDirectory(caseDirectory: Path): Boolean =
+    Files.isRegularFile(caseDirectory.resolve(SmithyDirectoryName).resolve(SmithyFileName))
+
+  def cleanupTransientArtifacts(repoRoot: Path, languageId: String): Unit = {
+    val testsRoot = repoRoot.resolve("templates").resolve(languageId).resolve(TestsDirectoryName)
+    if (!Files.isDirectory(testsRoot)) {
+      return
+    }
+
+    Files
+      .list(testsRoot)
+      .iterator()
+      .asScala
+      .filter(Files.isDirectory(_))
+      .foreach { caseDirectory =>
+        internal.deleteRecursively(caseDirectory.resolve("out"))
+        if (!isGoldenTestCaseDirectory(caseDirectory) &&
+          !Files.isRegularFile(caseDirectory.resolve(SmithyBuildFileName)) &&
+          internal.isDirectoryEmpty(caseDirectory)) {
+          internal.deleteRecursively(caseDirectory)
+        }
+      }
   }
 
   def isVariantUnsupported(
@@ -242,6 +269,21 @@ object CodegenTemplateTestDiscovery {
             )
           }
           .toList
+      }
+
+    def isDirectoryEmpty(directory: Path): Boolean =
+      Files.list(directory).iterator().asScala.isEmpty
+
+    def deleteRecursively(path: Path): Unit =
+      try
+        if (Files.exists(path)) {
+          Files
+            .walk(path)
+            .sorted(java.util.Comparator.reverseOrder[Path]())
+            .forEach(Files.delete(_))
+        }
+      catch {
+        case _: NoSuchFileException => ()
       }
   }
 }

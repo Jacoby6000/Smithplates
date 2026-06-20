@@ -22,6 +22,57 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         _.expectedOutputsByVariant.get(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant).exists(_.nonEmpty)))
   }
 
+  test("ignores stub case directories without smithy fixtures") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot       = tempRoot.resolve("templates/python/tests")
+      val validCase       = testsRoot.resolve("valid-case")
+      val stubCase        = testsRoot.resolve("stub-case")
+      val smithyDirectory = validCase.resolve("smithy")
+      Files.createDirectories(smithyDirectory)
+      Files.createDirectories(stubCase.resolve("out/source/smithplates"))
+      Files.writeString(
+        smithyDirectory.resolve("smithy-files.smithy"),
+        """$version: "2.0"
+          |namespace example
+          |structure Placeholder {}
+          |""".stripMargin
+      )
+
+      val cases =
+        CodegenTemplateTestDiscovery
+          .discover(tempRoot, "python", Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
+
+      assertEquals(cases.map(_.name), List("valid-case"))
+      assert(!Files.exists(stubCase))
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
+  }
+
+  test("cleanupTransientArtifacts removes out directories and empty stub cases") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot = tempRoot.resolve("templates/python/tests")
+      val validCase = testsRoot.resolve("valid-case")
+      val stubCase  = testsRoot.resolve("stub-case")
+      Files.createDirectories(validCase.resolve("smithy"))
+      Files.createDirectories(validCase.resolve("out/build"))
+      Files.createDirectories(stubCase.resolve("out/build"))
+      Files.writeString(
+        validCase.resolve("smithy/smithy-files.smithy"),
+        """$version: "2.0"
+          |namespace example
+          |structure Placeholder {}
+          |""".stripMargin
+      )
+
+      CodegenTemplateTestDiscovery.cleanupTransientArtifacts(tempRoot, "python")
+
+      assert(!Files.exists(validCase.resolve("out")))
+      assert(Files.isRegularFile(validCase.resolve("smithy/smithy-files.smithy")))
+      assert(!Files.exists(stubCase))
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
+  }
+
   test("ignores empty and non-golden junk files under expected/") {
     val tempRoot = Files.createTempDirectory("language-template-tests")
     try {

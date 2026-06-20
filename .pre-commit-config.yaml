@@ -33,6 +33,13 @@ repos:
         files: ^(docs/reusable-components/|scripts/sync_reusable_components\.py|.*\.md)$
         pass_filenames: false
 
+      - id: codegen-template-cleanup
+        name: Clean codegen template transient artifacts
+        entry: scripts/clean-template-test-artifacts.sh
+        language: script
+        files: ^templates/[^/]+/tests/
+        pass_filenames: false
+
       - id: codegen-template-discovery
         name: Codegen template discovery
         entry: sbtn 'smithplatesSqlServiceRenderer/testOnly *CodegenTemplateTestDiscoverySpec'
