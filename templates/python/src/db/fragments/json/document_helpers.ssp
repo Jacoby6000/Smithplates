@@ -8,6 +8,6 @@ def _read_Document(row: ${rowTypeName(dialectKey)}, index: int) -> object:
 #case ("sqlite")    return cast(object, json.loads(_read_str(row, index)))
 #case ("postgres")    value = row[index]
     if isinstance(value, str):
-        return cast(object, json.loads(value))
-    return cast(object, value)
+        return json.loads(value)
+    return value
 #end

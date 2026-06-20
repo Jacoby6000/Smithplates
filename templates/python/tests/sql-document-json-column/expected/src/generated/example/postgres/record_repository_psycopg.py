@@ -78,8 +78,8 @@ def _json_bind_Document(value: object) -> str:
 def _read_Document(row: tuple[object, ...], index: int) -> object:
     value = row[index]
     if isinstance(value, str):
-        return cast(object, json.loads(value))
-    return cast(object, value)
+        return json.loads(value)
+    return value
 
 
 def _read_str_col(row: dict[str, object], column: str) -> str:
@@ -92,5 +92,5 @@ def _read_str_col(row: dict[str, object], column: str) -> str:
 def _read_Document_col(row: dict[str, object], column: str) -> object:
     value = row[column]
     if isinstance(value, str):
-        return cast(object, json.loads(value))
-    return cast(object, value)
+        return json.loads(value)
+    return value
