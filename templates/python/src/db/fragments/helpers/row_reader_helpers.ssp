@@ -11,6 +11,9 @@
 <% for (model <- modelsUsedAsJson(ctx)) { %>
 <% render("fragments/json/structure_helpers", Map("model" -> model, "dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
+<% if (documentUsedAsJson(ctx)) { %>
+<% render("fragments/json/document_helpers", Map("dialectKey" -> ctx.dialectKey)) +%>
+<% } %>
 <% for (partial <- helperColPartialPaths(ctx)) { %>
 <% render(partial, Map("dialectKey" -> ctx.dialectKey)) +%>
 <% } %>
@@ -19,4 +22,7 @@
 <% } %>
 <% for (model <- modelsUsedAsJsonCol(ctx)) { %>
 <% render("fragments/json/structure_helpers_col", Map("model" -> model, "dialectKey" -> ctx.dialectKey)) +%>
+<% } %>
+<% if (documentUsedAsJsonCol(ctx)) { %>
+<% render("fragments/json/document_helpers_col", Map("dialectKey" -> ctx.dialectKey)) +%>
 <% } %>

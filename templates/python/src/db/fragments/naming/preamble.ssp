@@ -97,6 +97,12 @@ def unionsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.Ser
 def modelsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
   com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.modelsUsedAsJsonCol(ctx)
 
+def documentUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.documentUsedAsJson(ctx)
+
+def documentUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.documentUsedAsJsonCol(ctx)
+
 def importRequirements(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements =
   com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.importRequirements(ctx)
 

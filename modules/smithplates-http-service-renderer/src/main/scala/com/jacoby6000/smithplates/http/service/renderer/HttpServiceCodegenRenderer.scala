@@ -160,8 +160,7 @@ object HttpServiceCodegenRenderer {
             "problemBinding"      -> view.problemBinding,
             "packageName"         -> view.packageName,
             "importTypeNames"     -> view.importTypeNames,
-            "needsDatetimeImport" -> view.needsDatetimeImport,
-            "needsAnyImport"      -> view.needsAnyImport
+            "needsDatetimeImport" -> view.needsDatetimeImport
           ),
           Some(templateRoot)
         )

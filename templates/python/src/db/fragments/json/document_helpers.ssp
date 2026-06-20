@@ -1,0 +1,13 @@
+<%@ val dialectKey: String %>
+def _json_bind_Document(value: object) -> str:
+    return json.dumps(value)
+
+
+def _read_Document(row: ${rowTypeName(dialectKey)}, index: int) -> object:
+#match (dialectKey)
+#case ("sqlite")    return cast(object, json.loads(_read_str(row, index)))
+#case ("postgres")    value = row[index]
+    if isinstance(value, str):
+        return json.loads(value)
+    return value
+#end

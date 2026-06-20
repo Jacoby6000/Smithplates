@@ -4,7 +4,6 @@
 <%@ val packageName: String %>
 <%@ val importTypeNames: List[String] %>
 <%@ val needsDatetimeImport: Boolean %>
-<%@ val needsAnyImport: Boolean %>
 <%
 def memberNames: Set[String] = structureMembers.map(_.name).toSet
 
@@ -38,9 +37,6 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 <% if (needsDatetimeImport) { %>
 from datetime import datetime
-<% } %>
-<% if (needsAnyImport) { %>
-from typing import Any
 <% } %>
 <% if (problemBinding.isDefined) { %>
 from ${packageName}.problem import Problem

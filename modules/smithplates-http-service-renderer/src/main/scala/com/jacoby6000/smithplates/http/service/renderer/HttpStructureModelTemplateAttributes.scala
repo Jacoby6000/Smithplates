@@ -15,7 +15,6 @@ object HttpStructureModelTemplateAttributes {
       problemBinding: Option[HttpProblemBinding],
       importTypeNames: List[String],
       needsDatetimeImport: Boolean,
-      needsAnyImport: Boolean,
       packageName: String
   )
 
@@ -48,7 +47,6 @@ object HttpStructureModelTemplateAttributes {
       problemBinding = problemBinding,
       importTypeNames = importTypeNames,
       needsDatetimeImport = HttpModelTypeNames.needsDatetimeImport(members),
-      needsAnyImport = HttpModelTypeNames.needsAnyImport(members),
       packageName = packageName
     )
   }

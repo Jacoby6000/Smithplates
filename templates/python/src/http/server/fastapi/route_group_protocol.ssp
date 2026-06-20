@@ -1,7 +1,7 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
 <% val routeGroup = ctx.routeGroup.get %>
 <% val operations = routeGroup.operations %>
-<% val typingSymbols = List("Annotated") ++ (if (operations.flatMap(_.inputMembers).exists(_.typeName == "Document")) List("Any") else Nil) %>
+<% val typingSymbols = List("Annotated") %>
 from typing import ${typingSymbols.mkString(", ")}, Protocol  # noqa: F401
 
 from pydantic import Field  # noqa: F401

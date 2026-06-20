@@ -3,7 +3,7 @@
 <% val operations = routeGroup.operations %>
 <% val bindings = operations.flatMap(_.inputMembers.map(_.binding)).toSet %>
 <% val hasBodyBinding = routeGroupHasBody(operations) %>
-<% val typingSymbols = List("Annotated") ++ (if (operations.flatMap(_.inputMembers).exists(_.typeName == "Document")) List("Any") else Nil) %>
+<% val typingSymbols = List("Annotated") %>
 from typing import ${typingSymbols.mkString(", ")}  # noqa: F401
 
 from pydantic import Field  # noqa: F401
