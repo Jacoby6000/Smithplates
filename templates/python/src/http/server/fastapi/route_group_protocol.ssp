@@ -8,7 +8,7 @@ from pydantic import Field  # noqa: F401
 <% if (operations.flatMap(_.inputMembers).exists(m => httpMemberPythonType(m.typeName, m.timestampFormat) == "datetime")) { %>
 from datetime import datetime  # noqa: F401
 <% } %>
-<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operation => operationImportedModelNames(operation, ctx.service)).distinct.sorted) { %>
 from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 

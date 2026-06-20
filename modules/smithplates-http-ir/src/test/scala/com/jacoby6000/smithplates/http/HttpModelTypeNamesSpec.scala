@@ -19,4 +19,14 @@ class HttpModelTypeNamesSpec extends FunSuite {
       Nil
     )
   }
+
+  test("HttpModelTypeNames collects enum references from member types") {
+    val structureNames = Set("CreateContentInput")
+    val unionNames     = Set.empty[String]
+    val enumNames      = Set("WidgetStatus")
+    assertEquals(
+      HttpModelTypeNames.referencedModelTypeNames("WidgetStatus", structureNames, unionNames, enumNames),
+      List("WidgetStatus")
+    )
+  }
 }

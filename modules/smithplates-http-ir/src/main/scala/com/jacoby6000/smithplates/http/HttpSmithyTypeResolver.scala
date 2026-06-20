@@ -99,6 +99,11 @@ object HttpSmithyTypeResolver {
           typeName = shape.getId.getName,
           timestampFormat = None
         ).validNel
+      } else if (shape.isStringShape) {
+        HttpMemberType(
+          typeName = "String",
+          timestampFormat = None
+        ).validNel
       } else {
         HttpMemberType(
           typeName = primitiveTypeName(shape.getId),

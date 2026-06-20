@@ -13,7 +13,7 @@ from datetime import datetime  # noqa: F401
 
 from ${ctx.packageName}.client.client_response import parse_client_response
 from ${ctx.packageName}.client.operation_bindings import OPERATION_HTTP_BINDINGS
-<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operation => operationImportedModelNames(operation, ctx.service)).distinct.sorted) { %>
 from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 

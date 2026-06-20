@@ -30,7 +30,7 @@ from datetime import datetime  # noqa: F401
 from ${ctx.packageName}.api_response import dispatch_api_response
 from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
 from ${ctx.packageName}.app_services import ApiServices, get_api_services
-<% for (typeName <- operations.flatMap(operationImportedModelNames).distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operation => operationImportedModelNames(operation, ctx.service)).distinct.sorted) { %>
 from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 
