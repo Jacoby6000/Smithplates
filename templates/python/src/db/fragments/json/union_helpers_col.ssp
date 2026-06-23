@@ -1,15 +1,10 @@
 <%@ val union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val dialectKey: String %>
 def _read_${union.name}_col(row: dict[str, object], column: str) -> ${union.name}:
 #match (dialectKey)
 #case ("sqlite")    data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
-    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
-    if len(present) != 1:
-        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
-    return cast(${union.name}, data)
+    return _map_to_${union.name}(data)
 #case ("postgres")<% include("fragments/json/row_data_postgres_col") +%>
-    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
-    if len(present) != 1:
-        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
-    return cast(${union.name}, data)
+    return _map_to_${union.name}(data)
 #end

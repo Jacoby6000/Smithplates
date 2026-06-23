@@ -380,6 +380,20 @@ object SqlCodegenIntegrationTestBuilder {
         }
       }
 
+    def unionVariantTypeName(unionName: String, memberName: String): String =
+      SqlCodegenPythonImports.internal.unionVariantTypeName(unionName, memberName)
+
+    def unionVariantSampleExpression(
+        context: SqlCodegenServiceContext,
+        union: SqlUnion,
+        member: SqlUnionMember,
+        variant: SampleVariant,
+        enumSamples: Map[String, String]
+    ): String = {
+      val sampleValue = sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
+      s"${unionVariantTypeName(union.name, member.name)}(${member.name}=$sampleValue)"
+    }
+
     def unionAssertion(
         context: SqlCodegenServiceContext,
         parameter: SqlCodegenParameter,
@@ -423,15 +437,14 @@ object SqlCodegenIntegrationTestBuilder {
             .mkString(", ")
         s"${parameter.typeName}($arguments)"
       } else if (isUnionParameter(context, parameter)) {
-        val union       =
+        val union  =
           context.unions
             .find(_.name == parameter.typeName)
             .getOrElse(throw new IllegalStateException(s"Missing union model for ${parameter.typeName}"))
-        val member      = union.members.headOption.getOrElse {
+        val member = union.members.headOption.getOrElse {
           throw new IllegalStateException(s"Union ${union.name} has no members for integration test sampling")
         }
-        val sampleValue = sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
-        s"""{"${member.name}": $sampleValue}"""
+        unionVariantSampleExpression(context, union, member, variant, enumSamples)
       } else {
         sampleLiteral(context, parameter.typeName, variant, parameter.name, enumSamples)
       }
@@ -477,10 +490,9 @@ object SqlCodegenIntegrationTestBuilder {
               .mkString(", ")
           s"$other($arguments)"
         case other if context.unions.exists(_.name == other) =>
-          val union       = context.unions.find(_.name == other).get
-          val member      = union.members.head
-          val memberValue = sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
-          s"""{"${member.name}": $memberValue}"""
+          val union  = context.unions.find(_.name == other).get
+          val member = union.members.head
+          unionVariantSampleExpression(context, union, member, variant, enumSamples)
         case other if enumSamples.contains(other)            =>
           enumSamples(other)
         case other if typeName.startsWith("List[")           =>
@@ -519,6 +531,8 @@ object SqlCodegenIntegrationTestBuilder {
           .toSet
       val unionNames           = context.unions.map(_.name).toSet
       val enumNames            = SqlCodegenPythonImports.enumTypeNameSet(context)
+      val assertionText        =
+        (selectOneOperation.resultAssertions ++ selectOneOperation.updatedResultAssertions).mkString("\n")
 
       val modelImportNames    = scala.collection.mutable.LinkedHashSet.empty[String]
       val protocolImportNames = scala.collection.mutable.LinkedHashSet.empty[String]
@@ -539,13 +553,19 @@ object SqlCodegenIntegrationTestBuilder {
           modelImportNames += name
         }
       }
-      unionNames.foreach { name =>
-        if (callText.contains(name)) {
-          modelImportNames += name
+      unionNames.foreach { unionName =>
+        context.unions.find(_.name == unionName).foreach { union =>
+          union.members.foreach { member =>
+            val variantName = unionVariantTypeName(unionName, member.name)
+            if (callText.contains(variantName) || assertionText.contains(variantName)) {
+              modelImportNames += variantName
+            }
+          }
+        }
+        if (callText.contains(unionName) || assertionText.contains(unionName)) {
+          modelImportNames += unionName
         }
       }
-      val assertionText =
-        (selectOneOperation.resultAssertions ++ selectOneOperation.updatedResultAssertions).mkString("\n")
       enumNames.foreach { name =>
         if (callText.contains(name) || assertionText.contains(name)) {
           enumImportNames += name

@@ -3,14 +3,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypedDict
 
 
-class DeliveryStatePending(TypedDict):
+@dataclass
+class DeliveryStatePending:
     pending: str
 
 
-class DeliveryStateDelivered(TypedDict):
+@dataclass
+class DeliveryStateDelivered:
     delivered: datetime
 
 

@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from pydantic import BaseModel, TypeAdapter
 <% if (needsDatetimeImport) { %>
 from datetime import datetime
 <% } %>
@@ -21,7 +21,14 @@ from ${packageName}.${snakeCase(typeName)} import ${typeName} as ${importAlias}
 
 
 <% for (member <- union.members) { %>
-class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
+class ${unionVariantTypeName(union.name, member.name)}(BaseModel):
     ${member.name}: ${unionMemberAnnotatedTypeName(union.name, member)}
 
 <% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
+
+
+_${union.name}_ADAPTER = TypeAdapter(${union.name})
+
+
+def validate_${snakeCase(union.name)}(value: object) -> ${union.name}:
+    return _${union.name}_ADAPTER.validate_python(value)

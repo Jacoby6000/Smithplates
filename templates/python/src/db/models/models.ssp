@@ -8,14 +8,16 @@ from dataclasses import dataclass
 <% for (uuidTypeName <- ctx.uuidTypeNames) { %>
 ${uuidTypeName} = str
 <% } %>
-<% } %><% if (ctx.unions.nonEmpty) { %>from typing import TypedDict
+<% } %><% if (ctx.unions.nonEmpty) { %>
 
 
 <% } else if (ctx.models.nonEmpty) { %>
 
 
 <% } %><% for (union <- ctx.unions) { %><% for (member <- union.members) { %>
-class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
+@dataclass
+
+class ${unionVariantTypeName(union.name, member.name)}:
     ${member.name}: <% render("fragments/types/type_name", Map("typeName" -> member.typeName)) +%>
 
 <% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}

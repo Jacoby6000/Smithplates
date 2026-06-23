@@ -18,6 +18,12 @@ object HttpServiceCodegenApiArtifacts {
       ),
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
+        template = "model_validation.ssp",
+        outputFile = "model_validation.py",
+        scope = HttpCodegenArtifactScope.Service
+      ),
+      HttpServiceCodegenArtifactConfig(
+        kind = HttpServiceCodegenArtifactKind.Src,
         template = "api_response.ssp",
         outputFile = "api_response.py",
         scope = HttpCodegenArtifactScope.Service

@@ -79,6 +79,80 @@ def transactionTypeName(dialectKey: String): String =
 def unionDiscriminatorKeys(union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView): String =
   com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionDiscriminatorKeys(union)
 
+def enumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.enumTypeNames(ctx)
+
+def structureTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.structureTypeNames(ctx)
+
+def unionTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionTypeNames(ctx)
+
+def mapValueExpression(
+    typeName: String,
+    valueExpr: String,
+    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+): String = {
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"[${mapValueExpression(inner, "item", ctx)} for item in cast(list[object], $valueExpr)]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"{str(key): ${mapValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in cast(dict[str, object], $valueExpr).items()}"
+  } else {
+    typeName match {
+      case "String"                          => s"str($valueExpr)"
+      case "Integer" | "Long" | "BigInteger" => s"int($valueExpr)"
+      case "Float" | "Double"                => s"float($valueExpr)"
+      case "Boolean"                         => s"bool($valueExpr)"
+      case "BigDecimal"                      => s"Decimal(str($valueExpr))"
+      case "Blob"                            => s"bytes($valueExpr)"
+      case "Timestamp"                       => s"_map_json_timestamp($valueExpr)"
+      case "Document"                        => valueExpr
+      case other if structureTypeNames(ctx).contains(other) =>
+        s"_map_to_$other(cast(dict[str, object], $valueExpr))"
+      case other if unionTypeNames(ctx).contains(other) =>
+        s"_map_to_$other(cast(dict[str, object], $valueExpr))"
+      case other if enumTypeNames(ctx).contains(other) =>
+        s"$other($valueExpr)"
+      case other =>
+        s"cast(${pythonTypeName(other)}, $valueExpr)"
+    }
+  }
+}
+
+def dumpValueExpression(
+    typeName: String,
+    valueExpr: String,
+    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+): String = {
+  if (typeName.startsWith("List[")) {
+    val inner = typeName.substring(5, typeName.length - 1)
+    s"[${dumpValueExpression(inner, "item", ctx)} for item in $valueExpr]"
+  } else if (typeName.startsWith("Map[String, ")) {
+    val inner = typeName.substring(12, typeName.length - 1)
+    s"{key: ${dumpValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in $valueExpr.items()}"
+  } else {
+    typeName match {
+      case "Timestamp"                       => s"_dump_json_timestamp($valueExpr)"
+      case "Document"                        => valueExpr
+      case other if structureTypeNames(ctx).contains(other) =>
+        s"_dump_$other($valueExpr)"
+      case other if unionTypeNames(ctx).contains(other) =>
+        s"_dump_$other($valueExpr)"
+      case other if enumTypeNames(ctx).contains(other) =>
+        s"$valueExpr.value"
+      case _                                 => valueExpr
+    }
+  }
+}
+
+def jsonMappingUsesTimestamp(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
+  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.jsonMappingUsesTimestamp(ctx)
+
+def jsonFieldAccess(memberName: String): String =
+  "data[\"" + memberName + "\"]"
+
 def helperPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[String] =
   com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.helperPartialPaths(ctx)
 

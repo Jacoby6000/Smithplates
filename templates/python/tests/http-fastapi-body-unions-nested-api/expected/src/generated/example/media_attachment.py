@@ -3,21 +3,28 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TypedDict
 
 from generated.example.image_asset import ImageAsset
+from pydantic import BaseModel, TypeAdapter
 
 
-class MediaAttachmentCaption(TypedDict):
+class MediaAttachmentCaption(BaseModel):
     caption: str
 
 
-class MediaAttachmentImage(TypedDict):
+class MediaAttachmentImage(BaseModel):
     image: ImageAsset
 
 
-class MediaAttachmentArchivedAt(TypedDict):
+class MediaAttachmentArchivedAt(BaseModel):
     archivedAt: datetime
 
 
 MediaAttachment = MediaAttachmentCaption | MediaAttachmentImage | MediaAttachmentArchivedAt
+
+
+_MediaAttachment_ADAPTER = TypeAdapter(MediaAttachment)
+
+
+def validate_media_attachment(value: object) -> MediaAttachment:
+    return _MediaAttachment_ADAPTER.validate_python(value)

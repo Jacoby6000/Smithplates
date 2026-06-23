@@ -157,7 +157,8 @@ object SqlCodegenHelperAttributes {
         rowReadersColSet.contains("_read_epoch_seconds_col"),
       needsDatetimeImports = internal.needsDatetimeImports(rowReadersSet, timestampBindsSet) ||
         rowReadersColSet.contains("_read_datetime_col") ||
-        rowReadersColSet.contains("_read_epoch_seconds_col"),
+        rowReadersColSet.contains("_read_epoch_seconds_col") ||
+        jsonMappingUsesTimestamp(ctx),
       needsTimezoneImport = ctx.dialectKey == "sqlite" ||
         rowReadersSet.contains("_read_epoch_seconds") ||
         rowReadersColSet.contains("_read_epoch_seconds_col") ||
@@ -192,6 +193,22 @@ object SqlCodegenHelperAttributes {
 
   def documentUsedAsJsonCol(ctx: ServiceTemplateView): Boolean =
     ctx.usedJsonTypeNamesCol.contains("Document")
+
+  def enumTypeNames(ctx: ServiceTemplateView): Set[String] =
+    ctx.enumTypeNames.toSet
+
+  def structureTypeNames(ctx: ServiceTemplateView): Set[String] =
+    (ctx.models ++ ctx.operationResultModels).map(_.name).toSet
+
+  def unionTypeNames(ctx: ServiceTemplateView): Set[String] =
+    ctx.unions.map(_.name).toSet
+
+  def jsonMappingUsesTimestamp(ctx: ServiceTemplateView): Boolean = {
+    val jsonModels = modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)
+    val jsonUnions = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
+    jsonModels.exists(_.members.exists(_.typeName == "Timestamp")) ||
+    jsonUnions.exists(_.members.exists(_.typeName == "Timestamp"))
+  }
 
   final case class ClassRowFactorySpec(
       name: String,

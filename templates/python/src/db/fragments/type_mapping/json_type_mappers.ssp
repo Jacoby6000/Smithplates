@@ -1,0 +1,61 @@
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%
+def jsonModels: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
+  (modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)).distinctBy(_.name).sortBy(_.name)
+
+def jsonUnions: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
+  (unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)).distinctBy(_.name).sortBy(_.name)
+
+def memberValueExpr(memberName: String): String =
+  "value." + memberName
+%>
+<% if (jsonMappingUsesTimestamp(ctx)) { %>
+
+def _map_json_timestamp(value: object) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value))
+
+
+def _dump_json_timestamp(value: datetime) -> str:
+    return value.isoformat()
+<% } %>
+<% for (model <- jsonModels) { %>
+
+
+def _map_to_${model.name}(data: dict[str, object]) -> ${model.name}:
+    return ${model.name}(
+<% for (member <- model.members) { %>
+        ${member.name}=${mapValueExpression(member.typeName, jsonFieldAccess(member.name), ctx)},
+<% } %>    )
+
+
+def _dump_${model.name}(value: ${model.name}) -> dict[str, object]:
+    return {
+<% for (member <- model.members) { %>
+        "${member.name}": ${dumpValueExpression(member.typeName, memberValueExpr(member.name), ctx)},
+<% } %>    }
+<% } %>
+<% for (union <- jsonUnions) { %>
+
+
+def _map_to_${union.name}(data: dict[str, object]) -> ${union.name}:
+    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+<% for (member <- union.members) { %>
+    if "${member.name}" in data:
+        return ${unionVariantTypeName(union.name, member.name)}(
+            ${member.name}=${mapValueExpression(member.typeName, jsonFieldAccess(member.name), ctx)},
+        )
+<% } %>
+    raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+
+
+def _dump_${union.name}(value: ${union.name}) -> dict[str, object]:
+<% for (member <- union.members) { %>
+    if isinstance(value, ${unionVariantTypeName(union.name, member.name)}):
+        return {"${member.name}": ${dumpValueExpression(member.typeName, memberValueExpr(member.name), ctx)}}
+<% } %>
+    raise TypeError(f"unsupported ${union.name} variant: {type(value)!r}")
+<% } %>

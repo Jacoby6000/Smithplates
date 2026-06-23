@@ -9,6 +9,8 @@ from typing import cast, override
 import psycopg
 from generated.example.models.shipment_repository_models import (
     DeliveryState,
+    DeliveryStateDelivered,
+    DeliveryStatePending,
     PostalAddress,
     Shipment,
 )
@@ -110,6 +112,53 @@ WHERE id = %s;""",
         return await run(self._connection, transaction, execute)
 
 
+def _map_json_timestamp(value: object) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value))
+
+
+def _dump_json_timestamp(value: datetime) -> str:
+    return value.isoformat()
+
+
+def _map_to_PostalAddress(data: dict[str, object]) -> PostalAddress:
+    return PostalAddress(
+        street=str(data["street"]),
+        city=str(data["city"]),
+    )
+
+
+def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
+    return {
+        "street": value.street,
+        "city": value.city,
+    }
+
+
+def _map_to_DeliveryState(data: dict[str, object]) -> DeliveryState:
+    present = [key for key in ("pending", "delivered") if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
+    if "pending" in data:
+        return DeliveryStatePending(
+            pending=str(data["pending"]),
+        )
+    if "delivered" in data:
+        return DeliveryStateDelivered(
+            delivered=_map_json_timestamp(data["delivered"]),
+        )
+    raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
+
+
+def _dump_DeliveryState(value: DeliveryState) -> dict[str, object]:
+    if isinstance(value, DeliveryStatePending):
+        return {"pending": value.pending}
+    if isinstance(value, DeliveryStateDelivered):
+        return {"delivered": _dump_json_timestamp(value.delivered)}
+    raise TypeError(f"unsupported DeliveryState variant: {type(value)!r}")
+
+
 def _read_str(row: tuple[object, ...], index: int) -> str:
     value = row[index]
     if isinstance(value, uuid.UUID):
@@ -118,10 +167,7 @@ def _read_str(row: tuple[object, ...], index: int) -> str:
 
 
 def _json_bind_DeliveryState(value: DeliveryState) -> str:
-    present = [key for key in ("pending", "delivered") if key in value]
-    if len(present) != 1:
-        raise ValueError("DeliveryState union value must contain exactly one member key")
-    return json.dumps(cast(object, value))
+    return json.dumps(_dump_DeliveryState(value))
 
 
 def _read_DeliveryState(row: tuple[object, ...], index: int) -> DeliveryState:
@@ -130,15 +176,11 @@ def _read_DeliveryState(row: tuple[object, ...], index: int) -> DeliveryState:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    present = [key for key in ("pending", "delivered") if key in data]
-    if len(present) != 1:
-        raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
-    return cast(DeliveryState, data)
+    return _map_to_DeliveryState(data)
 
 
 def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = {"street": cast(object, value.street), "city": cast(object, value.city)}
-    return json.dumps(payload)
+    return json.dumps(_dump_PostalAddress(value))
 
 
 def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
@@ -147,10 +189,7 @@ def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-    )
+    return _map_to_PostalAddress(data)
 
 
 def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
@@ -170,10 +209,7 @@ def _read_DeliveryState_col(row: dict[str, object], column: str) -> DeliveryStat
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    present = [key for key in ("pending", "delivered") if key in data]
-    if len(present) != 1:
-        raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
-    return cast(DeliveryState, data)
+    return _map_to_DeliveryState(data)
 
 
 def _read_PostalAddress_col(row: dict[str, object], column: str) -> PostalAddress:
@@ -182,7 +218,4 @@ def _read_PostalAddress_col(row: dict[str, object], column: str) -> PostalAddres
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-    )
+    return _map_to_PostalAddress(data)

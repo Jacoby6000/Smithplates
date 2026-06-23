@@ -140,6 +140,11 @@ object SqlCodegenPythonImports {
         }
         if (unionNames.contains(candidate)) {
           referencedUnion += candidate
+          context.unions.find(_.name == candidate).foreach { union =>
+            union.members.foreach { member =>
+              referencedTable += internal.unionVariantTypeName(union.name, member.name)
+            }
+          }
         }
       }
 
@@ -229,6 +234,9 @@ object SqlCodegenPythonImports {
 
     def unionNameSet(context: SqlCodegenServiceContext): Set[String] =
       context.unions.map(_.name).toSet
+
+    def unionVariantTypeName(unionName: String, memberName: String): String =
+      s"$unionName${memberName.capitalize}"
 
     def extractImportModuleName(block: String): String =
       block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')

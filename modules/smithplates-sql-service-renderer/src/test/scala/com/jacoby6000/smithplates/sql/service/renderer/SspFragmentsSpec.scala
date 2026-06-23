@@ -63,7 +63,8 @@ class SspFragmentsSpec extends munit.FunSuite {
             serviceLocalImportBlock = "",
             integrationTest = None,
             migration = None,
-            uuidTypeNames = Nil
+            uuidTypeNames = Nil,
+            enumTypeNames = Nil
           )
         )
       )
@@ -125,7 +126,8 @@ object SspFragmentsSpec {
         serviceLocalImportBlock = "",
         integrationTest = None,
         migration = None,
-        uuidTypeNames = Nil
+        uuidTypeNames = Nil,
+        enumTypeNames = Nil
       )
   }
 }

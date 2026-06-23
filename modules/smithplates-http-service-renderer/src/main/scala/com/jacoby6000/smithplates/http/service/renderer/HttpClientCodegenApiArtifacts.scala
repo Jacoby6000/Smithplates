@@ -6,6 +6,12 @@ object HttpClientCodegenApiArtifacts {
     List(
       HttpServiceCodegenArtifactConfig(
         kind = HttpServiceCodegenArtifactKind.Src,
+        template = "model_validation.ssp",
+        outputFile = "model_validation.py",
+        scope = HttpCodegenArtifactScope.Service
+      ),
+      HttpServiceCodegenArtifactConfig(
+        kind = HttpServiceCodegenArtifactKind.Src,
         template = "operation_bindings.ssp",
         outputFile = "client/operation_bindings.py",
         scope = HttpCodegenArtifactScope.Service

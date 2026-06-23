@@ -2,18 +2,24 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
-
 from generated.example.event_created import EventCreated as EventCreatedShape
 from generated.example.event_deleted import EventDeleted as EventDeletedShape
+from pydantic import BaseModel, TypeAdapter
 
 
-class EventCreated(TypedDict):
+class EventCreated(BaseModel):
     created: EventCreatedShape
 
 
-class EventDeleted(TypedDict):
+class EventDeleted(BaseModel):
     deleted: EventDeletedShape
 
 
 Event = EventCreated | EventDeleted
+
+
+_Event_ADAPTER = TypeAdapter(Event)
+
+
+def validate_event(value: object) -> Event:
+    return _Event_ADAPTER.validate_python(value)

@@ -8,6 +8,7 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.example.models.shipment_repository_models import (
+    DeliveryStatePending,
     PostalAddress,
     Shipment,
 )
@@ -36,7 +37,7 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
-        state={"pending": "integration-pending"},
+        state=DeliveryStatePending(pending="integration-pending"),
     )
     entity_id = entity_id_result
     assert isinstance(entity_id, str)
@@ -47,12 +48,12 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert fetched.label == "integration-label"
     assert fetched.destination.street == "integration-street"
     assert fetched.destination.city == "integration-city"
-    assert fetched.state == {"pending": "integration-pending"}
+    assert fetched.state == DeliveryStatePending(pending="integration-pending")
 
     updated = await shipment_repository_service.update_shipment(
         label="integration-updated-label",
         destination=PostalAddress(street="integration-updated-street", city="integration-updated-city"),
-        state={"pending": "integration-updated-pending"},
+        state=DeliveryStatePending(pending="integration-updated-pending"),
         id=entity_id,
     )
     assert updated is True
@@ -62,7 +63,7 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert fetched_after_update.label == "integration-updated-label"
     assert fetched_after_update.destination.street == "integration-updated-street"
     assert fetched_after_update.destination.city == "integration-updated-city"
-    assert fetched_after_update.state == {"pending": "integration-updated-pending"}
+    assert fetched_after_update.state == DeliveryStatePending(pending="integration-updated-pending")
 
     deleted = await shipment_repository_service.delete_shipment(id=entity_id)
     assert deleted is True
@@ -83,7 +84,7 @@ async def test_derived_sql_methods_transaction_commit(
         entity_id_result = await shipment_repository_service.create_shipment(
             label="integration-label",
             destination=PostalAddress(street="integration-street", city="integration-city"),
-            state={"pending": "integration-pending"},
+            state=DeliveryStatePending(pending="integration-pending"),
             transaction=connection,
         )
         entity_id = entity_id_result
@@ -95,7 +96,7 @@ async def test_derived_sql_methods_transaction_commit(
         assert fetched.label == "integration-label"
         assert fetched.destination.street == "integration-street"
         assert fetched.destination.city == "integration-city"
-        assert fetched.state == {"pending": "integration-pending"}
+        assert fetched.state == DeliveryStatePending(pending="integration-pending")
         await connection.commit()
     except BaseException:
         await connection.rollback()
@@ -106,7 +107,7 @@ async def test_derived_sql_methods_transaction_commit(
     assert fetched_after_commit.label == "integration-label"
     assert fetched_after_commit.destination.street == "integration-street"
     assert fetched_after_commit.destination.city == "integration-city"
-    assert fetched_after_commit.state == {"pending": "integration-pending"}
+    assert fetched_after_commit.state == DeliveryStatePending(pending="integration-pending")
 
 
 @pytest.mark.integration
@@ -120,7 +121,7 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
         destination=PostalAddress(street="integration-street", city="integration-city"),
-        state={"pending": "integration-pending"},
+        state=DeliveryStatePending(pending="integration-pending"),
         transaction=connection,
     )
     entity_id = entity_id_result

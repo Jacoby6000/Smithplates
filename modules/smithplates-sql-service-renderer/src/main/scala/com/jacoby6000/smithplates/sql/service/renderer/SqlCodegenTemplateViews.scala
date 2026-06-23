@@ -174,7 +174,8 @@ final case class ServiceTemplateView(
     serviceLocalImportBlock: String,
     integrationTest: Option[IntegrationTestView],
     migration: Option[MigrationView],
-    uuidTypeNames: List[String]
+    uuidTypeNames: List[String],
+    enumTypeNames: List[String]
 )
 
 object SqlCodegenTemplateViews {
@@ -210,7 +211,8 @@ object SqlCodegenTemplateViews {
       serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
       integrationTest = context.integrationTest.map(internal.integrationTestView),
       migration = context.migration.map(internal.migrationView),
-      uuidTypeNames = context.uuidTypeNames.toList.sorted
+      uuidTypeNames = context.uuidTypeNames.toList.sorted,
+      enumTypeNames = enumTypeNames.toList.sorted
     )
   }
 

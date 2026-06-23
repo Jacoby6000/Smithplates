@@ -1,5 +1,6 @@
 <%@ val models: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] %>
-<% for (model <- models) { %>@dataclass
+<% for (model <- models) { %>
+@dataclass
 class ${model.name}:
 <% if (model.hasMembers) { %>
 <% render("fragments/models/member_lines", Map("members" -> model.members)) +%><% } %>

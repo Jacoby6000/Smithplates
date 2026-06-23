@@ -86,7 +86,8 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
         serviceLocalImportBlock = "",
         integrationTest = None,
         migration = None,
-        uuidTypeNames = Nil
+        uuidTypeNames = Nil,
+        enumTypeNames = Nil
       )
 
     assert(!SqlCodegenHelperAttributes.documentUsedAsJson(view))
@@ -155,7 +156,8 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
         serviceLocalImportBlock = "",
         integrationTest = None,
         migration = None,
-        uuidTypeNames = Nil
+        uuidTypeNames = Nil,
+        enumTypeNames = Nil
       )
 
     List("sqlite", "postgres").foreach { dialectKey =>
