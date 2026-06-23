@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class ItemListOutput(BaseModel):
-    items: str = Field(...)
+class ItemListOutput(TypedDict):
+    items: str

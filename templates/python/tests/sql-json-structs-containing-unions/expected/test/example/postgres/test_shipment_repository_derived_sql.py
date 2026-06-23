@@ -7,10 +7,6 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.example.models.shipment_repository_models import (
-    PostalAddress,
-    Shipment,
-)
 from generated.example.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.example.postgres.shipment_repository_psycopg import ShipmentRepositoryPsycopgService
 from testcontainers.postgres import PostgresContainer
@@ -44,7 +40,7 @@ async def shipment_repository_service(
 async def test_derived_sql_methods_lifecycle(shipment_repository_service: ShipmentRepositoryPsycopgService) -> None:
     entity_id_result = await shipment_repository_service.create_shipment(
         label="integration-label",
-        destination=PostalAddress(street="integration-street", city="integration-city"),
+        destination={"street": "integration-street", "city": "integration-city"},
         state={"pending": "integration-pending"},
     )
     entity_id = entity_id_result
@@ -52,26 +48,26 @@ async def test_derived_sql_methods_lifecycle(shipment_repository_service: Shipme
     assert entity_id
 
     fetched = await shipment_repository_service.get_shipment(id=entity_id)
-    assert isinstance(fetched, Shipment)
-    assert fetched.label == "integration-label"
-    assert fetched.destination.street == "integration-street"
-    assert fetched.destination.city == "integration-city"
-    assert fetched.state == {"pending": "integration-pending"}
+    assert isinstance(fetched, dict)
+    assert fetched["label"] == "integration-label"
+    assert fetched["destination"]["street"] == "integration-street"
+    assert fetched["destination"]["city"] == "integration-city"
+    assert fetched["state"] == {"pending": "integration-pending"}
 
     updated = await shipment_repository_service.update_shipment(
         label="integration-updated-label",
-        destination=PostalAddress(street="integration-updated-street", city="integration-updated-city"),
+        destination={"street": "integration-updated-street", "city": "integration-updated-city"},
         state={"pending": "integration-updated-pending"},
         id=entity_id,
     )
     assert updated is True
 
     fetched_after_update = await shipment_repository_service.get_shipment(id=entity_id)
-    assert isinstance(fetched_after_update, Shipment)
-    assert fetched_after_update.label == "integration-updated-label"
-    assert fetched_after_update.destination.street == "integration-updated-street"
-    assert fetched_after_update.destination.city == "integration-updated-city"
-    assert fetched_after_update.state == {"pending": "integration-updated-pending"}
+    assert isinstance(fetched_after_update, dict)
+    assert fetched_after_update["label"] == "integration-updated-label"
+    assert fetched_after_update["destination"]["street"] == "integration-updated-street"
+    assert fetched_after_update["destination"]["city"] == "integration-updated-city"
+    assert fetched_after_update["state"] == {"pending": "integration-updated-pending"}
 
     deleted = await shipment_repository_service.delete_shipment(id=entity_id)
     assert deleted is True
@@ -90,7 +86,7 @@ async def test_derived_sql_methods_transaction_commit(
     async with connection.transaction() as tx:
         entity_id_result = await shipment_repository_service.create_shipment(
             label="integration-label",
-            destination=PostalAddress(street="integration-street", city="integration-city"),
+            destination={"street": "integration-street", "city": "integration-city"},
             state={"pending": "integration-pending"},
             transaction=tx,
         )
@@ -99,18 +95,18 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await shipment_repository_service.get_shipment(id=entity_id, transaction=tx)
-        assert isinstance(fetched, Shipment)
-        assert fetched.label == "integration-label"
-        assert fetched.destination.street == "integration-street"
-        assert fetched.destination.city == "integration-city"
-        assert fetched.state == {"pending": "integration-pending"}
+        assert isinstance(fetched, dict)
+        assert fetched["label"] == "integration-label"
+        assert fetched["destination"]["street"] == "integration-street"
+        assert fetched["destination"]["city"] == "integration-city"
+        assert fetched["state"] == {"pending": "integration-pending"}
 
     fetched_after_commit = await shipment_repository_service.get_shipment(id=entity_id)
-    assert isinstance(fetched_after_commit, Shipment)
-    assert fetched_after_commit.label == "integration-label"
-    assert fetched_after_commit.destination.street == "integration-street"
-    assert fetched_after_commit.destination.city == "integration-city"
-    assert fetched_after_commit.state == {"pending": "integration-pending"}
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["label"] == "integration-label"
+    assert fetched_after_commit["destination"]["street"] == "integration-street"
+    assert fetched_after_commit["destination"]["city"] == "integration-city"
+    assert fetched_after_commit["state"] == {"pending": "integration-pending"}
 
 
 @pytest.mark.integration
@@ -125,7 +121,7 @@ async def test_derived_sql_methods_transaction_rollback(
         async with connection.transaction() as tx:
             entity_id_result = await shipment_repository_service.create_shipment(
                 label="integration-label",
-                destination=PostalAddress(street="integration-street", city="integration-city"),
+                destination={"street": "integration-street", "city": "integration-city"},
                 state={"pending": "integration-pending"},
                 transaction=tx,
             )

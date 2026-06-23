@@ -1,6 +1,8 @@
 <%@ val union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView %>
 <%@ val dialectKey: String %>
-def _json_bind_${union.name}(value: ${union.name}) -> str:
+def _json_bind_${union.name}(value: ${union.name} | None) -> str | None:
+    if value is None:
+        return None
     present = [key for key in (${unionDiscriminatorKeys(union)}) if key in value]
     if len(present) != 1:
         raise ValueError("${union.name} union value must contain exactly one member key")

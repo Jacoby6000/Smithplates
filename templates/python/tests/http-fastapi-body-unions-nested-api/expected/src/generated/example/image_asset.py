@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class ImageAsset(BaseModel):
-    url: str = Field(...)
-    width: int = Field(...)
+class ImageAsset(TypedDict):
+    url: str
+    width: int

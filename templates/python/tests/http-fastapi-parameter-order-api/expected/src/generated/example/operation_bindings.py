@@ -2,24 +2,26 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from pydantic import BaseModel
+from typing import TypedDict
 
 
-@dataclass(frozen=True)
-class ResponseVariantBinding:
+class ResponseVariantBinding(TypedDict):
     status_code: int
     media_type: str | None
     header_bindings: tuple[tuple[str, str], ...]
     static_headers: tuple[tuple[str, str], ...]
 
 
-@dataclass(frozen=True)
 class OperationHttpBinding:
-    variants_by_type_name: dict[str, ResponseVariantBinding]
+    def __init__(self, variants_by_type_name: dict[str, ResponseVariantBinding]) -> None:
+        self.variants_by_type_name = variants_by_type_name
 
-    def variant_for(self, response: BaseModel | None) -> ResponseVariantBinding:
+    def variant_for(
+        self,
+        response: dict[str, object] | None,
+        *,
+        response_type_name: str | None = None,
+    ) -> ResponseVariantBinding:
         if response is None:
             binding = self.variants_by_type_name.get(
                 "__empty__",
@@ -28,10 +30,12 @@ class OperationHttpBinding:
                 msg = "Service returned None but operation has no empty-response binding"
                 raise TypeError(msg)
             return binding
-        type_name = type(response).__name__
-        binding = self.variants_by_type_name.get(type_name)
+        if response_type_name is None:
+            msg = "response_type_name is required for TypedDict service responses"
+            raise TypeError(msg)
+        binding = self.variants_by_type_name.get(response_type_name)
         if binding is None:
-            msg = f"No HTTP binding registered for response type {type_name!r}"
+            msg = f"No HTTP binding registered for response type {response_type_name!r}"
             raise KeyError(msg)
         return binding
 

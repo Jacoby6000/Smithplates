@@ -1,17 +1,15 @@
 # Generated from example#ProfileRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import TypedDict
 
 
-@dataclass
-class Bar:
+class Bar(TypedDict):
     id: str
     name: str | None
 
 
-@dataclass
-class Profile:
+class Profile(TypedDict):
     id: str
     display_name: str | None
     bar_id: str

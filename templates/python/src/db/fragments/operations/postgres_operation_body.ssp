@@ -13,9 +13,9 @@
                 row = await cur.fetchone()
                 if row is None:
                     raise RuntimeError("INSERT RETURNING produced no row")
-                return ${operation.outputShapeName}(
+                return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
-                )
+                })
 <% } %>
 #case ("insertStructureIndex")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
@@ -24,9 +24,9 @@
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-            )
+            })
 #case ("booleanMutationExists")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
@@ -43,16 +43,16 @@
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
             row = await cur.fetchone()
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=row is not None,
-            )
+            return ${typedDictCast(operation.outputShapeName)}
+                "${operation.booleanResultFieldName}": row is not None,
+            })
 #case ("booleanStructureRowcount")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
             )
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=cur.rowcount > 0,
-            )
+            return ${typedDictCast(operation.outputShapeName)}
+                "${operation.booleanResultFieldName}": cur.rowcount > 0,
+            })
 #case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
 <% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
                 return await cur.fetchone()
@@ -62,9 +62,9 @@
                 row = await cur.fetchone()
                 if row is None:
                     return None
-                return ${operation.outputShapeName}(
+                return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
-                )
+                })
 <% } %>
 #case ("selectOneIndex")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
@@ -73,9 +73,9 @@
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-            )
+            })
 #case ("selectOneJoinedFlat")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
@@ -83,15 +83,15 @@
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                "${nested.memberName}": None if row[${nested.fields.head.columnIndex}] is None else ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-                ),
-<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+                }),
+<% } else { %>                "${nested.memberName}": ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-                ),
-<% } %><% } %>            )
+                }),
+<% } %><% } %>            })
 #case ("selectOneJoinedAggregate")            cur = await self._connection.execute(
 <% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
                 <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
@@ -105,20 +105,20 @@
 <% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            for joined_row in rows:
                 if joined_row[${nested.fields.head.columnIndex}] is not None:
                     ${nested.memberName}.append(
-                        ${nested.shapeName}(
+                        ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "joined_row")) %><% } %>
-                        )
+                        })
                     )
 <% } %>
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                "${nested.memberName}": None if row[${nested.fields.head.columnIndex}] is None else ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-                ),
-<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+                }),
+<% } else { %>                "${nested.memberName}": ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-                ),
+                }),
 <% } %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                ${nested.memberName}=${nested.memberName},
-<% } %>            )
+<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                "${nested.memberName}": ${nested.memberName},
+<% } %>            })
 #end

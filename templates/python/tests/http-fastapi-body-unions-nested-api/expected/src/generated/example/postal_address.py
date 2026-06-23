@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class PostalAddress(BaseModel):
-    street: str = Field(...)
-    city: str = Field(...)
+class PostalAddress(TypedDict):
+    street: str
+    city: str

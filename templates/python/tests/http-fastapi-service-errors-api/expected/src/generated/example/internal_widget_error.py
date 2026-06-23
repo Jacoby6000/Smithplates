@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class InternalWidgetError(BaseModel):
-    message: str = Field(...)
+class InternalWidgetError(TypedDict):
+    message: str

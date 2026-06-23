@@ -39,6 +39,7 @@ async def assign_shelf_sku(
             sku=sku,
         ),
         OPERATION_HTTP_BINDINGS["assign_shelf_sku"],
+        response_type_name="ShelfSkuOutput",
     )
 
 
@@ -64,4 +65,5 @@ async def create_shelf_item(
             details=details,
         ),
         OPERATION_HTTP_BINDINGS["create_shelf_item"],
+        response_type_name="ShelfItemOutput",
     )

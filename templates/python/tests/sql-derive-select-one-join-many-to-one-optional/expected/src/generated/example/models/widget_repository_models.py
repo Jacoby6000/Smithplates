@@ -1,17 +1,15 @@
 # Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import TypedDict
 
 
-@dataclass
-class Category:
+class Category(TypedDict):
     id: str
     name: str | None
 
 
-@dataclass
-class Widget:
+class Widget(TypedDict):
     id: str
     title: str | None
     category_id: str | None

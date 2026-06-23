@@ -30,7 +30,7 @@ class OrderRepositoryAiosqliteService(OrderRepositoryServiceProtocol[aiosqlite.C
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO orders (label) VALUES (?) RETURNING id;""",
-                (label,),
+                (None if label is None else label,),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -62,16 +62,22 @@ WHERE orders.id = ?;""",
             for joined_row in rows:
                 if joined_row[2] is not None:
                     order_lines.append(
-                        OrderLine(
-                            id=_read_str(joined_row, 2),
-                            order_id=None if joined_row[3] is None else _read_str(joined_row, 3),
-                            sku=None if joined_row[4] is None else _read_str(joined_row, 4),
+                        cast(
+                            OrderLine,
+                            {
+                                "id": _read_str(joined_row, 2),
+                                "order_id": None if joined_row[3] is None else _read_str(joined_row, 3),
+                                "sku": None if joined_row[4] is None else _read_str(joined_row, 4),
+                            },
                         )
                     )
-            return GetOrderResult(
-                id=_read_str(row, 0),
-                label=None if row[1] is None else _read_str(row, 1),
-                order_lines=order_lines,
+            return cast(
+                GetOrderResult,
+                {
+                    "id": _read_str(row, 0),
+                    "label": None if row[1] is None else _read_str(row, 1),
+                    "order_lines": order_lines,
+                },
             )
 
         return await run(self._connection, transaction, execute)

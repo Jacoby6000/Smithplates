@@ -7,25 +7,25 @@
 #case ("insertStructureDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${operation.outputShapeName}(
+            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col", "named_row")) %><% } %>
-            )
+            })
 #case ("insertStructureIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-            )
+            })
 #case ("booleanMutationRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            return cursor.rowcount > 0
 #case ("booleanMutationExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             return row is not None
-#case ("booleanStructureRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=cursor.rowcount > 0,
-            )
+#case ("booleanStructureRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            return ${typedDictCast(operation.outputShapeName)}
+                "${operation.booleanResultFieldName}": cursor.rowcount > 0,
+            })
 #case ("booleanStructureExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=row is not None,
-            )
+            return ${typedDictCast(operation.outputShapeName)}
+                "${operation.booleanResultFieldName}": row is not None,
+            })
 #case ("selectOneClassRow")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
@@ -33,15 +33,15 @@
 #case ("selectOneDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${operation.outputShapeName}(
+            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col", "named_row")) %><% } %>
-            )
+            })
 #case ("selectOneIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-            )
+            })
 #case ("selectOneJoinedFlat")<% include("fragments/operations/select_one_joined_flat") %>
 #case ("selectOneJoinedAggregate")<% include("fragments/operations/select_one_joined_aggregate") %>
 #end

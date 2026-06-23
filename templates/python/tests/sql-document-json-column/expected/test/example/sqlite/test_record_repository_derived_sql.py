@@ -7,9 +7,6 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.example.models.record_repository_models import (
-    Record,
-)
 from generated.example.sqlite.record_repository_aiosqlite import RecordRepositoryAiosqliteService
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
 
@@ -38,8 +35,8 @@ async def test_derived_sql_methods_lifecycle(record_repository_service: RecordRe
     assert entity_id
 
     fetched = await record_repository_service.get_record_by_id(id=entity_id)
-    assert isinstance(fetched, Record)
-    assert fetched.metadata == {"integration": True}
+    assert isinstance(fetched, dict)
+    assert fetched["metadata"] == {"integration": True}
 
 
 @pytest.mark.integration
@@ -59,16 +56,16 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await record_repository_service.get_record_by_id(id=entity_id, transaction=connection)
-        assert isinstance(fetched, Record)
-        assert fetched.metadata == {"integration": True}
+        assert isinstance(fetched, dict)
+        assert fetched["metadata"] == {"integration": True}
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
     fetched_after_commit = await record_repository_service.get_record_by_id(id=entity_id)
-    assert isinstance(fetched_after_commit, Record)
-    assert fetched_after_commit.metadata == {"integration": True}
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["metadata"] == {"integration": True}
 
 
 @pytest.mark.integration

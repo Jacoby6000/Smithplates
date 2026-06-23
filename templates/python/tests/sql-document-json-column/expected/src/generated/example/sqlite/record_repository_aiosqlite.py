@@ -55,9 +55,12 @@ WHERE id = ?;""",
             if row is None:
                 return None
             named_row = _as_sqlite_named_row(cursor, row)
-            return Record(
-                id=_read_str_col(named_row, "id"),
-                metadata=_read_Document_col(named_row, "metadata"),
+            return cast(
+                Record,
+                {
+                    "id": _read_str_col(named_row, "id"),
+                    "metadata": _read_Document_col(named_row, "metadata"),
+                },
             )
 
         return await run(self._connection, transaction, execute)
@@ -78,7 +81,9 @@ def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
 
 
-def _json_bind_Document(value: object) -> str:
+def _json_bind_Document(value: object | None) -> str | None:
+    if value is None:
+        return None
     return json.dumps(value)
 
 

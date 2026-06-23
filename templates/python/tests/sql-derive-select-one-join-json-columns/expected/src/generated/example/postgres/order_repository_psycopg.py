@@ -65,18 +65,24 @@ WHERE orders.id = %s;""",
             for joined_row in rows:
                 if joined_row[2] is not None:
                     order_lines.append(
-                        OrderLine(
-                            id=_read_str(joined_row, 2),
-                            order_id=_read_str(joined_row, 3),
-                            sku=_read_str(joined_row, 4),
-                            fulfillment=_read_FulfillmentState(joined_row, 5),
-                            ship_to=_read_PostalAddress(joined_row, 6),
+                        cast(
+                            OrderLine,
+                            {
+                                "id": _read_str(joined_row, 2),
+                                "order_id": _read_str(joined_row, 3),
+                                "sku": _read_str(joined_row, 4),
+                                "fulfillment": _read_FulfillmentState(joined_row, 5),
+                                "ship_to": _read_PostalAddress(joined_row, 6),
+                            },
                         )
                     )
-            return GetOrderResult(
-                id=_read_str(row, 0),
-                label=_read_str(row, 1),
-                order_lines=order_lines,
+            return cast(
+                GetOrderResult,
+                {
+                    "id": _read_str(row, 0),
+                    "label": _read_str(row, 1),
+                    "order_lines": order_lines,
+                },
             )
 
         return await run(self._connection, transaction, execute)
@@ -89,7 +95,9 @@ def _read_str(row: tuple[object, ...], index: int) -> str:
     return cast(str, value)
 
 
-def _json_bind_FulfillmentState(value: FulfillmentState) -> str:
+def _json_bind_FulfillmentState(value: FulfillmentState | None) -> str | None:
+    if value is None:
+        return None
     present = [key for key in ("pending", "shipped", "delivered") if key in value]
     if len(present) != 1:
         raise ValueError("FulfillmentState union value must contain exactly one member key")
@@ -108,9 +116,10 @@ def _read_FulfillmentState(row: tuple[object, ...], index: int) -> FulfillmentSt
     return cast(FulfillmentState, data)
 
 
-def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = {"street": cast(object, value.street), "city": cast(object, value.city)}
-    return json.dumps(payload)
+def _json_bind_PostalAddress(value: PostalAddress | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps(cast(object, value))
 
 
 def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
@@ -119,7 +128,4 @@ def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-    )
+    return cast(PostalAddress, data)

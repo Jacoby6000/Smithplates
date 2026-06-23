@@ -1,20 +1,15 @@
 <%@ val model: com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView %>
 <%@ val dialectKey: String %>
-def _json_bind_${model.name}(value: ${model.name}) -> str:
-    payload = { <% for (member <- model.members) { %>"${member.name}": cast(object, value.${member.name})<% if (!member.last) { %>, <% } %><% } %> }
-    return json.dumps(payload)
+def _json_bind_${model.name}(value: ${model.name} | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps(cast(object, value))
 
 
 def _read_${model.name}(row: ${rowTypeName(dialectKey)}, index: int) -> ${model.name}:
 #match (dialectKey)
 #case ("sqlite")    data = cast(dict[str, object], json.loads(_read_str(row, index)))
-    return ${model.name}(
-<% for (member <- model.members) { %>
-        ${member.name}=cast(<% render("fragments/types/type_name", Map("typeName" -> member.typeName)) %>, data["${member.name}"]),
-<% } %>    )
+    return cast(${model.name}, data)
 #case ("postgres")<% include("fragments/json/row_data_postgres") +%>
-    return ${model.name}(
-<% for (member <- model.members) { %>
-        ${member.name}=cast(<% render("fragments/types/type_name", Map("typeName" -> member.typeName)) %>, data["${member.name}"]),
-<% } %>    )
+    return cast(${model.name}, data)
 #end

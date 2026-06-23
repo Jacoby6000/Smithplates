@@ -337,7 +337,7 @@ object SqlCodegenIntegrationTestBuilder {
         from: String,
         to: String
     ): List[String] =
-      assertions.map(_.replace(s"$from.", s"$to."))
+      assertions.map(_.replace(s"""$from[""", s"""$to["""))
 
     def renderCallArguments(
         context: SqlCodegenServiceContext,
@@ -359,7 +359,7 @@ object SqlCodegenIntegrationTestBuilder {
       parameters.flatMap { parameter =>
         if (parameter.isStructure) {
           structureMembers(context, parameter).map { member =>
-            s"""assert $targetExpression.${parameter.name}.${member.name} == ${sampleMemberExpression(
+            s"""assert $targetExpression["${parameter.name}"]["${member.name}"] == ${sampleMemberExpression(
                 context,
                 member,
                 variant,
@@ -372,9 +372,9 @@ object SqlCodegenIntegrationTestBuilder {
           val sample    = sampleExpression(context, parameter, variant, enumSamples)
           val assertion =
             if (sample == "None") {
-              s"assert $targetExpression.${parameter.name} is None"
+              s"assert $targetExpression[\"${parameter.name}\"] is None"
             } else {
-              s"assert $targetExpression.${parameter.name} == $sample"
+              s"assert $targetExpression[\"${parameter.name}\"] == $sample"
             }
           List(assertion)
         }
@@ -388,7 +388,7 @@ object SqlCodegenIntegrationTestBuilder {
         enumSamples: Map[String, String]
     ): Option[String] =
       Some(
-        s"""assert $targetExpression.${parameter.name} == ${sampleExpression(
+        s"""assert $targetExpression["${parameter.name}"] == ${sampleExpression(
             context,
             parameter,
             variant,
@@ -416,12 +416,12 @@ object SqlCodegenIntegrationTestBuilder {
       if (parameter.optional) {
         "None"
       } else if (parameter.isStructure) {
-        val members   = structureMembers(context, parameter)
-        val arguments =
+        val members = structureMembers(context, parameter)
+        val entries =
           members
-            .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant, enumSamples)}")
+            .map(member => s"\"${member.name}\": ${sampleMemberExpression(context, member, variant, enumSamples)}")
             .mkString(", ")
-        s"${parameter.typeName}($arguments)"
+        s"{$entries}"
       } else if (isUnionParameter(context, parameter)) {
         val union       =
           context.unions
@@ -471,11 +471,11 @@ object SqlCodegenIntegrationTestBuilder {
           s"\"${uuidSample(suffix)}\""
         case other if context.models.exists(_.name == other) =>
           val structure = context.models.find(_.name == other).get
-          val arguments =
+          val entries   =
             structure.members
-              .map(member => s"${member.name}=${sampleMemberExpression(context, member, variant, enumSamples)}")
+              .map(member => s"\"${member.name}\": ${sampleMemberExpression(context, member, variant, enumSamples)}")
               .mkString(", ")
-          s"$other($arguments)"
+          s"{$entries}"
         case other if context.unions.exists(_.name == other) =>
           val union       = context.unions.find(_.name == other).get
           val member      = union.members.head

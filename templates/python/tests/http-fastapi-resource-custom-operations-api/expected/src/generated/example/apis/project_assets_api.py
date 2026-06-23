@@ -32,6 +32,7 @@ async def get_project_asset(
     return dispatch_api_response(
         await services.project_assets_api.get_project_asset(project_id=project_id, asset_id=asset_id),
         OPERATION_HTTP_BINDINGS["get_project_asset"],
+        response_type_name="AssetOutput",
     )
 
 
@@ -50,6 +51,7 @@ async def get_project_asset_content(
     return dispatch_api_response(
         await services.project_assets_api.get_project_asset_content(project_id=project_id, asset_id=asset_id),
         OPERATION_HTTP_BINDINGS["get_project_asset_content"],
+        response_type_name="Redirect",
     )
 
 
@@ -68,4 +70,5 @@ async def list_asset_events(
     return dispatch_api_response(
         await services.project_assets_api.list_asset_events(project_id=project_id, asset_id=asset_id),
         OPERATION_HTTP_BINDINGS["list_asset_events"],
+        response_type_name="AssetEventListOutput",
     )

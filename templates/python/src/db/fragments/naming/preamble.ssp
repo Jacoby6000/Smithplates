@@ -106,6 +106,12 @@ def documentUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.S
 def importRequirements(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements =
   com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.importRequirements(ctx)
 
+def typedDictCast(typeName: String): String =
+  s"cast($typeName, {"
+
+def nestedTypedDictCast(typeName: String): String =
+  s"cast($typeName, {"
+
 def resultFieldAssignmentBindings(
     resultField: com.jacoby6000.smithplates.sql.service.renderer.TemplateResultFieldView,
     readMode: String,

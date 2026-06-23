@@ -24,7 +24,7 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO bookmarks (title) VALUES (?) RETURNING id;""",
-                (title,),
+                (None if title is None else title,),
             )
             row = await cursor.fetchone()
             if row is None:

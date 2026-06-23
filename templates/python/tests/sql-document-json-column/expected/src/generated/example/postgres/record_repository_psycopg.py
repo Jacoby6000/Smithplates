@@ -56,9 +56,12 @@ WHERE id = %s;""",
                 row = await cur.fetchone()
                 if row is None:
                     return None
-                return Record(
-                    id=_read_str_col(row, "id"),
-                    metadata=_read_Document_col(row, "metadata"),
+                return cast(
+                    Record,
+                    {
+                        "id": _read_str_col(row, "id"),
+                        "metadata": _read_Document_col(row, "metadata"),
+                    },
                 )
 
         return await run(self._connection, transaction, execute)
@@ -71,7 +74,9 @@ def _read_str(row: tuple[object, ...], index: int) -> str:
     return cast(str, value)
 
 
-def _json_bind_Document(value: object) -> str:
+def _json_bind_Document(value: object | None) -> str | None:
+    if value is None:
+        return None
     return json.dumps(value)
 
 

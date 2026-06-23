@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class EventDeleted(BaseModel):
-    eventId: str = Field(...)
+class EventDeleted(TypedDict):
+    eventId: str

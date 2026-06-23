@@ -1,17 +1,15 @@
 # Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import TypedDict
 
 
-@dataclass
-class Order:
+class Order(TypedDict):
     id: str
     label: str | None
 
 
-@dataclass
-class OrderLine:
+class OrderLine(TypedDict):
     id: str
     order_id: str | None
     sku: str | None

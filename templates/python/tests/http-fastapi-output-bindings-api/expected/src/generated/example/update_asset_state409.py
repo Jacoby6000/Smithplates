@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from generated.example.problem import Problem
-from pydantic import Field
 
 
 class UpdateAssetState409(Problem):
-    type: str | None = Field(default="https://example.com/errors/state-conflict")
-    title: str = Field(...)
-    detail: str | None = Field(default=None)
+    type: str | None
+
+    title: str
+    detail: str | None

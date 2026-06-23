@@ -1,12 +1,11 @@
 # Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
+from typing import TypedDict
 
 
-@dataclass
-class Widget:
+class Widget(TypedDict):
     id: str
     foo: str | None
     bar: int | None

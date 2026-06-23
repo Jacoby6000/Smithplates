@@ -46,26 +46,35 @@ WHERE departments.id = %s;""",
             for joined_row in rows:
                 if joined_row[2] is not None:
                     categories.append(
-                        Category(
-                            id=_read_str(joined_row, 2),
-                            name=None if joined_row[3] is None else _read_str(joined_row, 3),
-                            department_id=None if joined_row[4] is None else _read_str(joined_row, 4),
+                        cast(
+                            Category,
+                            {
+                                "id": _read_str(joined_row, 2),
+                                "name": None if joined_row[3] is None else _read_str(joined_row, 3),
+                                "department_id": None if joined_row[4] is None else _read_str(joined_row, 4),
+                            },
                         )
                     )
             for joined_row in rows:
                 if joined_row[5] is not None:
                     widgets.append(
-                        Widget(
-                            id=_read_str(joined_row, 5),
-                            title=None if joined_row[6] is None else _read_str(joined_row, 6),
-                            category_id=None if joined_row[7] is None else _read_str(joined_row, 7),
+                        cast(
+                            Widget,
+                            {
+                                "id": _read_str(joined_row, 5),
+                                "title": None if joined_row[6] is None else _read_str(joined_row, 6),
+                                "category_id": None if joined_row[7] is None else _read_str(joined_row, 7),
+                            },
                         )
                     )
-            return GetDepartmentResult(
-                id=_read_str(row, 0),
-                name=None if row[1] is None else _read_str(row, 1),
-                categories=categories,
-                widgets=widgets,
+            return cast(
+                GetDepartmentResult,
+                {
+                    "id": _read_str(row, 0),
+                    "name": None if row[1] is None else _read_str(row, 1),
+                    "categories": categories,
+                    "widgets": widgets,
+                },
             )
 
         return await run(self._connection, transaction, execute)

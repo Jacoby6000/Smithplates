@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class PackageDimensions(BaseModel):
-    lengthCm: int = Field(...)
-    widthCm: int = Field(...)
-    heightCm: int = Field(...)
+class PackageDimensions(TypedDict):
+    lengthCm: int
+    widthCm: int
+    heightCm: int

@@ -1,7 +1,6 @@
 # Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from typing import TypedDict
 
@@ -21,14 +20,12 @@ class FulfillmentStateDelivered(TypedDict):
 FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | FulfillmentStateDelivered
 
 
-@dataclass
-class Order:
+class Order(TypedDict):
     id: str
     label: str
 
 
-@dataclass
-class OrderLine:
+class OrderLine(TypedDict):
     id: str
     order_id: str
     sku: str
@@ -36,7 +33,6 @@ class OrderLine:
     ship_to: PostalAddress
 
 
-@dataclass
-class PostalAddress:
+class PostalAddress(TypedDict):
     street: str
     city: str

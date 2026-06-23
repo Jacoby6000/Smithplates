@@ -28,7 +28,7 @@ class TreeNodeRepositoryAiosqliteService(TreeNodeRepositoryServiceProtocol[aiosq
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO tree_nodes (label, parent_node_id) VALUES (?, ?) RETURNING id;""",
-                (label, parent_node_id),
+                (None if label is None else label, None if parent_node_id is None else parent_node_id),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -60,10 +60,13 @@ WHERE id = ?;""",
 
 
 def _TreeNode_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> TreeNode:
-    return TreeNode(
-        id=_read_str(row, 0),
-        label=None if row[1] is None else _read_str(row, 1),
-        parent_node_id=None if row[2] is None else _read_str(row, 2),
+    return cast(
+        TreeNode,
+        {
+            "id": _read_str(row, 0),
+            "label": None if row[1] is None else _read_str(row, 1),
+            "parent_node_id": None if row[2] is None else _read_str(row, 2),
+        },
     )
 
 

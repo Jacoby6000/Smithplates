@@ -3,23 +3,24 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-from pydantic import BaseModel
+from typing import TypedDict
 
 
-@dataclass(frozen=True)
-class ResponseVariantBinding:
+class ResponseVariantBinding(TypedDict):
     status_code: int
     media_type: str | None
     header_bindings: tuple[tuple[str, str], ...]
     static_headers: tuple[tuple[str, str], ...]
 
 
-@dataclass(frozen=True)
 class ClientOperationHttpBinding:
-    variants_by_type_name: dict[str, ResponseVariantBinding]
-    variants_by_status: dict[int, str]
+    def __init__(
+        self,
+        variants_by_type_name: dict[str, ResponseVariantBinding],
+        variants_by_status: dict[int, str],
+    ) -> None:
+        self.variants_by_type_name = variants_by_type_name
+        self.variants_by_status = variants_by_status
 
     def variant_for_status(self, status_code: int) -> ResponseVariantBinding:
         type_name = self.variants_by_status.get(status_code)

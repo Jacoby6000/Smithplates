@@ -9,7 +9,11 @@ from fastapi import (
 )
 from generated.asset_api.api_response import dispatch_api_response
 from generated.asset_api.app_services import ApiServices, get_api_services
-from generated.asset_api.operation_bindings import OPERATION_HTTP_BINDINGS
+from generated.asset_api.operation_bindings import (
+    OPERATION_HTTP_BINDINGS,
+    _resolve_get_asset_content_response_type,
+    _resolve_update_asset_state_response_type,
+)
 from generated.example.asset_output import AssetOutput
 from generated.example.asset_state_patch import AssetStatePatch
 from generated.example.redirect import Redirect
@@ -32,6 +36,7 @@ async def get_asset(
     return dispatch_api_response(
         await services.assets_api.get_asset(id=id),
         OPERATION_HTTP_BINDINGS["get_asset"],
+        response_type_name="AssetOutput",
     )
 
 
@@ -47,9 +52,11 @@ async def get_asset_content(
     services: Annotated[ApiServices, Depends(get_api_services)],
     id: str = Path(...),
 ) -> Redirect:
+    response = await services.assets_api.get_asset_content(id=id)
     return dispatch_api_response(
-        await services.assets_api.get_asset_content(id=id),
+        response,
         OPERATION_HTTP_BINDINGS["get_asset_content"],
+        response_type_name=_resolve_get_asset_content_response_type(response),
     )
 
 
@@ -66,7 +73,9 @@ async def update_asset_state(
     id: str = Path(...),
     body: AssetStatePatch = Body(...),
 ) -> AssetOutput:
+    response = await services.assets_api.update_asset_state(id=id, body=body)
     return dispatch_api_response(
-        await services.assets_api.update_asset_state(id=id, body=body),
+        response,
         OPERATION_HTTP_BINDINGS["update_asset_state"],
+        response_type_name=_resolve_update_asset_state_response_type(response),
     )

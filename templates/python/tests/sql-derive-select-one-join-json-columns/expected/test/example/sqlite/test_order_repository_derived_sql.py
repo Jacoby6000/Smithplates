@@ -7,9 +7,6 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.example.order_repository_protocol import (
-    GetOrderResult,
-)
 from generated.example.sqlite.order_repository_aiosqlite import OrderRepositoryAiosqliteService
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
 
@@ -38,8 +35,8 @@ async def test_derived_sql_methods_lifecycle(order_repository_service: OrderRepo
     assert entity_id
 
     fetched = await order_repository_service.get_order(id=entity_id)
-    assert isinstance(fetched, GetOrderResult)
-    assert fetched.label == "integration-label"
+    assert isinstance(fetched, dict)
+    assert fetched["label"] == "integration-label"
 
 
 @pytest.mark.integration
@@ -59,16 +56,16 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await order_repository_service.get_order(id=entity_id, transaction=connection)
-        assert isinstance(fetched, GetOrderResult)
-        assert fetched.label == "integration-label"
+        assert isinstance(fetched, dict)
+        assert fetched["label"] == "integration-label"
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
     fetched_after_commit = await order_repository_service.get_order(id=entity_id)
-    assert isinstance(fetched_after_commit, GetOrderResult)
-    assert fetched_after_commit.label == "integration-label"
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["label"] == "integration-label"
 
 
 @pytest.mark.integration

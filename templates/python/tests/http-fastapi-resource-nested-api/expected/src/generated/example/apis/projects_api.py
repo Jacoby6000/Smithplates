@@ -33,6 +33,7 @@ async def create_project(
     return dispatch_api_response(
         await services.projects_api.create_project(create_project_input=create_project_input),
         OPERATION_HTTP_BINDINGS["create_project"],
+        response_type_name="ProjectOutput",
     )
 
 
@@ -50,6 +51,7 @@ async def get_project(
     return dispatch_api_response(
         await services.projects_api.get_project(project_id=project_id),
         OPERATION_HTTP_BINDINGS["get_project"],
+        response_type_name="ProjectOutput",
     )
 
 
@@ -67,4 +69,5 @@ async def list_projects(
     return dispatch_api_response(
         await services.projects_api.list_projects(limit=limit),
         OPERATION_HTTP_BINDINGS["list_projects"],
+        response_type_name="ProjectListOutput",
     )

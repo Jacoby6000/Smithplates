@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class Problem(BaseModel):
-    title: str = Field(...)
+class Problem(TypedDict):
+    title: str

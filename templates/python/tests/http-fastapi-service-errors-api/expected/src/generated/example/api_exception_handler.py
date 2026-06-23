@@ -15,7 +15,6 @@ from generated.widget_api.api_exceptions import (
     NotImplementedApiError,
     WidgetNotFoundApiError,
 )
-from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,7 +52,7 @@ class FallbackApiExceptionHandler(Protocol):
 
 
 def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
-    content = problem.model_dump(mode="json", exclude_none=True)
+    content = _json_body_content(problem)
     content.setdefault("status", status_code)
     return JSONResponse(
         status_code=status_code,
@@ -64,10 +63,14 @@ def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
 
 def service_error_json_response(
     status_code: int,
-    payload: BaseModel | None,
+    payload: dict[str, object] | None,
 ) -> JSONResponse:
-    content = payload.model_dump(mode="json", exclude_none=True) if payload is not None else {}
+    content = _json_body_content(payload) if payload is not None else {}
     return JSONResponse(status_code=status_code, content=content)
+
+
+def _json_body_content(response: dict[str, object]) -> dict[str, object]:
+    return {key: value for key, value in response.items() if value is not None}
 
 
 class DefaultFallbackApiExceptionHandler:
@@ -76,7 +79,7 @@ class DefaultFallbackApiExceptionHandler:
         request: Request,
         exc: NotImplementedApiError,
     ) -> JSONResponse:
-        return problem_json_response(501, Problem(title="Not implemented", status=501))
+        return problem_json_response(501, {"title": "Not implemented", "status": 501})
 
     async def handle_widget_not_found_api_error(
         self,
@@ -99,11 +102,11 @@ class DefaultFallbackApiExceptionHandler:
     ) -> JSONResponse:
         return problem_json_response(
             422,
-            Problem(
-                title="Request validation failed",
-                status=422,
-                detail=str(exc.errors()),
-            ),
+            {
+                "title": "Request validation failed",
+                "status": 422,
+                "detail": str(exc.errors()),
+            },
         )
 
     async def handle_unexpected(
@@ -120,9 +123,9 @@ class DefaultFallbackApiExceptionHandler:
         detail = traceback.format_exc()
         return problem_json_response(
             500,
-            Problem(
-                title="Internal Server Error",
-                status=500,
-                detail=detail,
-            ),
+            {
+                "title": "Internal Server Error",
+                "status": 500,
+                "detail": detail,
+            },
         )

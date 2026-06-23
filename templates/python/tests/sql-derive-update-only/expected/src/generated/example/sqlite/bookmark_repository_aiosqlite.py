@@ -26,7 +26,7 @@ class BookmarkRepositoryAiosqliteService(BookmarkRepositoryServiceProtocol[aiosq
                 """UPDATE bookmarks
 SET title = ?
 WHERE id = ?;""",
-                (title, id),
+                (None if title is None else title, id),
             )
             return cursor.rowcount > 0
 

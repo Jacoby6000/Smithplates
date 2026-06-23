@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class ShelfItemOutput(BaseModel):
-    itemId: str = Field(...)
-    name: str = Field(...)
+class ShelfItemOutput(TypedDict):
+    itemId: str
+    name: str

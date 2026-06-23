@@ -1,14 +1,13 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 from __future__ import annotations
 
-<% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass
-<% } %>from typing import Protocol, TypeVar
+from typing import Protocol, TypedDict, TypeVar
 
 <% if (ctx.protocolTableModelImportBlock != "") { %>${ctx.protocolTableModelImportBlock}
 <% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
 
 
-<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (ctx.protocolTableModelImportBlock != "") { %>
+<% render("fragments/models/typeddict_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (ctx.protocolTableModelImportBlock != "") { %>
 
 <% } %>
 T = TypeVar("T", contravariant=True)

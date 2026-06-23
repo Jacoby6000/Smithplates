@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from generated.example.event import Event
-from pydantic import BaseModel, Field
 
 
-class EventList(BaseModel):
-    items: list[Event] = Field(...)
+class EventList(TypedDict):
+    items: list[Event]

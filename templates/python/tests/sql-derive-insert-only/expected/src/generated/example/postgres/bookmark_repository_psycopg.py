@@ -24,7 +24,7 @@ class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg
         async def execute() -> str:
             cur = await self._connection.execute(
                 """INSERT INTO bookmarks (title) VALUES (%s) RETURNING id;""",
-                (title,),
+                (None if title is None else title,),
             )
             row = await cur.fetchone()
             if row is None:

@@ -7,9 +7,6 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.example.models.tree_node_repository_models import (
-    TreeNode,
-)
 from generated.example.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.example.postgres.tree_node_repository_psycopg import TreeNodeRepositoryPsycopgService
 from testcontainers.postgres import PostgresContainer
@@ -47,9 +44,9 @@ async def test_derived_sql_methods_lifecycle(tree_node_repository_service: TreeN
     assert entity_id
 
     fetched = await tree_node_repository_service.get_tree_node(id=entity_id)
-    assert isinstance(fetched, TreeNode)
-    assert fetched.label is None
-    assert fetched.parent_node_id is None
+    assert isinstance(fetched, dict)
+    assert fetched["label"] is None
+    assert fetched["parent_node_id"] is None
 
 
 @pytest.mark.integration
@@ -68,14 +65,14 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await tree_node_repository_service.get_tree_node(id=entity_id, transaction=tx)
-        assert isinstance(fetched, TreeNode)
-        assert fetched.label is None
-        assert fetched.parent_node_id is None
+        assert isinstance(fetched, dict)
+        assert fetched["label"] is None
+        assert fetched["parent_node_id"] is None
 
     fetched_after_commit = await tree_node_repository_service.get_tree_node(id=entity_id)
-    assert isinstance(fetched_after_commit, TreeNode)
-    assert fetched_after_commit.label is None
-    assert fetched_after_commit.parent_node_id is None
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["label"] is None
+    assert fetched_after_commit["parent_node_id"] is None
 
 
 @pytest.mark.integration

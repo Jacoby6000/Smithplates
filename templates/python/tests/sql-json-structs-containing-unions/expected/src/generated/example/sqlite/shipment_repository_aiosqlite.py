@@ -60,12 +60,15 @@ WHERE id = ?;""",
             if row is None:
                 return None
             named_row = _as_sqlite_named_row(cursor, row)
-            return Shipment(
-                id=_read_str_col(named_row, "id"),
-                label=_read_str_col(named_row, "label"),
-                destination=_read_PostalAddress_col(named_row, "destination"),
-                state=_read_DeliveryState_col(named_row, "state"),
-                created_at=_read_datetime_col(named_row, "created_at"),
+            return cast(
+                Shipment,
+                {
+                    "id": _read_str_col(named_row, "id"),
+                    "label": _read_str_col(named_row, "label"),
+                    "destination": _read_PostalAddress_col(named_row, "destination"),
+                    "state": _read_DeliveryState_col(named_row, "state"),
+                    "created_at": _read_datetime_col(named_row, "created_at"),
+                },
             )
 
         return await run(self._connection, transaction, execute)
@@ -124,7 +127,9 @@ def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
 
 
-def _json_bind_DeliveryState(value: DeliveryState) -> str:
+def _json_bind_DeliveryState(value: DeliveryState | None) -> str | None:
+    if value is None:
+        return None
     present = [key for key in ("pending", "delivered") if key in value]
     if len(present) != 1:
         raise ValueError("DeliveryState union value must contain exactly one member key")
@@ -139,17 +144,15 @@ def _read_DeliveryState(row: tuple[object, ...] | sqlite3.Row, index: int) -> De
     return cast(DeliveryState, data)
 
 
-def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = {"street": cast(object, value.street), "city": cast(object, value.city)}
-    return json.dumps(payload)
+def _json_bind_PostalAddress(value: PostalAddress | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps(cast(object, value))
 
 
 def _read_PostalAddress(row: tuple[object, ...] | sqlite3.Row, index: int) -> PostalAddress:
     data = cast(dict[str, object], json.loads(_read_str(row, index)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-    )
+    return cast(PostalAddress, data)
 
 
 def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
@@ -180,7 +183,4 @@ def _read_DeliveryState_col(row: dict[str, object], column: str) -> DeliveryStat
 
 def _read_PostalAddress_col(row: dict[str, object], column: str) -> PostalAddress:
     data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-    )
+    return cast(PostalAddress, data)

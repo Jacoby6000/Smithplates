@@ -38,14 +38,20 @@ WHERE widgets.id = %s;""",
             row = await cur.fetchone()
             if row is None:
                 return None
-            return GetWidgetResult(
-                id=_read_str(row, 0),
-                title=None if row[1] is None else _read_str(row, 1),
-                category_id=_read_str(row, 2),
-                category=Category(
-                    id=_read_str(row, 3),
-                    name=None if row[4] is None else _read_str(row, 4),
-                ),
+            return cast(
+                GetWidgetResult,
+                {
+                    "id": _read_str(row, 0),
+                    "title": None if row[1] is None else _read_str(row, 1),
+                    "category_id": _read_str(row, 2),
+                    "category": cast(
+                        Category,
+                        {
+                            "id": _read_str(row, 3),
+                            "name": None if row[4] is None else _read_str(row, 4),
+                        },
+                    ),
+                },
             )
 
         return await run(self._connection, transaction, execute)

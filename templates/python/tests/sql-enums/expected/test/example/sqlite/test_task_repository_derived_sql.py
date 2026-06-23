@@ -7,9 +7,6 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.example.models.task_repository_models import (
-    Task,
-)
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.example.sqlite.task_repository_aiosqlite import TaskRepositoryAiosqliteService
 
@@ -38,10 +35,10 @@ async def test_derived_sql_methods_lifecycle(task_repository_service: TaskReposi
     assert entity_id
 
     fetched = await task_repository_service.get_task(id=entity_id)
-    assert isinstance(fetched, Task)
-    assert fetched.label is None
-    assert fetched.status is None
-    assert fetched.priority is None
+    assert isinstance(fetched, dict)
+    assert fetched["label"] is None
+    assert fetched["status"] is None
+    assert fetched["priority"] is None
 
 
 @pytest.mark.integration
@@ -59,20 +56,20 @@ async def test_derived_sql_methods_transaction_commit(task_repository_service: T
         assert entity_id
 
         fetched = await task_repository_service.get_task(id=entity_id, transaction=connection)
-        assert isinstance(fetched, Task)
-        assert fetched.label is None
-        assert fetched.status is None
-        assert fetched.priority is None
+        assert isinstance(fetched, dict)
+        assert fetched["label"] is None
+        assert fetched["status"] is None
+        assert fetched["priority"] is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
     fetched_after_commit = await task_repository_service.get_task(id=entity_id)
-    assert isinstance(fetched_after_commit, Task)
-    assert fetched_after_commit.label is None
-    assert fetched_after_commit.status is None
-    assert fetched_after_commit.priority is None
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["label"] is None
+    assert fetched_after_commit["status"] is None
+    assert fetched_after_commit["priority"] is None
 
 
 @pytest.mark.integration

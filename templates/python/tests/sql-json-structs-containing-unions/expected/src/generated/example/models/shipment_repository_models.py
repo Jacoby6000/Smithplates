@@ -1,7 +1,6 @@
 # Generated from example#ShipmentRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 from typing import TypedDict
 
@@ -17,14 +16,12 @@ class DeliveryStateDelivered(TypedDict):
 DeliveryState = DeliveryStatePending | DeliveryStateDelivered
 
 
-@dataclass
-class PostalAddress:
+class PostalAddress(TypedDict):
     street: str
     city: str
 
 
-@dataclass
-class Shipment:
+class Shipment(TypedDict):
     id: str
     label: str
     destination: PostalAddress

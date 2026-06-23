@@ -5,7 +5,7 @@
     assert updated${test.updateOperation.outputValueAccessor} is True
 
     fetched_after_update = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
-    assert isinstance(fetched_after_update, ${test.selectOneOperation.outputShapeName})
+    assert isinstance(fetched_after_update, dict)
 <% if (test.selectOneOperation.hasUpdatedResultAssertions) { %>
 <% for (assertion <- test.selectOneOperation.updatedResultAssertions) { %>
     ${assertion.line}

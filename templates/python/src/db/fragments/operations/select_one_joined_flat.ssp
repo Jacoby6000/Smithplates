@@ -2,13 +2,13 @@
 <% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings) { %><% if (nested.isCollection) { %>                ${nested.memberName}=[],
-<% } else if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (nested <- operation.selectOneNestedBindings) { %><% if (nested.isCollection) { %>                "${nested.memberName}": [],
+<% } else if (nested.optional) { %>                "${nested.memberName}": None if row[${nested.fields.head.columnIndex}] is None else ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-                ),
-<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+                }),
+<% } else { %>                "${nested.memberName}": ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-                ),
-<% } %><% } %>            )
+                }),
+<% } %><% } %>            })

@@ -9,7 +9,8 @@
 <%@ val columnNameLiteral: String = "" %>
 <%@ val rowVar: String = "row" %>
 <%@ val timestampFormat: Any = null %>
-${fieldName}=<% render("fragments/sql/read_result_field", Map(
+<%@ val assignmentStyle: String = "dict" %>
+<% if (assignmentStyle == "dict") { %>"${fieldName}": <% render("fragments/sql/read_result_field", Map(
   "typeName" -> typeName,
   "readTypeName" -> readTypeName,
   "optional" -> optional,
@@ -21,3 +22,16 @@ ${fieldName}=<% render("fragments/sql/read_result_field", Map(
   "rowVar" -> rowVar,
   "timestampFormat" -> timestampFormat
 )) %>,
+<% } else { %>${fieldName}=<% render("fragments/sql/read_result_field", Map(
+  "typeName" -> typeName,
+  "readTypeName" -> readTypeName,
+  "optional" -> optional,
+  "isJson" -> isJson,
+  "isEnum" -> isEnum,
+  "readMode" -> readMode,
+  "columnIndex" -> columnIndex,
+  "columnNameLiteral" -> columnNameLiteral,
+  "rowVar" -> rowVar,
+  "timestampFormat" -> timestampFormat
+)) %>,
+<% } %>

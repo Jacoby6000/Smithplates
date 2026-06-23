@@ -31,6 +31,7 @@ async def create_content(
     return dispatch_api_response(
         await services.content_api.create_content(create_content_input=create_content_input),
         OPERATION_HTTP_BINDINGS["create_content"],
+        response_type_name="ContentOutput",
     )
 
 
@@ -48,4 +49,5 @@ async def get_content(
     return dispatch_api_response(
         await services.content_api.get_content(content_id=content_id),
         OPERATION_HTTP_BINDINGS["get_content"],
+        response_type_name="ContentOutput",
     )

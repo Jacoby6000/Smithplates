@@ -7,9 +7,6 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.example.models.category_repository_models import (
-    Category,
-)
 from generated.example.sqlite.category_repository_aiosqlite import CategoryRepositoryAiosqliteService
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
 
@@ -38,9 +35,9 @@ async def test_derived_sql_methods_lifecycle(category_repository_service: Catego
     assert entity_id
 
     fetched = await category_repository_service.get_category(id=entity_id)
-    assert isinstance(fetched, Category)
-    assert fetched.name is None
-    assert fetched.parent_category_id is None
+    assert isinstance(fetched, dict)
+    assert fetched["name"] is None
+    assert fetched["parent_category_id"] is None
 
 
 @pytest.mark.integration
@@ -60,18 +57,18 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await category_repository_service.get_category(id=entity_id, transaction=connection)
-        assert isinstance(fetched, Category)
-        assert fetched.name is None
-        assert fetched.parent_category_id is None
+        assert isinstance(fetched, dict)
+        assert fetched["name"] is None
+        assert fetched["parent_category_id"] is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
     fetched_after_commit = await category_repository_service.get_category(id=entity_id)
-    assert isinstance(fetched_after_commit, Category)
-    assert fetched_after_commit.name is None
-    assert fetched_after_commit.parent_category_id is None
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["name"] is None
+    assert fetched_after_commit["parent_category_id"] is None
 
 
 @pytest.mark.integration

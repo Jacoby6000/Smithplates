@@ -1,5 +1,7 @@
 <%@ val dialectKey: String %>
-def _json_bind_Document(value: object) -> str:
+def _json_bind_Document(value: object | None) -> str | None:
+    if value is None:
+        return None
     return json.dumps(value)
 
 

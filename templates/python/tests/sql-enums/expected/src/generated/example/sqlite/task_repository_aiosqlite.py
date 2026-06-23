@@ -31,7 +31,11 @@ class TaskRepositoryAiosqliteService(TaskRepositoryServiceProtocol[aiosqlite.Con
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO tasks (label, status, priority) VALUES (?, ?, ?) RETURNING id;""",
-                (label, status, priority),
+                (
+                    None if label is None else label,
+                    None if status is None else status,
+                    None if priority is None else priority,
+                ),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -63,11 +67,14 @@ WHERE id = ?;""",
 
 
 def _Task_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Task:
-    return Task(
-        id=_read_str(row, 0),
-        label=None if row[1] is None else _read_str(row, 1),
-        status=None if row[2] is None else TaskStatus(_read_str(row, 2)),
-        priority=None if row[3] is None else TaskPriority(_read_int(row, 3)),
+    return cast(
+        Task,
+        {
+            "id": _read_str(row, 0),
+            "label": None if row[1] is None else _read_str(row, 1),
+            "status": None if row[2] is None else TaskStatus(_read_str(row, 2)),
+            "priority": None if row[3] is None else TaskPriority(_read_int(row, 3)),
+        },
     )
 
 

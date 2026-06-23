@@ -1,0 +1,10 @@
+<%@ val models: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] %>
+<% for (model <- models) { %>
+class ${model.name}(TypedDict):
+<% if (model.hasMembers) { %>
+<% render("fragments/models/member_lines", Map("members" -> model.members)) %><% } %>
+<% if (!model.hasMembers) { %>
+    pass
+<% } %>
+
+<% } %>

@@ -1,16 +1,14 @@
 # Generated from example#ProfileRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Protocol, TypeVar
+from typing import Protocol, TypedDict, TypeVar
 
 from generated.example.models.profile_repository_models import (
     Bar,
 )
 
 
-@dataclass
-class GetProfileResult:
+class GetProfileResult(TypedDict):
     id: str
     display_name: str | None
     bar_id: str

@@ -10,7 +10,7 @@ from generated.example.widget_list_output import WidgetListOutput
 from generated.example.widget_output import WidgetOutput
 from generated.widget_api.api_response import dispatch_api_response
 from generated.widget_api.app_services import ApiServices, get_api_services
-from generated.widget_api.operation_bindings import OPERATION_HTTP_BINDINGS
+from generated.widget_api.operation_bindings import OPERATION_HTTP_BINDINGS, _resolve_get_widget_response_type
 from pydantic import Field  # noqa: F401
 
 router = APIRouter()
@@ -28,9 +28,11 @@ async def get_widget(
     services: Annotated[ApiServices, Depends(get_api_services)],
     id: str = Path(...),
 ) -> WidgetOutput:
+    response = await services.v1_widgets_api.get_widget(id=id)
     return dispatch_api_response(
-        await services.v1_widgets_api.get_widget(id=id),
+        response,
         OPERATION_HTTP_BINDINGS["get_widget"],
+        response_type_name=_resolve_get_widget_response_type(response),
     )
 
 
@@ -47,4 +49,5 @@ async def list_widgets(
     return dispatch_api_response(
         await services.v1_widgets_api.list_widgets(),
         OPERATION_HTTP_BINDINGS["list_widgets"],
+        response_type_name="WidgetListOutput",
     )

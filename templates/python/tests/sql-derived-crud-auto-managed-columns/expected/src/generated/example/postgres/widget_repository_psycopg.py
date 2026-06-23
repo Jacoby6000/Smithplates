@@ -31,7 +31,7 @@ class WidgetRepositoryPsycopgService(WidgetRepositoryServiceProtocol[psycopg.Asy
         async def execute() -> str:
             cur = await self._connection.execute(
                 """INSERT INTO widgets (foo, bar) VALUES (%s, %s) RETURNING id;""",
-                (foo, bar),
+                (None if foo is None else foo, None if bar is None else bar),
             )
             row = await cur.fetchone()
             if row is None:
@@ -73,7 +73,7 @@ WHERE id = %s;""",
                 """UPDATE widgets
 SET foo = %s, bar = %s, updated_at = CURRENT_TIMESTAMP
 WHERE id = %s RETURNING updated_at;""",
-                (foo, bar, id),
+                (None if foo is None else foo, None if bar is None else bar, id),
             )
             row = await cur.fetchone()
             return row is not None

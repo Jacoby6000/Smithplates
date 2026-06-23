@@ -2,16 +2,13 @@
 <%@ val needsDatetimeImport: Boolean = ctx.models.exists(_.members.exists(_.typeName == "Timestamp")) || ctx.unions.exists(_.members.exists(_.typeName == "Timestamp")) %>
 from __future__ import annotations
 
-from dataclasses import dataclass
+from typing import TypedDict
 <% if (needsDatetimeImport) { %>from datetime import datetime
 <% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
 <% for (uuidTypeName <- ctx.uuidTypeNames) { %>
 ${uuidTypeName} = str
 <% } %>
-<% } %><% if (ctx.unions.nonEmpty) { %>from typing import TypedDict
-
-
-<% } else if (ctx.models.nonEmpty) { %>
+<% } %><% if (ctx.unions.nonEmpty || ctx.models.nonEmpty) { %>
 
 
 <% } %><% for (union <- ctx.unions) { %><% for (member <- union.members) { %>
@@ -21,4 +18,4 @@ class ${unionVariantTypeName(union.name, member.name)}(TypedDict):
 <% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
 
 
-<% } %><% render("fragments/models/dataclass_definitions", Map("models" -> ctx.models)) %>
+<% } %><% render("fragments/models/typeddict_definitions", Map("models" -> ctx.models)) %>

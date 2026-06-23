@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class Problem(BaseModel):
-    title: str = Field(...)
-    detail: str | None = Field(default=None)
+class Problem(TypedDict):
+    title: str
+    detail: str | None

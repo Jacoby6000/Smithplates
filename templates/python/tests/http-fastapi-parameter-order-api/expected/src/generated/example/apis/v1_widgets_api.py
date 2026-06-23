@@ -40,6 +40,7 @@ async def inspect_widget(
             since=since,
         ),
         OPERATION_HTTP_BINDINGS["inspect_widget"],
+        response_type_name="WidgetOutput",
     )
 
 
@@ -63,4 +64,5 @@ async def search_widgets(
             limit=limit,
         ),
         OPERATION_HTTP_BINDINGS["search_widgets"],
+        response_type_name="WidgetListOutput",
     )

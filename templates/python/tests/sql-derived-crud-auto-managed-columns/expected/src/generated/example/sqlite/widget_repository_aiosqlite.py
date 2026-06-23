@@ -29,7 +29,7 @@ class WidgetRepositoryAiosqliteService(WidgetRepositoryServiceProtocol[aiosqlite
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO widgets (foo, bar) VALUES (?, ?) RETURNING id;""",
-                (foo, bar),
+                (None if foo is None else foo, None if bar is None else bar),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -73,7 +73,7 @@ WHERE id = ?;""",
                 """UPDATE widgets
 SET foo = ?, bar = ?, updated_at = CURRENT_TIMESTAMP
 WHERE id = ? RETURNING updated_at;""",
-                (foo, bar, id),
+                (None if foo is None else foo, None if bar is None else bar, id),
             )
             row = await cursor.fetchone()
             return row is not None
@@ -99,12 +99,15 @@ WHERE id = ? RETURNING updated_at;""",
 
 
 def _Widget_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Widget:
-    return Widget(
-        id=_read_str(row, 0),
-        foo=None if row[1] is None else _read_str(row, 1),
-        bar=None if row[2] is None else _read_int(row, 2),
-        created_at=_read_datetime(row, 3),
-        updated_at=_read_datetime(row, 4),
+    return cast(
+        Widget,
+        {
+            "id": _read_str(row, 0),
+            "foo": None if row[1] is None else _read_str(row, 1),
+            "bar": None if row[2] is None else _read_int(row, 2),
+            "created_at": _read_datetime(row, 3),
+            "updated_at": _read_datetime(row, 4),
+        },
     )
 
 

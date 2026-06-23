@@ -26,7 +26,7 @@ class BookmarkRepositoryPsycopgService(BookmarkRepositoryServiceProtocol[psycopg
                 """UPDATE bookmarks
 SET title = %s
 WHERE id = %s;""",
-                (title, id),
+                (None if title is None else title, id),
             )
             return cur.rowcount > 0
 

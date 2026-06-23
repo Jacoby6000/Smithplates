@@ -7,9 +7,6 @@ from pathlib import Path
 import aiosqlite
 import pytest
 import pytest_asyncio
-from generated.example.models.widget_repository_models import (
-    Widget,
-)
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
 from generated.example.sqlite.widget_repository_aiosqlite import WidgetRepositoryAiosqliteService
 
@@ -38,17 +35,17 @@ async def test_derived_sql_methods_lifecycle(widget_repository_service: WidgetRe
     assert entity_id
 
     fetched = await widget_repository_service.get_widget(id=entity_id)
-    assert isinstance(fetched, Widget)
-    assert fetched.foo is None
-    assert fetched.bar is None
+    assert isinstance(fetched, dict)
+    assert fetched["foo"] is None
+    assert fetched["bar"] is None
 
     updated = await widget_repository_service.update_widget(foo=None, bar=None, id=entity_id)
     assert updated is True
 
     fetched_after_update = await widget_repository_service.get_widget(id=entity_id)
-    assert isinstance(fetched_after_update, Widget)
-    assert fetched_after_update.foo is None
-    assert fetched_after_update.bar is None
+    assert isinstance(fetched_after_update, dict)
+    assert fetched_after_update["foo"] is None
+    assert fetched_after_update["bar"] is None
 
     deleted = await widget_repository_service.delete_widget(id=entity_id)
     assert deleted is True
@@ -72,18 +69,18 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await widget_repository_service.get_widget(id=entity_id, transaction=connection)
-        assert isinstance(fetched, Widget)
-        assert fetched.foo is None
-        assert fetched.bar is None
+        assert isinstance(fetched, dict)
+        assert fetched["foo"] is None
+        assert fetched["bar"] is None
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
     fetched_after_commit = await widget_repository_service.get_widget(id=entity_id)
-    assert isinstance(fetched_after_commit, Widget)
-    assert fetched_after_commit.foo is None
-    assert fetched_after_commit.bar is None
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["foo"] is None
+    assert fetched_after_commit["bar"] is None
 
 
 @pytest.mark.integration

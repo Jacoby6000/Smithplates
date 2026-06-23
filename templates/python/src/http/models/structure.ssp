@@ -19,7 +19,7 @@ def problemDefaultFields(binding: com.jacoby6000.smithplates.http.model.HttpProb
       List(("title", pythonStringLiteral(binding.title), false))
     } else {
       Nil
-    }
+  }
   val detailField =
     binding.defaultDetail match {
       case Some(detail) if !memberNames.contains("detail") =>
@@ -34,7 +34,7 @@ def problemDefaultFields(binding: com.jacoby6000.smithplates.http.model.HttpProb
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 <% if (needsDatetimeImport) { %>
 from datetime import datetime
 <% } %>
@@ -46,15 +46,17 @@ from ${packageName}.${snakeCase(typeName)} import ${typeName}
 <% } %>
 
 
-class ${structure.name}(<% if (problemBinding.isDefined) { %>Problem<% } else { %>BaseModel<% } %>):
+class ${structure.name}(<% if (problemBinding.isDefined) { %>Problem<% } else { %>TypedDict<% } %>):
 <% if (structureMembers.isEmpty && problemBinding.isEmpty) { %>
     pass
 <% } %>
 <% problemBinding.foreach { binding => %>
 <% for ((fieldName, literal, _) <- problemDefaultFields(binding)) { %>
-    ${fieldName}: str | None = Field(default=${literal})
+    ${fieldName}: str | None
+
 <% } %>
 <% } %>
 <% for (member <- structureMembers) { %>
 <% render("fragments/models/member_field", Map("member" -> member)) %>
+
 <% } %>

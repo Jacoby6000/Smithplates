@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from generated.example.package_dimensions import PackageDimensions
-from pydantic import BaseModel, Field
 
 
-class PackageDetails(BaseModel):
-    weightKg: float = Field(...)
-    dimensions: PackageDimensions = Field(...)
+class PackageDetails(TypedDict):
+    weightKg: float
+    dimensions: PackageDimensions

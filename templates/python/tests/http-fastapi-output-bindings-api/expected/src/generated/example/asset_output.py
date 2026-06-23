@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class AssetOutput(BaseModel):
-    id: str = Field(...)
-    status: str = Field(...)
+class AssetOutput(TypedDict):
+    id: str
+    status: str

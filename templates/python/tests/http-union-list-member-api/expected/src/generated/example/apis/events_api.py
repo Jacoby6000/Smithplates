@@ -27,4 +27,5 @@ async def list_events(
     return dispatch_api_response(
         await services.events_api.list_events(),
         OPERATION_HTTP_BINDINGS["list_events"],
+        response_type_name="EventList",
     )

@@ -1,16 +1,14 @@
 # Generated from example#OrderRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Protocol, TypeVar
+from typing import Protocol, TypedDict, TypeVar
 
 from generated.example.models.order_repository_models import (
     OrderLine,
 )
 
 
-@dataclass
-class GetOrderResult:
+class GetOrderResult(TypedDict):
     id: str
     label: str | None
     order_lines: list[OrderLine]

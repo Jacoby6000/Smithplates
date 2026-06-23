@@ -30,6 +30,7 @@ async def get_widget(
     return dispatch_api_response(
         await services.v1_widgets_api.get_widget(id=id),
         OPERATION_HTTP_BINDINGS["get_widget"],
+        response_type_name="WidgetOutput",
     )
 
 
@@ -46,4 +47,5 @@ async def list_widgets(
     return dispatch_api_response(
         await services.v1_widgets_api.list_widgets(),
         OPERATION_HTTP_BINDINGS["list_widgets"],
+        response_type_name="WidgetListOutput",
     )

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from generated.example.problem import Problem
-from pydantic import Field
 
 
 class WidgetNotFound(Problem):
-    type: str | None = Field(default="https://example.com/errors/widget-not-found")
-    title: str | None = Field(default="Widget not found")
+    type: str | None
+
+    title: str | None

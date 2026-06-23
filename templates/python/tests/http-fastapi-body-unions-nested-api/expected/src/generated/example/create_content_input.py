@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from generated.example.media_attachment import MediaAttachment
 from generated.example.postal_address import PostalAddress
-from pydantic import BaseModel, Field
 
 
-class CreateContentInput(BaseModel):
-    title: str = Field(...)
-    authorAddress: PostalAddress = Field(...)
-    attachment: MediaAttachment = Field(...)
+class CreateContentInput(TypedDict):
+    title: str
+    authorAddress: PostalAddress
+    attachment: MediaAttachment

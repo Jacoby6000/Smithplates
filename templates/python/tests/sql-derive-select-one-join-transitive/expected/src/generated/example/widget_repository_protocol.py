@@ -1,8 +1,7 @@
 # Generated from example#WidgetRepository by sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Protocol, TypeVar
+from typing import Protocol, TypedDict, TypeVar
 
 from generated.example.models.widget_repository_models import (
     Category,
@@ -10,8 +9,7 @@ from generated.example.models.widget_repository_models import (
 )
 
 
-@dataclass
-class GetWidgetResult:
+class GetWidgetResult(TypedDict):
     id: str
     title: str | None
     category_id: str

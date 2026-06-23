@@ -4,79 +4,82 @@ from __future__ import annotations
 
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from generated.project_api.operation_bindings import OperationHttpBinding
-from pydantic import BaseModel
 
 
 def dispatch_api_response(
-    response: BaseModel | None,
+    response: dict[str, object] | None,
     binding: OperationHttpBinding,
-) -> Response | RedirectResponse | JSONResponse | BaseModel | None:
+    *,
+    response_type_name: str | None = None,
+) -> Response | RedirectResponse | JSONResponse | dict[str, object] | None:
     """Map a service-layer response model to HTTP using OpenAPI-derived bindings."""
-    variant = binding.variant_for(response)
+    variant = binding.variant_for(response, response_type_name=response_type_name)
     return _to_http_response(response, variant=variant)
 
 
 def _to_http_response(
-    response: BaseModel | None,
+    response: dict[str, object] | None,
     *,
     variant: object,
-) -> Response | RedirectResponse | JSONResponse | BaseModel | None:
-    from generated.project_api.operation_bindings import ResponseVariantBinding
+) -> Response | RedirectResponse | JSONResponse | dict[str, object] | None:
 
-    if not isinstance(variant, ResponseVariantBinding):
+    if not isinstance(variant, dict):
         msg = "Expected ResponseVariantBinding"
         raise TypeError(msg)
 
     headers, media_type = _response_headers_and_media_type(response, variant)
 
     if response is None:
-        return Response(status_code=variant.status_code)
+        return Response(status_code=variant["status_code"])
 
     has_body = media_type is not None
     if not has_body:
-        if _is_redirect_status(variant.status_code) and "Location" in headers:
-            return RedirectResponse(url=headers["Location"], status_code=variant.status_code)
+        if _is_redirect_status(variant["status_code"]) and "Location" in headers:
+            return RedirectResponse(url=headers["Location"], status_code=variant["status_code"])
         if headers:
-            return Response(status_code=variant.status_code, headers=headers)
-        return Response(status_code=variant.status_code)
+            return Response(status_code=variant["status_code"], headers=headers)
+        return Response(status_code=variant["status_code"])
 
-    exclude_fields = {field_name for field_name, _ in variant.header_bindings}
-    body_content = response.model_dump(mode="json", exclude_none=True, exclude=exclude_fields)
+    exclude_fields = {field_name for field_name, _ in variant["header_bindings"]}
+    body_content = _json_body_content(response, exclude=exclude_fields)
 
     if headers:
         return JSONResponse(
-            status_code=variant.status_code,
+            status_code=variant["status_code"],
             content=body_content,
             media_type=media_type,
             headers=headers,
         )
 
-    if variant.status_code == 200 and variant.header_bindings == () and variant.static_headers == ():
+    if variant["status_code"] == 200 and variant["header_bindings"] == () and variant["static_headers"] == ():
         return response
 
     return JSONResponse(
-        status_code=variant.status_code,
+        status_code=variant["status_code"],
         content=body_content,
         media_type=media_type,
     )
 
 
+def _json_body_content(response: dict[str, object], *, exclude: set[str]) -> dict[str, object]:
+    return {key: value for key, value in response.items() if key not in exclude and value is not None}
+
+
 def _response_headers_and_media_type(
-    response: BaseModel | None,
+    response: dict[str, object] | None,
     variant: object,
 ) -> tuple[dict[str, str], str | None]:
-    from generated.project_api.operation_bindings import ResponseVariantBinding
 
-    if not isinstance(variant, ResponseVariantBinding):
+    if not isinstance(variant, dict):
         msg = "Expected ResponseVariantBinding"
         raise TypeError(msg)
 
-    headers = {name: value for name, value in variant.static_headers}
+    headers = {name: value for name, value in variant["static_headers"]}
     if response is not None:
-        for member_name, header_name in variant.header_bindings:
-            headers[header_name] = str(getattr(response, member_name))
+        for member_name, header_name in variant["header_bindings"]:
+            headers[header_name] = str(response[member_name])
 
-    media_type = headers.pop("Content-Type", variant.media_type)
+    media_type = headers.pop("Content-Type", variant["media_type"])
     return headers, media_type
 
 

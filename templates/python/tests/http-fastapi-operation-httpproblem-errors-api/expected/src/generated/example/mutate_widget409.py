@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from generated.example.problem import Problem
-from pydantic import Field
 
 
 class MutateWidget409(Problem):
-    type: str | None = Field(default="https://example.com/errors/widget-conflict")
-    title: str = Field(...)
+    type: str | None
+
+    title: str

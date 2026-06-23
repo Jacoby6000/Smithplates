@@ -1,6 +1,7 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
 <% val routeGroup = ctx.routeGroup.get %>
 <% val operations = routeGroup.operations %>
+<% val resolverOperations = operations.filter(operationNeedsResponseTypeResolver(_)) %>
 <% val bindings = operations.flatMap(_.inputMembers.map(_.binding)).toSet %>
 <% val hasBodyBinding = routeGroupHasBody(operations) %>
 <% val typingSymbols = List("Annotated") %>
@@ -28,7 +29,8 @@ from datetime import datetime  # noqa: F401
 <% } %>
 
 from ${ctx.packageName}.api_response import dispatch_api_response
-from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS
+from ${ctx.packageName}.operation_bindings import OPERATION_HTTP_BINDINGS<% if (resolverOperations.nonEmpty) { %>, <% for (operation <- resolverOperations) { %>${responseTypeResolverName(operation)}<% if (operation != resolverOperations.last) { %>, <% } %><% } %><% } %>
+
 from ${ctx.packageName}.app_services import ApiServices, get_api_services
 <% for (typeName <- operations.flatMap(operation => operationImportedModelNames(operation, ctx.service)).distinct.sorted) { %>
 from ${modelTypeImportModule(ctx, typeName)} import ${typeName}
@@ -59,8 +61,18 @@ async def ${operationMethodName(operation.name)}(
     ${snakeCase(member.name)}: ${httpMemberTypeAnnotation(member.typeName, member.timestampFormat, member.required)} = ${fastapiParameterBinding(member)},
 <% } %>
 ) -> ${responseTypeName(operation)}:
+<% if (operationNeedsResponseTypeResolver(operation)) { %>
+    response = ${operationServiceCallExpression(routeGroup.tag, operation)}
+    return dispatch_api_response(
+        response,
+        OPERATION_HTTP_BINDINGS["${operationMethodName(operation.name)}"],
+        ${dispatchResponseTypeArgument(operation, ctx.service, "response")},
+    )
+<% } else { %>
     return dispatch_api_response(
         ${operationServiceCallExpression(routeGroup.tag, operation)},
         OPERATION_HTTP_BINDINGS["${operationMethodName(operation.name)}"],
+        ${dispatchResponseTypeArgument(operation, ctx.service, "response")},
     )
+<% } %>
 <% } %>

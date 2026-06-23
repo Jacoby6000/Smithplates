@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class Redirect(BaseModel):
-    url: str = Field(...)
+class Redirect(TypedDict):
+    url: str

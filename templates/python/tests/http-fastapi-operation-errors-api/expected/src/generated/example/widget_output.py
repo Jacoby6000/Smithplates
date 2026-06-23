@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class WidgetOutput(BaseModel):
-    id: str = Field(...)
+class WidgetOutput(TypedDict):
+    id: str

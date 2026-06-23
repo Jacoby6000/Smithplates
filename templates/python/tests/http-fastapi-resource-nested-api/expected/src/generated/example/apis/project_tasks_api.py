@@ -33,6 +33,7 @@ async def create_project_task(
     return dispatch_api_response(
         await services.project_tasks_api.create_project_task(project_id=project_id, title=title),
         OPERATION_HTTP_BINDINGS["create_project_task"],
+        response_type_name="TaskOutput",
     )
 
 
@@ -51,6 +52,7 @@ async def get_project_task(
     return dispatch_api_response(
         await services.project_tasks_api.get_project_task(project_id=project_id, task_id=task_id),
         OPERATION_HTTP_BINDINGS["get_project_task"],
+        response_type_name="TaskOutput",
     )
 
 
@@ -69,4 +71,5 @@ async def list_project_tasks(
     return dispatch_api_response(
         await services.project_tasks_api.list_project_tasks(project_id=project_id, page=page),
         OPERATION_HTTP_BINDINGS["list_project_tasks"],
+        response_type_name="TaskListOutput",
     )

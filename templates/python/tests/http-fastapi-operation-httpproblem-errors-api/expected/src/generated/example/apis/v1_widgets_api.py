@@ -9,7 +9,7 @@ from fastapi import (
 )
 from generated.example.api_response import dispatch_api_response
 from generated.example.app_services import ApiServices, get_api_services
-from generated.example.operation_bindings import OPERATION_HTTP_BINDINGS
+from generated.example.operation_bindings import OPERATION_HTTP_BINDINGS, _resolve_mutate_widget_response_type
 from generated.example.widget_output import WidgetOutput
 from generated.example.widget_patch import WidgetPatch
 from pydantic import Field  # noqa: F401
@@ -32,6 +32,7 @@ async def delete_widget(
     return dispatch_api_response(
         await services.v1_widgets_api.delete_widget(id=id),
         OPERATION_HTTP_BINDINGS["delete_widget"],
+        response_type_name="DeleteWidget404",
     )
 
 
@@ -49,7 +50,9 @@ async def mutate_widget(
     id: str = Path(...),
     body: WidgetPatch = Body(...),
 ) -> WidgetOutput:
+    response = await services.v1_widgets_api.mutate_widget(id=id, body=body)
     return dispatch_api_response(
-        await services.v1_widgets_api.mutate_widget(id=id, body=body),
+        response,
         OPERATION_HTTP_BINDINGS["mutate_widget"],
+        response_type_name=_resolve_mutate_widget_response_type(response),
     )

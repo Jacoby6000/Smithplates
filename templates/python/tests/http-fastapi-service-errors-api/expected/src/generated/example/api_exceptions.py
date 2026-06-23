@@ -28,13 +28,16 @@ class WidgetNotFoundApiError(Exception):
 
     def to_problem(self, status_code: int) -> Problem:
         resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
-        return Problem(
-            type=self._PROBLEM_TYPE,
-            title=self._PROBLEM_TITLE,
-            status=status_code,
-            detail=resolved_detail,
-            instance=self.instance,
-        )
+        problem: Problem = {
+            "type": self._PROBLEM_TYPE,
+            "title": self._PROBLEM_TITLE,
+            "status": status_code,
+        }
+        if resolved_detail is not None:
+            problem["detail"] = resolved_detail
+        if self.instance is not None:
+            problem["instance"] = self.instance
+        return problem
 
 
 class InternalWidgetErrorApiError(Exception):

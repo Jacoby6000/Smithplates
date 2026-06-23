@@ -31,7 +31,7 @@ class CategoryRepositoryPsycopgService(CategoryRepositoryServiceProtocol[psycopg
         async def execute() -> str:
             cur = await self._connection.execute(
                 """INSERT INTO categories (name, parent_category_id) VALUES (%s, %s) RETURNING id;""",
-                (name, parent_category_id),
+                (None if name is None else name, None if parent_category_id is None else parent_category_id),
             )
             row = await cur.fetchone()
             if row is None:

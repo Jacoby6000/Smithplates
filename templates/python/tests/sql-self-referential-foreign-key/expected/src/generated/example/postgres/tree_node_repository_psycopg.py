@@ -31,7 +31,7 @@ class TreeNodeRepositoryPsycopgService(TreeNodeRepositoryServiceProtocol[psycopg
         async def execute() -> str:
             cur = await self._connection.execute(
                 """INSERT INTO tree_nodes (label, parent_node_id) VALUES (%s, %s) RETURNING id;""",
-                (label, parent_node_id),
+                (None if label is None else label, None if parent_node_id is None else parent_node_id),
             )
             row = await cur.fetchone()
             if row is None:

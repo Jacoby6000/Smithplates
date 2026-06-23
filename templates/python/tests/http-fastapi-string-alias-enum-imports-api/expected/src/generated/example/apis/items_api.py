@@ -32,6 +32,7 @@ async def get_item(
     return dispatch_api_response(
         await services.items_api.get_item(item_id=item_id),
         OPERATION_HTTP_BINDINGS["get_item"],
+        response_type_name="ItemOutput",
     )
 
 
@@ -49,4 +50,5 @@ async def list_items(
     return dispatch_api_response(
         await services.items_api.list_items(kind=kind),
         OPERATION_HTTP_BINDINGS["list_items"],
+        response_type_name="ItemListOutput",
     )

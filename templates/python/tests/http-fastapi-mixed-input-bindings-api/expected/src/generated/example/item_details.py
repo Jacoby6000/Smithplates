@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+from typing import TypedDict
+
 from generated.example.package_details import PackageDetails
-from pydantic import BaseModel, Field
 
 
-class ItemDetails(BaseModel):
-    name: str = Field(...)
-    package: PackageDetails = Field(...)
+class ItemDetails(TypedDict):
+    name: str
+    package: PackageDetails

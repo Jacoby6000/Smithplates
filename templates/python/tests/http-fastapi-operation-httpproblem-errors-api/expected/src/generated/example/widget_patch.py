@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class WidgetPatch(BaseModel):
-    status: str = Field(...)
+class WidgetPatch(TypedDict):
+    status: str

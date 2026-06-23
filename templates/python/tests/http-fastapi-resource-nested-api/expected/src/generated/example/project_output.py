@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class ProjectOutput(BaseModel):
-    projectId: str = Field(...)
-    name: str = Field(...)
+class ProjectOutput(TypedDict):
+    projectId: str
+    name: str

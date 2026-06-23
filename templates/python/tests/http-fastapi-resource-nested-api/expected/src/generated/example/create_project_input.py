@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class CreateProjectInput(BaseModel):
-    name: str = Field(...)
+class CreateProjectInput(TypedDict):
+    name: str

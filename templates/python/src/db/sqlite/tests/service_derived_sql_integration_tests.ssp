@@ -42,7 +42,7 @@ async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleB
     assert entity_id
 
     fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
-    assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
+    assert isinstance(fetched, dict)
 <% if (test.selectOneOperation.hasResultAssertions) { %>
 <% for (assertion <- test.selectOneOperation.resultAssertions) { %>
     ${assertion.line}

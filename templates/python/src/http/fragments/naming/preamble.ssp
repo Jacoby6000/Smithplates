@@ -247,6 +247,51 @@ def responseTypeName(operation: com.jacoby6000.smithplates.http.model.HttpOperat
     case Some(variant)                                           => variant.variantTypeName
   }
 
+def operationResponseVariantTypeNames(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): List[String] =
+  operation.responseBinding.allVariants.map(_.variantTypeName).filterNot(_ == "__empty__").distinct
+
+def operationNeedsResponseTypeResolver(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): Boolean =
+  operationResponseVariantTypeNames(operation).size > 1
+
+def responseTypeResolverName(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation
+): String =
+  s"_resolve_${operationMethodName(operation.name)}_response_type"
+
+def structureForVariantTypeName(
+    service: com.jacoby6000.smithplates.http.model.HttpService,
+    variantTypeName: String
+): Option[com.jacoby6000.smithplates.http.model.HttpStructure] =
+  service.structures.find(_.name == variantTypeName)
+
+def variantResponseDiscriminatorMember(
+    service: com.jacoby6000.smithplates.http.model.HttpService,
+    variantTypeName: String
+): Option[String] =
+  structureForVariantTypeName(service, variantTypeName)
+    .flatMap { structure =>
+      structure.members.find(_.required).map(_.name).orElse(structure.members.headOption.map(_.name))
+    }
+
+def dispatchResponseTypeArgument(
+    operation: com.jacoby6000.smithplates.http.model.HttpOperation,
+    service: com.jacoby6000.smithplates.http.model.HttpService,
+    responseVarName: String
+): String = {
+  val variants = operationResponseVariantTypeNames(operation)
+  if (variants.isEmpty) {
+    "response_type_name=None"
+  } else if (variants.size == 1) {
+    s"""response_type_name="${variants.head}""""
+  } else {
+    s"response_type_name=${responseTypeResolverName(operation)}($responseVarName)"
+  }
+}
+
 def operationProtocolReturnType(operation: com.jacoby6000.smithplates.http.model.HttpOperation): String = {
   val hasEmptySuccess =
     operation.responseBinding.successVariant.exists(_.variantTypeName == "__empty__")
@@ -389,12 +434,12 @@ def clientRequestJsonArgument(operation: com.jacoby6000.smithplates.http.model.H
       ""
     case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Document =>
       val paramName = snakeCase(binding.inputShape.getName)
-      s", json=$paramName.model_dump(mode=\"json\", exclude_none=True)"
+      s", json=$paramName"
     case binding: com.jacoby6000.smithplates.http.model.HttpOperationBodyBinding.Members =>
       if (binding.members.size == 1) {
         val member = binding.members.head
         if (com.jacoby6000.smithplates.http.HttpSmithyTypeResolver.isStructureTypeName(member.typeName)) {
-          s", json=${snakeCase(member.name)}.model_dump(mode=\"json\", exclude_none=True)"
+          s", json=${snakeCase(member.name)}"
         } else {
           s", json=${snakeCase(member.name)}"
         }

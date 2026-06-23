@@ -8,19 +8,19 @@
 <% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            for joined_row in rows:
                 if joined_row[${nested.fields.head.columnIndex}] is not None:
                     ${nested.memberName}.append(
-                        ${nested.shapeName}(
+                        ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "joined_row")) %><% } %>
-                        )
+                        })
                     )
 <% } %>
-            return ${operation.outputShapeName}(
+            return ${typedDictCast(operation.outputShapeName)}
 <% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                "${nested.memberName}": None if row[${nested.fields.head.columnIndex}] is None else ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-                ),
-<% } else { %>                ${nested.memberName}=${nested.shapeName}(
+                }),
+<% } else { %>                "${nested.memberName}": ${nestedTypedDictCast(nested.shapeName)}
 <% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-                ),
+                }),
 <% } %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                ${nested.memberName}=${nested.memberName},
-<% } %>            )
+<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                "${nested.memberName}": ${nested.memberName},
+<% } %>            })

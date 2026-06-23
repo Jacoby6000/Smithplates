@@ -28,7 +28,7 @@ class CategoryRepositoryAiosqliteService(CategoryRepositoryServiceProtocol[aiosq
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
                 """INSERT INTO categories (name, parent_category_id) VALUES (?, ?) RETURNING id;""",
-                (name, parent_category_id),
+                (None if name is None else name, None if parent_category_id is None else parent_category_id),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -60,10 +60,13 @@ WHERE id = ?;""",
 
 
 def _Category_row_factory(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> Category:
-    return Category(
-        id=_read_str(row, 0),
-        name=None if row[1] is None else _read_str(row, 1),
-        parent_category_id=None if row[2] is None else _read_str(row, 2),
+    return cast(
+        Category,
+        {
+            "id": _read_str(row, 0),
+            "name": None if row[1] is None else _read_str(row, 1),
+            "parent_category_id": None if row[2] is None else _read_str(row, 2),
+        },
     )
 
 

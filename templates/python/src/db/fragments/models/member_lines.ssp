@@ -1,4 +1,5 @@
 <%@ val members: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateMemberView] %>
 #for (member <- members)
-    ${member.name}: <% render("fragments/types/type_annotation", Map("typeName" -> member.typeName, "optional" -> member.optional)) +%>
+    ${member.name}: <% render("fragments/types/type_annotation", Map("typeName" -> member.typeName, "optional" -> member.optional)) %>
+
 #end

@@ -7,9 +7,6 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from generated.example.models.record_repository_models import (
-    Record,
-)
 from generated.example.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.example.postgres.record_repository_psycopg import RecordRepositoryPsycopgService
 from testcontainers.postgres import PostgresContainer
@@ -47,8 +44,8 @@ async def test_derived_sql_methods_lifecycle(record_repository_service: RecordRe
     assert entity_id
 
     fetched = await record_repository_service.get_record_by_id(id=entity_id)
-    assert isinstance(fetched, Record)
-    assert fetched.metadata == {"integration": True}
+    assert isinstance(fetched, dict)
+    assert fetched["metadata"] == {"integration": True}
 
 
 @pytest.mark.integration
@@ -65,12 +62,12 @@ async def test_derived_sql_methods_transaction_commit(
         assert entity_id
 
         fetched = await record_repository_service.get_record_by_id(id=entity_id, transaction=tx)
-        assert isinstance(fetched, Record)
-        assert fetched.metadata == {"integration": True}
+        assert isinstance(fetched, dict)
+        assert fetched["metadata"] == {"integration": True}
 
     fetched_after_commit = await record_repository_service.get_record_by_id(id=entity_id)
-    assert isinstance(fetched_after_commit, Record)
-    assert fetched_after_commit.metadata == {"integration": True}
+    assert isinstance(fetched_after_commit, dict)
+    assert fetched_after_commit["metadata"] == {"integration": True}
 
 
 @pytest.mark.integration

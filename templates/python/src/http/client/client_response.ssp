@@ -4,8 +4,9 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import httpx
-from pydantic import BaseModel
 
 from ${ctx.packageName}.client.operation_bindings import ClientOperationHttpBinding
 <% for (typeName <- responseTypes) { %>
@@ -17,17 +18,10 @@ class ClientResponseError(Exception):
     """Raised when an HTTP response cannot be mapped to a generated API model."""
 
 
-_MODEL_TYPES: dict[str, type[BaseModel]] = {
-<% for (typeName <- responseTypes) { %>
-    "${typeName}": ${typeName},
-<% } %>
-}
-
-
 def parse_client_response(
     response: httpx.Response,
     binding: ClientOperationHttpBinding,
-) -> BaseModel | None:
+) -> dict[str, object] | None:
     """Map an HTTP response to a generated API model using Smithy-derived bindings."""
     if response.status_code == 204 or binding.variants_by_status.get(response.status_code) == "__empty__":
         if response.status_code >= 400:
@@ -36,35 +30,41 @@ def parse_client_response(
 
     variant = binding.variant_for_status(response.status_code)
     type_name = binding.type_name_for_status(response.status_code)
-    model_type = _resolve_model_type(type_name)
 
     payload: dict[str, object] = {}
-    if variant.media_type is not None and response.content:
+    if variant["media_type"] is not None and response.content:
         body = response.json()
         if isinstance(body, dict):
             payload = dict(body)
 
-    for member_name, header_name in variant.header_bindings:
+    for member_name, header_name in variant["header_bindings"]:
         if header_name in response.headers:
             payload[member_name] = response.headers[header_name]
 
-    if variant.media_type is None and not variant.header_bindings:
+    if variant["media_type"] is None and not variant["header_bindings"]:
         if response.status_code >= 400:
             response.raise_for_status()
         return None
 
     if response.status_code >= 400:
-        return model_type.model_validate(payload)
+        return _cast_response(type_name, payload)
 
     response.raise_for_status()
-    if not payload and variant.media_type is None:
+    if not payload and variant["media_type"] is None:
         return None
-    return model_type.model_validate(payload)
+    return _cast_response(type_name, payload)
 
 
-def _resolve_model_type(type_name: str) -> type[BaseModel]:
+def _cast_response(type_name: str, payload: dict[str, object]) -> dict[str, object]:
     model_type = _MODEL_TYPES.get(type_name)
     if model_type is None:
         msg = f"Unknown generated API model type {type_name!r}"
         raise ClientResponseError(msg)
-    return model_type
+    return cast(model_type, payload)
+
+
+_MODEL_TYPES: dict[str, object] = {
+<% for (typeName <- responseTypes) { %>
+    "${typeName}": ${typeName},
+<% } %>
+}

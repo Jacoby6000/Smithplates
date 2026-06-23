@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class AssetStatePatch(BaseModel):
-    status: str = Field(...)
+class AssetStatePatch(TypedDict):
+    status: str

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from typing import TypedDict
 
 
-class GetWidget404(BaseModel):
-    message: str = Field(...)
+class GetWidget404(TypedDict):
+    message: str

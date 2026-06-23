@@ -52,7 +52,7 @@ class WarehouseApiClient:
             "POST",
             f"{self._base_url}/warehouses/{warehouse_id}/shelves/{shelf_id}/items",
             headers=headers,
-            json=details.model_dump(mode="json", exclude_none=True),
+            json=details,
         )
         return parse_client_response(
             response,
