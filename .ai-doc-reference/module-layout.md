@@ -9,6 +9,7 @@ architecture (including template precompilation deep dive):
 
 ## Modules under `modules/`
 
+* `smithplates-codegen-core` — language-neutral codegen ADTs under `codegen.core`: `ModelId`/`ModelKind`, the `NeutralType` type system (optionality via `OptionalT`, `NeutralType.optional` normalizes nested optionals), `Model[A]`/`ModelSet[A]`/`ServiceModel[A, B]`/`OperationModel[A]`, per-position metadata wrappers (`ModelMeta`/`ServiceMeta`/`OperationMeta`), and `TypeResolver[A]` (alias-chasing `underlying`) + `TypeUsageAnalyzer` (deterministic first-occurrence `usedTypes`). No target-language syntax and no dependency on SQL/HTTP/renderer modules. Foundation for the language-neutral codegen epic (#34); currently unwired (no consumers yet)
 * `smithplates-sql-ir` — schema ADTs under `sql.model`, table extraction (`SqlIrExtractor`); `SqlTableTree` / `SqlTableMemberOrdering` / `SqlText` live in `sql`. `SqlTableTree` skips self-referential `@sqlForeignKey` edges when computing render order so a table can reference itself inline in `CREATE TABLE`.
 * `smithplates-sql-ddl-renderer-common` — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) under `sql.ddl.renderer.common`
 * `smithplates-sql-service-ir` — query/service IR (`SqlServiceIr`), extractors
