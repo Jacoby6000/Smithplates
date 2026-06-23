@@ -67,8 +67,10 @@ val strictScala3Settings: Seq[Def.Setting[_]] = Seq(
     "-Wunused:all",
     "-Wvalue-discard",
     "-Werror",
-    "-no-indent"
-  )
+    "-no-indent",
+    "-release:17"
+  ),
+  javacOptions ++= Seq("--release", "17")
 )
 
 def unpublishedModuleSettings: Seq[Def.Setting[_]] = Seq(
