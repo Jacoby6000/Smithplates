@@ -33,4 +33,29 @@ class ModelSetSpec extends FunSuite {
     assertEquals(enumModel.kind, ModelKind.Enum)
     assertEquals(alias.kind, ModelKind.Alias)
   }
+
+  test("empty model set resolves nothing and yields empty kind partitions") {
+    val empty = ModelSet[Unit](Nil)
+    assertEquals(empty.structures, Nil)
+    assertEquals(empty.unions, Nil)
+    assertEquals(empty.enums, Nil)
+    assertEquals(empty.aliases, Nil)
+    assertEquals(empty.resolve(ModelId("ns", "Missing")), None)
+  }
+
+  test("as accessors are kind-specific") {
+    assertEquals(structure.asStructure, Some(structure))
+    assertEquals(structure.asUnion, None)
+    assertEquals(structure.asEnum, None)
+    assertEquals(structure.asAlias, None)
+
+    assertEquals(union.asUnion, Some(union))
+    assertEquals(union.asStructure, None)
+
+    assertEquals(enumModel.asEnum, Some(enumModel))
+    assertEquals(enumModel.asStructure, None)
+
+    assertEquals(alias.asAlias, Some(alias))
+    assertEquals(alias.asStructure, None)
+  }
 }

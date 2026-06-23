@@ -58,6 +58,50 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
     )
   }
 
+  test("usedTypes - union members follow declaration order and dedupe") {
+    val union = Model.Union(
+      ModelId("ns", "Event"),
+      meta,
+      List(
+        Variant("a", refOf("A")),
+        Variant("b", refOf("B")),
+        Variant("c", refOf("A"))
+      )
+    )
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(union), List(refOf("A"), refOf("B")))
+  }
+
+  test("usedTypes - alias collects refs from underlying") {
+    val alias = Model.Alias(ModelId("ns", "ItemIds"), meta, ListT(refOf("Item")))
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(alias), List(refOf("Item")))
+  }
+
+  test("usedTypes - direct refs only, does not traverse into referenced models") {
+    val user    = Model.Structure(
+      ModelId("ns", "User"),
+      meta,
+      List(Field("profile", refOf("Profile")))
+    )
+    val account = Model.Structure(
+      ModelId("ns", "Account"),
+      meta,
+      List(Field("owner", refOf("User")))
+    )
+    val _       = ModelSet[Unit](List(user, account))
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(account), List(refOf("User")))
+  }
+
+  test("directRefs - sparse list ListT(OptionalT(ref))") {
+    assertEquals(TypeUsageAnalyzer.directRefs(ListT(OptionalT(refOf("Item")))), List(refOf("Item")))
+  }
+
+  test("directRefs - optional sparse list OptionalT(ListT(OptionalT(ref)))") {
+    assertEquals(
+      TypeUsageAnalyzer.directRefs(OptionalT(ListT(OptionalT(refOf("Item"))))),
+      List(refOf("Item"))
+    )
+  }
+
   // Independent first-occurrence reference implementation, distinct from the production `.distinct`-based one.
   private def expectedFirstOccurrence(types: List[NeutralType]): List[ModelRef] = {
     val acc                          = scala.collection.mutable.LinkedHashSet.empty[ModelRef]

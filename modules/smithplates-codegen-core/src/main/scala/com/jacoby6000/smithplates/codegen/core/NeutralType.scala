@@ -1,7 +1,15 @@
 package com.jacoby6000.smithplates.codegen.core
 
+import cats.Eq
+import cats.Order
+import cats.derived.semiauto
+
 enum TimestampFormat {
   case DateTime, EpochSeconds
+}
+
+object TimestampFormat {
+  given Eq[TimestampFormat] = semiauto.eq
 }
 
 sealed trait NeutralType
@@ -34,4 +42,9 @@ object NeutralType {
       case OptionalT(deeper) => optional(deeper)
       case other             => OptionalT(other)
     }
+
+  given Eq[NeutralType] = semiauto.eq
+
+  given Order[ModelRef] =
+    Order.by(_.id)
 }

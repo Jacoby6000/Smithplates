@@ -1,19 +1,36 @@
 package com.jacoby6000.smithplates.codegen.core
 
+import cats.Eq
+import cats.Order
+import cats.derived.semiauto
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
 
 final case class Field(name: String, tpe: NeutralType)
 
+object Field {
+  given Eq[Field] = semiauto.eq
+}
+
 final case class Variant(name: String, tpe: NeutralType)
+
+object Variant {
+  given Eq[Variant] = semiauto.eq
+}
 
 sealed trait PrimitiveLiteral
 
 object PrimitiveLiteral {
   final case class StringValue(value: String) extends PrimitiveLiteral
   final case class IntValue(value: Long)      extends PrimitiveLiteral
+
+  given Eq[PrimitiveLiteral] = semiauto.eq
 }
 
 final case class EnumValue(name: String, value: PrimitiveLiteral)
+
+object EnumValue {
+  given Eq[EnumValue] = semiauto.eq
+}
 
 sealed trait Model[A] {
   def id: ModelId
@@ -63,12 +80,19 @@ object Model {
     override def kind: ModelKind           = ModelKind.Alias
     override def asAlias: Option[Alias[A]] = Some(this)
   }
+
+  given [A: Eq]: Eq[Model[A]] = semiauto.eq
+
+  given [A]: Order[Model[A]] =
+    Order.by(_.id)
 }
 
 final case class ModelSet[A](all: List[Model[A]]) {
 
-  /** Internal — not part of the stable API; subject to change without notice. */
-  lazy val byId: Map[ModelId, Model[A]] = all.iterator.map(m => m.id -> m).toMap
+  lazy val byId: Map[ModelId, Model[A]] =
+    all.foldLeft(Map.empty[ModelId, Model[A]]) { (acc, model) =>
+      acc.updated(model.id, model)
+    }
 
   def structures: List[Model.Structure[A]] = all.flatMap(_.asStructure)
   def unions: List[Model.Union[A]]         = all.flatMap(_.asUnion)
@@ -79,11 +103,25 @@ final case class ModelSet[A](all: List[Model[A]]) {
   def resolve(ref: ModelRef): Option[Model[A]] = byId.get(ref.id)
 }
 
+object ModelSet {
+  given [A: Eq]: Eq[ModelSet[A]] = semiauto.eq
+
+  given [A]: Order[ModelSet[A]] =
+    Order.by(_.all)
+}
+
 final case class ServiceModel[A, B](
     id: ModelId,
     meta: ServiceMeta[A],
     operations: List[OperationModel[B]]
 )
+
+object ServiceModel {
+  given [A: Eq, B: Eq]: Eq[ServiceModel[A, B]] = semiauto.eq
+
+  given [A, B]: Order[ServiceModel[A, B]] =
+    Order.by(service => (service.id, service.operations))
+}
 
 final case class OperationModel[A](
     id: ModelId,
@@ -92,3 +130,10 @@ final case class OperationModel[A](
     output: Option[ModelRef],
     errors: List[ModelRef]
 )
+
+object OperationModel {
+  given [A: Eq]: Eq[OperationModel[A]] = semiauto.eq
+
+  given [A]: Order[OperationModel[A]] =
+    Order.by(op => (op.id, op.input, op.output, op.errors))
+}

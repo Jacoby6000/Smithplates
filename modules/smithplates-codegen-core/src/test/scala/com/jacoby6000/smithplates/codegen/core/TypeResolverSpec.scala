@@ -40,4 +40,14 @@ class TypeResolverSpec extends FunSuite {
     assertEquals(resolver.classify(ModelRef(account.id)), Some(ModelKind.Structure))
     assertEquals(resolver.classify(ModelRef(ModelId("ns", "Missing"))), None)
   }
+
+  test("resolve returns the model for a known ref and None for missing refs") {
+    assertEquals(resolver.resolve(ModelRef(uuid.id)), Some(uuid))
+    assertEquals(resolver.resolve(ModelRef(account.id)), Some(account))
+    assertEquals(resolver.resolve(ModelRef(ModelId("ns", "Missing"))), None)
+  }
+
+  test("underlying leaves an unresolved ModelRef unchanged") {
+    assertEquals(resolver.underlying(ModelRef(ModelId("ns", "Missing"))), ModelRef(ModelId("ns", "Missing")))
+  }
 }
