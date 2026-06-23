@@ -34,14 +34,23 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
     assertEquals(TypeUsageAnalyzer.default.usedTypes(structure), List(refOf("Key"), refOf("Value")))
   }
 
-  test("usedTypes - enum models reference no types") {
-    val enumModel =
+  test("usedTypes - enum models ignore base type") {
+    val primitiveBase =
       Model.EnumModel(
         ModelId("ns", "Color"),
         meta,
         StringT,
-        List(EnumValue("Red", PrimitiveLiteral.StringValue("red"))))
-    assertEquals(TypeUsageAnalyzer.default.usedTypes(enumModel), Nil)
+        List(EnumValue("Red", PrimitiveLiteral.StringValue("red")))
+      )
+    val refBase       =
+      Model.EnumModel(
+        ModelId("ns", "Status"),
+        meta,
+        refOf("CustomString"),
+        List(EnumValue("Active", PrimitiveLiteral.StringValue("active")))
+      )
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(primitiveBase), Nil)
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(refBase), Nil)
   }
 
   test("usedTypes - operation walks input, then output, then errors") {
@@ -76,19 +85,56 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
     assertEquals(TypeUsageAnalyzer.default.usedTypes(alias), List(refOf("Item")))
   }
 
-  test("usedTypes - direct refs only, does not traverse into referenced models") {
-    val user    = Model.Structure(
-      ModelId("ns", "User"),
-      meta,
-      List(Field("profile", refOf("Profile")))
-    )
+  test("usedTypes - structure reports only refs declared on that model") {
     val account = Model.Structure(
       ModelId("ns", "Account"),
       meta,
       List(Field("owner", refOf("User")))
     )
-    val _       = ModelSet[Unit](List(user, account))
     assertEquals(TypeUsageAnalyzer.default.usedTypes(account), List(refOf("User")))
+  }
+
+  test("usedTypes - empty structure yields no refs") {
+    val structure = Model.Structure(ModelId("ns", "Empty"), meta, Nil)
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(structure), Nil)
+  }
+
+  test("usedTypes - empty union yields no refs") {
+    val union = Model.Union(ModelId("ns", "Empty"), meta, Nil)
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(union), Nil)
+  }
+
+  test("usedTypes - operation with no bound shapes yields no refs") {
+    val op = OperationModel(
+      ModelId("ns", "Ping"),
+      OperationMeta(None, Nil, ()),
+      input = None,
+      output = None,
+      errors = Nil
+    )
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(op), Nil)
+  }
+
+  test("usedTypes - alias with primitive underlying yields no refs") {
+    val alias = Model.Alias(ModelId("ns", "Name"), meta, StringT)
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(alias), Nil)
+  }
+
+  test("usedTypes - alias reports ref to another alias without chasing") {
+    val outer = Model.Alias(ModelId("ns", "Outer"), meta, refOf("Inner"))
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(outer), List(refOf("Inner")))
+  }
+
+  test("usedTypes - map ref only in key") {
+    val structure =
+      Model.Structure(ModelId("ns", "Keyed"), meta, List(Field("index", MapT(refOf("Key"), StringT))))
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(structure), List(refOf("Key")))
+  }
+
+  test("usedTypes - map ref only in value") {
+    val structure =
+      Model.Structure(ModelId("ns", "Valued"), meta, List(Field("index", MapT(StringT, refOf("Value")))))
+    assertEquals(TypeUsageAnalyzer.default.usedTypes(structure), List(refOf("Value")))
   }
 
   test("directRefs - sparse list ListT(OptionalT(ref))") {
@@ -100,6 +146,12 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
       TypeUsageAnalyzer.directRefs(OptionalT(ListT(OptionalT(refOf("Item"))))),
       List(refOf("Item"))
     )
+  }
+
+  test("directRefs - non-container primitives yield no refs") {
+    assertEquals(TypeUsageAnalyzer.directRefs(TimestampT(TimestampFormat.DateTime)), Nil)
+    assertEquals(TypeUsageAnalyzer.directRefs(BytesT), Nil)
+    assertEquals(TypeUsageAnalyzer.directRefs(DocumentT), Nil)
   }
 
   // Independent first-occurrence reference implementation, distinct from the production `.distinct`-based one.
@@ -145,7 +197,7 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
       types.zipWithIndex.map { case (tpe, i) => Field(s"field$i", tpe) }
     )
 
-  property("usedTypes matches an independent first-occurrence walk") {
+  property("structure usedTypes matches an independent first-occurrence walk") {
     forAll(genStructure) { structure =>
       assertEquals(
         TypeUsageAnalyzer.default.usedTypes(structure),
@@ -154,7 +206,7 @@ class TypeUsageAnalyzerSpec extends ScalaCheckSuite {
     }
   }
 
-  property("usedTypes is deduped and complete") {
+  property("structure usedTypes is deduped and complete") {
     forAll(genStructure) { structure =>
       val result = TypeUsageAnalyzer.default.usedTypes(structure)
       Prop(result == result.distinct) :| "deduped" &&

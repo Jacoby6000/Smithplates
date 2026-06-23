@@ -19,4 +19,16 @@ class NeutralTypeSpec extends FunSuite {
   test("optional - preserves inner composite structure") {
     assertEquals(NeutralType.optional(ListT(OptionalT(StringT))), OptionalT(ListT(OptionalT(StringT))))
   }
+
+  test("optional - wraps map and timestamp types") {
+    val map       = MapT(StringT, IntegerT)
+    assertEquals(NeutralType.optional(map), OptionalT(map))
+    val timestamp = TimestampT(TimestampFormat.EpochSeconds)
+    assertEquals(NeutralType.optional(timestamp), OptionalT(timestamp))
+  }
+
+  test("optional - wraps model refs") {
+    val ref = ModelRef(ModelId("ns", "Thing"))
+    assertEquals(NeutralType.optional(ref), OptionalT(ref))
+  }
 }
