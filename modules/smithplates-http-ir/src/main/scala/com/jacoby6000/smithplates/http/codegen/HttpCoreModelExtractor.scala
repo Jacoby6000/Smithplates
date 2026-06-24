@@ -9,9 +9,9 @@ import com.jacoby6000.smithplates.codegen.core.EnumValue
 import com.jacoby6000.smithplates.codegen.core.Field
 import com.jacoby6000.smithplates.codegen.core.InvalidSmithyShape
 import com.jacoby6000.smithplates.codegen.core.Model as CodegenModel
+import com.jacoby6000.smithplates.codegen.core.ModelExtractor
 import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.ModelMeta
-import com.jacoby6000.smithplates.codegen.core.ModelMetaValidator
 import com.jacoby6000.smithplates.codegen.core.ModelSet
 import com.jacoby6000.smithplates.codegen.core.ModelSetValidator
 import com.jacoby6000.smithplates.codegen.core.ModelValidator
@@ -39,7 +39,8 @@ import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
 object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpServiceMeta, HttpOperationMeta] {
-  given ModelMetaValidator[HttpMeta]                                  = ModelMetaValidator.noop
+  import HttpCoreMetaValidator.given
+
   given OperationMetaValidator[HttpOperationMeta]                     = OperationMetaValidator.noop
   given ServiceMetaValidator[HttpServiceMeta]                         = ServiceMetaValidator.noop
   given ModelValidator[HttpMeta]                                      = ModelValidator.default
@@ -51,26 +52,40 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
   def extract(
       model: SmithyModel
   ): CodegenValidated[(ModelSet[HttpMeta], List[ServiceModel[HttpServiceMeta, HttpOperationMeta]])] =
-    HttpServiceExtractor
-      .extract(model)
-      .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "http"), error.message)))
-      .andThen { case (httpServices, _) =>
-        httpServices
-          .traverse(httpService => internal.convertService(model, httpService))
-          .map { results =>
-            val services = results.map(_._1)
-            val models   = results.flatMap(_._2).distinct.sortBy(_.id)
-            (ModelSet(models), services)
-          }
-      }
+    extractValidated(model)(using SystemValidator.default)
 
   def extractAndValidate(
       model: SmithyModel
   ): CodegenValidated[(ModelSet[HttpMeta], List[ServiceModel[HttpServiceMeta, HttpOperationMeta]])] =
-    extractValidated(model)(using SystemValidator.default)
+    extract(model)
+
+  override def extractValidated(model: SmithyModel)(using
+      validator: SystemValidator[HttpMeta, HttpServiceMeta, HttpOperationMeta]
+  ): CodegenValidated[(ModelSet[HttpMeta], List[ServiceModel[HttpServiceMeta, HttpOperationMeta]])] =
+    internal
+      .extractFromSmithy(model)
+      .andThen { case (modelSet, services) =>
+        ModelExtractor.validateServices(modelSet, services)(using validator).map(_ => (modelSet, services))
+      }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def extractFromSmithy(
+        model: SmithyModel
+    ): CodegenValidated[(ModelSet[HttpMeta], List[ServiceModel[HttpServiceMeta, HttpOperationMeta]])] =
+      HttpServiceExtractor
+        .extract(model)
+        .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "http"), error.message)))
+        .andThen { case (httpServices, _) =>
+          httpServices
+            .traverse(httpService => convertService(model, httpService))
+            .map { results =>
+              val services = results.map(_._1)
+              val models   = results.flatMap(_._2).distinct.sortBy(_.id)
+              (ModelSet(models), services)
+            }
+        }
+
     def convertService(
         model: SmithyModel,
         httpService: HttpService
@@ -94,7 +109,9 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             } else {
               Some(ModelRef(ModelIds.fromShapeId(operation.inputShape)))
             },
-            output = operation.outputShape.map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId))),
+            output = operation.outputShape
+              .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
+              .map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId))),
             errors = operation.operationErrors.map(error => ModelRef(ModelIds.fromShapeId(error.shapeId)))
           )
         }
@@ -109,23 +126,21 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         operations = operations
       )
 
-      val rootShapeIds =
-        httpService.structures.map(_.shapeId) ++
-          httpService.unions.map(_.shapeId) ++
-          httpService.stringEnums.map(_.shapeId) ++
-          httpService.intEnums.map(_.shapeId) ++
-          httpService.serviceErrors.map(_.shapeId)
-
+      val httpOperations         = httpService.routeGroups.flatMap(_.operations)
       val serviceErrorShapeIds   = httpService.serviceErrors.map(_.shapeId).toSet
-      val operationErrors        = httpService.routeGroups.flatMap(_.operations).flatMap(_.operationErrors)
+      val operationErrors        = httpOperations.flatMap(_.operationErrors)
       val operationErrorShapeIds = operationErrors.map(_.shapeId).toSet
       val errorStructureShapeIds = serviceErrorShapeIds ++ operationErrorShapeIds
-
-      val aliasIds = SmithyAliasClosure.aliasShapeIds(model, rootShapeIds)
+      val errorVariantsByShapeId =
+        httpOperations
+          .flatMap(_.responseBinding.errorVariants)
+          .groupBy(_.modelShapeId)
+          .view
+          .mapValues(_.head)
+          .toMap
 
       val operationShapeIds =
-        httpService.routeGroups
-          .flatMap(_.operations)
+        httpOperations
           .flatMap { operation =>
             List(operation.inputShape) ++ operation.outputShape.toList
           }
@@ -138,65 +153,91 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           .filterNot(existingStructureIds.contains)
           .filterNot(errorStructureShapeIds.contains)
 
-      (
-        aliasIds.traverse(shapeId => extractAlias(model, shapeId)),
-        httpService.structures
-          .filterNot(structure => errorStructureShapeIds.contains(structure.shapeId))
-          .traverse(structure => extractStructure(model, httpService.shapeId, structure.shapeId)),
-        extraStructureIds.traverse(shapeId => extractStructure(model, httpService.shapeId, shapeId)),
-        httpService.unions.traverse(union => extractUnion(model, httpService.shapeId, union.shapeId)),
-        httpService.stringEnums.traverse(stringEnum => extractStringEnum(model, stringEnum.shapeId)),
-        httpService.intEnums.traverse(intEnum => extractIntEnum(model, intEnum.shapeId)),
-        httpService.serviceErrors.traverse(error => extractErrorStructure(model, httpService.shapeId, error)),
-        operationErrors.traverse(error => extractOperationErrorStructure(model, httpService.shapeId, error))
-      ).mapN {
-        case (
-              aliases,
-              structures,
-              extraStructures,
-              unions,
-              stringEnums,
-              intEnums,
-              serviceErrorStructures,
-              operationErrorStructures) =>
+      val rootShapeIds =
+        httpService.structures.map(_.shapeId) ++
+          httpService.unions.map(_.shapeId) ++
+          httpService.stringEnums.map(_.shapeId) ++
+          httpService.intEnums.map(_.shapeId) ++
+          httpService.serviceErrors.map(_.shapeId) ++
+          extraStructureIds
+
+      val aliasIds = SmithyAliasClosure.aliasShapeIds(model, rootShapeIds.distinct)
+
+      HttpCoreMetaBuilder.buildOperationShapeMeta(model, httpService.shapeId, httpOperations).andThen {
+        operationShapeMeta =>
           (
-            service,
-            aliases ++ structures ++ extraStructures ++ unions ++ stringEnums ++ intEnums ++ serviceErrorStructures ++
-              operationErrorStructures
-          )
+            aliasIds.traverse(shapeId => extractAlias(model, shapeId)),
+            httpService.structures
+              .filterNot(structure => errorStructureShapeIds.contains(structure.shapeId))
+              .traverse(structure =>
+                extractStructure(model, httpService.shapeId, structure.shapeId, operationShapeMeta)),
+            extraStructureIds.traverse(shapeId =>
+              extractStructure(model, httpService.shapeId, shapeId, operationShapeMeta)),
+            httpService.unions.traverse(union => extractUnion(model, httpService.shapeId, union.shapeId)),
+            httpService.stringEnums.traverse(stringEnum => extractStringEnum(model, stringEnum.shapeId)),
+            httpService.intEnums.traverse(intEnum => extractIntEnum(model, intEnum.shapeId)),
+            httpService.serviceErrors.traverse(error => extractErrorStructure(model, httpService.shapeId, error)),
+            operationErrors.traverse(error =>
+              extractOperationErrorStructure(
+                model,
+                httpService.shapeId,
+                error,
+                errorVariantsByShapeId.get(error.shapeId)))
+          ).mapN {
+            case (
+                  aliases,
+                  structures,
+                  extraStructures,
+                  unions,
+                  stringEnums,
+                  intEnums,
+                  serviceErrorStructures,
+                  operationErrorStructures) =>
+              (
+                service,
+                aliases ++ structures ++ extraStructures ++ unions ++ stringEnums ++ intEnums ++ serviceErrorStructures ++
+                  operationErrorStructures
+              )
+          }
       }
     }
 
     def extractOperationErrorStructure(
         model: SmithyModel,
         serviceShape: ShapeId,
-        error: HttpOperationError
+        error: HttpOperationError,
+        responseVariant: Option[HttpResponseVariant]
     ): CodegenValidated[CodegenModel.Structure[HttpMeta]] =
-      extractStructure(model, serviceShape, error.shapeId).map { structure =>
-        structure.copy(
-          meta = structure.meta.copy(
-            feature = HttpMeta.HttpResponseMeta(
-              statusCode = error.statusCode,
-              error = HttpProblemBindingExtractor.extract(model, error.shapeId).map { binding =>
-                HttpErrorMeta(
-                  problemType = Some(binding.problemType),
-                  title = Some(binding.title)
-                )
-              }
+      extractStructure(model, serviceShape, error.shapeId, HttpCoreMetaBuilder.emptyOperationShapeMeta).map {
+        structure =>
+          structure.copy(
+            meta = structure.meta.copy(
+              feature = HttpMeta.HttpResponseMeta(
+                statusCode = error.statusCode,
+                staticHeaders = responseVariant.map(_.staticHeaders.toMap).getOrElse(Map.empty),
+                dynamicHeaderFields = responseVariant.map(_.headerBindings.toMap).getOrElse(Map.empty),
+                error = HttpProblemBindingExtractor.extract(model, error.shapeId).map { binding =>
+                  HttpErrorMeta(
+                    problemType = Some(binding.problemType),
+                    title = Some(binding.title)
+                  )
+                }
+              )
             )
           )
-        )
       }
 
     def extractStructure(
         model: SmithyModel,
         serviceShape: ShapeId,
-        shapeId: ShapeId
+        shapeId: ShapeId,
+        operationShapeMeta: HttpCoreMetaBuilder.OperationShapeMeta
     ): CodegenValidated[CodegenModel.Structure[HttpMeta]] =
       model.getShape(shapeId).toScala.flatMap(_.asStructureShape.toScala) match {
         case None            =>
           InvalidSmithyShape(ModelIds.fromShapeId(shapeId), "expected a structure shape").invalidNel
         case Some(structure) =>
+          val feature = HttpCoreMetaBuilder.structureFeature(shapeId, operationShapeMeta)
           structure.getAllMembers.asScala.toList
             .traverse { case (memberName, member) =>
               SmithyNeutralTypeResolver
@@ -217,7 +258,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             .map { fields =>
               CodegenModel.Structure(
                 id = ModelIds.fromShapeId(shapeId),
-                meta = modelMeta(model, shapeId, HttpMeta.HttpNestedField),
+                meta = modelMeta(model, shapeId, feature),
                 fields = fields
               )
             }
@@ -310,20 +351,21 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         serviceShape: ShapeId,
         error: HttpServiceError
     ): CodegenValidated[CodegenModel.Structure[HttpMeta]] =
-      extractStructure(model, serviceShape, error.shapeId).map { structure =>
-        structure.copy(
-          meta = structure.meta.copy(
-            feature = HttpMeta.HttpResponseMeta(
-              statusCode = error.statusCode,
-              error = error.problemBinding.map { binding =>
-                HttpErrorMeta(
-                  problemType = Some(binding.problemType),
-                  title = Some(binding.title)
-                )
-              }
+      extractStructure(model, serviceShape, error.shapeId, HttpCoreMetaBuilder.emptyOperationShapeMeta).map {
+        structure =>
+          structure.copy(
+            meta = structure.meta.copy(
+              feature = HttpMeta.HttpResponseMeta(
+                statusCode = error.statusCode,
+                error = error.problemBinding.map { binding =>
+                  HttpErrorMeta(
+                    problemType = Some(binding.problemType),
+                    title = Some(binding.title)
+                  )
+                }
+              )
             )
           )
-        )
       }
 
     def modelMeta(model: SmithyModel, shapeId: ShapeId, feature: HttpMeta): ModelMeta[HttpMeta] = {

@@ -33,6 +33,15 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           }
           assertEquals(input.fields.map(_.name), List("id"))
           assert(input.fields.head.tpe == ModelRef(widgetId.id), "input id member should reference WidgetId")
+          assertEquals(input.meta.feature, HttpMeta.HttpRequestMeta())
+
+          val output = modelSet.structures.find(_.id.name == "WidgetOutput").getOrElse {
+            fail("expected WidgetOutput structure")
+          }
+          assertEquals(
+            output.meta.feature,
+            HttpMeta.HttpResponseMeta(statusCode = 200)
+          )
 
           val operation = services.head.operations.head
           assertEquals(operation.input, Some(ModelRef(input.id)))
@@ -212,6 +221,16 @@ class HttpCoreModelExtractorSpec extends FunSuite {
         fail("expected GetWidget404 operation error structure")
       }
       assertEquals(getWidget404.meta.feature, HttpMeta.HttpResponseMeta(statusCode = 404))
+
+      val widgetOutput = modelSet.structures.find(_.id.name == "WidgetOutput").getOrElse {
+        fail("expected WidgetOutput payload structure")
+      }
+      assertEquals(widgetOutput.meta.feature, HttpMeta.HttpResponseMeta(statusCode = 200))
+
+      val getWidgetInput = modelSet.structures.find(_.id.name == "GetWidgetInput").getOrElse {
+        fail("expected GetWidgetInput structure")
+      }
+      assertEquals(getWidgetInput.meta.feature, HttpMeta.HttpRequestMeta())
     }
 
     HttpCoreModelExtractor
@@ -313,6 +332,288 @@ class HttpCoreModelExtractorSpec extends FunSuite {
       }
       assertEquals(getWidget404.meta.feature, HttpMeta.HttpResponseMeta(statusCode = 404))
     }
+  }
+
+  test("extract runs the same validation pipeline as extractAndValidate") {
+    val model     = widgetServiceModel(includeOptionalNote = false)
+    val validated =
+      HttpCoreModelExtractor
+        .extractAndValidate(model)
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+    val extracted =
+      HttpCoreModelExtractor
+        .extract(model)
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+    assertEquals(extracted, validated)
+  }
+
+  test("core extraction closes aliases reachable only from input-only operation structures") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#pattern
+          |use smithy.api#tags
+          |
+          |@pattern("^[a-z0-9-]+$")
+          |string RequestId
+          |
+          |@httpService
+          |service SearchApi {
+          |    version: "1"
+          |    operations: [Search]
+          |}
+          |
+          |@tags(["search"])
+          |@http(method: "GET", uri: "/search/{id}", code: 204)
+          |operation Search {
+          |    input: SearchInput
+          |    output: Unit
+          |}
+          |
+          |structure SearchInput {
+          |    @required
+          |    @httpLabel
+          |    id: RequestId
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val requestId = modelSet.aliases.find(_.id.name == "RequestId").getOrElse {
+            fail("expected RequestId alias in model set closure")
+          }
+          assertEquals(requestId.underlying, StringT)
+
+          val searchInput = modelSet.structures.find(_.id.name == "SearchInput").getOrElse {
+            fail("expected SearchInput structure")
+          }
+          assertEquals(searchInput.meta.feature, HttpMeta.HttpRequestMeta())
+          assertEquals(searchInput.fields.head.tpe, ModelRef(requestId.id))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction maps sparse list members to ListT(OptionalT(...))") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#sparse
+          |use smithy.api#tags
+          |
+          |@sparse
+          |list SparseTags {
+          |    member: String
+          |}
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [ListWidgets]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |operation ListWidgets {
+          |    input: Unit
+          |    output: WidgetListOutput
+          |}
+          |
+          |structure WidgetListOutput {
+          |    @required
+          |    tags: SparseTags
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          val output = modelSet.structures.find(_.id.name == "WidgetListOutput").getOrElse {
+            fail("expected WidgetListOutput structure")
+          }
+          assertEquals(output.fields.head.tpe, ListT(OptionalT(StringT)))
+        }
+      )
+  }
+
+  test("core extraction preserves timestamp formats on members") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |use smithy.api#timestampFormat
+          |
+          |@timestampFormat("epoch-seconds")
+          |timestamp EpochTs
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    @timestampFormat("date-time")
+          |    createdAt: Timestamp
+          |
+          |    @required
+          |    updatedAt: EpochTs
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          val output    = modelSet.structures.find(_.id.name == "WidgetOutput").getOrElse {
+            fail("expected WidgetOutput structure")
+          }
+          val createdAt = output.fields.find(_.name == "createdAt").getOrElse {
+            fail("expected createdAt field")
+          }
+          val updatedAt = output.fields.find(_.name == "updatedAt").getOrElse {
+            fail("expected updatedAt field")
+          }
+          assertEquals(LegacyNeutralTypeEquivalence.timestampFormat(createdAt.tpe), Some(TimestampFormat.DateTime))
+          assertEquals(LegacyNeutralTypeEquivalence.timestampFormat(updatedAt.tpe), Some(TimestampFormat.EpochSeconds))
+        }
+      )
+  }
+
+  test("core extraction assigns response header bindings to output response meta") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#httpHeader
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AssetApi {
+          |    version: "1"
+          |    operations: [GetAssetContent]
+          |}
+          |
+          |@tags(["assets"])
+          |@http(method: "GET", uri: "/assets/{id}/content", code: 302)
+          |operation GetAssetContent {
+          |    input: GetAssetContentInput
+          |    output: Redirect
+          |}
+          |
+          |structure GetAssetContentInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure Redirect {
+          |    @httpHeader("Location")
+          |    @required
+          |    url: String
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          val redirect = modelSet.structures.find(_.id.name == "Redirect").getOrElse {
+            fail("expected Redirect output structure")
+          }
+          assertEquals(
+            redirect.meta.feature,
+            HttpMeta.HttpResponseMeta(
+              statusCode = 302,
+              dynamicHeaderFields = Map("url" -> "Location")
+            )
+          )
+
+          val input = modelSet.structures.find(_.id.name == "GetAssetContentInput").getOrElse {
+            fail("expected GetAssetContentInput structure")
+          }
+          assertEquals(input.meta.feature, HttpMeta.HttpRequestMeta())
+        }
+      )
+  }
+
+  test("HttpCoreMetaValidator rejects invalid HTTP status codes on response models") {
+    import HttpCoreMetaValidator.given
+    import HttpCoreModelExtractor.given_ModelSetValidator_HttpMeta
+    import HttpCoreModelExtractor.given_ServiceModelValidator_HttpServiceMeta_HttpOperationMeta
+
+    val invalidModel: Model.Structure[HttpMeta]                   = Model.Structure(
+      id = ModelId("example", "Bad"),
+      meta = ModelMeta(
+        documentation = None,
+        tags = Nil,
+        feature = HttpMeta.HttpResponseMeta(statusCode = 99)
+      ),
+      fields = Nil
+    )
+    val modelSet: ModelSet[HttpMeta]                              = ModelSet(List(invalidModel))
+    val service: ServiceModel[HttpServiceMeta, HttpOperationMeta] =
+      ServiceModel(
+        id = ModelId("example", "Api"),
+        meta = ServiceMeta(documentation = None, tags = Nil, feature = HttpServiceMeta()),
+        operations = Nil
+      )
+
+    summon[ModelMetaValidator[HttpMeta]]
+      .validate(invalidModel)
+      .fold(
+        errors => assert(errors.exists(_.isInstanceOf[InvalidModelMeta])),
+        _ => fail("expected invalid model meta")
+      )
+
+    SystemValidator
+      .default[HttpMeta, HttpServiceMeta, HttpOperationMeta]
+      .validate(modelSet, service)
+      .fold(
+        errors => assert(errors.exists(_.isInstanceOf[InvalidModelMeta])),
+        _ => fail("expected system validation failure")
+      )
   }
 
   test("extract propagates HttpServiceExtractor failures as InvalidSmithyShape") {

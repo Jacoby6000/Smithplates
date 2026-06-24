@@ -1,6 +1,10 @@
 package com.jacoby6000.smithplates.sql.service.core
 
-/** Model-level SQL feature metadata carried on [[com.jacoby6000.smithplates.codegen.core.ModelMeta]]. */
+/** Model-level SQL feature metadata carried on [[com.jacoby6000.smithplates.codegen.core.ModelMeta]].
+  *
+  * `#36` extraction populates [[SqlTableMeta]] (table name) only. Column, JSON, and per-member SQL facts remain in
+  * legacy `SqlSchema` until `#39` (SQL codegen cutover) extends this ADT.
+  */
 sealed trait SqlMeta
 
 object SqlMeta {
