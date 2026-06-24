@@ -52,19 +52,26 @@ object CodegenPlanner {
     final case class ModelGroupSubject[A](tag: String, models: List[Model[A]])
     final case class ModelAllSubject[A](models: List[Model[A]])
 
-    def mergeOutputs(outputs: List[CodegenOutput]): CodegenValidated[List[CodegenOutput]] = {
-      val knownIds         = outputs.map(_.id).toSet
-      val unknownOverrides =
-        outputs.flatMap(_.overrides).filterNot(knownIds.contains)
-      unknownOverrides match {
-        case Nil          =>
-          val overriddenIds = outputs.flatMap(_.overrides).toSet
-          val surviving     = outputs.filterNot(output => overriddenIds.contains(output.id))
-          CodegenValidated.valid(surviving)
-        case unknown :: _ =>
-          UnknownOutputOverride(unknown).invalidNel
+    def mergeOutputs(outputs: List[CodegenOutput]): CodegenValidated[List[CodegenOutput]] =
+      outputs
+        .groupBy(_.id)
+        .collect { case (_, grouped) if grouped.size > 1 => grouped.head.id }
+        .headOption match {
+        case Some(duplicateId) =>
+          DuplicateOutputId(duplicateId).invalidNel
+        case None              =>
+          val knownIds         = outputs.map(_.id).toSet
+          val unknownOverrides =
+            outputs.flatMap(_.overrides).filterNot(knownIds.contains)
+          unknownOverrides match {
+            case Nil          =>
+              val overriddenIds = outputs.flatMap(_.overrides).toSet
+              val surviving     = outputs.filterNot(output => overriddenIds.contains(output.id))
+              CodegenValidated.valid(surviving)
+            case unknown :: _ =>
+              UnknownOutputOverride(unknown).invalidNel
+          }
       }
-    }
 
     def expandOutput[A, S, O](
         output: CodegenOutput,
@@ -72,15 +79,13 @@ object CodegenPlanner {
         services: List[ServiceModel[S, O]],
         settings: CodegenSettings,
         typeUsageAnalyzer: TypeUsageAnalyzer
-    ): Either[CodegenValidationError, List[WorkItem]] =
-      Right(
-        output match {
-          case template: CodegenOutput.CodegenTemplateBindingOutput =>
-            expandTemplateBinding(template, models, services, settings, typeUsageAnalyzer)
-          case staticOutput: CodegenOutput.CodegenStaticOutput      =>
-            expandStaticOutput(staticOutput, services, settings)
-        }
-      )
+    ): CodegenEither[List[WorkItem]] =
+      output match {
+        case template: CodegenOutput.CodegenTemplateBindingOutput =>
+          expandTemplateBinding(template, models, services, settings, typeUsageAnalyzer)
+        case staticOutput: CodegenOutput.CodegenStaticOutput      =>
+          Right(expandStaticOutput(staticOutput, services, settings))
+      }
 
     def expandTemplateBinding[A, S, O](
         output: CodegenOutput.CodegenTemplateBindingOutput,
@@ -88,37 +93,48 @@ object CodegenPlanner {
         services: List[ServiceModel[S, O]],
         settings: CodegenSettings,
         typeUsageAnalyzer: TypeUsageAnalyzer
-    ): List[WorkItem] =
+    ): CodegenEither[List[WorkItem]] =
       output.binding match {
         case SmithyBinding.Service                     =>
-          services.map { service =>
-            WorkItem(
-              outputId = output.id,
-              artifactKind = output.kind,
-              outputPathPattern = output.outputPath,
-              pathBindings = PathTemplate.serviceBindings(settings.conventions, service.id),
-              templatePath = Some(output.templatePath),
-              staticResourcePath = None,
-              subject = service,
-              usedTypeRefs = serviceUsedTypeRefs(service, typeUsageAnalyzer)
-            )
-          }
+          Right(
+            services.map { service =>
+              WorkItem(
+                outputId = output.id,
+                artifactKind = output.kind,
+                outputPathPattern = output.outputPath,
+                pathBindings = PathTemplate.serviceBindings(settings.conventions, service.id),
+                templatePath = Some(output.templatePath),
+                staticResourcePath = None,
+                subject = service,
+                usedTypeRefs = serviceUsedTypeRefs(service, typeUsageAnalyzer)
+              )
+            }
+          )
         case SmithyBinding.Once                        =>
-          List(
-            WorkItem(
-              outputId = output.id,
-              artifactKind = output.kind,
-              outputPathPattern = output.outputPath,
-              pathBindings = PathBindings.empty,
-              templatePath = Some(output.templatePath),
-              staticResourcePath = None,
-              subject = (),
-              usedTypeRefs = Nil
+          Right(
+            List(
+              WorkItem(
+                outputId = output.id,
+                artifactKind = output.kind,
+                outputPathPattern = output.outputPath,
+                pathBindings = PathBindings.empty,
+                templatePath = Some(output.templatePath),
+                staticResourcePath = None,
+                subject = (),
+                usedTypeRefs = Nil
+              )
             )
           )
         case SmithyBinding.Operation(filters, groupBy) =>
-          services.flatMap { service =>
-            expandOperations(output, service, filters, groupBy, settings, typeUsageAnalyzer)
+          BindingFilter.validateOperationFilters(filters) match {
+            case Some(error) =>
+              Left(NonEmptyList.one(error))
+            case None        =>
+              Right(
+                services.flatMap { service =>
+                  expandOperations(output, service, filters, groupBy, settings, typeUsageAnalyzer)
+                }
+              )
           }
         case SmithyBinding.Model(filters, groupBy)     =>
           expandModels(output, models, filters, groupBy, settings, typeUsageAnalyzer)
@@ -198,18 +214,22 @@ object CodegenPlanner {
             )
           }
         case BindingGroup.All  =>
-          List(
-            WorkItem(
-              outputId = output.id,
-              artifactKind = output.kind,
-              outputPathPattern = output.outputPath,
-              pathBindings = baseBindings,
-              templatePath = Some(output.templatePath),
-              staticResourcePath = None,
-              subject = OperationAllSubject(service, matching),
-              usedTypeRefs = matching.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+          if (matching.isEmpty) {
+            Nil
+          } else {
+            List(
+              WorkItem(
+                outputId = output.id,
+                artifactKind = output.kind,
+                outputPathPattern = output.outputPath,
+                pathBindings = baseBindings,
+                templatePath = Some(output.templatePath),
+                staticResourcePath = None,
+                subject = OperationAllSubject(service, matching),
+                usedTypeRefs = matching.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+              )
             )
-          )
+          }
         case BindingGroup.Tag  =>
           distinctTags(matching.map(_.meta.tags)).flatMap { tag =>
             val grouped = matching.filter(_.meta.tags.contains(tag))
@@ -240,55 +260,84 @@ object CodegenPlanner {
         groupBy: BindingGroup,
         settings: CodegenSettings,
         typeUsageAnalyzer: TypeUsageAnalyzer
-    ): List[WorkItem] = {
+    ): CodegenEither[List[WorkItem]] = {
       val matching = models.all.filter(model => BindingFilter.matchesModel(filters, model))
 
       groupBy match {
         case BindingGroup.None =>
-          matching.map { model =>
-            WorkItem(
-              outputId = output.id,
-              artifactKind = output.kind,
-              outputPathPattern = output.outputPath,
-              pathBindings = PathTemplate.modelBindings(settings.conventions, model.id),
-              templatePath = Some(output.templatePath),
-              staticResourcePath = None,
-              subject = model,
-              usedTypeRefs = typeUsageAnalyzer.usedTypes(model)
-            )
-          }
-        case BindingGroup.All  =>
-          List(
-            WorkItem(
-              outputId = output.id,
-              artifactKind = output.kind,
-              outputPathPattern = output.outputPath,
-              pathBindings = PathBindings.empty,
-              templatePath = Some(output.templatePath),
-              staticResourcePath = None,
-              subject = ModelAllSubject(matching),
-              usedTypeRefs = matching.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
-            )
+          Right(
+            matching.map { model =>
+              WorkItem(
+                outputId = output.id,
+                artifactKind = output.kind,
+                outputPathPattern = output.outputPath,
+                pathBindings = PathTemplate.modelBindings(settings.conventions, model.id),
+                templatePath = Some(output.templatePath),
+                staticResourcePath = None,
+                subject = model,
+                usedTypeRefs = typeUsageAnalyzer.usedTypes(model)
+              )
+            }
           )
-        case BindingGroup.Tag  =>
-          distinctTags(matching.map(_.meta.tags)).flatMap { tag =>
-            val grouped = matching.filter(_.meta.tags.contains(tag))
-            if (grouped.isEmpty) {
-              Nil
-            } else {
+        case BindingGroup.All  =>
+          if (matching.isEmpty) {
+            Right(Nil)
+          } else {
+            modelGroupPathBindings(matching, output.id, settings).map { pathBindings =>
               List(
                 WorkItem(
                   outputId = output.id,
                   artifactKind = output.kind,
                   outputPathPattern = output.outputPath,
-                  pathBindings = PathTemplate.tagBinding(tag, settings.conventions),
+                  pathBindings = pathBindings,
                   templatePath = Some(output.templatePath),
                   staticResourcePath = None,
-                  subject = ModelGroupSubject(tag, grouped),
-                  usedTypeRefs = grouped.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+                  subject = ModelAllSubject(matching),
+                  usedTypeRefs = matching.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
                 )
               )
             }
+          }
+        case BindingGroup.Tag  =>
+          Right(
+            distinctTags(matching.map(_.meta.tags)).flatMap { tag =>
+              val grouped = matching.filter(_.meta.tags.contains(tag))
+              if (grouped.isEmpty) {
+                Nil
+              } else {
+                List(
+                  WorkItem(
+                    outputId = output.id,
+                    artifactKind = output.kind,
+                    outputPathPattern = output.outputPath,
+                    pathBindings = PathTemplate.tagBinding(tag, settings.conventions),
+                    templatePath = Some(output.templatePath),
+                    staticResourcePath = None,
+                    subject = ModelGroupSubject(tag, grouped),
+                    usedTypeRefs = grouped.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+                  )
+                )
+              }
+            }
+          )
+      }
+    }
+
+    def modelGroupPathBindings[A](
+        matching: List[Model[A]],
+        outputId: OutputId,
+        settings: CodegenSettings
+    ): CodegenEither[PathBindings] = {
+      val namespaces = matching.map(_.id.namespace).distinct
+      namespaces match {
+        case _ :: Nil =>
+          Right(PathTemplate.modelBindings(settings.conventions, matching.head.id))
+        case _        =>
+          NonEmptyList.fromList(namespaces) match {
+            case Some(namespaceList) =>
+              Left(NonEmptyList.one(InconsistentGroupedModelNamespaces(outputId, namespaceList)))
+            case None                =>
+              Right(PathBindings.empty)
           }
       }
     }
@@ -302,15 +351,25 @@ object CodegenPlanner {
     ): List[ModelRef] =
       service.operations.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
 
-    def resolveUsedModels[A](models: ModelSet[A], refs: List[ModelRef]): List[Model[A]] =
-      refs.flatMap(models.resolve)
+    def resolveUsedModels[A](
+        models: ModelSet[A],
+        refs: List[ModelRef],
+        role: String
+    ): CodegenEither[List[Model[A]]] = {
+      val missingRefs =
+        refs.filterNot(ref => models.resolve(ref).isDefined)
+      NonEmptyList.fromList(missingRefs.map(ref => UnresolvedModelRef(ref, role))) match {
+        case Some(errors) => Left(errors)
+        case None         => Right(refs.flatMap(models.resolve))
+      }
+    }
 
     def renderWorkItem[A](
         item: WorkItem,
         models: ModelSet[A],
         settings: CodegenSettings,
         templateRenderer: TemplateRenderer
-    ): Either[CodegenValidationError, PlannedArtifact] =
+    ): CodegenEither[PlannedArtifact] =
       for {
         expandedPath <- PathTemplate.expand(item.outputPathPattern, item.pathBindings).toCodegenEither
         relativePath  = joinOutputPath(settings.outputBaseDirectory(item.artifactKind), expandedPath)
@@ -325,20 +384,26 @@ object CodegenPlanner {
         models: ModelSet[A],
         settings: CodegenSettings,
         templateRenderer: TemplateRenderer
-    ): Either[CodegenValidationError, String] =
+    ): CodegenEither[String] =
       item.staticResourcePath match {
         case Some(resourcePath) =>
           settings.staticResourceLoader
             .loadContent(resourcePath)
-            .toRight(MissingStaticResource(resourcePath, item.outputId))
+            .toRight(NonEmptyList.one(MissingStaticResource(resourcePath, item.outputId)))
         case None               =>
-          val view =
-            TemplateView(
-              subject = item.subject,
-              usedTypes = resolveUsedModels(models, item.usedTypeRefs),
-              conventions = settings.conventions
-            )
-          templateRenderer.render(item.templatePath.getOrElse(""), view).toCodegenEither
+          for {
+            usedTypes <- resolveUsedModels(
+                           models,
+                           item.usedTypeRefs,
+                           s"codegen output ${item.outputId.value} usedTypes"
+                         )
+            view       = TemplateView(
+                           subject = item.subject,
+                           usedTypes = usedTypes,
+                           conventions = settings.conventions
+                         )
+            content   <- templateRenderer.render(item.templatePath.getOrElse(""), view).toCodegenEither
+          } yield content
       }
 
     def joinOutputPath(baseDirectory: String, expandedPath: String): String = {
@@ -378,7 +443,7 @@ object CodegenPlanner {
       services: List[ServiceModel[S, O]],
       settings: CodegenSettings,
       typeUsageAnalyzer: TypeUsageAnalyzer
-  ): Either[CodegenValidationError, List[internal.WorkItem]] =
+  ): CodegenEither[List[internal.WorkItem]] =
     internal.expandOutput(output, models, services, settings, typeUsageAnalyzer)
 
   private def renderWorkItem[A](
@@ -386,7 +451,7 @@ object CodegenPlanner {
       models: ModelSet[A],
       settings: CodegenSettings,
       templateRenderer: TemplateRenderer
-  ): Either[CodegenValidationError, internal.PlannedArtifact] =
+  ): CodegenEither[internal.PlannedArtifact] =
     internal.renderWorkItem(item, models, settings, templateRenderer)
 
   private def detectPathCollisions(planned: List[internal.PlannedArtifact]): CodegenValidated[Unit] =

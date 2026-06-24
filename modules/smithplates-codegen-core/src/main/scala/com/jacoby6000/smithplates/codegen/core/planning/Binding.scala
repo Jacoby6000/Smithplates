@@ -2,6 +2,8 @@ package com.jacoby6000.smithplates.codegen.core.planning
 
 import cats.Eq
 import cats.derived.semiauto
+import com.jacoby6000.smithplates.codegen.core.CodegenValidationError
+import com.jacoby6000.smithplates.codegen.core.InvalidOperationBindingFilter
 import com.jacoby6000.smithplates.codegen.core.Model
 import com.jacoby6000.smithplates.codegen.core.ModelKind
 import com.jacoby6000.smithplates.codegen.core.OperationModel
@@ -39,6 +41,9 @@ object SmithyBinding {
 }
 
 object BindingFilter {
+  def validateOperationFilters(filters: List[BindingFilterAtom]): Option[CodegenValidationError] =
+    invalidOperationFilters(filters).headOption.map(InvalidOperationBindingFilter(_))
+
   def matchesModel[A](filters: List[BindingFilterAtom], model: Model[A]): Boolean =
     effectiveFilters(filters).forall {
       case BindingFilterAtom.All        => true
@@ -48,12 +53,13 @@ object BindingFilter {
     }
 
   def matchesOperation[A](filters: List[BindingFilterAtom], operation: OperationModel[A]): Boolean =
-    effectiveFilters(filters).forall {
-      case BindingFilterAtom.All      => true
-      case BindingFilterAtom.Tagged   => operation.meta.tags.nonEmpty
-      case BindingFilterAtom.Untagged => operation.meta.tags.isEmpty
-      case BindingFilterAtom.Kind(_)  => false
-    }
+    validateOperationFilters(filters).isEmpty &&
+      effectiveFilters(filters).forall {
+        case BindingFilterAtom.All      => true
+        case BindingFilterAtom.Tagged   => operation.meta.tags.nonEmpty
+        case BindingFilterAtom.Untagged => operation.meta.tags.isEmpty
+        case BindingFilterAtom.Kind(_)  => false
+      }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
@@ -63,8 +69,14 @@ object BindingFilter {
       } else {
         filters
       }
+
+    def invalidOperationFilters(filters: List[BindingFilterAtom]): List[BindingFilterAtom] =
+      effectiveFilters(filters).collect { case kindFilter: BindingFilterAtom.Kind => kindFilter }
   }
 
   private def effectiveFilters(filters: List[BindingFilterAtom]): List[BindingFilterAtom] =
     internal.effectiveFilters(filters)
+
+  private def invalidOperationFilters(filters: List[BindingFilterAtom]): List[BindingFilterAtom] =
+    internal.invalidOperationFilters(filters)
 }

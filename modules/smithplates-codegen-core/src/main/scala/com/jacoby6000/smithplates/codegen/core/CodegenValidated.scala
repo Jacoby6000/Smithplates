@@ -5,6 +5,7 @@ import cats.data.Validated
 import cats.data.ValidatedNel
 
 type CodegenValidated[+A] = ValidatedNel[CodegenValidationError, A]
+type CodegenEither[+A]    = Either[NonEmptyList[CodegenValidationError], A]
 
 object CodegenValidated {
   def valid[A](value: A): CodegenValidated[A] =
@@ -19,18 +20,20 @@ object CodegenValidated {
       case Some(error) => Validated.invalid(error)
     }
 
-  def fromEither[A](either: Either[CodegenValidationError, A]): CodegenValidated[A] =
+  def fromEither[A](either: CodegenEither[A]): CodegenValidated[A] =
     either match {
       case Right(value) => Validated.validNel(value)
-      case Left(error)  => Validated.invalidNel(error)
+      case Left(errors) => Validated.invalid(errors)
     }
 
   extension [A](validated: CodegenValidated[A]) {
-    def toCodegenEither: Either[CodegenValidationError, A] =
-      validated match {
-        case Validated.Valid(value)    => Right(value)
-        case Validated.Invalid(errors) => Left(errors.head)
-      }
+    def toCodegenEither: CodegenEither[A] =
+      validated.toEither
+  }
+
+  extension [A](either: CodegenEither[A]) {
+    def toCodegenValidated: CodegenValidated[A] =
+      CodegenValidated.fromEither(either)
   }
 
   extension (error: CodegenValidationError) {

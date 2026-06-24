@@ -24,7 +24,10 @@ object TemplateRenderer {
           CodegenValidated.valid(renderFn(templatePath, view.asInstanceOf[TemplateView[S, M]]))
         catch {
           case error: Exception =>
-            TemplateRenderFailed(templatePath, error.getMessage).invalidNel
+            TemplateRenderFailed(
+              templatePath,
+              Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
+            ).invalidNel
         }
     }
 }

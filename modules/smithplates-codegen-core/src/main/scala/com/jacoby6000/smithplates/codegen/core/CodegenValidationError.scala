@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.codegen.core
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.planning.BindingFilterAtom
 import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 
 sealed trait CodegenValidationError {
@@ -59,6 +60,29 @@ final case class InvalidLanguageBaseConfig(reason: String) extends CodegenValida
 final case class UnknownOutputOverride(overrideId: OutputId) extends CodegenValidationError {
   override def message: String =
     s"Unknown codegen output override id: ${overrideId.value}"
+}
+
+final case class DuplicateOutputId(id: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Duplicate codegen output id: ${id.value}"
+}
+
+final case class InvalidOperationBindingFilter(filter: BindingFilterAtom) extends CodegenValidationError {
+  override def message: String =
+    filter match {
+      case BindingFilterAtom.Kind(kind) =>
+        s"Operation bindings do not support kind filter: $kind"
+      case other                        =>
+        s"Operation bindings do not support filter: $other"
+    }
+}
+
+final case class InconsistentGroupedModelNamespaces(outputId: OutputId, namespaces: NonEmptyList[String])
+    extends CodegenValidationError {
+  override def message: String = {
+    val ns = namespaces.toList.mkString(", ")
+    s"Grouped model output ${outputId.value} spans multiple namespaces: $ns"
+  }
 }
 
 final case class DuplicateResolvedOutputPath(path: String, outputIds: NonEmptyList[OutputId])
