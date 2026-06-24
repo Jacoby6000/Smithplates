@@ -2,13 +2,12 @@ package com.jacoby6000.smithplates.plugin
 
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
-import software.amazon.smithy.model.node.Node
 
 class SmithplatesSqlSettingsSpec extends munit.FunSuite {
   test("parses enabled dialect and language-first SQL settings") {
-    val node =
-      Node
-        .parse("""
+    val settings =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -22,12 +21,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val settings =
-      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
-        fail("expected SQL settings")
-      }
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
     assertEquals(settings.enabledDialectKeys, List("postgres"))
     assertEquals(
       settings.languageTargets.get("python").flatMap(_.target.dialects.get("postgres")).map(_.migrationLocation),
@@ -47,9 +44,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
   }
 
   test("dialect enable defaults to false") {
-    val node =
-      Node
-        .parse("""
+    val settings =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -62,20 +59,18 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val settings =
-      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
-        fail("expected SQL settings")
-      }
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
     assertEquals(settings.enabledDialectKeys, Nil)
     assertEquals(settings.dialectMigrationDirectories, Map.empty)
   }
 
   test("rejects migrationLocation ending in .sql when dialect is enabled") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -89,16 +84,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("directory path")))
   }
 
   test("requires migrationLocation when dialect is enabled") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -111,16 +106,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("migrationLocation")))
   }
 
   test("accepts explicit templateDirectory when required templates exist") {
-    val node =
-      Node
-        .parse("""
+    val settings        =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "out/src",
@@ -131,12 +126,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val settings        =
-      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
-        fail("expected SQL settings")
-      }
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python/src/db")
     assertEquals(codegenSettings.defaultDialectKey, SqlServiceCodegenSettings.SharedDialectKey)
@@ -147,9 +140,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
   }
 
   test("combines bundled artifacts for multiple enabled dialects") {
-    val node =
-      Node
-        .parse("""
+    val settings        =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src",
@@ -167,12 +160,10 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val settings        =
-      SmithplatesSettings.fromNode(node).toEither.getOrElse(fail("expected valid settings")).sql.getOrElse {
-        fail("expected SQL settings")
-      }
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
     assertEquals(settings.enabledDialectKeys, List("sqlite", "postgres"))
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(
@@ -182,9 +173,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
   }
 
   test("rejects nested sourceOutputDir under sql") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src",
@@ -195,16 +186,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("smithplates.python.sql.sourceOutputDir must not be set")))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("sql contains unknown key(s) 'sourceOutputDir'")))
   }
 
   test("rejects old feature-first SQL shape") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "sql": {
             "languageTargets": {
@@ -216,16 +207,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
   }
 
   test("rejects unbundled language without templateDirectory") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "kotlin": {
             "sourceOutputDir": "src",
@@ -234,17 +225,17 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("templateDirectory")))
     assert(errors.exists(_.message.contains("kotlin")))
   }
 
   test("rejects explicit templateDirectory missing required templates") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "kotlin": {
             "sourceOutputDir": "src",
@@ -255,16 +246,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("missing required templates")))
   }
 
   test("rejects explicit templateDirectory missing dialect-specific templates") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src",
@@ -279,16 +270,16 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("postgres/service_psycopg.ssp")))
   }
 
   test("rejects conflicting migration locations for the same dialect across languages") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/python",
@@ -313,24 +304,24 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("conflicting sqlite migrationLocation")))
   }
 }
 
 class SmithplatesSettingsSpec extends munit.FunSuite {
   test("requires at least one of sql or http") {
-    val node   = Node.parse("{}").expectObjectNode()
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+    val errors =
+      SmithplatesSettings.parseJson("{}").swap.toOption.getOrElse(fail("expected errors"))
     assert(errors.exists(error => error.message.contains("sql") && error.message.contains("http")))
   }
 
   test("requires language-level sourceOutputDir and testOutputDir") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sql": {
@@ -342,9 +333,9 @@ class SmithplatesSettingsSpec extends munit.FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
     assert(errors.exists(_.message.contains("requires `testOutputDir`")))
   }

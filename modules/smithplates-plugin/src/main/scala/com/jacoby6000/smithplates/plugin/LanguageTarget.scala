@@ -1,15 +1,14 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.plugin.config.PluginConfigDecoders
+import com.jacoby6000.smithplates.plugin.config.PluginConfigDecoding
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
-import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
-import software.amazon.smithy.model.node.ObjectNode
-
-import scala.jdk.CollectionConverters.*
+import io.circe.Json
 
 final case class LanguageTarget(
     dialects: Map[String, SqlDialectSettings],
@@ -51,48 +50,11 @@ final case class LanguageTarget(
 object LanguageTarget {
   def parse(
       languageId: String,
-      node: ObjectNode
+      json: Json
   ): SqlValidated[LanguageTarget] = {
-    val parsedMembers =
-      node.getMembers.asScala.toList.traverse { case (keyNode, memberNode) =>
-        val key = keyNode.expectStringNode().getValue
-        key.toLowerCase match {
-          case dialectKey if SmithplatesSqlSettings.OrderedDialectKeys.toSet.contains(dialectKey) =>
-            if (memberNode.isObjectNode) {
-              SmithplatesSqlSettings
-                .parseDialect(dialectKey, memberNode.expectObjectNode())
-                .map(settings => Left(dialectKey -> settings))
-            } else {
-              SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId.sql.$dialectKey must be an object")
-              )
-            }
-          case "sourceoutputdir" | "testoutputdir"                                                =>
-            SqlValidated.invalid(
-              InvalidPluginConfig(
-                s"smithplates.$languageId.sql.$key must not be set; " +
-                  s"use smithplates.$languageId.sourceOutputDir and smithplates.$languageId.testOutputDir instead"
-              )
-            )
-          case "templatedirectory" | "rootnamespace" | "packagename"                              =>
-            SqlValidated.valid(Right(()))
-          case other                                                                              =>
-            SqlValidated.invalid(
-              InvalidPluginConfig(
-                s"smithplates.$languageId.sql contains unknown key '$other'; expected dialect (sqlite, postgres), " +
-                  "`templateDirectory`, `rootNamespace`, or `packageName`"
-              )
-            )
-        }
-      }
-
-    parsedMembers.map { members =>
-      LanguageTarget(
-        dialects = members.collect { case Left(dialect) => dialect }.toMap,
-        templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
-        rootNamespace = PluginConfigMembers.optionalStringMember(node, "rootNamespace"),
-        packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
-      )
-    }
+    import PluginConfigDecoders.given
+    PluginConfigDecoding
+      .decode[PluginConfigDecoders.internal.LanguageTargetJson](languageId, "sql", json)
+      .andThen(_.toDomain)
   }
 }

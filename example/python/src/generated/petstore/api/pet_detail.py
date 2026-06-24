@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -27,7 +26,7 @@ class PetDetail(BaseModel):
     tags: list[str] = Field(...)
     attributes: list[PetAttribute] = Field(...)
     photo: bytes | None = Field(default=None)
-    metadata: Any | None = Field(default=None)
+    metadata: object | None = Field(default=None)
     adopted_at: datetime | None = Field(default=None)
     created_at: datetime = Field(...)
     updated_at: datetime = Field(...)

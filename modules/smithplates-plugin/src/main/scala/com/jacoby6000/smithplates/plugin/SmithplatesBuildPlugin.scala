@@ -23,7 +23,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
 
   override def execute(context: PluginContext): Unit = {
     val model = HttpProblemHttpErrorModelTransformer.transform(context.getModel)
-    SmithplatesSettings.fromNode(context.getSettings) match {
+    SmithplatesSettings.fromSmithyNode(context.getSettings) match {
       case Validated.Invalid(errors) =>
         throw new IllegalArgumentException(
           s"smithplates plugin failed validation: ${SqlValidated.toPluginExceptionMessage(errors)}"

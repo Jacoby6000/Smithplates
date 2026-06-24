@@ -1,0 +1,72 @@
+{
+  "namingStrategy": {
+    "fileNames": { "style": "snake_case", "suffix": ".py" },
+    "packageSeparator": ".",
+    "classNames": { "style": "unchanged" },
+    "packageNames": { "style": "unchanged" },
+    "valueNames": { "style": "snake_case" },
+    "constantNames": { "style": "screaming_snake_case" },
+    "functionNames": { "style": "snake_case" },
+    "illegalCharRemaps": {},
+    "reservedKeywordRemaps": {
+      "False": "False_",
+      "None": "None_",
+      "True": "True_",
+      "and": "and_",
+      "as": "as_",
+      "assert": "assert_",
+      "async": "async_",
+      "await": "await_",
+      "break": "break_",
+      "class": "class_",
+      "continue": "continue_",
+      "def": "def_",
+      "del": "del_",
+      "elif": "elif_",
+      "else": "else_",
+      "except": "except_",
+      "finally": "finally_",
+      "for": "for_",
+      "from": "from_",
+      "global": "global_",
+      "if": "if_",
+      "import": "import_",
+      "in": "in_",
+      "is": "is_",
+      "lambda": "lambda_",
+      "nonlocal": "nonlocal_",
+      "not": "not_",
+      "or": "or_",
+      "pass": "pass_",
+      "raise": "raise_",
+      "return": "return_",
+      "try": "try_",
+      "while": "while_",
+      "with": "with_",
+      "yield": "yield_",
+      "id": "id_"
+    }
+  },
+  "typeSyntax": {
+    "primitives": {
+      "boolean": "bool",
+      "integer": "int",
+      "long": "int",
+      "bigInteger": "int",
+      "float": "float",
+      "double": "float",
+      "bigDecimal": "Decimal",
+      "string": "str",
+      "bytes": "bytes",
+      "document": "object"
+    },
+    "timestamp": {
+      "dateTime": "datetime",
+      "epochSeconds": "float"
+    },
+    "optional": "{inner} | None",
+    "list": "list[{element}]",
+    "map": "dict[{key}, {value}]",
+    "modelRef": "{name}"
+  }
+}

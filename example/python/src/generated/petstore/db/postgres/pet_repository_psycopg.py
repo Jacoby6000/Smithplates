@@ -209,6 +209,48 @@ WHERE id = %s RETURNING updated_at;""",
         return await run(self._connection, transaction, execute)
 
 
+def _map_to_PetHighlight(data: dict[str, object]) -> PetHighlight:
+    return PetHighlight(
+        name=str(data["name"]),
+        color=str(data["color"]),
+    )
+
+
+def _dump_PetHighlight(value: PetHighlight) -> dict[str, object]:
+    return {
+        "name": value.name,
+        "color": value.color,
+    }
+
+
+def _map_to_PetTags(data: dict[str, object]) -> PetTags:
+    return PetTags(
+        items=[str(item) for item in cast(list[object], data["items"])],
+    )
+
+
+def _dump_PetTags(value: PetTags) -> dict[str, object]:
+    return {
+        "items": [item for item in value.items],
+    }
+
+
+def _map_to_PostalAddress(data: dict[str, object]) -> PostalAddress:
+    return PostalAddress(
+        street=str(data["street"]),
+        city=str(data["city"]),
+        postal_code=str(data["postal_code"]),
+    )
+
+
+def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
+    return {
+        "street": value.street,
+        "city": value.city,
+        "postal_code": value.postal_code,
+    }
+
+
 def _read_bytes(row: tuple[object, ...], index: int) -> bytes:
     return cast(bytes, row[index])
 
@@ -241,8 +283,7 @@ def _timestamp_bind_epoch_seconds(value: datetime) -> Decimal:
 
 
 def _json_bind_PetHighlight(value: PetHighlight) -> str:
-    payload = {"name": cast(object, value.name), "color": cast(object, value.color)}
-    return json.dumps(payload)
+    return json.dumps(_dump_PetHighlight(value))
 
 
 def _read_PetHighlight(row: tuple[object, ...], index: int) -> PetHighlight:
@@ -251,15 +292,11 @@ def _read_PetHighlight(row: tuple[object, ...], index: int) -> PetHighlight:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PetHighlight(
-        name=cast(str, data["name"]),
-        color=cast(str, data["color"]),
-    )
+    return _map_to_PetHighlight(data)
 
 
 def _json_bind_PetTags(value: PetTags) -> str:
-    payload = {"items": cast(object, value.items)}
-    return json.dumps(payload)
+    return json.dumps(_dump_PetTags(value))
 
 
 def _read_PetTags(row: tuple[object, ...], index: int) -> PetTags:
@@ -268,18 +305,11 @@ def _read_PetTags(row: tuple[object, ...], index: int) -> PetTags:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PetTags(
-        items=cast(list[str], data["items"]),
-    )
+    return _map_to_PetTags(data)
 
 
 def _json_bind_PostalAddress(value: PostalAddress) -> str:
-    payload = {
-        "street": cast(object, value.street),
-        "city": cast(object, value.city),
-        "postal_code": cast(object, value.postal_code),
-    }
-    return json.dumps(payload)
+    return json.dumps(_dump_PostalAddress(value))
 
 
 def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
@@ -288,11 +318,7 @@ def _read_PostalAddress(row: tuple[object, ...], index: int) -> PostalAddress:
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    return PostalAddress(
-        street=cast(str, data["street"]),
-        city=cast(str, data["city"]),
-        postal_code=cast(str, data["postal_code"]),
-    )
+    return _map_to_PostalAddress(data)
 
 
 def _read_str_col(row: dict[str, object], column: str) -> str:

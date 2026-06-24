@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Any
 
 from generated.petstore.api.category_detail import CategoryDetail
 from generated.petstore.api.category_summary import CategorySummary
 from generated.petstore.api.create_pet_input import CreatePetInput
-from generated.petstore.api.fulfillment_state import FulfillmentState
+from generated.petstore.api.fulfillment_state import (
+    FulfillmentState as ApiFulfillmentState,
+    FulfillmentStateDelivered,
+    FulfillmentStatePending,
+    FulfillmentStateShipped,
+)
 from generated.petstore.api.order_detail import OrderDetail
 from generated.petstore.api.order_line_detail import OrderLineDetail
 from generated.petstore.api.order_priority import OrderPriority
@@ -19,6 +24,7 @@ from generated.petstore.api.pet_attribute import PetAttribute
 from generated.petstore.api.pet_attribute_value import (
     PetAttributeValue,
     PetAttributeValueColor,
+    PetAttributeValueVaccinated,
     PetAttributeValueWeight_kg,
 )
 from generated.petstore.api.pet_detail import PetDetail
@@ -29,6 +35,12 @@ from generated.petstore.api.place_order_input import PlaceOrderInput
 from generated.petstore.api.postal_address import PostalAddress
 from generated.petstore.api.store_summary import StoreSummary
 from generated.petstore.api.update_pet_body import UpdatePetBody
+from generated.petstore.db.models.order_repository_models import FulfillmentState as DbFulfillmentState
+from generated.petstore.db.models.order_repository_models import (
+    FulfillmentStateDelivered as DbFulfillmentStateDelivered,
+)
+from generated.petstore.db.models.order_repository_models import FulfillmentStatePending as DbFulfillmentStatePending
+from generated.petstore.db.models.order_repository_models import FulfillmentStateShipped as DbFulfillmentStateShipped
 from generated.petstore.db.models.pet_repository_models import PetHighlight as GeneratedPetHighlight
 from generated.petstore.db.models.pet_repository_models import PetTags as GeneratedPetTags
 from generated.petstore.db.order_priority import OrderPriority as DbOrderPriority
@@ -46,18 +58,26 @@ def _postal_from_generated(address: Any) -> PostalAddress:
     )
 
 
+def _fulfillment_to_api(fulfillment: DbFulfillmentState) -> ApiFulfillmentState:
+    if isinstance(fulfillment, DbFulfillmentStatePending):
+        return FulfillmentStatePending(pending=fulfillment.pending)
+    if isinstance(fulfillment, DbFulfillmentStateShipped):
+        return FulfillmentStateShipped(shipped=fulfillment.shipped)
+    if isinstance(fulfillment, DbFulfillmentStateDelivered):
+        return FulfillmentStateDelivered(delivered=fulfillment.delivered)
+    raise ValueError(f"unsupported fulfillment variant: {fulfillment!r}")
+
+
 def _attribute_value_from_union(value: PetAttributeValue) -> GeneratedPetHighlight:
     """Persist the union variant as a (discriminator name, text value) pair in PetHighlight."""
-    if "color" in value:
-        color_item = cast(PetAttributeValueColor, value)
-        return GeneratedPetHighlight(name="color", color=color_item["color"])
-    if "weight_kg" in value:
-        weight_item = cast(PetAttributeValueWeight_kg, value)
-        return GeneratedPetHighlight(name="weight_kg", color=str(weight_item["weight_kg"]))
-    if "vaccinated" in value:
+    if isinstance(value, PetAttributeValueColor):
+        return GeneratedPetHighlight(name="color", color=value.color)
+    if isinstance(value, PetAttributeValueWeight_kg):
+        return GeneratedPetHighlight(name="weight_kg", color=str(value.weight_kg))
+    if isinstance(value, PetAttributeValueVaccinated):
         return GeneratedPetHighlight(
             name="vaccinated",
-            color="true" if value["vaccinated"] else "false",
+            color="true" if value.vaccinated else "false",
         )
     raise ValueError(f"unsupported PetAttributeValue variant: {value!r}")
 
@@ -66,11 +86,11 @@ def _attribute_value_to_union(attribute: GeneratedPetHighlight) -> PetAttributeV
     """Reconstruct the union variant from the discriminator persisted in PetHighlight.name."""
     match attribute.name:
         case "color":
-            return {"color": attribute.color}
+            return PetAttributeValueColor(color=attribute.color)
         case "weight_kg":
-            return {"weight_kg": float(attribute.color)}
+            return PetAttributeValueWeight_kg(weight_kg=float(attribute.color))
         case "vaccinated":
-            return {"vaccinated": attribute.color == "true"}
+            return PetAttributeValueVaccinated(vaccinated=attribute.color == "true")
         case other:
             raise ValueError(f"unsupported PetHighlight discriminator: {other!r}")
 
@@ -204,7 +224,7 @@ class PetstoreRepositoryService:
                     pet_id=line.pet_id,
                     quantity=line.quantity,
                     unit_price_cents=line.unit_price_cents,
-                    fulfillment=cast(FulfillmentState, dict(line.fulfillment)),
+                    fulfillment=_fulfillment_to_api(line.fulfillment),
                 )
                 for line in record.order_lines
             ],

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TypedDict
 
 from generated.petstore.db.order_priority import OrderPriority
 from generated.petstore.db.order_status import OrderStatus
@@ -11,15 +10,18 @@ from generated.petstore.db.pet_species import PetSpecies
 from generated.petstore.db.pet_status import PetStatus
 
 
-class FulfillmentStatePending(TypedDict):
+@dataclass
+class FulfillmentStatePending:
     pending: str
 
 
-class FulfillmentStateShipped(TypedDict):
+@dataclass
+class FulfillmentStateShipped:
     shipped: datetime
 
 
-class FulfillmentStateDelivered(TypedDict):
+@dataclass
+class FulfillmentStateDelivered:
     delivered: datetime
 
 
