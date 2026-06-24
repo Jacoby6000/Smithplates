@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.codegen.core
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 
 sealed trait CodegenValidationError {
   def message: String
@@ -53,4 +54,32 @@ final case class InvalidSmithyShape(id: ModelId, reason: String) extends Codegen
 final case class InvalidLanguageBaseConfig(reason: String) extends CodegenValidationError {
   override def message: String =
     s"Invalid language base config: $reason"
+}
+
+final case class UnknownOutputOverride(overrideId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Unknown codegen output override id: ${overrideId.value}"
+}
+
+final case class DuplicateResolvedOutputPath(path: String, outputIds: NonEmptyList[OutputId])
+    extends CodegenValidationError {
+  override def message: String = {
+    val ids = outputIds.toList.map(_.value).mkString(", ")
+    s"Duplicate resolved output path '$path' from outputs: $ids"
+  }
+}
+
+final case class UnresolvedPathPlaceholder(placeholder: String) extends CodegenValidationError {
+  override def message: String =
+    s"Unresolved path template placeholder: $placeholder"
+}
+
+final case class MissingStaticResource(resourcePath: String, outputId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Missing static resource '$resourcePath' for output ${outputId.value}"
+}
+
+final case class TemplateRenderFailed(templatePath: String, reason: String) extends CodegenValidationError {
+  override def message: String =
+    s"Failed to render template '$templatePath': $reason"
 }
