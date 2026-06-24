@@ -54,6 +54,31 @@ object SqlShapeGraph {
     collected.toList
   }
 
+  def referencedShapes(model: Model, rootShapeIds: Iterable[ShapeId]): (List[ShapeId], List[ShapeId]) = {
+    val structures        = scala.collection.mutable.Set.empty[ShapeId]
+    val unions            = scala.collection.mutable.Set.empty[ShapeId]
+    val pendingStructures = scala.collection.mutable.Queue.empty[ShapeId]
+
+    rootShapeIds.toList.filter(isUserDefinedStructure(model, _)).foreach(pendingStructures.enqueue)
+
+    while (pendingStructures.nonEmpty) {
+      val shapeId = pendingStructures.dequeue()
+      if (!structures.contains(shapeId)) {
+        structures += shapeId
+        model.getShape(shapeId).toScala.foreach { shape =>
+          shape
+            .members()
+            .asScala
+            .foreach { member =>
+              internal.enqueueMemberTargets(model, member, pendingStructures, structures, unions)
+            }
+        }
+      }
+    }
+
+    (structures.toList, unions.toList)
+  }
+
   def referencedUnionIds(model: Model, rootShapeIds: Iterable[ShapeId]): List[ShapeId] = {
     val visitedStructures = scala.collection.mutable.Set.empty[ShapeId]
     val visitedUnions     = scala.collection.mutable.Set.empty[ShapeId]
@@ -99,6 +124,56 @@ object SqlShapeGraph {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def enqueueMemberTargets(
+        model: Model,
+        member: MemberShape,
+        pendingStructures: scala.collection.mutable.Queue[ShapeId],
+        structures: scala.collection.mutable.Set[ShapeId],
+        unions: scala.collection.mutable.Set[ShapeId]
+    ): Unit = {
+      val targetShape = model.expectShape(member.getTarget)
+      if (targetShape.isUnionShape) {
+        enqueueUnion(model, targetShape.toShapeId, pendingStructures, structures, unions)
+      } else {
+        memberTargets(model, member).foreach { referenced =>
+          model.getShape(referenced).toScala.foreach { shape =>
+            if (shape.isUnionShape) {
+              enqueueUnion(model, referenced, pendingStructures, structures, unions)
+            } else if (SqlShapeGraph.isUserDefinedStructure(model, referenced)) {
+              if (!structures.contains(referenced)) {
+                pendingStructures.enqueue(referenced)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    def enqueueUnion(
+        model: Model,
+        unionShapeId: ShapeId,
+        pendingStructures: scala.collection.mutable.Queue[ShapeId],
+        structures: scala.collection.mutable.Set[ShapeId],
+        unions: scala.collection.mutable.Set[ShapeId]
+    ): Unit =
+      if (!unions.contains(unionShapeId)) {
+        unions += unionShapeId
+        model
+          .getShape(unionShapeId)
+          .toScala
+          .flatMap(_.asUnionShape().toScala)
+          .foreach { unionShape =>
+            unionShape.getAllMembers.asScala.values.foreach { unionMember =>
+              memberTargets(model, unionMember).filter(SqlShapeGraph.isUserDefinedStructure(model, _)).foreach {
+                referenced =>
+                  if (!structures.contains(referenced)) {
+                    pendingStructures.enqueue(referenced)
+                  }
+              }
+            }
+          }
+      }
+
     def memberTargets(model: Model, member: MemberShape): List[ShapeId] =
       model.expectShape(member.getTarget).accept(MemberTargetShapeIds)
 

@@ -299,6 +299,86 @@ class SqlCoreModelExtractorSpec extends FunSuite {
       )
   }
 
+  test("core extraction closes structures and aliases reachable only through union members") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlJson
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |
+        |string TrackingCode
+        |
+        |structure PostalAddress {
+        |    @required
+        |    street: String
+        |
+        |    @required
+        |    city: String
+        |}
+        |
+        |union DeliveryState {
+        |    pending: String
+        |    shipped: TrackingCode
+        |    delivered: PostalAddress
+        |}
+        |
+        |@sqlTable(name: "shipments")
+        |structure Shipment {
+        |    @sqlPrimaryKey
+        |    id: String
+        |
+        |    @required
+        |    @sqlJson
+        |    state: DeliveryState
+        |}
+        |
+        |operation GetShipment {
+        |    input: Unit
+        |    output: Shipment
+        |}
+        |
+        |@sqlService
+        |service ShipmentRepository {
+        |    version: "1"
+        |    operations: [GetShipment]
+        |}
+        |""".stripMargin
+    )
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val trackingCode = modelSet.aliases.find(_.id.name == "TrackingCode").getOrElse {
+            fail("expected TrackingCode alias in model set closure")
+          }
+          assertEquals(trackingCode.underlying, StringT)
+
+          val postalAddress = modelSet.structures.find(_.id.name == "PostalAddress").getOrElse {
+            fail("expected PostalAddress structure from union member closure")
+          }
+          assertEquals(postalAddress.fields.map(_.name), List("street", "city"))
+
+          val deliveryState = modelSet.unions.find(_.id.name == "DeliveryState").getOrElse {
+            fail("expected DeliveryState union")
+          }
+          val shippedMember = deliveryState.members.find(_.name == "shipped").getOrElse {
+            fail("expected shipped union member")
+          }
+          assertEquals(shippedMember.tpe, ModelRef(trackingCode.id))
+
+          val deliveredMember = deliveryState.members.find(_.name == "delivered").getOrElse {
+            fail("expected delivered union member")
+          }
+          assertEquals(deliveredMember.tpe, ModelRef(postalAddress.id))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
   test("core extraction closes aliases referenced only through list members") {
     val model = SqlTestModelBuilder.assemble(
       """

@@ -137,17 +137,15 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
 
       val allRootIds = (rootShapeIds ++ schema.tables.map(_.shapeId)).distinct
 
-      val structureIds =
-        allRootIds.flatMap(SqlShapeGraph.referencedStructureIds(model, _)).distinct
-      val unionIds     = SqlShapeGraph.referencedUnionIds(model, allRootIds).distinct
-      val aliasIds     = SmithyAliasClosure.aliasShapeIds(model, structureIds)
+      val (structureIds, unionIds) = SqlShapeGraph.referencedShapes(model, allRootIds)
+      val aliasIds                 = SmithyAliasClosure.aliasShapeIds(model, structureIds ++ unionIds)
 
       (
         aliasIds.traverse(shapeId => extractAlias(model, shapeId)),
         structureIds.traverse(shapeId => extractStructure(model, schema, shapeId)),
         unionIds.traverse(shapeId => extractUnion(model, shapeId))
       ).mapN { case (aliases, structures, unions) =>
-        SqlShapeIrExtractor.extract(model, allRootIds) match {
+        SqlShapeIrExtractor.extractDiscovered(model, structureIds, unionIds) match {
           case cats.data.Validated.Invalid(errors) =>
             Validated.invalid(errors.map(error => InvalidSmithyShape(ModelId("smithy", "sql"), error.message)))
           case cats.data.Validated.Valid(shapeIr)  =>
