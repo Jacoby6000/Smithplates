@@ -215,6 +215,17 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
     )
   )
 
+lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
+  .dependsOn(smithplatesCodegenCore, smithplatesCodegenCore % "test->test")
+  .settings(
+    strictScala3Settings,
+    publishedModuleSettings,
+    name := "smithplates-smithy-neutral",
+    organization := "com.jacoby6000",
+    libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
 lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   .settings(
     strictScala3Settings,
@@ -341,6 +352,7 @@ lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-s
   )
 
 lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
+  .dependsOn(smithplatesSmithyNeutral, smithplatesSmithyNeutral % "test->test")
   .settings(
     strictScala3Settings,
     publishedModuleSettings,
@@ -527,6 +539,7 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesCodegenCore,
+    smithplatesSmithyNeutral,
     smithplatesSqlIr,
     smithplatesHttpIr,
     smithplatesScalatePrecompiler,

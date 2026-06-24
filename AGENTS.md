@@ -21,4 +21,5 @@ Follow [`.cursor/rules/`](.cursor/rules/) — start with [`smithplates-build.mdc
 ## Decisions log
 
 * `SqlTableTree` skips self-referential `@sqlForeignKey` edges when computing DDL render order so a table can reference itself inline in `CREATE TABLE`
+* `SystemValidator` (in codegen-core) is the holistic validation gate after extraction: model-set + service validators plus cross-entity duplicate ids, cyclic aliases, and unresolved operation refs. `#35` closed; work continues on `#36` (Smithy → core extraction) on branch `issue-36-smithy-extraction`.
 * Implementation helpers live in public nested `object internal` companions, not `private` (see `code-design.mdc`)
