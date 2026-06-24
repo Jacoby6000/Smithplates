@@ -19,6 +19,20 @@ object CodegenValidated {
       case Some(error) => Validated.invalid(error)
     }
 
+  def fromEither[A](either: Either[CodegenValidationError, A]): CodegenValidated[A] =
+    either match {
+      case Right(value) => Validated.validNel(value)
+      case Left(error)  => Validated.invalidNel(error)
+    }
+
+  extension [A](validated: CodegenValidated[A]) {
+    def toCodegenEither: Either[CodegenValidationError, A] =
+      validated match {
+        case Validated.Valid(value)    => Right(value)
+        case Validated.Invalid(errors) => Left(errors.head)
+      }
+  }
+
   extension (error: CodegenValidationError) {
     def invalidNel[A]: CodegenValidated[A] =
       Validated.invalidNel(error)

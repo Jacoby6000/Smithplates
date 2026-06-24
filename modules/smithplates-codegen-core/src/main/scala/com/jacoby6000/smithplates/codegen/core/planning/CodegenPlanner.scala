@@ -1,8 +1,7 @@
 package com.jacoby6000.smithplates.codegen.core.planning
 
 import cats.data.NonEmptyList
-import cats.data.Validated
-import cats.syntax.all.*
+import cats.syntax.traverse.*
 import com.jacoby6000.smithplates.codegen.core.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
@@ -17,21 +16,15 @@ object CodegenPlanner {
       templateRenderer: TemplateRenderer,
       typeUsageAnalyzer: TypeUsageAnalyzer = TypeUsageAnalyzer.default
   ): CodegenValidated[List[ResolvedArtifact]] =
-    mergeOutputs(outputs) match {
-      case Validated.Valid(mergedOutputs) =>
-        mergedOutputs.traverse(expandOutput(_, models, services, settings, typeUsageAnalyzer)) match {
-          case Validated.Valid(workItemLists) =>
-            workItemLists.flatten.traverse(renderWorkItem(_, models, settings, templateRenderer)) match {
-              case Validated.Valid(planned)  =>
-                detectPathCollisions(planned).map(_ => planned.map(_.artifact))
-              case Validated.Invalid(errors) =>
-                Validated.invalid(errors)
-            }
-          case Validated.Invalid(errors)      =>
-            Validated.invalid(errors)
-        }
-      case Validated.Invalid(errors)      =>
-        Validated.invalid(errors)
+    CodegenValidated.fromEither {
+      for {
+        mergedOutputs <- mergeOutputs(outputs).toCodegenEither
+        workItemLists <- mergedOutputs.traverse(
+                           expandOutput(_, models, services, settings, typeUsageAnalyzer)
+                         )
+        planned       <- workItemLists.flatten.traverse(renderWorkItem(_, models, settings, templateRenderer))
+        _             <- detectPathCollisions(planned).toCodegenEither
+      } yield planned.map(_.artifact)
     }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
@@ -79,13 +72,15 @@ object CodegenPlanner {
         services: List[ServiceModel[S, O]],
         settings: CodegenSettings,
         typeUsageAnalyzer: TypeUsageAnalyzer
-    ): CodegenValidated[List[WorkItem]] =
-      output match {
-        case template: CodegenOutput.CodegenTemplateBindingOutput =>
-          CodegenValidated.valid(expandTemplateBinding(template, models, services, settings, typeUsageAnalyzer))
-        case staticOutput: CodegenOutput.CodegenStaticOutput      =>
-          CodegenValidated.valid(expandStaticOutput(staticOutput, services, settings))
-      }
+    ): Either[CodegenValidationError, List[WorkItem]] =
+      Right(
+        output match {
+          case template: CodegenOutput.CodegenTemplateBindingOutput =>
+            expandTemplateBinding(template, models, services, settings, typeUsageAnalyzer)
+          case staticOutput: CodegenOutput.CodegenStaticOutput      =>
+            expandStaticOutput(staticOutput, services, settings)
+        }
+      )
 
     def expandTemplateBinding[A, S, O](
         output: CodegenOutput.CodegenTemplateBindingOutput,
@@ -315,34 +310,35 @@ object CodegenPlanner {
         models: ModelSet[A],
         settings: CodegenSettings,
         templateRenderer: TemplateRenderer
-    ): CodegenValidated[PlannedArtifact] =
-      PathTemplate.expand(item.outputPathPattern, item.pathBindings) match {
-        case Validated.Valid(expandedPath) =>
-          val relativePath                               = joinOutputPath(settings.outputBaseDirectory(item.artifactKind), expandedPath)
-          val contentValidated: CodegenValidated[String] =
-            item.staticResourcePath match {
-              case Some(resourcePath) =>
-                settings.staticResourceLoader.loadContent(resourcePath) match {
-                  case Some(content) => CodegenValidated.valid(content)
-                  case None          => MissingStaticResource(resourcePath, item.outputId).invalidNel
-                }
-              case None               =>
-                val view =
-                  TemplateView(
-                    subject = item.subject,
-                    usedTypes = resolveUsedModels(models, item.usedTypeRefs),
-                    conventions = settings.conventions
-                  )
-                templateRenderer.render(item.templatePath.getOrElse(""), view)
-            }
-          contentValidated.map { content =>
-            PlannedArtifact(
-              outputId = item.outputId,
-              artifact = ResolvedArtifact(relativePath = relativePath, content = content, kind = item.artifactKind)
+    ): Either[CodegenValidationError, PlannedArtifact] =
+      for {
+        expandedPath <- PathTemplate.expand(item.outputPathPattern, item.pathBindings).toCodegenEither
+        relativePath  = joinOutputPath(settings.outputBaseDirectory(item.artifactKind), expandedPath)
+        content      <- renderWorkItemContent(item, models, settings, templateRenderer)
+      } yield PlannedArtifact(
+        outputId = item.outputId,
+        artifact = ResolvedArtifact(relativePath = relativePath, content = content, kind = item.artifactKind)
+      )
+
+    def renderWorkItemContent[A](
+        item: WorkItem,
+        models: ModelSet[A],
+        settings: CodegenSettings,
+        templateRenderer: TemplateRenderer
+    ): Either[CodegenValidationError, String] =
+      item.staticResourcePath match {
+        case Some(resourcePath) =>
+          settings.staticResourceLoader
+            .loadContent(resourcePath)
+            .toRight(MissingStaticResource(resourcePath, item.outputId))
+        case None               =>
+          val view =
+            TemplateView(
+              subject = item.subject,
+              usedTypes = resolveUsedModels(models, item.usedTypeRefs),
+              conventions = settings.conventions
             )
-          }
-        case Validated.Invalid(errors)     =>
-          Validated.invalid(errors)
+          templateRenderer.render(item.templatePath.getOrElse(""), view).toCodegenEither
       }
 
     def joinOutputPath(baseDirectory: String, expandedPath: String): String = {
@@ -382,7 +378,7 @@ object CodegenPlanner {
       services: List[ServiceModel[S, O]],
       settings: CodegenSettings,
       typeUsageAnalyzer: TypeUsageAnalyzer
-  ): CodegenValidated[List[internal.WorkItem]] =
+  ): Either[CodegenValidationError, List[internal.WorkItem]] =
     internal.expandOutput(output, models, services, settings, typeUsageAnalyzer)
 
   private def renderWorkItem[A](
@@ -390,7 +386,7 @@ object CodegenPlanner {
       models: ModelSet[A],
       settings: CodegenSettings,
       templateRenderer: TemplateRenderer
-  ): CodegenValidated[internal.PlannedArtifact] =
+  ): Either[CodegenValidationError, internal.PlannedArtifact] =
     internal.renderWorkItem(item, models, settings, templateRenderer)
 
   private def detectPathCollisions(planned: List[internal.PlannedArtifact]): CodegenValidated[Unit] =
