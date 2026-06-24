@@ -18,7 +18,7 @@
           config.allowUnfree = false;
         };
 
-        java = pkgs.jdk11_headless;
+        java = pkgs.jdk17_headless;
         smithyVersionMatch =
           builtins.match ".*val smithyVersion = \"([^\"]+)\".*" (builtins.readFile ./build.sbt);
         smithyVersion =
@@ -80,7 +80,7 @@
 
           shellHook = ''
             export JAVA_HOME="${java}"
-            echo "Smithplates dev shell (Java 11, sbtn, smithy, uv, docker client)"
+            echo "Smithplates dev shell (Java 17, sbtn, smithy, uv, docker client)"
             echo "  ./validate                    # lint + test (Nix or Docker)"
             echo "  ./scripts/run-linters.sh      # Scala + template linters/compilers"
             echo "  ./scripts/run-tests.sh        # all Scala + Python template tests"

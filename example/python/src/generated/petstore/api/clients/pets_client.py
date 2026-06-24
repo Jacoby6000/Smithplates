@@ -45,7 +45,7 @@ class PetsApiClient:
     async def delete_pet(
         self,
         pet_id: str,
-    ) -> PetNotFound:
+    ) -> PetNotFound | None:
         headers: dict[str, str] | None = None
         response = await self._client.request(
             "DELETE",

@@ -1,11 +1,11 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.plugin.config.PluginConfigLoader
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
+import io.circe.Json
 import software.amazon.smithy.model.node.ObjectNode
-
-import scala.jdk.CollectionConverters.*
 
 final case class SmithplatesSettings(
     sql: Option[SmithplatesSqlSettings],
@@ -13,12 +13,17 @@ final case class SmithplatesSettings(
 )
 
 object SmithplatesSettings {
-  def fromNode(node: ObjectNode): SqlValidated[SmithplatesSettings] =
-    node.getMembers.asScala.toList
-      .traverse { case (keyNode, memberNode) =>
-        val languageId = keyNode.expectStringNode().getValue
-        if (memberNode.isObjectNode) {
-          internal.parseLanguage(languageId, memberNode.expectObjectNode()).map(languageId -> _)
+  def parseJson(text: String): SqlValidated[SmithplatesSettings] =
+    PluginConfigLoader.parseJson(text)
+
+  def fromSmithyNode(node: ObjectNode): SqlValidated[SmithplatesSettings] =
+    PluginConfigLoader.fromSmithyNode(node)
+
+  def fromLanguageMap(configs: Map[String, Json]): SqlValidated[SmithplatesSettings] =
+    configs.toList
+      .traverse { case (languageId, json) =>
+        if (json.isObject) {
+          internal.parseLanguage(languageId, json).map(languageId -> _)
         } else {
           SqlValidated.invalid(
             InvalidPluginConfig(s"smithplates.$languageId must be an object")
@@ -72,32 +77,32 @@ object SmithplatesSettings {
   object internal {
     def parseLanguage(
         languageId: String,
-        node: ObjectNode
+        json: Json
     ): SqlValidated[SmithplatesLanguageConfiguration] =
       (
         PluginConfigMembers.requiredStringMember(
-          node,
+          json,
           "sourceOutputDir",
           s"smithplates.$languageId requires `sourceOutputDir`"
         ),
         PluginConfigMembers.requiredStringMember(
-          node,
+          json,
           "testOutputDir",
           s"smithplates.$languageId requires `testOutputDir`"
         )
       ).mapN { (sourceOutputDir, testOutputDir) =>
         (sourceOutputDir, testOutputDir)
       }.andThen { case (sourceOutputDir, testOutputDir) =>
-        node.getMembers.asScala.toList
-          .traverse { case (keyNode, memberNode) =>
-            val key = keyNode.expectStringNode().getValue.toLowerCase
-            key match {
+        json.asObject.toList
+          .flatMap(_.toList)
+          .traverse { case (key, memberJson) =>
+            key.toLowerCase match {
               case "sourceoutputdir" | "testoutputdir" =>
                 None.validNel
               case "sql"                               =>
-                if (memberNode.isObjectNode) {
+                if (memberJson.isObject) {
                   LanguageTarget
-                    .parse(languageId, memberNode.expectObjectNode())
+                    .parse(languageId, memberJson)
                     .map(target => Some(Left(target): Either[LanguageTarget, HttpLanguageTarget]))
                 } else {
                   SqlValidated.invalid(
@@ -105,9 +110,9 @@ object SmithplatesSettings {
                   )
                 }
               case "http"                              =>
-                if (memberNode.isObjectNode) {
+                if (memberJson.isObject) {
                   HttpLanguageTarget
-                    .parse(languageId, memberNode.expectObjectNode())
+                    .parse(languageId, memberJson)
                     .map(target => Some(Right(target): Either[LanguageTarget, HttpLanguageTarget]))
                 } else {
                   SqlValidated.invalid(

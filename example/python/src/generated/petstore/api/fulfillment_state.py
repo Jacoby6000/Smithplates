@@ -3,19 +3,27 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TypedDict
+
+from pydantic import BaseModel, TypeAdapter
 
 
-class FulfillmentStatePending(TypedDict):
+class FulfillmentStatePending(BaseModel):
     pending: str
 
 
-class FulfillmentStateShipped(TypedDict):
+class FulfillmentStateShipped(BaseModel):
     shipped: datetime
 
 
-class FulfillmentStateDelivered(TypedDict):
+class FulfillmentStateDelivered(BaseModel):
     delivered: datetime
 
 
 FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | FulfillmentStateDelivered
+
+
+_FulfillmentState_ADAPTER = TypeAdapter(FulfillmentState)
+
+
+def validate_fulfillment_state(value: object) -> FulfillmentState:
+    return _FulfillmentState_ADAPTER.validate_python(value)

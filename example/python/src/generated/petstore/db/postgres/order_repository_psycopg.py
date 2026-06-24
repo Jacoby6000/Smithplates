@@ -12,6 +12,9 @@ from psycopg.rows import dict_row
 from generated.petstore.db.models.order_repository_models import (
     CreateOrderRecordOutput,
     FulfillmentState,
+    FulfillmentStateDelivered,
+    FulfillmentStatePending,
+    FulfillmentStateShipped,
     OrderLine,
 )
 from generated.petstore.db.order_priority import OrderPriority
@@ -97,6 +100,45 @@ WHERE orders.id = %s;""",
         return await run(self._connection, transaction, execute)
 
 
+def _map_json_timestamp(value: object) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    return datetime.fromisoformat(str(value))
+
+
+def _dump_json_timestamp(value: datetime) -> str:
+    return value.isoformat()
+
+
+def _map_to_FulfillmentState(data: dict[str, object]) -> FulfillmentState:
+    present = [key for key in ("pending", "shipped", "delivered") if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
+    if "pending" in data:
+        return FulfillmentStatePending(
+            pending=str(data["pending"]),
+        )
+    if "shipped" in data:
+        return FulfillmentStateShipped(
+            shipped=_map_json_timestamp(data["shipped"]),
+        )
+    if "delivered" in data:
+        return FulfillmentStateDelivered(
+            delivered=_map_json_timestamp(data["delivered"]),
+        )
+    raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
+
+
+def _dump_FulfillmentState(value: FulfillmentState) -> dict[str, object]:
+    if isinstance(value, FulfillmentStatePending):
+        return {"pending": value.pending}
+    if isinstance(value, FulfillmentStateShipped):
+        return {"shipped": _dump_json_timestamp(value.shipped)}
+    if isinstance(value, FulfillmentStateDelivered):
+        return {"delivered": _dump_json_timestamp(value.delivered)}
+    raise TypeError(f"unsupported FulfillmentState variant: {type(value)!r}")
+
+
 def _read_datetime(row: tuple[object, ...], index: int) -> datetime:
     return cast(datetime, row[index])
 
@@ -113,10 +155,7 @@ def _read_str(row: tuple[object, ...], index: int) -> str:
 
 
 def _json_bind_FulfillmentState(value: FulfillmentState) -> str:
-    present = [key for key in ("pending", "shipped", "delivered") if key in value]
-    if len(present) != 1:
-        raise ValueError("FulfillmentState union value must contain exactly one member key")
-    return json.dumps(cast(object, value))
+    return json.dumps(_dump_FulfillmentState(value))
 
 
 def _read_FulfillmentState(row: tuple[object, ...], index: int) -> FulfillmentState:
@@ -125,10 +164,7 @@ def _read_FulfillmentState(row: tuple[object, ...], index: int) -> FulfillmentSt
         data = cast(dict[str, object], value)
     else:
         data = cast(dict[str, object], json.loads(cast(str, value)))
-    present = [key for key in ("pending", "shipped", "delivered") if key in data]
-    if len(present) != 1:
-        raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
-    return cast(FulfillmentState, data)
+    return _map_to_FulfillmentState(data)
 
 
 def _read_str_col(row: dict[str, object], column: str) -> str:

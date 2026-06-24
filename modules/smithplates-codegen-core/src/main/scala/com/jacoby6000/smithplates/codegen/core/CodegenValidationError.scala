@@ -49,3 +49,8 @@ final case class InvalidSmithyShape(id: ModelId, reason: String) extends Codegen
   override def message: String =
     s"Invalid Smithy shape ${id.namespace}#${id.name}: $reason"
 }
+
+final case class InvalidLanguageBaseConfig(reason: String) extends CodegenValidationError {
+  override def message: String =
+    s"Invalid language base config: $reason"
+}

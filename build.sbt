@@ -38,6 +38,14 @@ val munitVersion = "1.0.2"
 val munitScalacheckVersion = "1.0.0"
 val log4jVersion = "2.24.3"
 val scalateVersion = "1.10.1"
+val circeVersion = "0.14.10"
+
+def circeDependencies: Seq[ModuleID] =
+  Seq(
+    "io.circe" %% "circe-core"    % circeVersion,
+    "io.circe" %% "circe-parser"  % circeVersion,
+    "io.circe" %% "circe-generic" % circeVersion
+  )
 
 lazy val generateGoldenTemplatesFor = inputKey[Unit](
   "Generate golden template expected outputs. Usage: generateGoldenTemplatesFor <language> <case-name> [<case-name> ...]"
@@ -201,6 +209,19 @@ def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
   publish / skip := true
 )
 
+/** Copy `templates/python/base_config.json` onto the classpath as `python/base_config.json`. */
+def pythonLanguageBaseConfigResource: Seq[Def.Setting[_]] = Seq(
+  Compile / resourceGenerators += Def.task {
+    val repoRoot     = (ThisBuild / baseDirectory).value
+    val resourceRoot = (Compile / resourceManaged).value
+    val source       = repoRoot / "templates" / "python" / "base_config.json"
+    val target       = resourceRoot / "python" / "base_config.json"
+    IO.createDirectories(Seq(target.getParentFile))
+    IO.copyFile(source, target, preserveLastModified = true)
+    Seq(target)
+  }
+)
+
 lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-core"))
   .settings(
     strictScala3Settings,
@@ -209,23 +230,12 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
     organization := "com.jacoby6000",
     libraryDependencies ++= Seq(
       catsCoreDependency,
-      kittensDependency,
+      kittensDependency
+    ) ++ circeDependencies ++ Seq(
       "org.scalameta" %% "munit"            % munitVersion           % Test,
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test
-    )
-  )
-
-lazy val smithplatesCodegenPython = (project in file("modules/smithplates-codegen-python"))
-  .dependsOn(smithplatesCodegenCore, smithplatesCodegenCore % "test->test")
-  .settings(
-    strictScala3Settings,
-    publishedModuleSettings,
-    name := "smithplates-codegen-python",
-    organization := "com.jacoby6000",
-    libraryDependencies ++= Seq(
-      catsCoreDependency,
-      "org.scalameta" %% "munit" % munitVersion % Test
-    )
+    ),
+    pythonLanguageBaseConfigResource
   )
 
 lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
@@ -396,6 +406,7 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     pythonNamespacedTemplateResources("common", "http"),
+    pythonLanguageBaseConfigResource,
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.http.service.renderer.HttpTemplatePrecompilerMain",
       Seq("python/src/http/server", "python/src/http/client", "python/src/http/models")
@@ -428,6 +439,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     pythonNamespacedTemplateResources("common", "db"),
+    pythonLanguageBaseConfigResource,
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.sql.service.renderer.SqlTemplatePrecompilerMain",
       Seq("python/src/db")
@@ -439,6 +451,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
 
 lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   .dependsOn(
+    smithplatesCodegenCore,
     smithplatesSqlIr,
     smithplatesSqlServiceIr,
     smithplatesSqlDdlRendererPostgres,
@@ -459,7 +472,8 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
     libraryDependencies ++= Seq(
       "software.amazon.smithy" % "smithy-build" % smithyVersion,
       catsCoreDependency,
-      catsEffectDependency,
+      catsEffectDependency
+    ) ++ circeDependencies ++ Seq(
       "org.scalameta" %% "munit" % munitVersion % Test,
       "org.apache.logging.log4j" % "log4j-api" % log4jVersion % Test,
       "org.apache.logging.log4j" % "log4j-core" % log4jVersion % Test,
@@ -565,7 +579,6 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesCodegenCore,
-    smithplatesCodegenPython,
     smithplatesSmithyNeutral,
     smithplatesSqlIr,
     smithplatesHttpIr,

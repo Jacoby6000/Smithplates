@@ -2,19 +2,26 @@
 
 from __future__ import annotations
 
-from typing import TypedDict
+from pydantic import BaseModel, TypeAdapter
 
 
-class PetAttributeValueColor(TypedDict):
+class PetAttributeValueColor(BaseModel):
     color: str
 
 
-class PetAttributeValueWeight_kg(TypedDict):
+class PetAttributeValueWeight_kg(BaseModel):
     weight_kg: float
 
 
-class PetAttributeValueVaccinated(TypedDict):
+class PetAttributeValueVaccinated(BaseModel):
     vaccinated: bool
 
 
 PetAttributeValue = PetAttributeValueColor | PetAttributeValueWeight_kg | PetAttributeValueVaccinated
+
+
+_PetAttributeValue_ADAPTER = TypeAdapter(PetAttributeValue)
+
+
+def validate_pet_attribute_value(value: object) -> PetAttributeValue:
+    return _PetAttributeValue_ADAPTER.validate_python(value)

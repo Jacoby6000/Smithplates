@@ -2,13 +2,11 @@ package com.jacoby6000.smithplates.plugin
 
 import cats.data.Validated
 import munit.FunSuite
-import software.amazon.smithy.model.node.Node
 
 class SmithplatesHttpSettingsSpec extends FunSuite {
   test("parses language-first HTTP server target with default fastapi web framework") {
-    val node =
-      Node
-        .parse("""
+    SmithplatesSettings
+      .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -21,9 +19,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         assertEquals(settings.languageTargets.keySet, Set("python"))
         val languageTarget = settings.languageTargets("python")
@@ -40,9 +36,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
   }
 
   test("parses language-first HTTP client target with default httpx library") {
-    val node =
-      Node
-        .parse("""
+    SmithplatesSettings
+      .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -55,9 +50,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         val languageTarget = settings.languageTargets("python")
         assertEquals(languageTarget.sourceOutputDir, "src/generated")
@@ -73,9 +66,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
   }
 
   test("parses combined HTTP server and client targets") {
-    val node =
-      Node
-        .parse("""
+    SmithplatesSettings
+      .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -91,9 +83,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    SmithplatesSettings.fromNode(node).map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         val target = settings.languageTargets("python").target
         assert(target.server.isDefined)
@@ -104,9 +94,9 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
   }
 
   test("rejects nested sourceOutputDir under http.server") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -119,16 +109,16 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("http.server must not set sourceOutputDir")))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.server contains unknown key(s) 'sourceOutputDir'")))
   }
 
   test("rejects missing server and client objects") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -137,16 +127,16 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `server` and/or `client`")))
   }
 
   test("rejects unsupported web framework") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -159,17 +149,17 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("webFramework")))
     assert(errors.exists(_.message.contains("flask")))
   }
 
   test("rejects unsupported HTTP client library") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -182,17 +172,17 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("httpLibrary")))
     assert(errors.exists(_.message.contains("aiohttp")))
   }
 
   test("rejects unknown key under http.server") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -205,18 +195,18 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("http.server")))
     assert(errors.exists(_.message.contains("httpLibrary")))
     assert(errors.exists(_.message.contains("unknown key")))
   }
 
   test("rejects unknown key under http.client") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "python": {
             "sourceOutputDir": "src/generated",
@@ -229,18 +219,18 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("http.client")))
     assert(errors.exists(_.message.contains("webFramework")))
     assert(errors.exists(_.message.contains("unknown key")))
   }
 
   test("rejects unbundled client-only config when required model templates are missing") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "kotlin": {
             "sourceOutputDir": "src",
@@ -253,17 +243,17 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("missing required templates")))
     assert(errors.exists(_.message.contains("http/models")))
   }
 
   test("rejects old feature-first HTTP shape") {
-    val node =
-      Node
-        .parse("""
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
         {
           "http": {
             "python": {
@@ -272,9 +262,9 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           }
         }
       """)
-        .expectObjectNode()
-
-    val errors = SmithplatesSettings.fromNode(node).swap.toOption.getOrElse(fail("expected errors"))
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
   }
 }

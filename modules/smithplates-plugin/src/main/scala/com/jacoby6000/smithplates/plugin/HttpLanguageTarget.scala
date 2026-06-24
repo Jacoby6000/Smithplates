@@ -4,9 +4,11 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
+import com.jacoby6000.smithplates.plugin.config.PluginConfigDecoders
+import com.jacoby6000.smithplates.plugin.config.PluginConfigDecoding
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
-import software.amazon.smithy.model.node.ObjectNode
+import io.circe.Json
 
 final case class HttpServerTarget(
     webFramework: String,
@@ -81,44 +83,20 @@ final case class HttpLanguageTarget(
 object HttpLanguageTarget {
   def parse(
       languageId: String,
-      node: ObjectNode
+      json: Json
   ): SqlValidated[HttpLanguageTarget] = {
-    val serverNode = Option(node.getMember("server").orElse(null))
-    val clientNode = Option(node.getMember("client").orElse(null))
-
-    if (serverNode.isEmpty && clientNode.isEmpty) {
-      SqlValidated.invalid(
-        InvalidPluginConfig(s"smithplates.$languageId.http requires `server` and/or `client`")
-      )
-    } else {
-      (
-        serverNode match {
-          case None                              => None.validNel
-          case Some(value) if value.isObjectNode =>
-            internal.parseServer(languageId, value.expectObjectNode()).map(Some(_))
-          case Some(_)                           =>
-            SqlValidated.invalid(
-              InvalidPluginConfig(s"smithplates.$languageId.http.server must be an object")
-            )
-        },
-        clientNode match {
-          case None                              => None.validNel
-          case Some(value) if value.isObjectNode =>
-            internal.parseClient(languageId, value.expectObjectNode()).map(Some(_))
-          case Some(_)                           =>
-            SqlValidated.invalid(
-              InvalidPluginConfig(s"smithplates.$languageId.http.client must be an object")
-            )
+    import PluginConfigDecoders.given
+    PluginConfigDecoding
+      .decode[PluginConfigDecoders.internal.HttpLanguageTargetJson](languageId, "http", json)
+      .andThen { config =>
+        if (config.server.isEmpty && config.client.isEmpty) {
+          InvalidPluginConfig(
+            s"smithplates.$languageId.http requires `server` and/or `client`"
+          ).invalidNel
+        } else {
+          config.toDomain.validNel
         }
-      ).mapN { (server, client) =>
-        HttpLanguageTarget(
-          server = server,
-          client = client,
-          rootNamespace = PluginConfigMembers.optionalStringMember(node, "rootNamespace"),
-          modelsPackageName = PluginConfigMembers.optionalStringMember(node, "modelsPackageName")
-        )
       }
-    }
   }
 
   private[plugin] def buildCodegenSettings(
@@ -146,43 +124,4 @@ object HttpLanguageTarget {
       emitModels = emitModels,
       modelTemplateDirectory = Some(HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId))
     )
-
-  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
-  object internal {
-    val ServerAllowedMembers: Set[String] =
-      Set("webFramework", "templateDirectory", "packageName")
-
-    val ClientAllowedMembers: Set[String] =
-      Set("httpLibrary", "templateDirectory", "packageName")
-
-    def parseServer(
-        languageId: String,
-        node: ObjectNode
-    ): SqlValidated[HttpServerTarget] =
-      (
-        PluginConfigMembers.rejectNestedOutputDirectories("http.server", languageId, node),
-        PluginConfigMembers.rejectUnknownMembers("http.server", languageId, node, ServerAllowedMembers)
-      ).mapN { (_, _) =>
-        HttpServerTarget(
-          webFramework = PluginConfigMembers.optionalStringMember(node, "webFramework").getOrElse("fastapi"),
-          templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
-          packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
-        )
-      }
-
-    def parseClient(
-        languageId: String,
-        node: ObjectNode
-    ): SqlValidated[HttpClientTarget] =
-      (
-        PluginConfigMembers.rejectNestedOutputDirectories("http.client", languageId, node),
-        PluginConfigMembers.rejectUnknownMembers("http.client", languageId, node, ClientAllowedMembers)
-      ).mapN { (_, _) =>
-        HttpClientTarget(
-          httpLibrary = PluginConfigMembers.optionalStringMember(node, "httpLibrary").getOrElse("httpx"),
-          templateDirectory = PluginConfigMembers.optionalStringMember(node, "templateDirectory"),
-          packageName = PluginConfigMembers.optionalStringMember(node, "packageName")
-        )
-      }
-  }
 }

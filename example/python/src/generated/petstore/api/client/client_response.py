@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import httpx
 from pydantic import BaseModel
 
@@ -14,6 +12,7 @@ from generated.petstore.api.get_category_output import GetCategoryOutput
 from generated.petstore.api.get_order_output import GetOrderOutput
 from generated.petstore.api.get_pet_output import GetPetOutput
 from generated.petstore.api.health_check_output import HealthCheckOutput
+from generated.petstore.api.model_validation import validate_api_model
 from generated.petstore.api.order_not_found import OrderNotFound
 from generated.petstore.api.pet_location_redirect import PetLocationRedirect
 from generated.petstore.api.pet_not_found import PetNotFound
@@ -26,7 +25,7 @@ class ClientResponseError(Exception):
     """Raised when an HTTP response cannot be mapped to a generated API model."""
 
 
-_MODEL_TYPES: dict[str, type[BaseModel]] = {
+_MODEL_TYPES: dict[str, type[object]] = {
     "CategoryNotFound": CategoryNotFound,
     "CreatePetOutput": CreatePetOutput,
     "GetCategoryOutput": GetCategoryOutput,
@@ -45,7 +44,7 @@ _MODEL_TYPES: dict[str, type[BaseModel]] = {
 def parse_client_response(
     response: httpx.Response,
     binding: ClientOperationHttpBinding,
-) -> BaseModel | None:
+) -> BaseModel | object | None:
     """Map an HTTP response to a generated API model using Smithy-derived bindings."""
     if response.status_code == 204 or binding.variants_by_status.get(response.status_code) == "__empty__":
         if response.status_code >= 400:
@@ -56,7 +55,7 @@ def parse_client_response(
     type_name = binding.type_name_for_status(response.status_code)
     model_type = _resolve_model_type(type_name)
 
-    payload: dict[str, Any] = {}
+    payload: dict[str, object] = {}
     if variant.media_type is not None and response.content:
         body = response.json()
         if isinstance(body, dict):
@@ -72,15 +71,15 @@ def parse_client_response(
         return None
 
     if response.status_code >= 400:
-        return model_type.model_validate(payload)
+        return validate_api_model(model_type, payload)
 
     response.raise_for_status()
     if not payload and variant.media_type is None:
         return None
-    return model_type.model_validate(payload)
+    return validate_api_model(model_type, payload)
 
 
-def _resolve_model_type(type_name: str) -> type[BaseModel]:
+def _resolve_model_type(type_name: str) -> type[object]:
     model_type = _MODEL_TYPES.get(type_name)
     if model_type is None:
         msg = f"Unknown generated API model type {type_name!r}"
