@@ -47,6 +47,25 @@ class SystemValidatorSpec extends FunSuite {
     assertEquals(validator.validate(validModelSet, validService), CodegenValidated.unit)
   }
 
+  test("validate accepts empty model set and empty service") {
+    val emptyService =
+      ServiceModel(
+        ModelId("ns", "Example"),
+        ServiceMeta(None, Nil, ()),
+        List.empty[OperationModel[Unit]]
+      )
+    assertEquals(validator.validate(ModelSet[Unit](Nil), emptyService), CodegenValidated.unit)
+  }
+
+  test("validate accepts acyclic alias chains in the model set") {
+    val uuid     = Model.Alias(ModelId("ns", "Uuid"), meta, StringT)
+    val userId   = Model.Alias(ModelId("ns", "UserId"), meta, refOf("Uuid"))
+    val input    =
+      Model.Structure(ModelId("ns", "CreateInput"), meta, List(Field("id", ModelRef(userId.id))))
+    val modelSet = ModelSet[Unit](List(uuid, userId, input, outputShape, errorShape))
+    assertEquals(validator.validate(modelSet, validService), CodegenValidated.unit)
+  }
+
   test("validate rejects duplicate model ids") {
     val duplicateAlias =
       Model.Alias(ModelId("ns", "CreateInput"), meta, IntegerT)
@@ -87,6 +106,53 @@ class SystemValidatorSpec extends FunSuite {
         assertEquals(
           errors.toList,
           List(CyclicAliasDefinition(NonEmptyList.of(ModelId("ns", "Self"), ModelId("ns", "Self"))))
+        )
+      case other                     =>
+        fail(s"Expected invalid validation, got $other")
+    }
+  }
+
+  test("validate rejects three-way cyclic alias definitions") {
+    val a       = Model.Alias(ModelId("ns", "A"), meta, refOf("B"))
+    val b       = Model.Alias(ModelId("ns", "B"), meta, refOf("C"))
+    val c       = Model.Alias(ModelId("ns", "C"), meta, refOf("A"))
+    val invalid = ModelSet[Unit](List(a, b, c, inputShape, outputShape, errorShape))
+
+    validator.validate(invalid, validService) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.toList,
+          List(
+            CyclicAliasDefinition(
+              NonEmptyList.of(
+                ModelId("ns", "A"),
+                ModelId("ns", "B"),
+                ModelId("ns", "C"),
+                ModelId("ns", "A")
+              )
+            )
+          )
+        )
+      case other                     =>
+        fail(s"Expected invalid validation, got $other")
+    }
+  }
+
+  test("validate reports each independent alias cycle once") {
+    val a       = Model.Alias(ModelId("ns", "A"), meta, refOf("B"))
+    val b       = Model.Alias(ModelId("ns", "B"), meta, refOf("A"))
+    val c       = Model.Alias(ModelId("ns", "C"), meta, refOf("D"))
+    val d       = Model.Alias(ModelId("ns", "D"), meta, refOf("C"))
+    val invalid = ModelSet[Unit](List(a, b, c, d, inputShape, outputShape, errorShape))
+
+    validator.validate(invalid, validService) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.toList,
+          List(
+            CyclicAliasDefinition(NonEmptyList.of(ModelId("ns", "A"), ModelId("ns", "B"), ModelId("ns", "A"))),
+            CyclicAliasDefinition(NonEmptyList.of(ModelId("ns", "C"), ModelId("ns", "D"), ModelId("ns", "C")))
+          )
         )
       case other                     =>
         fail(s"Expected invalid validation, got $other")
@@ -174,7 +240,7 @@ class SystemValidatorSpec extends FunSuite {
     }
   }
 
-  test("validate rejects unresolved operation model refs") {
+  test("validate rejects unresolved operation input refs") {
     val unresolvedInput =
       ServiceModel(
         validService.id,
@@ -195,6 +261,91 @@ class SystemValidatorSpec extends FunSuite {
         assertEquals(
           errors.toList,
           List(UnresolvedModelRef(refOf("MissingInput"), "input of operation ns#Create"))
+        )
+      case other                     =>
+        fail(s"Expected invalid validation, got $other")
+    }
+  }
+
+  test("validate rejects unresolved operation output refs") {
+    val unresolvedOutput =
+      ServiceModel(
+        validService.id,
+        validService.meta,
+        List(
+          OperationModel(
+            ModelId("ns", "Create"),
+            OperationMeta(None, Nil, ()),
+            input = Some(refOf("CreateInput")),
+            output = Some(refOf("MissingOutput")),
+            errors = List(refOf("Conflict"))
+          )
+        )
+      )
+
+    validator.validate(validModelSet, unresolvedOutput) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.toList,
+          List(UnresolvedModelRef(refOf("MissingOutput"), "output of operation ns#Create"))
+        )
+      case other                     =>
+        fail(s"Expected invalid validation, got $other")
+    }
+  }
+
+  test("validate rejects unresolved operation error refs") {
+    val unresolvedError =
+      ServiceModel(
+        validService.id,
+        validService.meta,
+        List(
+          OperationModel(
+            ModelId("ns", "Create"),
+            OperationMeta(None, Nil, ()),
+            input = Some(refOf("CreateInput")),
+            output = Some(refOf("CreateOutput")),
+            errors = List(refOf("MissingError"))
+          )
+        )
+      )
+
+    validator.validate(validModelSet, unresolvedError) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.toList,
+          List(UnresolvedModelRef(refOf("MissingError"), "errors of operation ns#Create"))
+        )
+      case other                     =>
+        fail(s"Expected invalid validation, got $other")
+    }
+  }
+
+  test("validate accumulates multiple unresolved refs on one operation") {
+    val unresolved =
+      ServiceModel(
+        validService.id,
+        validService.meta,
+        List(
+          OperationModel(
+            ModelId("ns", "Create"),
+            OperationMeta(None, Nil, ()),
+            input = Some(refOf("MissingInput")),
+            output = Some(refOf("MissingOutput")),
+            errors = List(refOf("MissingError"))
+          )
+        )
+      )
+
+    validator.validate(validModelSet, unresolved) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.toList,
+          List(
+            UnresolvedModelRef(refOf("MissingInput"), "input of operation ns#Create"),
+            UnresolvedModelRef(refOf("MissingOutput"), "output of operation ns#Create"),
+            UnresolvedModelRef(refOf("MissingError"), "errors of operation ns#Create")
+          )
         )
       case other                     =>
         fail(s"Expected invalid validation, got $other")
@@ -229,11 +380,11 @@ class SystemValidatorSpec extends FunSuite {
 
     validator.validate(invalidModelSet, invalidService) match {
       case Validated.Invalid(errors) =>
-        assert(
-          errors.toList.contains(DuplicateId(ModelId("ns", "CreateInput"), models = 2, services = 0, operations = 0)))
-        assert(errors.toList.contains(DuplicateId(ModelId("ns", "Create"), models = 0, services = 0, operations = 2)))
-        assert(
-          errors.toList.contains(
+        assertEquals(
+          errors.toList,
+          List(
+            DuplicateId(ModelId("ns", "CreateInput"), models = 2, services = 0, operations = 0),
+            DuplicateId(ModelId("ns", "Create"), models = 0, services = 0, operations = 2),
             UnresolvedModelRef(refOf("MissingInput"), "input of operation ns#Create")
           )
         )

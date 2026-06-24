@@ -9,6 +9,10 @@ trait TypeResolver[A] {
 
   /** Follow `Alias` chains (including alias-to-alias) to the first non-alias type; returns `tpe` unchanged otherwise.
     */
+  // DESNOTE(jbarber, 2026-06-23): Cyclic alias definitions are rejected by
+  // [[ModelSetValidator]] / [[SystemValidator]] before codegen reaches
+  // `TypeResolver`; callers should validate first. Cycle handling is not part
+  // of the public contract and is not covered in `TypeResolverSpec`.
   def underlying(tpe: NeutralType): NeutralType
 
   def classify(ref: ModelRef): Option[ModelKind]
@@ -21,20 +25,15 @@ object TypeResolver {
 
       def classify(ref: ModelRef): Option[ModelKind] = modelSet.resolve(ref).map(_.kind)
 
-      def underlying(tpe: NeutralType): NeutralType = {
-        // `seen` guards against cyclic alias definitions (`A = B`, `B = A`).
-        @tailrec
-        def chase(current: NeutralType, seen: Set[ModelId]): NeutralType =
-          current match {
-            case ref @ ModelRef(id) if !seen.contains(id) =>
-              modelSet.resolve(ref).flatMap(_.asAlias) match {
-                case Some(alias) => chase(alias.underlying, seen + id)
-                case None        => current
-              }
-            case _                                        => current
-          }
-
-        chase(tpe, Set.empty)
-      }
+      @tailrec
+      def underlying(tpe: NeutralType): NeutralType =
+        tpe match {
+          case ref: ModelRef =>
+            modelSet.resolve(ref).flatMap(_.asAlias) match {
+              case Some(alias) => underlying(alias.underlying)
+              case None        => tpe
+            }
+          case _             => tpe
+        }
     }
 }

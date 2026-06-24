@@ -40,30 +40,6 @@ class TypeResolverSpec extends FunSuite {
     assertEquals(partial.underlying(ModelRef(gateway.id)), ModelRef(ModelId("ns", "Missing")))
   }
 
-  test("underlying terminates on self-referential alias") {
-    val self     = Model.Alias(ModelId("ns", "Self"), meta, ModelRef(ModelId("ns", "Self")))
-    val resolver = TypeResolver.fromModelSet(ModelSet[Unit](List(self)))
-    assertEquals(resolver.underlying(ModelRef(self.id)), ModelRef(self.id))
-  }
-
-  test("underlying cyclic aliases stop at the entry ref") {
-    val a      = Model.Alias(ModelId("ns", "A"), meta, ModelRef(ModelId("ns", "B")))
-    val b      = Model.Alias(ModelId("ns", "B"), meta, ModelRef(ModelId("ns", "A")))
-    val cyclic = TypeResolver.fromModelSet(ModelSet[Unit](List(a, b)))
-    assertEquals(cyclic.underlying(ModelRef(a.id)), ModelRef(a.id))
-    assertEquals(cyclic.underlying(ModelRef(b.id)), ModelRef(b.id))
-  }
-
-  test("underlying terminates on three-way cyclic alias definitions") {
-    val a      = Model.Alias(ModelId("ns", "A"), meta, ModelRef(ModelId("ns", "B")))
-    val b      = Model.Alias(ModelId("ns", "B"), meta, ModelRef(ModelId("ns", "C")))
-    val c      = Model.Alias(ModelId("ns", "C"), meta, ModelRef(ModelId("ns", "A")))
-    val cyclic = TypeResolver.fromModelSet(ModelSet[Unit](List(a, b, c)))
-    assertEquals(cyclic.underlying(ModelRef(a.id)), ModelRef(a.id))
-    assertEquals(cyclic.underlying(ModelRef(b.id)), ModelRef(b.id))
-    assertEquals(cyclic.underlying(ModelRef(c.id)), ModelRef(c.id))
-  }
-
   test("classify reports the kind of a resolved reference") {
     assertEquals(resolver.classify(ModelRef(uuid.id)), Some(ModelKind.Alias))
     assertEquals(resolver.classify(ModelRef(account.id)), Some(ModelKind.Structure))
