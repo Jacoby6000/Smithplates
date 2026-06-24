@@ -21,6 +21,9 @@ object PathBindings {
 object PathTemplate {
   private val PlaceholderPattern = """\{\{(\w+)\}\}""".r
 
+  def placeholders(pattern: String): Set[String] =
+    PlaceholderPattern.findAllMatchIn(pattern).map(_.group(1)).toSet
+
   def expand(pattern: String, bindings: PathBindings): CodegenValidated[String] = {
     val expanded = PlaceholderPattern.replaceAllIn(
       pattern,
@@ -42,33 +45,39 @@ object PathTemplate {
       conventions: Conventions,
       serviceId: ModelId,
       serviceVersion: String = ""
-  ): PathBindings = {
-    val namespaceDir = serviceId.namespace.split('.').filter(_.nonEmpty).mkString("/")
-    PathBindings(
-      Map(
-        "serviceName"        -> serviceId.name,
-        "serviceClassName"   -> conventions.className(serviceId),
-        "serviceFileName"    -> conventions.memberName(serviceId.name),
-        "serviceNamespace"   -> serviceId.namespace,
-        "serviceShapeId"     -> s"${serviceId.namespace}#${serviceId.name}",
-        "serviceVersion"     -> serviceVersion,
-        "packageName"        -> conventions.packageName(serviceId.namespace),
-        "rootNamespaceDir"   -> conventions.rootNamespaceDir,
-        "smithyNamespaceDir" -> namespaceDir
+  ): PathBindings =
+    namespaceBindings(conventions, serviceId.namespace).merge(
+      PathBindings(
+        Map(
+          "serviceName"      -> serviceId.name,
+          "serviceClassName" -> conventions.className(serviceId),
+          "serviceFileName"  -> conventions.fileName(serviceId),
+          "serviceNamespace" -> serviceId.namespace,
+          "serviceShapeId"   -> s"${serviceId.namespace}#${serviceId.name}",
+          "serviceVersion"   -> serviceVersion
+        )
       )
     )
-  }
 
-  def modelBindings(conventions: Conventions, modelId: ModelId): PathBindings =
+  def namespaceBindings(conventions: Conventions, namespace: String): PathBindings =
     PathBindings(
       Map(
-        "modelName"          -> modelId.name,
-        "modelClassName"     -> conventions.className(modelId),
-        "modelFileName"      -> conventions.memberName(modelId.name),
-        "modelNamespace"     -> modelId.namespace,
-        "modelShapeId"       -> s"${modelId.namespace}#${modelId.name}",
+        "packageName"        -> conventions.packageName(namespace),
         "rootNamespaceDir"   -> conventions.rootNamespaceDir,
-        "smithyNamespaceDir" -> modelId.namespace.split('.').filter(_.nonEmpty).mkString("/")
+        "smithyNamespaceDir" -> namespace.split('.').filter(_.nonEmpty).mkString("/")
+      )
+    )
+
+  def modelBindings(conventions: Conventions, modelId: ModelId): PathBindings =
+    namespaceBindings(conventions, modelId.namespace).merge(
+      PathBindings(
+        Map(
+          "modelName"      -> modelId.name,
+          "modelClassName" -> conventions.className(modelId),
+          "modelFileName"  -> conventions.fileName(modelId),
+          "modelNamespace" -> modelId.namespace,
+          "modelShapeId"   -> s"${modelId.namespace}#${modelId.name}"
+        )
       )
     )
 
@@ -77,7 +86,7 @@ object PathTemplate {
       Map(
         "operationName"      -> operationId.name,
         "operationClassName" -> conventions.className(operationId),
-        "operationFileName"  -> conventions.memberName(operationId.name),
+        "operationFileName"  -> conventions.fileName(operationId),
         "operationNamespace" -> operationId.namespace,
         "operationShapeId"   -> s"${operationId.namespace}#${operationId.name}"
       )

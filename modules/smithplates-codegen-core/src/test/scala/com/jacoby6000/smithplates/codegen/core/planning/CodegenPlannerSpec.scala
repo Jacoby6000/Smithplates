@@ -88,7 +88,7 @@ class CodegenPlannerSpec extends FunSuite {
   private def templateOutput(
       id: String,
       binding: SmithyBinding,
-      outputPath: String = "{{serviceFileName}}.py",
+      outputPath: String = "{{serviceFileName}}",
       overrides: Option[String] = None
   ): CodegenOutput.CodegenTemplateBindingOutput =
     CodegenOutput.CodegenTemplateBindingOutput(
@@ -221,7 +221,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.untagged_none",
           SmithyBinding.Operation(List(BindingFilterAtom.Untagged), BindingGroup.None),
-          outputPath = "ops/{{operationFileName}}.py"
+          outputPath = "ops/{{operationFileName}}"
         )
       )
 
@@ -266,7 +266,7 @@ class CodegenPlannerSpec extends FunSuite {
     )
   }
 
-  test("plan errors on grouped models spanning multiple namespaces") {
+  test("plan errors on grouped models spanning multiple namespaces when paths need namespace bindings") {
     val mixedModels =
       ModelSet[Unit](
         List(
@@ -279,7 +279,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.mixed",
           SmithyBinding.Model(Nil, BindingGroup.All),
-          outputPath = "models/all.py"
+          outputPath = "{{smithyNamespaceDir}}/models/all.py"
         )
       )
 
@@ -293,13 +293,31 @@ class CodegenPlannerSpec extends FunSuite {
     }
   }
 
+  test("plan rejects model-specific placeholders for grouped model outputs") {
+    val outputs =
+      List(
+        templateOutput(
+          "model.grouped_ambiguous",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.All),
+          outputPath = "models/{{modelFileName}}"
+        )
+      )
+
+    CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(errors.head, UnresolvedPathPlaceholder("{{modelFileName}}"))
+      case other                     =>
+        fail(s"Expected unresolved grouped model placeholder error, got $other")
+    }
+  }
+
   test("plan errors on invalid operation kind filters") {
     val outputs =
       List(
         templateOutput(
           "operation.invalid",
           SmithyBinding.Operation(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}.py"
+          outputPath = "routes/{{operationFileName}}"
         )
       )
 
@@ -408,7 +426,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.subject",
           SmithyBinding.Operation(Nil, BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}.py"
+          outputPath = "routes/{{operationFileName}}"
         )
       )
 
@@ -444,7 +462,7 @@ class CodegenPlannerSpec extends FunSuite {
       )
     val outputs       =
       List(
-        templateOutput("service.broken", SmithyBinding.Service, outputPath = "{{serviceFileName}}.py")
+        templateOutput("service.broken", SmithyBinding.Service, outputPath = "{{serviceFileName}}")
       )
 
     CodegenPlanner.plan(outputs, models, List(brokenService), settings, templateRenderer) match {
@@ -461,7 +479,7 @@ class CodegenPlannerSpec extends FunSuite {
   test("plan expands Service binding once per service") {
     val outputs =
       List(
-        templateOutput("service.app", SmithyBinding.Service, outputPath = "{{serviceFileName}}.py")
+        templateOutput("service.app", SmithyBinding.Service, outputPath = "{{serviceFileName}}")
       )
 
     val result =
@@ -501,7 +519,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.routes",
           SmithyBinding.Operation(Nil, BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}.py"
+          outputPath = "routes/{{operationFileName}}"
         )
       )
 
@@ -560,7 +578,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.structure",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
-          outputPath = "models/{{modelFileName}}.py"
+          outputPath = "models/{{modelFileName}}"
         )
       )
 
@@ -603,7 +621,7 @@ class CodegenPlannerSpec extends FunSuite {
           id = OutputId("static.init"),
           kind = ArtifactKind.Src,
           filePath = "static/init.py",
-          copyToPath = "{{serviceFileName}}/__init__.py"
+          copyToPath = "packages/{{serviceFileName}}"
         )
       )
 
@@ -614,7 +632,7 @@ class CodegenPlannerSpec extends FunSuite {
       CodegenValidated.valid(
         List(
           ResolvedArtifact(
-            relativePath = "src/widget_service/__init__.py",
+            relativePath = "src/packages/widget_service.py",
             content = "# static",
             kind = ArtifactKind.Src
           )
@@ -631,6 +649,31 @@ class CodegenPlannerSpec extends FunSuite {
       )
 
     CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.head,
+          DuplicateResolvedOutputPath(
+            "src/duplicate.py",
+            NonEmptyList.of(OutputId("first"), OutputId("second"))
+          )
+        )
+      case other                     =>
+        fail(s"Expected path collision error, got $other")
+    }
+  }
+
+  test("plan reports path collisions before rendering output content") {
+    val failingRenderer =
+      TemplateRenderer.fromFunction[String, Unit] { (_, _) =>
+        throw new RuntimeException("boom")
+      }
+    val outputs         =
+      List(
+        templateOutput("first", SmithyBinding.Once, outputPath = "duplicate.py"),
+        templateOutput("second", SmithyBinding.Once, outputPath = "duplicate.py")
+      )
+
+    CodegenPlanner.plan(outputs, models, List(service), settings, failingRenderer) match {
       case Validated.Invalid(errors) =>
         assertEquals(
           errors.head,
@@ -682,6 +725,30 @@ class CodegenPlannerSpec extends FunSuite {
     )
   }
 
+  test("plan expands Model Tag grouping across namespaces when paths only need tag bindings") {
+    val taggedModels =
+      ModelSet[Unit](
+        List(
+          Model.Structure(ModelId("example.a", "AlphaWidget"), meta(tags = List("shared")), Nil),
+          Model.Structure(ModelId("example.b", "BetaWidget"), meta(tags = List("shared")), Nil)
+        )
+      )
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.tagged.cross_namespace",
+          SmithyBinding.Model(Nil, BindingGroup.Tag),
+          outputPath = "groups/{{tagName}}.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner.plan(outputs, taggedModels, List(service), settings, templateRenderer).map(_.map(_.relativePath)),
+      CodegenValidated.valid(List("src/groups/shared.py"))
+    )
+  }
+
   test("plan errors when Model None fan-out collides on a constant path") {
     val outputs =
       List(
@@ -712,7 +779,7 @@ class CodegenPlannerSpec extends FunSuite {
       )
     val outputs      =
       List(
-        templateOutput("service.multi", SmithyBinding.Service, outputPath = "{{serviceFileName}}.py")
+        templateOutput("service.multi", SmithyBinding.Service, outputPath = "{{serviceFileName}}")
       )
 
     assertEquals(
@@ -735,7 +802,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.all.multi",
           SmithyBinding.Operation(Nil, BindingGroup.All),
-          outputPath = "{{serviceFileName}}/all.py"
+          outputPath = "services/{{serviceFileName}}"
         )
       )
 
@@ -743,7 +810,7 @@ class CodegenPlannerSpec extends FunSuite {
       CodegenPlanner
         .plan(outputs, models, List(service, otherService), settings, templateRenderer)
         .map(_.map(_.relativePath).sorted),
-      CodegenValidated.valid(List("src/other_service/all.py", "src/widget_service/all.py"))
+      CodegenValidated.valid(List("src/services/other_service.py", "src/services/widget_service.py"))
     )
   }
 
@@ -790,17 +857,17 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.union",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Union)), BindingGroup.None),
-          outputPath = "unions/{{modelFileName}}.py"
+          outputPath = "unions/{{modelFileName}}"
         ),
         templateOutput(
           "model.enum",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Enum)), BindingGroup.None),
-          outputPath = "enums/{{modelFileName}}.py"
+          outputPath = "enums/{{modelFileName}}"
         ),
         templateOutput(
           "model.alias",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Alias)), BindingGroup.None),
-          outputPath = "aliases/{{modelFileName}}.py"
+          outputPath = "aliases/{{modelFileName}}"
         )
       )
 
@@ -825,12 +892,12 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.tagged_filter",
           SmithyBinding.Model(List(BindingFilterAtom.Tagged), BindingGroup.None),
-          outputPath = "tagged/{{modelFileName}}.py"
+          outputPath = "tagged/{{modelFileName}}"
         ),
         templateOutput(
           "model.untagged_filter",
           SmithyBinding.Model(List(BindingFilterAtom.Untagged), BindingGroup.None),
-          outputPath = "untagged/{{modelFileName}}.py"
+          outputPath = "untagged/{{modelFileName}}"
         )
       )
 
@@ -921,7 +988,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.subject",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
-          outputPath = "models/{{modelFileName}}.py"
+          outputPath = "models/{{modelFileName}}"
         )
       )
 

@@ -22,8 +22,9 @@ object CodegenPlanner {
         workItemLists <- mergedOutputs.traverse(
                            expandOutput(_, models, services, settings, typeUsageAnalyzer)
                          )
-        planned       <- workItemLists.flatten.traverse(renderWorkItem(_, models, settings, templateRenderer))
-        _             <- detectPathCollisions(planned).toCodegenEither
+        expandedPaths <- workItemLists.flatten.traverse(expandWorkItemPath(_, settings))
+        _             <- detectPathCollisions(expandedPaths).toCodegenEither
+        planned       <- expandedPaths.traverse(renderExpandedWorkItem(_, models, settings, templateRenderer))
       } yield planned.map(_.artifact)
     }
 
@@ -41,6 +42,7 @@ object CodegenPlanner {
     )
 
     final case class PlannedArtifact(outputId: OutputId, artifact: ResolvedArtifact)
+    final case class ExpandedWorkItem(item: WorkItem, relativePath: String)
 
     final case class OperationSubject[S, O](service: ServiceModel[S, O], operation: OperationModel[O])
     final case class OperationGroupSubject[S, O](
@@ -290,7 +292,7 @@ object CodegenPlanner {
           if (matching.isEmpty) {
             Right(Nil)
           } else {
-            modelGroupPathBindings(matching, output.id, settings).map { pathBindings =>
+            modelGroupPathBindings(matching, output.id, output.outputPath, settings).map { pathBindings =>
               List(
                 WorkItem(
                   outputId = output.id,
@@ -312,7 +314,7 @@ object CodegenPlanner {
               if (grouped.isEmpty) {
                 Right(Nil)
               } else {
-                modelGroupPathBindings(grouped, output.id, settings).map { pathBindings =>
+                modelGroupPathBindings(grouped, output.id, output.outputPath, settings).map { pathBindings =>
                   List(
                     WorkItem(
                       outputId = output.id,
@@ -334,19 +336,36 @@ object CodegenPlanner {
     def modelGroupPathBindings[A](
         matching: List[Model[A]],
         outputId: OutputId,
+        outputPathPattern: String,
         settings: CodegenSettings
     ): CodegenEither[PathBindings] = {
-      val namespaces = matching.map(_.id.namespace).distinct
-      namespaces match {
-        case _ :: Nil =>
-          Right(PathTemplate.modelBindings(settings.conventions, matching.head.id))
-        case _        =>
-          NonEmptyList.fromList(namespaces) match {
-            case Some(namespaceList) =>
-              Left(NonEmptyList.one(InconsistentGroupedModelNamespaces(outputId, namespaceList)))
-            case None                =>
-              Right(PathBindings.empty)
-          }
+      val placeholders                 = PathTemplate.placeholders(outputPathPattern)
+      val namespaceSensitive           = Set("modelNamespace", "packageName", "smithyNamespaceDir")
+      val needsSingleNamespaceBindings = placeholders.exists(namespaceSensitive.contains)
+      val rootBindings                 =
+        PathBindings(Map("rootNamespaceDir" -> settings.conventions.rootNamespaceDir))
+
+      if (!needsSingleNamespaceBindings) {
+        Right(rootBindings)
+      } else {
+        val namespaces = matching.map(_.id.namespace).distinct
+        namespaces match {
+          case namespace :: Nil =>
+            Right(
+              rootBindings.merge(
+                PathTemplate
+                  .namespaceBindings(settings.conventions, namespace)
+                  .withBinding("modelNamespace", namespace)
+              )
+            )
+          case _                =>
+            NonEmptyList.fromList(namespaces) match {
+              case Some(namespaceList) =>
+                Left(NonEmptyList.one(InconsistentGroupedModelNamespaces(outputId, namespaceList)))
+              case None                =>
+                Right(rootBindings)
+            }
+        }
       }
     }
 
@@ -379,12 +398,31 @@ object CodegenPlanner {
         templateRenderer: TemplateRenderer
     ): CodegenEither[PlannedArtifact] =
       for {
+        expanded <- expandWorkItemPath(item, settings)
+        planned  <- renderExpandedWorkItem(expanded, models, settings, templateRenderer)
+      } yield planned
+
+    def expandWorkItemPath(item: WorkItem, settings: CodegenSettings): CodegenEither[ExpandedWorkItem] =
+      for {
         expandedPath <- PathTemplate.expand(item.outputPathPattern, item.pathBindings).toCodegenEither
         relativePath  = joinOutputPath(settings.outputBaseDirectory(item.artifactKind), expandedPath)
-        content      <- renderWorkItemContent(item, models, settings, templateRenderer)
+      } yield ExpandedWorkItem(item, relativePath)
+
+    def renderExpandedWorkItem[A](
+        expanded: ExpandedWorkItem,
+        models: ModelSet[A],
+        settings: CodegenSettings,
+        templateRenderer: TemplateRenderer
+    ): CodegenEither[PlannedArtifact] =
+      for {
+        content <- renderWorkItemContent(expanded.item, models, settings, templateRenderer)
       } yield PlannedArtifact(
-        outputId = item.outputId,
-        artifact = ResolvedArtifact(relativePath = relativePath, content = content, kind = item.artifactKind)
+        outputId = expanded.item.outputId,
+        artifact = ResolvedArtifact(
+          relativePath = expanded.relativePath,
+          content = content,
+          kind = expanded.item.artifactKind
+        )
       )
 
     def renderWorkItemContent[A](
@@ -424,16 +462,16 @@ object CodegenPlanner {
       }
     }
 
-    def detectPathCollisions(planned: List[PlannedArtifact]): CodegenValidated[Unit] = {
+    def detectPathCollisions(expanded: List[ExpandedWorkItem]): CodegenValidated[Unit] = {
       val grouped =
-        planned
-          .groupBy(_.artifact.relativePath)
+        expanded
+          .groupBy(_.relativePath)
           .collect { case (path, items) if items.size > 1 => path -> items }
       grouped.toList match {
         case Nil                => CodegenValidated.unit
         case (path, items) :: _ =>
           val outputIds =
-            NonEmptyList.fromList(items.map(_.outputId).distinct) match {
+            NonEmptyList.fromList(items.map(_.item.outputId).distinct) match {
               case Some(ids) => ids
               case None      => NonEmptyList.one(OutputId("unknown"))
             }
@@ -454,14 +492,20 @@ object CodegenPlanner {
   ): CodegenEither[List[internal.WorkItem]] =
     internal.expandOutput(output, models, services, settings, typeUsageAnalyzer)
 
-  private def renderWorkItem[A](
+  private def expandWorkItemPath(
       item: internal.WorkItem,
+      settings: CodegenSettings
+  ): CodegenEither[internal.ExpandedWorkItem] =
+    internal.expandWorkItemPath(item, settings)
+
+  private def renderExpandedWorkItem[A](
+      expanded: internal.ExpandedWorkItem,
       models: ModelSet[A],
       settings: CodegenSettings,
       templateRenderer: TemplateRenderer
   ): CodegenEither[internal.PlannedArtifact] =
-    internal.renderWorkItem(item, models, settings, templateRenderer)
+    internal.renderExpandedWorkItem(expanded, models, settings, templateRenderer)
 
-  private def detectPathCollisions(planned: List[internal.PlannedArtifact]): CodegenValidated[Unit] =
-    internal.detectPathCollisions(planned)
+  private def detectPathCollisions(expanded: List[internal.ExpandedWorkItem]): CodegenValidated[Unit] =
+    internal.detectPathCollisions(expanded)
 }
