@@ -62,7 +62,8 @@ object SmithyNeutralTypeResolver {
       val elementShape  = model.expectShape(elementTarget)
       resolveShapeType(model, elementShape, None, timestampFormat, context).map { elementType =>
         val sparse =
-          member.exists(_.hasTrait(classOf[SparseTrait])) ||
+          listShape.hasTrait(classOf[SparseTrait]) ||
+            member.exists(_.hasTrait(classOf[SparseTrait])) ||
             listShape.getMember.hasTrait(classOf[SparseTrait])
         if (sparse) {
           ListT(NeutralType.optional(elementType))

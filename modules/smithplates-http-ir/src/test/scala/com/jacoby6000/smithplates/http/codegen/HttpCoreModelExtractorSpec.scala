@@ -2,7 +2,9 @@ package com.jacoby6000.smithplates.http.codegen
 
 import com.jacoby6000.smithplates.codegen.core.*
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
-import com.jacoby6000.smithplates.http.HttpTestModelLoader
+import com.jacoby6000.smithplates.http.*
+import com.jacoby6000.smithplates.http.model.*
+import com.jacoby6000.smithplates.smithy.neutral.LegacyNeutralTypeEquivalence
 import munit.FunSuite
 
 class HttpCoreModelExtractorSpec extends FunSuite {
@@ -67,6 +69,86 @@ class HttpCoreModelExtractorSpec extends FunSuite {
 
           val operation = services.head.operations.head
           assert(operation.input.contains(ModelRef(input.id)), "operation input should reference GetWidgetInput")
+        }
+      )
+  }
+
+  test("core extraction member types match legacy HttpStructure IR") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#pattern
+          |use smithy.api#tags
+          |
+          |@pattern("^[a-z0-9-]+$")
+          |string WidgetId
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: WidgetId
+          |
+          |    note: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: WidgetId
+          |}
+          |""".stripMargin
+    )
+
+    val legacyService =
+      HttpIrExtractor
+        .extract(model)
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), _.services.head)
+
+    HttpCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          def coreTimestampFormat(format: HttpTimestampFormat): TimestampFormat =
+            format match {
+              case HttpTimestampFormat.DateTime     => TimestampFormat.DateTime
+              case HttpTimestampFormat.EpochSeconds => TimestampFormat.EpochSeconds
+              case HttpTimestampFormat.HttpDate     => TimestampFormat.DateTime
+              case HttpTimestampFormat.Default      => TimestampFormat.DateTime
+            }
+
+          def assertStructureEquivalent(legacyStructure: HttpStructure): Unit = {
+            val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
+              fail(s"expected core structure ${legacyStructure.name}")
+            }
+            legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
+              LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
+                legacyTypeName = legacyMember.typeName,
+                legacyOptional = !legacyMember.required,
+                coreType = coreField.tpe,
+                aliases = modelSet.aliases,
+                legacyTimestampFormat = legacyMember.timestampFormat.map(coreTimestampFormat)
+              )
+            }
+          }
+
+          legacyService.structures.foreach(assertStructureEquivalent)
         }
       )
   }

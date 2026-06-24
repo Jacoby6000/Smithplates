@@ -237,7 +237,13 @@ lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   )
 
 lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-service-ir"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
+  .dependsOn(
+    smithplatesSqlIr,
+    smithplatesSqlIr % "test->test",
+    smithplatesCodegenCore,
+    smithplatesSmithyNeutral,
+    smithplatesSmithyNeutral % "test->test"
+  )
   .settings(
     strictScala3Settings,
     publishedModuleSettings,
