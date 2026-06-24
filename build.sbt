@@ -32,8 +32,10 @@ ThisBuild / scalafixConfig := Some(file(".scalafix.conf"))
 val testcontainersScalaVersion = "0.44.1"
 val catsCoreVersion = "2.12.0"
 val catsEffectVersion = "3.7.0"
+val kittensVersion = "3.5.0"
 val smithyVersion = "1.71.0"
 val munitVersion = "1.0.2"
+val munitScalacheckVersion = "1.0.0"
 val log4jVersion = "2.24.3"
 val scalateVersion = "1.10.1"
 
@@ -43,6 +45,9 @@ lazy val generateGoldenTemplatesFor = inputKey[Unit](
 
 def catsCoreDependency: ModuleID =
   "org.typelevel" %% "cats-core" % catsCoreVersion
+
+def kittensDependency: ModuleID =
+  "org.typelevel" %% "kittens" % kittensVersion
 
 def catsEffectDependency: ModuleID =
   "org.typelevel" %% "cats-effect" % catsEffectVersion
@@ -195,6 +200,20 @@ def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
   Compile / resources := Nil,
   publish / skip := true
 )
+
+lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-core"))
+  .settings(
+    strictScala3Settings,
+    publishedModuleSettings,
+    name := "smithplates-codegen-core",
+    organization := "com.jacoby6000",
+    libraryDependencies ++= Seq(
+      catsCoreDependency,
+      kittensDependency,
+      "org.scalameta" %% "munit"            % munitVersion           % Test,
+      "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test
+    )
+  )
 
 lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   .settings(
@@ -507,6 +526,7 @@ lazy val root = (project in file("."))
     generateGoldenTemplatesFor := (smithplatesPlugin / generateGoldenTemplatesFor).evaluated
   )
   .aggregate(
+    smithplatesCodegenCore,
     smithplatesSqlIr,
     smithplatesHttpIr,
     smithplatesScalatePrecompiler,
