@@ -215,6 +215,17 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
     )
   )
 
+lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
+  .dependsOn(smithplatesCodegenCore, smithplatesCodegenCore % "test->test")
+  .settings(
+    strictScala3Settings,
+    publishedModuleSettings,
+    name := "smithplates-smithy-neutral",
+    organization := "com.jacoby6000",
+    libraryDependencies ++= smithyModelDependencies :+ catsCoreDependency,
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
+  )
+
 lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   .settings(
     strictScala3Settings,
@@ -226,7 +237,13 @@ lazy val smithplatesSqlIr = (project in file("modules/smithplates-sql-ir"))
   )
 
 lazy val smithplatesSqlServiceIr = (project in file("modules/smithplates-sql-service-ir"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlIr % "test->test")
+  .dependsOn(
+    smithplatesSqlIr,
+    smithplatesSqlIr % "test->test",
+    smithplatesCodegenCore,
+    smithplatesSmithyNeutral,
+    smithplatesSmithyNeutral % "test->test"
+  )
   .settings(
     strictScala3Settings,
     publishedModuleSettings,
@@ -341,6 +358,7 @@ lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-s
   )
 
 lazy val smithplatesHttpIr = (project in file("modules/smithplates-http-ir"))
+  .dependsOn(smithplatesSmithyNeutral, smithplatesSmithyNeutral % "test->test")
   .settings(
     strictScala3Settings,
     publishedModuleSettings,
@@ -469,13 +487,20 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   )
 
 lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr, smithplatesSqlDdlRendererCommon)
+  .dependsOn(
+    smithplatesSqlIr,
+    smithplatesSqlServiceIr,
+    smithplatesSqlDdlRendererCommon,
+    smithplatesSmithyNeutral,
+    smithplatesSmithyNeutral % "test->test"
+  )
   .settings(
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
     name := "smithplates-testkit",
-    organization := "com.jacoby6000"
+    organization := "com.jacoby6000",
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
 lazy val smithplatesSqlDdlRendererPostgresIt = (project in file("modules/smithplates-sql-ddl-renderer-postgres-it"))
@@ -527,6 +552,7 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesCodegenCore,
+    smithplatesSmithyNeutral,
     smithplatesSqlIr,
     smithplatesHttpIr,
     smithplatesScalatePrecompiler,

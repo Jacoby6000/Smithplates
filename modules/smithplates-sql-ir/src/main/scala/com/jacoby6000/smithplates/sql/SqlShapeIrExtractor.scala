@@ -16,12 +16,18 @@ object SqlShapeIrExtractor {
       rootShapeIds.toList.flatMap(SqlShapeGraph.referencedStructureIds(model, _)).distinct
     val unionIds     =
       SqlShapeGraph.referencedUnionIds(model, rootShapeIds).distinct
-
-    (
-      structureIds.traverse(internal.extractStructure(model, _)),
-      unionIds.traverse(internal.extractUnion(model, _))
-    ).mapN(SqlShapeIr(_, _))
+    extractDiscovered(model, structureIds, unionIds)
   }
+
+  def extractDiscovered(
+      model: Model,
+      structureIds: Iterable[ShapeId],
+      unionIds: Iterable[ShapeId]
+  ): SqlValidated[SqlShapeIr] =
+    (
+      structureIds.toList.distinct.traverse(internal.extractStructure(model, _)),
+      unionIds.toList.distinct.traverse(internal.extractUnion(model, _))
+    ).mapN(SqlShapeIr(_, _))
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {

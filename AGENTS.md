@@ -21,4 +21,7 @@ Follow [`.cursor/rules/`](.cursor/rules/) — start with [`smithplates-build.mdc
 ## Decisions log
 
 * `SqlTableTree` skips self-referential `@sqlForeignKey` edges when computing DDL render order so a table can reference itself inline in `CREATE TABLE`
+* `SystemValidator` (in codegen-core) is the holistic validation gate after extraction: model-set + service validators plus cross-entity duplicate ids, cyclic aliases, and unresolved operation refs. `#35` closed; work continues on `#36` (Smithy → core extraction) on branch `issue-36-smithy-extraction`.
+* **HTTP core extraction (`#36`):** `HttpCoreModelExtractor.extract` always runs `SystemValidator` (including `HttpCoreMetaValidator` for response status codes). Operation-bound shapes get `HttpRequestMeta` / `HttpResponseMeta` from legacy HTTP binding IR via `HttpCoreMetaBuilder`; nested shapes get `HttpNestedField`.
+* **SQL core extraction (`#36` / deferred `#39`):** `SqlCoreModelExtractor` lowers member types and `SqlTableMeta` (table name) only. Column types, `@sqlJson`, `@sqlVarchar`, and related per-member SQL facts stay in legacy `SqlSchema` until `#39` extends `SqlMeta` and wires feature validators. Use `SqlCoreModelExtractor.extractAndValidate` for structural `SystemValidator` checks today; full SQL meta parity is not in scope for `#36`.
 * Implementation helpers live in public nested `object internal` companions, not `private` (see `code-design.mdc`)

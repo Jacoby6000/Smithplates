@@ -18,4 +18,9 @@ object CodegenValidated {
       case None        => unit
       case Some(error) => Validated.invalid(error)
     }
+
+  extension (error: CodegenValidationError) {
+    def invalidNel[A]: CodegenValidated[A] =
+      Validated.invalidNel(error)
+  }
 }
