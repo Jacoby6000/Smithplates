@@ -215,6 +215,19 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
     )
   )
 
+lazy val smithplatesCodegenPython = (project in file("modules/smithplates-codegen-python"))
+  .dependsOn(smithplatesCodegenCore, smithplatesCodegenCore % "test->test")
+  .settings(
+    strictScala3Settings,
+    publishedModuleSettings,
+    name := "smithplates-codegen-python",
+    organization := "com.jacoby6000",
+    libraryDependencies ++= Seq(
+      catsCoreDependency,
+      "org.scalameta" %% "munit" % munitVersion % Test
+    )
+  )
+
 lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
   .dependsOn(smithplatesCodegenCore, smithplatesCodegenCore % "test->test")
   .settings(
@@ -552,6 +565,7 @@ lazy val root = (project in file("."))
   )
   .aggregate(
     smithplatesCodegenCore,
+    smithplatesCodegenPython,
     smithplatesSmithyNeutral,
     smithplatesSqlIr,
     smithplatesHttpIr,
