@@ -9,6 +9,7 @@ import com.jacoby6000.smithplates.codegen.core.EnumValue
 import com.jacoby6000.smithplates.codegen.core.Field
 import com.jacoby6000.smithplates.codegen.core.InvalidSmithyShape
 import com.jacoby6000.smithplates.codegen.core.Model as CodegenModel
+import com.jacoby6000.smithplates.codegen.core.ModelExtractor
 import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.ModelMeta
 import com.jacoby6000.smithplates.codegen.core.ModelMetaValidator
@@ -56,31 +57,45 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
   def extract(
       model: SmithyModel
   ): CodegenValidated[(ModelSet[SqlMeta], List[ServiceModel[SqlServiceMeta, SqlOperationMeta]])] =
-    SqlIrExtractor
-      .extract(model)
-      .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "sql"), error.message)))
-      .andThen { schema =>
-        SqlServiceExtractor
-          .extract(model)
-          .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "sql"), error.message)))
-          .andThen { services =>
-            services
-              .traverse(service => internal.convertService(model, schema, service))
-              .map { results =>
-                val serviceModels = results.map(_._1)
-                val models        = results.flatMap(_._2).distinct.sortBy(_.id)
-                (ModelSet(models), serviceModels)
-              }
-          }
-      }
+    extractValidated(model)(using SystemValidator.default)
 
   def extractAndValidate(
       model: SmithyModel
   ): CodegenValidated[(ModelSet[SqlMeta], List[ServiceModel[SqlServiceMeta, SqlOperationMeta]])] =
-    extractValidated(model)(using SystemValidator.default)
+    extract(model)
+
+  override def extractValidated(model: SmithyModel)(using
+      validator: SystemValidator[SqlMeta, SqlServiceMeta, SqlOperationMeta]
+  ): CodegenValidated[(ModelSet[SqlMeta], List[ServiceModel[SqlServiceMeta, SqlOperationMeta]])] =
+    internal
+      .extractFromSmithy(model)
+      .andThen { case (modelSet, services) =>
+        ModelExtractor.validateServices(modelSet, services)(using validator).map(_ => (modelSet, services))
+      }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def extractFromSmithy(
+        model: SmithyModel
+    ): CodegenValidated[(ModelSet[SqlMeta], List[ServiceModel[SqlServiceMeta, SqlOperationMeta]])] =
+      SqlIrExtractor
+        .extract(model)
+        .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "sql"), error.message)))
+        .andThen { schema =>
+          SqlServiceExtractor
+            .extract(model)
+            .leftMap(_.map(error => InvalidSmithyShape(ModelId("smithy", "sql"), error.message)))
+            .andThen { services =>
+              services
+                .traverse(service => convertService(model, schema, service))
+                .map { results =>
+                  val serviceModels = results.map(_._1)
+                  val models        = results.flatMap(_._2).distinct.sortBy(_.id)
+                  (ModelSet(models), serviceModels)
+                }
+            }
+        }
+
     def convertService(
         model: SmithyModel,
         schema: SqlSchema,

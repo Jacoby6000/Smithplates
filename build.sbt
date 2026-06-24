@@ -487,13 +487,20 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
   )
 
 lazy val smithplatesTestkit = (project in file("modules/smithplates-testkit"))
-  .dependsOn(smithplatesSqlIr, smithplatesSqlServiceIr, smithplatesSqlDdlRendererCommon)
+  .dependsOn(
+    smithplatesSqlIr,
+    smithplatesSqlServiceIr,
+    smithplatesSqlDdlRendererCommon,
+    smithplatesSmithyNeutral,
+    smithplatesSmithyNeutral % "test->test"
+  )
   .settings(
     strictScala3Settings,
     withCatsEffect,
     unpublishedModuleSettings,
     name := "smithplates-testkit",
-    organization := "com.jacoby6000"
+    organization := "com.jacoby6000",
+    libraryDependencies += "org.scalameta" %% "munit" % munitVersion % Test
   )
 
 lazy val smithplatesSqlDdlRendererPostgresIt = (project in file("modules/smithplates-sql-ddl-renderer-postgres-it"))

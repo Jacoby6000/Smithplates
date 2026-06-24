@@ -347,6 +347,60 @@ class HttpCoreModelExtractorSpec extends FunSuite {
     assertEquals(extracted, validated)
   }
 
+  test("extract rejects invalid HTTP status codes from service error shapes") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |    errors: [BadError]
+          |}
+          |
+          |@error("client")
+          |@httpError(99)
+          |structure BadError {
+          |    @required
+          |    message: String
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => assert(errors.exists(_.isInstanceOf[InvalidModelMeta])),
+        _ => fail("expected invalid HTTP status validation failure")
+      )
+  }
+
   test("core extraction closes aliases reachable only from input-only operation structures") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
@@ -574,6 +628,192 @@ class HttpCoreModelExtractorSpec extends FunSuite {
             fail("expected GetAssetContentInput structure")
           }
           assertEquals(input.meta.feature, HttpMeta.HttpRequestMeta())
+        }
+      )
+  }
+
+  test("core extraction maps @default members to OptionalT") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |
+          |    @default("anonymous")
+          |    label: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val coreInput = modelSet.structures.find(_.id.name == "GetWidgetInput").getOrElse {
+            fail("expected core GetWidgetInput structure")
+          }
+          val coreLabel = coreInput.fields.find(_.name == "label").getOrElse {
+            fail("expected core label field")
+          }
+          assertEquals(coreLabel.tpe, OptionalT(StringT))
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction assigns @httpProblem bindings to operation error response meta") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpProblem
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#httpError
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |    errors: [GetWidget404]
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |@httpProblem(
+          |    type: "https://example.com/errors/widget-not-found"
+          |    title: "Widget not found"
+          |)
+          |@error("client")
+          |@httpError(404)
+          |structure GetWidget404 {
+          |    @required
+          |    message: String
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          val errorStructure = modelSet.structures.find(_.id.name == "GetWidget404").getOrElse {
+            fail("expected GetWidget404 structure")
+          }
+          assertEquals(
+            errorStructure.meta.feature,
+            HttpMeta.HttpResponseMeta(
+              statusCode = 404,
+              staticHeaders = Map("Content-Type" -> "application/problem+json"),
+              error = Some(
+                HttpErrorMeta(
+                  problemType = Some("https://example.com/errors/widget-not-found"),
+                  title = Some("Widget not found")
+                )
+              )
+            )
+          )
+        }
+      )
+  }
+
+  test("core extraction assigns request static headers to HttpRequestMeta") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithplates.codegen.http#httpStaticHeader
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpStaticHeader(name: "X-Request-Kind", value: "widget-read")
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, _) =>
+          val input = modelSet.structures.find(_.id.name == "GetWidgetInput").getOrElse {
+            fail("expected GetWidgetInput structure")
+          }
+          assertEquals(
+            input.meta.feature,
+            HttpMeta.HttpRequestMeta(staticHeaders = Map("X-Request-Kind" -> "widget-read"))
+          )
         }
       )
   }

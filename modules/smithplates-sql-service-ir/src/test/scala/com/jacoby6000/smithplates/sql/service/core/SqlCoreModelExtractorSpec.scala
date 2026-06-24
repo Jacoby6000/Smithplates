@@ -418,75 +418,125 @@ class SqlCoreModelExtractorSpec extends FunSuite {
       )
   }
 
-  test("core extraction matches legacy SqlShapeIrExtractor for integration-style schema tables") {
-    val model = SqlTestModelBuilder.assemble(
+  test("extract runs the same validation pipeline as extractAndValidate") {
+    val model     = SqlServiceExtractorSpec.internal.assembleServiceModel(
       """
-        |use smithplates.codegen.sql#sqlForeignKey
-        |use smithplates.codegen.sql#sqlPrimaryKey
         |use smithplates.codegen.sql#sqlService
-        |use smithplates.codegen.sql#sqlTable
-        |use smithplates.codegen.sql#sqlVarchar
+        |use smithy.api#pattern
+        |""".stripMargin,
+      """
+        |@pattern("^[a-z0-9-]+$")
+        |string ItemId
         |
-        |@sqlTable(name: "categories")
-        |structure Category {
-        |    @sqlPrimaryKey
-        |    id: String
-        |    name: String
+        |structure GetItemInput {
+        |    @required
+        |    id: ItemId
         |}
         |
-        |@sqlTable(name: "items")
-        |structure Item {
-        |    @sqlPrimaryKey
-        |    id: String
-        |    @sqlForeignKey(references: "example#Category")
-        |    category_id: String
-        |    @sqlVarchar(maxLength: 64)
-        |    name: String
+        |structure GetItemOutput {
+        |    @required
+        |    id: ItemId
         |}
         |
-        |operation ListItems {
-        |    input: Unit
-        |    output: Unit
+        |operation GetItem {
+        |    input: GetItemInput
+        |    output: GetItemOutput
         |}
         |
         |@sqlService
-        |service CatalogRepository {
+        |service ItemRepository {
         |    version: "1"
-        |    operations: [ListItems]
+        |    operations: [GetItem]
+        |}
+        |""".stripMargin
+    )
+    val validated =
+      SqlCoreModelExtractor
+        .extractAndValidate(model)
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+    val extracted =
+      SqlCoreModelExtractor
+        .extract(model)
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+    assertEquals(extracted, validated)
+  }
+
+  test("core extraction maps sparse list members to ListT(OptionalT(...))") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlService
+        |use smithy.api#sparse
+        |
+        |@sparse
+        |list SparseTags {
+        |    member: String
+        |}
+        |
+        |structure PostPayload {
+        |    @required
+        |    tags: SparseTags
+        |}
+        |
+        |operation ListPosts {
+        |    input: Unit
+        |    output: PostPayload
+        |}
+        |
+        |@sqlService
+        |service PostRepository {
+        |    version: "1"
+        |    operations: [ListPosts]
         |}
         |""".stripMargin
     )
 
-    val legacyShapes =
-      SqlShapeIrExtractor
-        .extract(
-          model,
-          List(ShapeId.from("example#Category"), ShapeId.from("example#Item"))
-        )
-        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
-
     SqlCoreModelExtractor
-      .extractAndValidate(model)
+      .extract(model)
       .fold(
         errors => fail(errors.toList.map(_.message).mkString("; ")),
         { case (modelSet, services) =>
-          legacyShapes.structures.foreach { legacyStructure =>
-            val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
-              fail(s"expected core structure ${legacyStructure.name}")
-            }
-            legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
-              LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
-                legacyTypeName = legacyMember.typeName,
-                legacyOptional = legacyMember.optional,
-                coreType = coreField.tpe,
-                aliases = modelSet.aliases
-              )
-            }
+          val payload = modelSet.structures.find(_.id.name == "PostPayload").getOrElse {
+            fail("expected PostPayload structure")
           }
-
+          assertEquals(payload.fields.head.tpe, ListT(OptionalT(StringT)))
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
+  }
+
+  test("core extraction maps @default members to OptionalT through legacy parity") {
+    val model = SqlServiceExtractorSpec.internal.assembleServiceModel(
+      """
+        |use smithplates.codegen.sql#sqlService
+        |""".stripMargin,
+      """
+        |structure GetItemInput {
+        |    @required
+        |    id: String
+        |
+        |    @default("anonymous")
+        |    label: String
+        |}
+        |
+        |structure GetItemOutput {
+        |    @required
+        |    id: String
+        |}
+        |
+        |operation GetItem {
+        |    input: GetItemInput
+        |    output: GetItemOutput
+        |}
+        |
+        |@sqlService
+        |service ItemRepository {
+        |    version: "1"
+        |    operations: [GetItem]
+        |}
+        |""".stripMargin
+    )
+
+    assertLegacyShapeParity(model)
   }
 
   test("extract propagates SqlServiceExtractor failures as InvalidSmithyShape") {
