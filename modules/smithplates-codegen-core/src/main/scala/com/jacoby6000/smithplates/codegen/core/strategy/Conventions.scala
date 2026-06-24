@@ -11,6 +11,7 @@ trait Conventions {
   def functionName(smithyName: String): String
   def constantName(smithyName: String): String
   def packageName(smithyNamespace: String): String
+  def rootNamespaceDir: String
 }
 
 object Conventions {
@@ -100,5 +101,8 @@ object Conventions {
 
     def packageName(smithyNamespace: String): String =
       packageSegments(strategy, rootNamespace, smithyNamespace).mkString(strategy.packageSeparator)
+
+    def rootNamespaceDir: String =
+      rootNamespace.toList.flatMap(namespaceSegments).mkString("/")
   }
 }

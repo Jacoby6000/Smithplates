@@ -39,6 +39,7 @@ class ConventionsSpec extends FunSuite {
   test("package and module paths join namespace segments with root namespace") {
     assertEquals(conventions.packageName("example.api"), "generated.example.api")
     assertEquals(conventions.modulePath(ModelId("example.api", "WidgetOutput")), "generated.example.api.widget_output")
+    assertEquals(conventions.rootNamespaceDir, "generated")
   }
 
   test("illegal char remaps run before reserved keyword remaps") {

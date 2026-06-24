@@ -62,6 +62,11 @@ final case class UnknownOutputOverride(overrideId: OutputId) extends CodegenVali
     s"Unknown codegen output override id: ${overrideId.value}"
 }
 
+final case class SelfOutputOverride(outputId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Codegen output ${outputId.value} cannot override itself"
+}
+
 final case class DuplicateOutputId(id: OutputId) extends CodegenValidationError {
   override def message: String =
     s"Duplicate codegen output id: ${id.value}"

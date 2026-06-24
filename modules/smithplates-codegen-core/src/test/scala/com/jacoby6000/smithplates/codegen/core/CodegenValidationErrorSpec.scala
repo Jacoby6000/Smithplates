@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.codegen.core
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import munit.FunSuite
 
 class CodegenValidationErrorSpec extends FunSuite {
@@ -54,6 +55,34 @@ class CodegenValidationErrorSpec extends FunSuite {
     assertEquals(
       InvalidSmithyShape(ModelId("example", "Payload"), "expected a structure shape").message,
       "Invalid Smithy shape example#Payload: expected a structure shape"
+    )
+  }
+
+  test("SelfOutputOverride message includes output id") {
+    assertEquals(
+      SelfOutputOverride(OutputId("custom")).message,
+      "Codegen output custom cannot override itself"
+    )
+  }
+
+  test("DuplicateOutputId message includes output id") {
+    assertEquals(DuplicateOutputId(OutputId("bundled")).message, "Duplicate codegen output id: bundled")
+  }
+
+  test("DuplicateResolvedOutputPath message includes path and output ids") {
+    assertEquals(
+      DuplicateResolvedOutputPath(
+        "src/shared.py",
+        NonEmptyList.of(OutputId("first"), OutputId("second"))
+      ).message,
+      "Duplicate resolved output path 'src/shared.py' from outputs: first, second"
+    )
+  }
+
+  test("UnresolvedPathPlaceholder message includes placeholder") {
+    assertEquals(
+      UnresolvedPathPlaceholder("{{tagName}}").message,
+      "Unresolved path template placeholder: {{tagName}}"
     )
   }
 }

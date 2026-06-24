@@ -60,16 +60,23 @@ object CodegenPlanner {
         case Some(duplicateId) =>
           DuplicateOutputId(duplicateId).invalidNel
         case None              =>
-          val knownIds         = outputs.map(_.id).toSet
-          val unknownOverrides =
-            outputs.flatMap(_.overrides).filterNot(knownIds.contains)
-          unknownOverrides match {
-            case Nil          =>
-              val overriddenIds = outputs.flatMap(_.overrides).toSet
-              val surviving     = outputs.filterNot(output => overriddenIds.contains(output.id))
-              CodegenValidated.valid(surviving)
-            case unknown :: _ =>
-              UnknownOutputOverride(unknown).invalidNel
+          val selfOverrides =
+            outputs.filter(output => output.overrides.contains(output.id))
+          selfOverrides match {
+            case output :: _ =>
+              SelfOutputOverride(output.id).invalidNel
+            case Nil         =>
+              val knownIds         = outputs.map(_.id).toSet
+              val unknownOverrides =
+                outputs.flatMap(_.overrides).filterNot(knownIds.contains)
+              unknownOverrides match {
+                case Nil          =>
+                  val overriddenIds = outputs.flatMap(_.overrides).toSet
+                  val surviving     = outputs.filterNot(output => overriddenIds.contains(output.id))
+                  CodegenValidated.valid(surviving)
+                case unknown :: _ =>
+                  UnknownOutputOverride(unknown).invalidNel
+              }
           }
       }
 
@@ -299,27 +306,28 @@ object CodegenPlanner {
             }
           }
         case BindingGroup.Tag  =>
-          Right(
-            distinctTags(matching.map(_.meta.tags)).flatMap { tag =>
+          distinctTags(matching.map(_.meta.tags))
+            .flatTraverse { tag =>
               val grouped = matching.filter(_.meta.tags.contains(tag))
               if (grouped.isEmpty) {
-                Nil
+                Right(Nil)
               } else {
-                List(
-                  WorkItem(
-                    outputId = output.id,
-                    artifactKind = output.kind,
-                    outputPathPattern = output.outputPath,
-                    pathBindings = PathTemplate.tagBinding(tag, settings.conventions),
-                    templatePath = Some(output.templatePath),
-                    staticResourcePath = None,
-                    subject = ModelGroupSubject(tag, grouped),
-                    usedTypeRefs = grouped.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+                modelGroupPathBindings(grouped, output.id, settings).map { pathBindings =>
+                  List(
+                    WorkItem(
+                      outputId = output.id,
+                      artifactKind = output.kind,
+                      outputPathPattern = output.outputPath,
+                      pathBindings = pathBindings.merge(PathTemplate.tagBinding(tag, settings.conventions)),
+                      templatePath = Some(output.templatePath),
+                      staticResourcePath = None,
+                      subject = ModelGroupSubject(tag, grouped),
+                      usedTypeRefs = grouped.flatMap(typeUsageAnalyzer.usedTypes(_)).distinct
+                    )
                   )
-                )
+                }
               }
             }
-          )
       }
     }
 

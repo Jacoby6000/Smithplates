@@ -29,12 +29,12 @@ class PathTemplateSpec extends FunSuite {
         Map(
           "smithyNamespaceDir" -> "example/api",
           "serviceFileName"    -> "widget_repository",
-          "modelFileName"      -> "widget_output.py"
+          "modelFileName"      -> "widget_output"
         )
       )
 
     assertEquals(
-      PathTemplate.expand("{{smithyNamespaceDir}}/models/{{modelFileName}}", bindings),
+      PathTemplate.expand("{{smithyNamespaceDir}}/models/{{modelFileName}}.py", bindings),
       com.jacoby6000.smithplates.codegen.core.CodegenValidated.valid("example/api/models/widget_output.py")
     )
   }
@@ -55,12 +55,14 @@ class PathTemplateSpec extends FunSuite {
     assertEquals(bindings.bindings("serviceClassName"), "WidgetRepository")
     assertEquals(bindings.bindings("smithyNamespaceDir"), "example/api")
     assertEquals(bindings.bindings("packageName"), "generated.example.api")
+    assertEquals(bindings.bindings("rootNamespaceDir"), "generated")
   }
 
   test("modelBindings populate model placeholders from conventions") {
     val bindings = PathTemplate.modelBindings(conventions, ModelId("example.api", "WidgetOutput"))
-    assertEquals(bindings.bindings("modelFileName"), "widget_output.py")
+    assertEquals(bindings.bindings("modelFileName"), "widget_output")
     assertEquals(bindings.bindings("modelClassName"), "WidgetOutput")
+    assertEquals(bindings.bindings("rootNamespaceDir"), "generated")
   }
 
   test("tagBinding snake_cases tag names") {

@@ -53,7 +53,7 @@ object PathTemplate {
         "serviceShapeId"     -> s"${serviceId.namespace}#${serviceId.name}",
         "serviceVersion"     -> serviceVersion,
         "packageName"        -> conventions.packageName(serviceId.namespace),
-        "rootNamespaceDir"   -> "",
+        "rootNamespaceDir"   -> conventions.rootNamespaceDir,
         "smithyNamespaceDir" -> namespaceDir
       )
     )
@@ -64,9 +64,10 @@ object PathTemplate {
       Map(
         "modelName"          -> modelId.name,
         "modelClassName"     -> conventions.className(modelId),
-        "modelFileName"      -> conventions.fileName(modelId),
+        "modelFileName"      -> conventions.memberName(modelId.name),
         "modelNamespace"     -> modelId.namespace,
         "modelShapeId"       -> s"${modelId.namespace}#${modelId.name}",
+        "rootNamespaceDir"   -> conventions.rootNamespaceDir,
         "smithyNamespaceDir" -> modelId.namespace.split('.').filter(_.nonEmpty).mkString("/")
       )
     )
@@ -76,7 +77,7 @@ object PathTemplate {
       Map(
         "operationName"      -> operationId.name,
         "operationClassName" -> conventions.className(operationId),
-        "operationFileName"  -> conventions.fileName(operationId),
+        "operationFileName"  -> conventions.memberName(operationId.name),
         "operationNamespace" -> operationId.namespace,
         "operationShapeId"   -> s"${operationId.namespace}#${operationId.name}"
       )

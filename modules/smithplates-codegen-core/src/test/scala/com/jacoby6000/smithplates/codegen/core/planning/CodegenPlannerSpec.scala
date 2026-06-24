@@ -119,6 +119,16 @@ class CodegenPlannerSpec extends FunSuite {
     )
   }
 
+  test("mergeOutputs errors on self override ids") {
+    val outputs = List(templateOutput("foo", SmithyBinding.Once, overrides = Some("foo")))
+    mergeOutputs(outputs) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(errors.head, SelfOutputOverride(OutputId("foo")))
+      case other                     =>
+        fail(s"Expected self override error, got $other")
+    }
+  }
+
   test("mergeOutputs errors on unknown override ids") {
     val outputs = List(templateOutput("custom", SmithyBinding.Once, overrides = Some("missing")))
     mergeOutputs(outputs) match {
@@ -211,7 +221,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.untagged_none",
           SmithyBinding.Operation(List(BindingFilterAtom.Untagged), BindingGroup.None),
-          outputPath = "ops/{{operationFileName}}"
+          outputPath = "ops/{{operationFileName}}.py"
         )
       )
 
@@ -289,7 +299,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.invalid",
           SmithyBinding.Operation(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}"
+          outputPath = "routes/{{operationFileName}}.py"
         )
       )
 
@@ -398,7 +408,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.subject",
           SmithyBinding.Operation(Nil, BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}"
+          outputPath = "routes/{{operationFileName}}.py"
         )
       )
 
@@ -491,7 +501,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "operation.routes",
           SmithyBinding.Operation(Nil, BindingGroup.None),
-          outputPath = "routes/{{operationFileName}}"
+          outputPath = "routes/{{operationFileName}}.py"
         )
       )
 
@@ -550,7 +560,7 @@ class CodegenPlannerSpec extends FunSuite {
         templateOutput(
           "model.structure",
           SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
-          outputPath = "models/{{modelFileName}}"
+          outputPath = "models/{{modelFileName}}.py"
         )
       )
 
@@ -631,6 +641,301 @@ class CodegenPlannerSpec extends FunSuite {
         )
       case other                     =>
         fail(s"Expected path collision error, got $other")
+    }
+  }
+
+  test("plan errors on unresolved path placeholders") {
+    val outputs =
+      List(
+        templateOutput(
+          "broken.placeholder",
+          SmithyBinding.Once,
+          outputPath = "apis/{{tagName}}_api.py"
+        )
+      )
+
+    CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(errors.head, UnresolvedPathPlaceholder("{{tagName}}"))
+      case other                     =>
+        fail(s"Expected unresolved placeholder error, got $other")
+    }
+  }
+
+  test("plan expands Model Tag grouping with namespace path bindings") {
+    val taggedWidget =
+      Model.Structure(ModelId("example", "TaggedWidget"), meta(tags = List("alpha")), Nil)
+    val taggedModels = ModelSet[Unit](List(taggedWidget))
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.tagged.namespace",
+          SmithyBinding.Model(Nil, BindingGroup.Tag),
+          outputPath = "{{smithyNamespaceDir}}/groups/{{tagName}}.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner.plan(outputs, taggedModels, List(service), settings, templateRenderer).map(_.map(_.relativePath)),
+      CodegenValidated.valid(List("src/example/groups/alpha.py"))
+    )
+  }
+
+  test("plan errors when Model None fan-out collides on a constant path") {
+    val outputs =
+      List(
+        templateOutput(
+          "model.collision",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
+          outputPath = "models/shared.py"
+        )
+      )
+
+    CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.head,
+          DuplicateResolvedOutputPath("src/models/shared.py", NonEmptyList.one(OutputId("model.collision")))
+        )
+      case other                     =>
+        fail(s"Expected path collision error, got $other")
+    }
+  }
+
+  test("plan expands Service binding for each service in the model set") {
+    val otherService =
+      ServiceModel(
+        ModelId("example", "OtherService"),
+        ServiceMeta(None, Nil, ()),
+        List(untaggedOp)
+      )
+    val outputs      =
+      List(
+        templateOutput("service.multi", SmithyBinding.Service, outputPath = "{{serviceFileName}}.py")
+      )
+
+    assertEquals(
+      CodegenPlanner
+        .plan(outputs, models, List(service, otherService), settings, templateRenderer)
+        .map(_.map(_.relativePath).sorted),
+      CodegenValidated.valid(List("src/other_service.py", "src/widget_service.py"))
+    )
+  }
+
+  test("plan expands Operation All grouping once per service") {
+    val otherService =
+      ServiceModel(
+        ModelId("example", "OtherService"),
+        ServiceMeta(None, Nil, ()),
+        List(untaggedOp)
+      )
+    val outputs      =
+      List(
+        templateOutput(
+          "operation.all.multi",
+          SmithyBinding.Operation(Nil, BindingGroup.All),
+          outputPath = "{{serviceFileName}}/all.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner
+        .plan(outputs, models, List(service, otherService), settings, templateRenderer)
+        .map(_.map(_.relativePath).sorted),
+      CodegenValidated.valid(List("src/other_service/all.py", "src/widget_service/all.py"))
+    )
+  }
+
+  test("plan copies static outputs when no services are present") {
+    val outputs =
+      List(
+        CodegenOutput.CodegenStaticOutput(
+          id = OutputId("static.no_service"),
+          kind = ArtifactKind.Src,
+          filePath = "static/init.py",
+          copyToPath = "bootstrap/__init__.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner.plan(outputs, models, Nil, settings, templateRenderer),
+      CodegenValidated.valid(
+        List(
+          ResolvedArtifact(
+            relativePath = "src/bootstrap/__init__.py",
+            content = "# static",
+            kind = ArtifactKind.Src
+          )
+        )
+      )
+    )
+  }
+
+  test("plan expands Model kind filters for Union Enum and Alias") {
+    val unionModel =
+      Model.Union(ModelId("example", "Event"), meta(), List(Variant("payload", StringT)))
+    val enumModel  =
+      Model.EnumModel(
+        ModelId("example", "Color"),
+        meta(),
+        StringT,
+        List(EnumValue("Red", PrimitiveLiteral.StringValue("red")))
+      )
+    val aliasModel = Model.Alias(ModelId("example", "Uuid"), meta(), StringT)
+    val kindModels = ModelSet[Unit](List(unionModel, enumModel, aliasModel))
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.union",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Union)), BindingGroup.None),
+          outputPath = "unions/{{modelFileName}}.py"
+        ),
+        templateOutput(
+          "model.enum",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Enum)), BindingGroup.None),
+          outputPath = "enums/{{modelFileName}}.py"
+        ),
+        templateOutput(
+          "model.alias",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Alias)), BindingGroup.None),
+          outputPath = "aliases/{{modelFileName}}.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner
+        .plan(outputs, kindModels, List(service), settings, templateRenderer)
+        .map(_.map(_.relativePath).sorted),
+      CodegenValidated.valid(
+        List("src/aliases/uuid.py", "src/enums/color.py", "src/unions/event.py")
+      )
+    )
+  }
+
+  test("plan expands Model Tagged and Untagged filters") {
+    val taggedOnly   =
+      Model.Structure(ModelId("example", "TaggedOnly"), meta(tags = List("alpha")), Nil)
+    val untaggedOnly = Model.Structure(ModelId("example", "UntaggedOnly"), meta(), Nil)
+    val filterModels = ModelSet[Unit](List(taggedOnly, untaggedOnly))
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.tagged_filter",
+          SmithyBinding.Model(List(BindingFilterAtom.Tagged), BindingGroup.None),
+          outputPath = "tagged/{{modelFileName}}.py"
+        ),
+        templateOutput(
+          "model.untagged_filter",
+          SmithyBinding.Model(List(BindingFilterAtom.Untagged), BindingGroup.None),
+          outputPath = "untagged/{{modelFileName}}.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner
+        .plan(outputs, filterModels, List(service), settings, templateRenderer)
+        .map(_.map(_.relativePath).sorted),
+      CodegenValidated.valid(List("src/tagged/tagged_only.py", "src/untagged/untagged_only.py"))
+    )
+  }
+
+  test("plan expands Operation Tagged All grouping to one artifact per service") {
+    val outputs =
+      List(
+        templateOutput(
+          "operation.tagged_all",
+          SmithyBinding.Operation(List(BindingFilterAtom.Tagged), BindingGroup.All),
+          outputPath = "routes/tagged.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer).map(_.map(_.relativePath)),
+      CodegenValidated.valid(List("src/routes/tagged.py"))
+    )
+  }
+
+  test("plan emits no artifacts for Model Tag grouping when matches are untagged") {
+    val outputs =
+      List(
+        templateOutput(
+          "model.untagged_tag",
+          SmithyBinding.Model(List(BindingFilterAtom.Untagged), BindingGroup.Tag),
+          outputPath = "groups/{{tagName}}.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer),
+      CodegenValidated.valid(Nil)
+    )
+  }
+
+  test("mergeOutputs removes chained override targets") {
+    val outputs =
+      List(
+        templateOutput("bundled.a", SmithyBinding.Once),
+        templateOutput("bundled.b", SmithyBinding.Once, overrides = Some("bundled.a")),
+        templateOutput("custom", SmithyBinding.Once, overrides = Some("bundled.b"))
+      )
+
+    assertEquals(
+      mergeOutputs(outputs),
+      CodegenValidated.valid(List(templateOutput("custom", SmithyBinding.Once, overrides = Some("bundled.b"))))
+    )
+  }
+
+  test("plan reports only the first path collision") {
+    val outputs =
+      List(
+        templateOutput("collision.a", SmithyBinding.Once, outputPath = "first.py"),
+        templateOutput("collision.b", SmithyBinding.Once, outputPath = "second.py"),
+        templateOutput("collision.c", SmithyBinding.Once, outputPath = "first.py"),
+        templateOutput("collision.d", SmithyBinding.Once, outputPath = "second.py")
+      )
+
+    CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(errors.size, 1)
+        errors.head match {
+          case DuplicateResolvedOutputPath(path, outputIds) =>
+            val ids = outputIds.toList.map(_.value).sorted
+            assert(path == "src/first.py" || path == "src/second.py")
+            assert(
+              ids == List("collision.a", "collision.c") || ids == List("collision.b", "collision.d")
+            )
+          case other                                        =>
+            fail(s"Expected DuplicateResolvedOutputPath, got $other")
+        }
+      case other                     =>
+        fail(s"Expected path collision error, got $other")
+    }
+  }
+
+  test("plan resolves usedTypes for model subjects") {
+    val outputs =
+      List(
+        templateOutput(
+          "model.subject",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
+          outputPath = "models/{{modelFileName}}.py"
+        )
+      )
+
+    val result = CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer)
+
+    result match {
+      case Validated.Valid(artifacts) =>
+        val widgetInput =
+          artifacts.find(_.relativePath == "src/models/widget_input.py").getOrElse {
+            fail("Expected widget_input artifact")
+          }
+        assert(widgetInput.content.contains("WidgetInput"))
+      case other                      =>
+        fail(s"Expected valid plan, got $other")
     }
   }
 }
