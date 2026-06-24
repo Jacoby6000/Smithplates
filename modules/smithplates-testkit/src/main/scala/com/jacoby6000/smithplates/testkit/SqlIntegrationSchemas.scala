@@ -8,6 +8,7 @@ object SqlIntegrationSchemas {
   val Namespace: String = "smithplates.codegen.sql.it"
 
   lazy val simpleSchema: SqlSchema       = internal.extractSchema(internal.simpleModel)
+  lazy val simpleServiceModel: Model     = internal.simpleServiceModel
   lazy val varcharCheckSchema: SqlSchema = internal.extractSchema(internal.varcharCheckModel)
   lazy val complexSchema: SqlSchema      = internal.extractSchema(internal.complexModel)
 
@@ -28,12 +29,42 @@ object SqlIntegrationSchemas {
         |use smithplates.codegen.sql#sqlVarchar
         |""".stripMargin
 
+    val simpleSmithySource: String =
+      s"""$$version: "2.0"
+         |namespace $Namespace
+         |
+         |$traitUses
+         |
+         |@sqlTable(name: "categories")
+         |structure Category {
+         |    @sqlPrimaryKey
+         |    id: String
+         |    name: String
+         |}
+         |
+         |@sqlTable(name: "items")
+         |structure Item {
+         |    @sqlPrimaryKey
+         |    id: String
+         |    @sqlForeignKey(references: "$Namespace#Category")
+         |    category_id: String
+         |    @sqlVarchar(maxLength: 64)
+         |    name: String
+         |}
+         |""".stripMargin
+
     lazy val simpleModel: Model =
+      SqlItModelLoader.assemble(
+        "simple.smithy" -> simpleSmithySource
+      )
+
+    lazy val simpleServiceModel: Model =
       SqlItModelLoader.assemble(
         "simple.smithy" ->
           s"""$$version: "2.0"
              |namespace $Namespace
              |
+             |use smithplates.codegen.sql#sqlService
              |$traitUses
              |
              |@sqlTable(name: "categories")
@@ -51,6 +82,17 @@ object SqlIntegrationSchemas {
              |    category_id: String
              |    @sqlVarchar(maxLength: 64)
              |    name: String
+             |}
+             |
+             |operation ListItems {
+             |    input: Unit
+             |    output: Unit
+             |}
+             |
+             |@sqlService
+             |service CatalogRepository {
+             |    version: "1"
+             |    operations: [ListItems]
              |}
              |""".stripMargin
       )

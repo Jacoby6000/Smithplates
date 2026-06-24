@@ -125,7 +125,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
       val structureIds =
         allRootIds.flatMap(SqlShapeGraph.referencedStructureIds(model, _)).distinct
       val unionIds     = SqlShapeGraph.referencedUnionIds(model, allRootIds).distinct
-      val aliasIds     = collectAliasShapeIds(model, structureIds)
+      val aliasIds     = SmithyAliasClosure.aliasShapeIds(model, structureIds)
 
       (
         aliasIds.traverse(shapeId => extractAlias(model, shapeId)),
@@ -169,27 +169,6 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         .filter(_ != SmithyPrelude.UnitShapeId)
         .filter(_ != SqlQueryExtractor.DerivedStructShapeId)
         .map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId)))
-
-    def collectAliasShapeIds(model: SmithyModel, rootShapeIds: List[ShapeId]): List[ShapeId] =
-      rootShapeIds
-        .flatMap(referencedMemberTargets(model, _))
-        .filter { shapeId =>
-          val shape = model.expectShape(shapeId)
-          shape.isStringShape &&
-          !shape.isEnumShape &&
-          !SmithyPrelude.isPreludeShape(shapeId)
-        }
-        .distinct
-
-    def referencedMemberTargets(model: SmithyModel, shapeId: ShapeId): List[ShapeId] =
-      model.getShape(shapeId).toScala.toList.flatMap {
-        case shape if shape.isStructureShape =>
-          shape.asStructureShape.get().getAllMembers.asScala.values.toList.map(_.getTarget)
-        case shape if shape.isUnionShape     =>
-          shape.asUnionShape.get().getAllMembers.asScala.values.toList.map(_.getTarget)
-        case _                               =>
-          Nil
-      }
 
     def extractStructure(
         model: SmithyModel,

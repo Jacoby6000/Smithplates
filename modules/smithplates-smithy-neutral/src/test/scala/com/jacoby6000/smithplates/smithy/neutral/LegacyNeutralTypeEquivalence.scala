@@ -63,6 +63,8 @@ object LegacyNeutralTypeEquivalence extends Assertions {
   ): Unit = {
     assertEquals(isOptional(coreType), legacyOptional, s"type name mismatch for optional flag on $legacyTypeName")
     unwrapOptional(coreType) match {
+      case ModelRef(id) if legacyTypeName == id.name  =>
+        ()
       case ModelRef(id) if legacyTypeName == "String" =>
         aliases.find(_.id == id).getOrElse(fail(s"expected string alias for ${id.name}")) match {
           case alias if alias.underlying == StringT => ()

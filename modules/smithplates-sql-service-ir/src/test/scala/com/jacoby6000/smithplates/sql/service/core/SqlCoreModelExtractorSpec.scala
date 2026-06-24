@@ -3,6 +3,7 @@ package com.jacoby6000.smithplates.sql.service.core
 import com.jacoby6000.smithplates.codegen.core.*
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.smithy.neutral.LegacyNeutralTypeEquivalence
+import com.jacoby6000.smithplates.smithy.neutral.ModelSetClosureAssertions
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.service.SqlServiceExtractorSpec
 import munit.FunSuite
@@ -70,6 +71,8 @@ class SqlCoreModelExtractorSpec extends FunSuite {
           val operation = services.head.operations.head
           assertEquals(operation.input, Some(ModelRef(input.id)))
           assertEquals(operation.output.map(_.id.name), Some("GetItemOutput"))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
   }
@@ -289,6 +292,199 @@ class SqlCoreModelExtractorSpec extends FunSuite {
 
           val getItem = services.head.operations.head
           assertEquals(getItem.errors.map(_.id.name), List("ItemNotFound"))
+          assert(modelSet.structures.exists(_.id.name == "ItemNotFound"))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction closes aliases referenced only through list members") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlService
+        |
+        |string Tag
+        |
+        |list Tags {
+        |    member: Tag
+        |}
+        |
+        |structure PostPayload {
+        |    @required
+        |    tags: Tags
+        |}
+        |
+        |operation ListPosts {
+        |    input: Unit
+        |    output: PostPayload
+        |}
+        |
+        |@sqlService
+        |service PostRepository {
+        |    version: "1"
+        |    operations: [ListPosts]
+        |}
+        |""".stripMargin
+    )
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val tagAlias = modelSet.aliases.find(_.id.name == "Tag").getOrElse {
+            fail("expected Tag alias in model set closure")
+          }
+          assertEquals(tagAlias.underlying, StringT)
+
+          val payload = modelSet.structures.find(_.id.name == "PostPayload").getOrElse {
+            fail("expected PostPayload structure")
+          }
+          assertEquals(payload.fields.find(_.name == "tags").map(_.tpe), Some(ListT(ModelRef(tagAlias.id))))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction closes integer primitive aliases") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |
+        |integer Count
+        |
+        |@sqlTable(name: "metrics")
+        |structure Metric {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    total: Count
+        |}
+        |
+        |operation ListMetrics {
+        |    input: Unit
+        |    output: Unit
+        |}
+        |
+        |@sqlService
+        |service MetricRepository {
+        |    version: "1"
+        |    operations: [ListMetrics]
+        |}
+        |""".stripMargin
+    )
+
+    val legacyShapes =
+      SqlShapeIrExtractor
+        .extract(model, List(ShapeId.from("example#Metric")))
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val countAlias = modelSet.aliases.find(_.id.name == "Count").getOrElse {
+            fail("expected Count alias in model set closure")
+          }
+          assertEquals(countAlias.underlying, IntegerT)
+
+          val metric = modelSet.structures.find(_.id.name == "Metric").getOrElse {
+            fail("expected Metric table structure")
+          }
+          assertEquals(
+            metric.fields.find(_.name == "total").map(_.tpe),
+            Some(OptionalT(ModelRef(countAlias.id)))
+          )
+
+          val legacyMetric = legacyShapes.structures.find(_.name == "Metric").getOrElse {
+            fail("expected legacy Metric structure")
+          }
+          val legacyTotal  = legacyMetric.members.find(_.name == "total").getOrElse {
+            fail("expected legacy total member")
+          }
+          LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
+            legacyTypeName = legacyTotal.typeName,
+            legacyOptional = legacyTotal.optional,
+            coreType = metric.fields.find(_.name == "total").get.tpe,
+            aliases = modelSet.aliases
+          )
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction matches legacy SqlShapeIrExtractor for integration-style schema tables") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlForeignKey
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |use smithplates.codegen.sql#sqlVarchar
+        |
+        |@sqlTable(name: "categories")
+        |structure Category {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlTable(name: "items")
+        |structure Item {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    @sqlForeignKey(references: "example#Category")
+        |    category_id: String
+        |    @sqlVarchar(maxLength: 64)
+        |    name: String
+        |}
+        |
+        |operation ListItems {
+        |    input: Unit
+        |    output: Unit
+        |}
+        |
+        |@sqlService
+        |service CatalogRepository {
+        |    version: "1"
+        |    operations: [ListItems]
+        |}
+        |""".stripMargin
+    )
+
+    val legacyShapes =
+      SqlShapeIrExtractor
+        .extract(
+          model,
+          List(ShapeId.from("example#Category"), ShapeId.from("example#Item"))
+        )
+        .fold(errors => fail(errors.toList.map(_.message).mkString("; ")), identity)
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          legacyShapes.structures.foreach { legacyStructure =>
+            val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
+              fail(s"expected core structure ${legacyStructure.name}")
+            }
+            legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
+              LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
+                legacyTypeName = legacyMember.typeName,
+                legacyOptional = legacyMember.optional,
+                coreType = coreField.tpe,
+                aliases = modelSet.aliases
+              )
+            }
+          }
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
   }
@@ -332,16 +528,17 @@ class SqlCoreModelExtractorSpec extends FunSuite {
       .extractAndValidate(model)
       .fold(
         errors => fail(errors.toList.map(_.message).mkString("; ")),
-        { case (modelSet, _) =>
+        { case (modelSet, services) =>
           legacyShapes.structures.foreach { legacyStructure =>
             val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
               fail(s"expected core structure ${legacyStructure.name}")
             }
             legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
-              LegacyNeutralTypeEquivalence.assertEquivalent(
+              LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
                 legacyTypeName = legacyMember.typeName,
                 legacyOptional = legacyMember.optional,
-                coreType = coreField.tpe
+                coreType = coreField.tpe,
+                aliases = modelSet.aliases
               )
             }
           }
@@ -358,6 +555,7 @@ class SqlCoreModelExtractorSpec extends FunSuite {
               )
             }
           }
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
   }

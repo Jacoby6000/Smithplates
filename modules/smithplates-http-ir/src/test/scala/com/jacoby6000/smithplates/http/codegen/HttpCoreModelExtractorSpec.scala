@@ -5,7 +5,11 @@ import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.http.*
 import com.jacoby6000.smithplates.http.model.*
 import com.jacoby6000.smithplates.smithy.neutral.LegacyNeutralTypeEquivalence
+import com.jacoby6000.smithplates.smithy.neutral.ModelSetClosureAssertions
 import munit.FunSuite
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 class HttpCoreModelExtractorSpec extends FunSuite {
   test("HttpCoreModelExtractor produces structures with NeutralType members and alias closure") {
@@ -36,6 +40,8 @@ class HttpCoreModelExtractorSpec extends FunSuite {
             operation.meta.feature,
             HttpOperationMeta(method = "GET", uriPattern = "/v1/widgets/{id}", successStatus = 200)
           )
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
   }
@@ -201,6 +207,11 @@ class HttpCoreModelExtractorSpec extends FunSuite {
         }
         assertEquals(coreError.meta.feature, HttpMeta.HttpResponseMeta(statusCode = legacyError.statusCode))
       }
+
+      val getWidget404 = modelSet.structures.find(_.id.name == "GetWidget404").getOrElse {
+        fail("expected GetWidget404 operation error structure")
+      }
+      assertEquals(getWidget404.meta.feature, HttpMeta.HttpResponseMeta(statusCode = 404))
     }
 
     HttpCoreModelExtractor
@@ -220,8 +231,88 @@ class HttpCoreModelExtractorSpec extends FunSuite {
             getWidget.errors.map(_.id.name),
             List("GetWidget404")
           )
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
+  }
+
+  test("core extraction closes aliases referenced only through list members") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@pattern("^[a-z0-9-]+$")
+          |string Tag
+          |
+          |list Tags {
+          |    member: Tag
+          |}
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [ListWidgets]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |operation ListWidgets {
+          |    input: Unit
+          |    output: WidgetListOutput
+          |}
+          |
+          |structure WidgetListOutput {
+          |    @required
+          |    tags: Tags
+          |}
+          |""".stripMargin
+    )
+
+    HttpCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val tagAlias = modelSet.aliases.find(_.id.name == "Tag").getOrElse {
+            fail("expected Tag alias in model set closure")
+          }
+          assertEquals(tagAlias.underlying, StringT)
+
+          val output = modelSet.structures.find(_.id.name == "WidgetListOutput").getOrElse {
+            fail("expected WidgetListOutput structure")
+          }
+          assertEquals(output.fields.head.tpe, ListT(ModelRef(tagAlias.id)))
+
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
+  test("core extraction matches legacy IR for golden operation-errors fixture") {
+    val smithySource =
+      Files.readString(
+        Paths
+          .get(sys.props.getOrElse("user.dir", "."))
+          .resolve("templates/python/tests/http-fastapi-operation-errors-api/smithy/smithy-files.smithy")
+      )
+    val model        = HttpTestModelLoader.assemble("golden.smithy" -> smithySource)
+
+    assertLegacyParity(model) { (legacyService, modelSet) =>
+      legacyService.structures.foreach { legacyStructure =>
+        CoreLegacyParity.assertStructureEquivalent(legacyStructure, modelSet)
+      }
+
+      val getWidget404 = modelSet.structures.find(_.id.name == "GetWidget404").getOrElse {
+        fail("expected GetWidget404 in golden fixture model set")
+      }
+      assertEquals(getWidget404.meta.feature, HttpMeta.HttpResponseMeta(statusCode = 404))
+    }
   }
 
   test("extract propagates HttpServiceExtractor failures as InvalidSmithyShape") {
@@ -371,8 +462,9 @@ class HttpCoreModelExtractorSpec extends FunSuite {
       .extractAndValidate(model)
       .fold(
         errors => fail(errors.toList.map(_.message).mkString("; ")),
-        { case (modelSet, _) =>
+        { case (modelSet, services) =>
           assertions(legacyService, modelSet)
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )
   }

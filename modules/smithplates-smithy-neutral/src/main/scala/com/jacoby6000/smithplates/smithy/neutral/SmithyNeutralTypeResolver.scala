@@ -82,8 +82,15 @@ object SmithyNeutralTypeResolver {
     } else if ((shape.isStructureShape || shape.isEnumShape || shape.isIntEnumShape || shape.isUnionShape) &&
       !SmithyPrelude.isPreludeShape(shapeId)) {
       CodegenValidated.valid(ModelRef(ModelIds.fromShapeId(shapeId)))
-    } else {
+    } else if (SmithyPrelude.isUserDefinedAliasShape(shape)) {
+      CodegenValidated.valid(ModelRef(ModelIds.fromShapeId(shapeId)))
+    } else if (SmithyPrelude.isPreludeShape(shapeId)) {
       CodegenValidated.valid(primitiveType(shapeId))
+    } else {
+      InvalidSmithyShape(
+        ModelIds.fromShapeId(shapeId),
+        "expected a structure, union, enum, or primitive alias shape"
+      ).invalidNel
     }
   }
 
@@ -103,15 +110,13 @@ object SmithyNeutralTypeResolver {
 
   def aliasUnderlying(model: Model, shapeId: ShapeId): CodegenValidated[NeutralType] = {
     val shape = model.expectShape(shapeId)
-    if (shape.isStringShape && !shape.isEnumShape) {
-      CodegenValidated.valid(StringT)
-    } else if (SmithyPrelude.isPrimitiveShapeId(shapeId)) {
-      CodegenValidated.valid(primitiveType(shapeId))
-    } else {
-      InvalidSmithyShape(
-        ModelIds.fromShapeId(shapeId),
-        "expected a string or primitive alias target"
-      ).invalidNel
+    SmithyPrelude.userDefinedAliasUnderlying(shape) match {
+      case Some(underlying) => CodegenValidated.valid(underlying)
+      case None             =>
+        InvalidSmithyShape(
+          ModelIds.fromShapeId(shapeId),
+          "expected a string or primitive alias target"
+        ).invalidNel
     }
   }
 
@@ -129,7 +134,8 @@ object SmithyNeutralTypeResolver {
       case "Timestamp"  => TimestampT(TimestampFormat.DateTime)
       case "Document"   => DocumentT
       case "Unit"       => StringT
-      case _            => StringT
+      case other        =>
+        throw new IllegalStateException(s"unexpected prelude primitive shape: $other")
     }
 }
 

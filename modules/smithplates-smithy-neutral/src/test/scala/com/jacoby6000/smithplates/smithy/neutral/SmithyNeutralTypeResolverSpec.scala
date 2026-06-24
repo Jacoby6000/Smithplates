@@ -298,7 +298,7 @@ class SmithyNeutralTypeResolverSpec extends FunSuite {
     )
   }
 
-  test("aliasUnderlying rejects user integer shapes") {
+  test("aliasUnderlying resolves user integer shapes") {
     val model = SmithyTestModels.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -308,12 +308,32 @@ class SmithyNeutralTypeResolverSpec extends FunSuite {
           |""".stripMargin
     )
 
-    SmithyNeutralTypeResolver.aliasUnderlying(model, ShapeId.from("example#Count")) match {
-      case Validated.Invalid(errors) =>
-        assert(errors.head.isInstanceOf[InvalidSmithyShape])
-      case Validated.Valid(_)        =>
-        fail("expected user integer shape to be rejected by aliasUnderlying")
-    }
+    assertEquals(
+      SmithyNeutralTypeResolver.aliasUnderlying(model, ShapeId.from("example#Count")),
+      Validated.validNel(IntegerT)
+    )
+  }
+
+  test("resolveShapeType maps user integer shapes to ModelRef") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |integer Count
+          |
+          |structure Payload {
+          |    @required
+          |    total: Count
+          |}
+          |""".stripMargin
+    )
+
+    val countShape = model.expectShape(ShapeId.from("example#Count"))
+    assertEquals(
+      SmithyNeutralTypeResolver.resolveShapeType(model, countShape),
+      Validated.validNel(ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Count"))))
+    )
   }
 
   test("aliasUnderlying rejects non-primitive alias targets") {
