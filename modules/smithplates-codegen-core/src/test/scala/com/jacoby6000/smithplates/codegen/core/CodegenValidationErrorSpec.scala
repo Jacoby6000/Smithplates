@@ -49,4 +49,11 @@ class CodegenValidationErrorSpec extends FunSuite {
       "Invalid metadata for service ns#Example: version required"
     )
   }
+
+  test("InvalidSmithyShape message includes shape id and reason") {
+    assertEquals(
+      InvalidSmithyShape(ModelId("example", "Payload"), "expected a structure shape").message,
+      "Invalid Smithy shape example#Payload: expected a structure shape"
+    )
+  }
 }

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.smithy.neutral
 
 import cats.data.Validated
+import com.jacoby6000.smithplates.codegen.core.InvalidSmithyShape
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.codegen.core.TimestampFormat
 import munit.FunSuite
@@ -17,11 +18,24 @@ class SmithyNeutralTypeResolverSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val stringShape = model.expectShape(ShapeId.from("smithy.api#String"))
-    assertEquals(
-      SmithyNeutralTypeResolver.resolveShapeType(model, stringShape),
-      Validated.validNel(StringT)
+    val expected = List(
+      ShapeId.from("smithy.api#String")    -> StringT,
+      ShapeId.from("smithy.api#Integer")   -> IntegerT,
+      ShapeId.from("smithy.api#Long")      -> LongT,
+      ShapeId.from("smithy.api#Boolean")   -> BooleanT,
+      ShapeId.from("smithy.api#Blob")      -> BytesT,
+      ShapeId.from("smithy.api#Document")  -> DocumentT,
+      ShapeId.from("smithy.api#Timestamp") -> TimestampT(TimestampFormat.DateTime)
     )
+
+    expected.foreach { case (shapeId, neutralType) =>
+      val shape = model.expectShape(shapeId)
+      assertEquals(
+        SmithyNeutralTypeResolver.resolveShapeType(model, shape),
+        Validated.validNel(neutralType),
+        s"prelude primitive ${shapeId.getName}"
+      )
+    }
   }
 
   test("resolveShapeType maps user string shapes to ModelRef") {
@@ -206,6 +220,175 @@ class SmithyNeutralTypeResolverSpec extends FunSuite {
     )
   }
 
+  test("resolveShapeType maps map shapes to MapT(StringT, valueType)") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |map StringMap {
+          |    key: String
+          |    value: Integer
+          |}
+          |""".stripMargin
+    )
+
+    val mapShape = model.expectShape(ShapeId.from("example#StringMap"))
+    assertEquals(
+      SmithyNeutralTypeResolver.resolveShapeType(model, mapShape),
+      Validated.validNel(MapT(StringT, IntegerT))
+    )
+  }
+
+  test("resolveShapeType maps aggregate shapes to ModelRef") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |enum Status {
+          |    OPEN = "open"
+          |}
+          |
+          |intEnum Priority {
+          |    LOW = 1
+          |}
+          |
+          |structure Payload {
+          |    status: Status
+          |    priority: Priority
+          |}
+          |
+          |union Event {
+          |    opened: Payload
+          |}
+          |""".stripMargin
+    )
+
+    val refs = List(
+      "example#Payload"  -> ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Payload"))),
+      "example#Status"   -> ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Status"))),
+      "example#Priority" -> ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Priority"))),
+      "example#Event"    -> ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Event")))
+    )
+
+    refs.foreach { case (shapeId, expected) =>
+      val shape = model.expectShape(ShapeId.from(shapeId))
+      assertEquals(
+        SmithyNeutralTypeResolver.resolveShapeType(model, shape),
+        Validated.validNel(expected),
+        shapeId
+      )
+    }
+  }
+
+  test("aliasUnderlying resolves string aliases") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |string WidgetId
+          |""".stripMargin
+    )
+
+    assertEquals(
+      SmithyNeutralTypeResolver.aliasUnderlying(model, ShapeId.from("example#WidgetId")),
+      Validated.validNel(StringT)
+    )
+  }
+
+  test("aliasUnderlying rejects user integer shapes") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |integer Count
+          |""".stripMargin
+    )
+
+    SmithyNeutralTypeResolver.aliasUnderlying(model, ShapeId.from("example#Count")) match {
+      case Validated.Invalid(errors) =>
+        assert(errors.head.isInstanceOf[InvalidSmithyShape])
+      case Validated.Valid(_)        =>
+        fail("expected user integer shape to be rejected by aliasUnderlying")
+    }
+  }
+
+  test("aliasUnderlying rejects non-primitive alias targets") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |structure Payload {
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    SmithyNeutralTypeResolver.aliasUnderlying(model, ShapeId.from("example#Payload")) match {
+      case Validated.Invalid(errors) =>
+        assert(errors.head.isInstanceOf[InvalidSmithyShape])
+      case Validated.Valid(_)        =>
+        fail("expected invalid alias underlying")
+    }
+  }
+
+  test("resolveMemberType keeps union members required without RequiredTrait") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |structure Payload {
+          |    id: String
+          |}
+          |
+          |union Event {
+          |    opened: Payload
+          |}
+          |""".stripMargin
+    )
+
+    val member = memberShape(model, "example#Event", "opened")
+    assertEquals(
+      SmithyNeutralTypeResolver.resolveMemberType(
+        model,
+        member,
+        _ => false,
+        SmithyTimestampFormats.defaultFormat,
+        SmithyNeutralTypeResolver.MemberContext(
+          shapeId = ShapeId.from("example#Event"),
+          memberName = "opened",
+          role = "union"
+        )
+      ),
+      Validated.validNel(ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Payload"))))
+    )
+  }
+
+  test("resolveShapeType maps string enums to ModelRef not StringT") {
+    val model = SmithyTestModels.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |enum Status {
+          |    OPEN = "open"
+          |}
+          |""".stripMargin
+    )
+
+    val enumShape = model.expectShape(ShapeId.from("example#Status"))
+    assert(enumShape.isEnumShape)
+    assertEquals(
+      SmithyNeutralTypeResolver.resolveShapeType(model, enumShape),
+      Validated.validNel(ModelRef(ModelIds.fromShapeId(ShapeId.from("example#Status"))))
+    )
+  }
+
   test("SmithyTimestampFormats maps http-date to DateTime") {
     val model = SmithyTestModels.assemble(
       "example.smithy" ->
@@ -228,15 +411,16 @@ class SmithyNeutralTypeResolverSpec extends FunSuite {
 
   private def memberShape(
       model: software.amazon.smithy.model.Model,
-      structureId: String,
+      containerId: String,
       memberName: String
-  ): software.amazon.smithy.model.shapes.MemberShape =
-    model
-      .expectShape(ShapeId.from(structureId))
-      .asStructureShape
-      .get()
-      .getMember(memberName)
-      .get()
+  ): software.amazon.smithy.model.shapes.MemberShape = {
+    val shape = model.expectShape(ShapeId.from(containerId))
+    if (shape.isUnionShape) {
+      shape.asUnionShape.get().getMember(memberName).get()
+    } else {
+      shape.asStructureShape.get().getMember(memberName).get()
+    }
+  }
 }
 
 /** Minimal Smithy model loader for smithy-neutral unit tests. */

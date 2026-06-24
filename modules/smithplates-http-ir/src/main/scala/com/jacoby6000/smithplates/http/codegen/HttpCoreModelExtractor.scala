@@ -116,6 +116,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           httpService.intEnums.map(_.shapeId) ++
           httpService.serviceErrors.map(_.shapeId)
 
+      val serviceErrorShapeIds = httpService.serviceErrors.map(_.shapeId).toSet
+
       val aliasIds = collectAliasShapeIds(model, rootShapeIds)
 
       val operationShapeIds =
@@ -128,11 +130,14 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           .distinct
 
       val existingStructureIds = httpService.structures.map(_.shapeId).toSet
-      val extraStructureIds    = operationShapeIds.filterNot(existingStructureIds.contains)
+      val extraStructureIds    =
+        operationShapeIds.filterNot(existingStructureIds.contains).filterNot(serviceErrorShapeIds.contains)
 
       (
         aliasIds.traverse(shapeId => extractAlias(model, shapeId)),
-        httpService.structures.traverse(structure => extractStructure(model, httpService.shapeId, structure.shapeId)),
+        httpService.structures
+          .filterNot(structure => serviceErrorShapeIds.contains(structure.shapeId))
+          .traverse(structure => extractStructure(model, httpService.shapeId, structure.shapeId)),
         extraStructureIds.traverse(shapeId => extractStructure(model, httpService.shapeId, shapeId)),
         httpService.unions.traverse(union => extractUnion(model, httpService.shapeId, union.shapeId)),
         httpService.stringEnums.traverse(stringEnum => extractStringEnum(model, stringEnum.shapeId)),
@@ -151,7 +156,9 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         .flatMap(referencedMemberTargets(model, _))
         .filter { shapeId =>
           val shape = model.expectShape(shapeId)
-          shape.isStringShape && !SmithyPrelude.isPreludeShape(shapeId)
+          shape.isStringShape &&
+          !shape.isEnumShape &&
+          !SmithyPrelude.isPreludeShape(shapeId)
         }
         .distinct
 

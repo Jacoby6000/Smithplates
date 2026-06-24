@@ -175,7 +175,9 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         .flatMap(referencedMemberTargets(model, _))
         .filter { shapeId =>
           val shape = model.expectShape(shapeId)
-          shape.isStringShape && !SmithyPrelude.isPreludeShape(shapeId)
+          shape.isStringShape &&
+          !shape.isEnumShape &&
+          !SmithyPrelude.isPreludeShape(shapeId)
         }
         .distinct
 

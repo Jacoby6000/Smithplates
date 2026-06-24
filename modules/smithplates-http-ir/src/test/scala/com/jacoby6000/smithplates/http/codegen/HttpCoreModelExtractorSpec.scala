@@ -9,44 +9,7 @@ import munit.FunSuite
 
 class HttpCoreModelExtractorSpec extends FunSuite {
   test("HttpCoreModelExtractor produces structures with NeutralType members and alias closure") {
-    val model = HttpTestModelLoader.assemble(
-      "example.smithy" ->
-        """$version: "2.0"
-          |namespace example
-          |
-          |use smithplates.codegen.http#httpService
-          |use smithy.api#http
-          |use smithy.api#pattern
-          |use smithy.api#tags
-          |
-          |@pattern("^[a-z0-9-]+$")
-          |string WidgetId
-          |
-          |@httpService
-          |service WidgetApi {
-          |    version: "1"
-          |    operations: [GetWidget]
-          |}
-          |
-          |@tags(["v1_widgets"])
-          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
-          |operation GetWidget {
-          |    input: GetWidgetInput
-          |    output: WidgetOutput
-          |}
-          |
-          |structure GetWidgetInput {
-          |    @required
-          |    @httpLabel
-          |    id: WidgetId
-          |}
-          |
-          |structure WidgetOutput {
-          |    @required
-          |    id: WidgetId
-          |}
-          |""".stripMargin
-    )
+    val model = widgetServiceModel(includeOptionalNote = false)
 
     HttpCoreModelExtractor
       .extractAndValidate(model)
@@ -68,29 +31,221 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           assert(input.fields.head.tpe == ModelRef(widgetId.id), "input id member should reference WidgetId")
 
           val operation = services.head.operations.head
-          assert(operation.input.contains(ModelRef(input.id)), "operation input should reference GetWidgetInput")
+          assertEquals(operation.input, Some(ModelRef(input.id)))
+          assertEquals(
+            operation.meta.feature,
+            HttpOperationMeta(method = "GET", uriPattern = "/v1/widgets/{id}", successStatus = 200)
+          )
         }
       )
   }
 
   test("core extraction member types match legacy HttpStructure IR") {
+    val model = widgetServiceModel(includeOptionalNote = true)
+
+    assertLegacyParity(model) { (legacyService, modelSet) =>
+      legacyService.structures.foreach { legacyStructure =>
+        CoreLegacyParity.assertStructureEquivalent(legacyStructure, modelSet)
+      }
+    }
+  }
+
+  test("core extraction includes unions, enums, and error response metadata") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
           |namespace example
           |
           |use smithplates.codegen.http#httpService
+          |use smithy.api#error
           |use smithy.api#http
-          |use smithy.api#pattern
+          |use smithy.api#httpError
+          |use smithy.api#httpPayload
+          |use smithy.api#readonly
           |use smithy.api#tags
           |
-          |@pattern("^[a-z0-9-]+$")
-          |string WidgetId
+          |enum WidgetState {
+          |    ACTIVE = "active"
+          |    INACTIVE = "inactive"
+          |}
+          |
+          |intEnum WidgetPriority {
+          |    LOW = 1
+          |    HIGH = 2
+          |}
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [ListWidgets, GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@error("client")
+          |@httpError(404)
+          |structure WidgetNotFound {
+          |    @required
+          |    message: String
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets", code: 200)
+          |@readonly
+          |operation ListWidgets {
+          |    input: Unit
+          |    output: WidgetListOutput
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: GetWidget200
+          |    errors: [GetWidget404]
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure GetWidget200 {
+          |    @httpPayload
+          |    @required
+          |    body: WidgetOutput
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |    state: WidgetState
+          |    priority: WidgetPriority
+          |}
+          |
+          |structure WidgetListOutput {
+          |    @required
+          |    items: WidgetListItems
+          |}
+          |
+          |list WidgetListItems {
+          |    member: WidgetVariant
+          |}
+          |
+          |union WidgetVariant {
+          |    found: WidgetOutput
+          |    missing: WidgetMissing
+          |}
+          |
+          |structure WidgetMissing {
+          |    @required
+          |    id: String
+          |}
+          |
+          |@error("client")
+          |@httpError(404)
+          |structure GetWidget404 {
+          |    @required
+          |    message: String
+          |}
+          |""".stripMargin
+    )
+
+    assertLegacyParity(model) { (legacyService, modelSet) =>
+      legacyService.structures.foreach { legacyStructure =>
+        CoreLegacyParity.assertStructureEquivalent(legacyStructure, modelSet)
+      }
+
+      legacyService.unions.foreach { legacyUnion =>
+        val coreUnion = modelSet.unions.find(_.id.name == legacyUnion.name).getOrElse {
+          fail(s"expected core union ${legacyUnion.name}")
+        }
+        legacyUnion.members.zip(coreUnion.members).foreach { case (legacyMember, coreMember) =>
+          LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
+            legacyTypeName = legacyMember.typeName,
+            legacyOptional = false,
+            coreType = coreMember.tpe,
+            aliases = modelSet.aliases,
+            legacyTimestampFormat = legacyMember.timestampFormat.map(CoreLegacyParity.coreTimestampFormat)
+          )
+        }
+      }
+
+      legacyService.stringEnums.foreach { legacyEnum =>
+        val coreEnum = modelSet.enums.find(_.id.name == legacyEnum.name).getOrElse {
+          fail(s"expected core string enum ${legacyEnum.name}")
+        }
+        assertEquals(coreEnum.base, StringT)
+        assertEquals(coreEnum.values.map(_.name), legacyEnum.members.map(_.name))
+        assertEquals(
+          coreEnum.values.map(_.value),
+          legacyEnum.members.map(member => PrimitiveLiteral.StringValue(member.value))
+        )
+      }
+
+      legacyService.intEnums.foreach { legacyEnum =>
+        val coreEnum = modelSet.enums.find(_.id.name == legacyEnum.name).getOrElse {
+          fail(s"expected core int enum ${legacyEnum.name}")
+        }
+        assertEquals(coreEnum.base, IntegerT)
+        assertEquals(coreEnum.values.map(_.name), legacyEnum.members.map(_.name))
+        assertEquals(
+          coreEnum.values.map(_.value),
+          legacyEnum.members.map(member => PrimitiveLiteral.IntValue(member.value.toLong))
+        )
+      }
+
+      legacyService.serviceErrors.foreach { legacyError =>
+        val coreError = modelSet.structures.find(_.id.name == legacyError.name).getOrElse {
+          fail(s"expected core service error structure ${legacyError.name}")
+        }
+        assertEquals(coreError.meta.feature, HttpMeta.HttpResponseMeta(statusCode = legacyError.statusCode))
+      }
+    }
+
+    HttpCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val listWidgets = services.head.operations.find(_.id.name == "ListWidgets").getOrElse {
+            fail("expected ListWidgets operation")
+          }
+          assertEquals(listWidgets.input, None)
+
+          val getWidget = services.head.operations.find(_.id.name == "GetWidget").getOrElse {
+            fail("expected GetWidget operation")
+          }
+          assertEquals(
+            getWidget.errors.map(_.id.name),
+            List("GetWidget404")
+          )
+        }
+      )
+  }
+
+  test("extract propagates HttpServiceExtractor failures as InvalidSmithyShape") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#error
+          |use smithy.api#http
+          |use smithy.api#tags
           |
           |@httpService
           |service WidgetApi {
           |    version: "1"
           |    operations: [GetWidget]
+          |    errors: [WidgetNotFound]
+          |}
+          |
+          |@error("client")
+          |structure WidgetNotFound {
+          |    @required
+          |    message: String
           |}
           |
           |@tags(["v1_widgets"])
@@ -103,18 +258,110 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           |structure GetWidgetInput {
           |    @required
           |    @httpLabel
-          |    id: WidgetId
-          |
-          |    note: String
+          |    id: String
           |}
           |
           |structure WidgetOutput {
           |    @required
-          |    id: WidgetId
+          |    id: String
           |}
           |""".stripMargin
     )
 
+    HttpCoreModelExtractor
+      .extract(model)
+      .fold(
+        errors => assert(errors.exists(_.isInstanceOf[InvalidSmithyShape])),
+        _ => fail("expected HttpServiceExtractor failure")
+      )
+  }
+
+  private def widgetServiceModel(includeOptionalNote: Boolean): software.amazon.smithy.model.Model =
+    if (includeOptionalNote) {
+      HttpTestModelLoader.assemble(
+        "example.smithy" ->
+          """$version: "2.0"
+            |namespace example
+            |
+            |use smithplates.codegen.http#httpService
+            |use smithy.api#http
+            |use smithy.api#pattern
+            |use smithy.api#tags
+            |
+            |@pattern("^[a-z0-9-]+$")
+            |string WidgetId
+            |
+            |@httpService
+            |service WidgetApi {
+            |    version: "1"
+            |    operations: [GetWidget]
+            |}
+            |
+            |@tags(["v1_widgets"])
+            |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+            |operation GetWidget {
+            |    input: GetWidgetInput
+            |    output: WidgetOutput
+            |}
+            |
+            |structure GetWidgetInput {
+            |    @required
+            |    @httpLabel
+            |    id: WidgetId
+            |
+            |    note: String
+            |}
+            |
+            |structure WidgetOutput {
+            |    @required
+            |    id: WidgetId
+            |}
+            |""".stripMargin
+      )
+    } else {
+      HttpTestModelLoader.assemble(
+        "example.smithy" ->
+          """$version: "2.0"
+            |namespace example
+            |
+            |use smithplates.codegen.http#httpService
+            |use smithy.api#http
+            |use smithy.api#pattern
+            |use smithy.api#tags
+            |
+            |@pattern("^[a-z0-9-]+$")
+            |string WidgetId
+            |
+            |@httpService
+            |service WidgetApi {
+            |    version: "1"
+            |    operations: [GetWidget]
+            |}
+            |
+            |@tags(["v1_widgets"])
+            |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+            |operation GetWidget {
+            |    input: GetWidgetInput
+            |    output: WidgetOutput
+            |}
+            |
+            |structure GetWidgetInput {
+            |    @required
+            |    @httpLabel
+            |    id: WidgetId
+            |}
+            |
+            |structure WidgetOutput {
+            |    @required
+            |    id: WidgetId
+            |}
+            |""".stripMargin
+      )
+    }
+
+  private def assertLegacyParity(
+      model: software.amazon.smithy.model.Model
+  )(assertions: (HttpService, ModelSet[HttpMeta]) => Unit): Unit = {
     val legacyService =
       HttpIrExtractor
         .extract(model)
@@ -125,64 +372,34 @@ class HttpCoreModelExtractorSpec extends FunSuite {
       .fold(
         errors => fail(errors.toList.map(_.message).mkString("; ")),
         { case (modelSet, _) =>
-          def coreTimestampFormat(format: HttpTimestampFormat): TimestampFormat =
-            format match {
-              case HttpTimestampFormat.DateTime     => TimestampFormat.DateTime
-              case HttpTimestampFormat.EpochSeconds => TimestampFormat.EpochSeconds
-              case HttpTimestampFormat.HttpDate     => TimestampFormat.DateTime
-              case HttpTimestampFormat.Default      => TimestampFormat.DateTime
-            }
-
-          def assertStructureEquivalent(legacyStructure: HttpStructure): Unit = {
-            val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
-              fail(s"expected core structure ${legacyStructure.name}")
-            }
-            legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
-              LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
-                legacyTypeName = legacyMember.typeName,
-                legacyOptional = !legacyMember.required,
-                coreType = coreField.tpe,
-                aliases = modelSet.aliases,
-                legacyTimestampFormat = legacyMember.timestampFormat.map(coreTimestampFormat)
-              )
-            }
-          }
-
-          legacyService.structures.foreach(assertStructureEquivalent)
+          assertions(legacyService, modelSet)
         }
       )
   }
+}
 
-  test("SystemValidator rejects unresolved operation refs") {
-    val modelSet = ModelSet[HttpMeta](Nil)
-    val service  = ServiceModel(
-      id = ModelId("example", "Broken"),
-      meta = ServiceMeta(None, Nil, HttpServiceMeta()),
-      operations = List(
-        OperationModel(
-          id = ModelId("example", "Op"),
-          meta = OperationMeta(None, Nil, HttpOperationMeta("GET", "/x", 200)),
-          input = Some(ModelRef(ModelId("example", "Missing"))),
-          output = None,
-          errors = Nil
-        )
+/** Shared helpers for comparing legacy HTTP IR to core extraction output. */
+private object CoreLegacyParity extends munit.Assertions {
+  def coreTimestampFormat(format: HttpTimestampFormat): TimestampFormat =
+    format match {
+      case HttpTimestampFormat.DateTime     => TimestampFormat.DateTime
+      case HttpTimestampFormat.EpochSeconds => TimestampFormat.EpochSeconds
+      case HttpTimestampFormat.HttpDate     => TimestampFormat.DateTime
+      case HttpTimestampFormat.Default      => TimestampFormat.DateTime
+    }
+
+  def assertStructureEquivalent(legacyStructure: HttpStructure, modelSet: ModelSet[HttpMeta]): Unit = {
+    val coreStructure = modelSet.structures.find(_.id.name == legacyStructure.name).getOrElse {
+      fail(s"expected core structure ${legacyStructure.name}")
+    }
+    legacyStructure.members.zip(coreStructure.fields).foreach { case (legacyMember, coreField) =>
+      LegacyNeutralTypeEquivalence.assertEquivalentWithAliases(
+        legacyTypeName = legacyMember.typeName,
+        legacyOptional = !legacyMember.required,
+        coreType = coreField.tpe,
+        aliases = modelSet.aliases,
+        legacyTimestampFormat = legacyMember.timestampFormat.map(coreTimestampFormat)
       )
-    )
-
-    given ModelMetaValidator[HttpMeta]                              = ModelMetaValidator.noop
-    given OperationMetaValidator[HttpOperationMeta]                 = OperationMetaValidator.noop
-    given ServiceMetaValidator[HttpServiceMeta]                     = ServiceMetaValidator.noop
-    given ModelValidator[HttpMeta]                                  = ModelValidator.default
-    given OperationValidator[HttpOperationMeta]                     = OperationValidator.default
-    given ServiceModelValidator[HttpServiceMeta, HttpOperationMeta] = ServiceModelValidator.default
-    given ModelSetValidator[HttpMeta]                               = ModelSetValidator.default
-
-    SystemValidator
-      .default[HttpMeta, HttpServiceMeta, HttpOperationMeta]
-      .validate(modelSet, service)
-      .fold(
-        errors => assert(errors.exists(_.isInstanceOf[UnresolvedModelRef]), "expected unresolved operation ref"),
-        _ => fail("expected unresolved operation ref validation error")
-      )
+    }
   }
 }

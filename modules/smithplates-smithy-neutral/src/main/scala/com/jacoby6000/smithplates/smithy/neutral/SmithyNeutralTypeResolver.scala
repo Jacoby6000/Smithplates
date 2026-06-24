@@ -77,7 +77,7 @@ object SmithyNeutralTypeResolver {
       resolveShapeType(model, valueShape, None, timestampFormat, context).map { valueType =>
         MapT(StringT, valueType)
       }
-    } else if (shape.isStringShape && !SmithyPrelude.isPreludeShape(shapeId)) {
+    } else if (shape.isStringShape && !shape.isEnumShape && !SmithyPrelude.isPreludeShape(shapeId)) {
       CodegenValidated.valid(ModelRef(ModelIds.fromShapeId(shapeId)))
     } else if ((shape.isStructureShape || shape.isEnumShape || shape.isIntEnumShape || shape.isUnionShape) &&
       !SmithyPrelude.isPreludeShape(shapeId)) {
@@ -103,7 +103,7 @@ object SmithyNeutralTypeResolver {
 
   def aliasUnderlying(model: Model, shapeId: ShapeId): CodegenValidated[NeutralType] = {
     val shape = model.expectShape(shapeId)
-    if (shape.isStringShape) {
+    if (shape.isStringShape && !shape.isEnumShape) {
       CodegenValidated.valid(StringT)
     } else if (SmithyPrelude.isPrimitiveShapeId(shapeId)) {
       CodegenValidated.valid(primitiveType(shapeId))
