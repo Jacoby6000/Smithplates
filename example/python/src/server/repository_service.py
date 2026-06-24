@@ -11,6 +11,8 @@ from generated.petstore.api.category_summary import CategorySummary
 from generated.petstore.api.create_pet_input import CreatePetInput
 from generated.petstore.api.fulfillment_state import (
     FulfillmentState as ApiFulfillmentState,
+)
+from generated.petstore.api.fulfillment_state import (
     FulfillmentStateDelivered,
     FulfillmentStatePending,
     FulfillmentStateShipped,
