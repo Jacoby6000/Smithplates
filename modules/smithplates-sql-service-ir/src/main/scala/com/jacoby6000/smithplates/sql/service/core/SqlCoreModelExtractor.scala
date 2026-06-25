@@ -171,7 +171,8 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
 
     def operationInputRef(operation: SqlOperation): Option[ModelRef] =
       if (operation.inputShape == SmithyPrelude.UnitShapeId ||
-        operation.inputShape == SqlQueryExtractor.DerivedStructShapeId) {
+        operation.inputShape == SqlQueryExtractor.DerivedStructShapeId ||
+        SmithyPrelude.isPrimitiveShapeId(operation.inputShape)) {
         None
       } else {
         Some(ModelRef(ModelIds.fromShapeId(operation.inputShape)))
@@ -181,6 +182,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
       operation.outputShape
         .filter(_ != SmithyPrelude.UnitShapeId)
         .filter(_ != SqlQueryExtractor.DerivedStructShapeId)
+        .filterNot(SmithyPrelude.isPrimitiveShapeId)
         .map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId)))
 
     def extractStructure(

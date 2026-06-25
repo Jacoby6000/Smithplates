@@ -52,6 +52,7 @@ class PathTemplateSpec extends FunSuite {
   test("serviceBindings populate service placeholders from conventions") {
     val bindings = PathTemplate.serviceBindings(conventions, ModelId("example.api", "WidgetRepository"))
     assertEquals(bindings.bindings("serviceFileName"), "widget_repository.py")
+    assertEquals(bindings.bindings("serviceModuleName"), "widget_repository")
     assertEquals(bindings.bindings("serviceClassName"), "WidgetRepository")
     assertEquals(bindings.bindings("smithyNamespaceDir"), "example/api")
     assertEquals(bindings.bindings("packageName"), "generated.example.api")

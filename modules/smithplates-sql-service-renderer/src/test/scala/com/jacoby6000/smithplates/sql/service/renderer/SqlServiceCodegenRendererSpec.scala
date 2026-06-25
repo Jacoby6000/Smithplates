@@ -1,9 +1,8 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   test("@sqlJson - derives insert and update columns for struct and union members") {
@@ -71,37 +70,18 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assertEquals(update.setColumns.map(_.memberName), List("label", "destination", "state"))
   }
 
-  test("OutputPath - expands placeholders per service") {
-    val queryRenderer           =
-      SqliteSqlQueryRenderer(
-        migrationBindPlaceholder = SqlBindPlaceholder("?"),
-        codegenBindPlaceholder = SqlBindPlaceholder("?")
-      )
-    val context                 =
-      SqlCodegenServiceContext(
-        shapeId = software.amazon.smithy.model.shapes.ShapeId.from("example#WidgetRepository"),
-        name = "WidgetRepository",
-        namespace = "example",
-        version = "1",
-        dialectKey = "sqlite",
-        packageName = "generated.example",
-        bindPlaceholderStyle = queryRenderer.codegenBindPlaceholder,
-        hasSqlOperations = true,
-        models = Nil,
-        unions = Nil,
-        operations = Nil
-      )
-    val settings                = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
-    val modelArtifact           = settings.artifacts.head
-    val integrationTestArtifact = settings.artifacts.last
+  test("SQL output deck carries planner path templates") {
+    val settings = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
 
+    val outputPaths =
+      settings.artifacts.collect { case output: CodegenOutput.CodegenTemplateBindingOutput =>
+        output.id.value -> output.outputPath
+      }.toMap
+
+    assertEquals(outputPaths("python.sql.db.models"), "{{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py")
     assertEquals(
-      SqlServiceCodegenRenderer.resolveOutputPath(settings, modelArtifact, context),
-      "example/models/widget_repository_models.py"
-    )
-    assertEquals(
-      SqlServiceCodegenRenderer.resolveOutputPath(settings, integrationTestArtifact, context),
-      "test/example/sqlite/test_widget_repository_derived_sql.py"
+      outputPaths("python.sql.db.sqlite.integration_tests"),
+      "{{smithyNamespaceDir}}/sqlite/test_{{serviceModuleName}}_derived_sql.py"
     )
   }
 

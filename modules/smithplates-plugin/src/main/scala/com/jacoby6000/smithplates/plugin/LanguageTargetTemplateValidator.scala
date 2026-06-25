@@ -36,7 +36,7 @@ object LanguageTargetTemplateValidator {
       val requiredTemplates =
         SqlServiceCodegenDbArtifacts
           .forEnabledDialects(enabledDialectKeys)
-          .map(_.template)
+          .flatMap(SqlServiceCodegenDbArtifacts.templatePath)
           .distinct
 
       val missingTemplates =

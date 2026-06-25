@@ -226,6 +226,48 @@ class SqlCoreModelExtractorSpec extends FunSuite {
       )
   }
 
+  test("core extraction normalizes primitive operation outputs to None") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#DerivedStruct
+        |use smithplates.codegen.sql#sqlDeriveInsert
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    name: String
+        |}
+        |
+        |@sqlDeriveInsert(targetTable: "example#Widget")
+        |operation CreateWidget {
+        |    input: DerivedStruct
+        |    output: String
+        |}
+        |
+        |@sqlService
+        |service WidgetRepository {
+        |    version: "1"
+        |    operations: [CreateWidget]
+        |}
+        |""".stripMargin
+    )
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (_, services) =>
+          val createWidget = services.head.operations.head
+          assertEquals(createWidget.input, None)
+          assertEquals(createWidget.output, None)
+        }
+      )
+  }
+
   test("core extraction includes enums and operation error refs") {
     val model = SqlServiceExtractorSpec.internal.assembleServiceModel(
       """

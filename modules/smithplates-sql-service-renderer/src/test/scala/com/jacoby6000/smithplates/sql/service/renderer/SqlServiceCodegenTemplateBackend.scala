@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
@@ -65,7 +66,7 @@ object SqlServiceCodegenTemplateBackend {
       dialectKey: String,
       queryRenderer: SqlQueryRenderer,
       schemaDdlRenderer: SqlSchemaDdlRenderer,
-      artifacts: List[SqlServiceCodegenArtifactConfig]
+      artifacts: List[CodegenOutput]
   ): ConfiguredBackend = {
     val templateDirectory = "classpath:python/src/db"
     apply(
