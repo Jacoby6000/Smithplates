@@ -2,6 +2,8 @@ package com.jacoby6000.smithplates.codegen.core
 
 import cats.data.NonEmptyList
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.planning.BindingFilterAtom
+import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 
 sealed trait CodegenValidationError {
   def message: String
@@ -53,4 +55,60 @@ final case class InvalidSmithyShape(id: ModelId, reason: String) extends Codegen
 final case class InvalidLanguageBaseConfig(reason: String) extends CodegenValidationError {
   override def message: String =
     s"Invalid language base config: $reason"
+}
+
+final case class UnknownOutputOverride(overrideId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Unknown codegen output override id: ${overrideId.value}"
+}
+
+final case class SelfOutputOverride(outputId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Codegen output ${outputId.value} cannot override itself"
+}
+
+final case class DuplicateOutputId(id: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Duplicate codegen output id: ${id.value}"
+}
+
+final case class InvalidOperationBindingFilter(filter: BindingFilterAtom) extends CodegenValidationError {
+  override def message: String =
+    filter match {
+      case BindingFilterAtom.Kind(kind) =>
+        s"Operation bindings do not support kind filter: $kind"
+      case other                        =>
+        s"Operation bindings do not support filter: $other"
+    }
+}
+
+final case class InconsistentGroupedModelNamespaces(outputId: OutputId, namespaces: NonEmptyList[String])
+    extends CodegenValidationError {
+  override def message: String = {
+    val ns = namespaces.toList.mkString(", ")
+    s"Grouped model output ${outputId.value} spans multiple namespaces: $ns"
+  }
+}
+
+final case class DuplicateResolvedOutputPath(path: String, outputIds: NonEmptyList[OutputId])
+    extends CodegenValidationError {
+  override def message: String = {
+    val ids = outputIds.toList.map(_.value).mkString(", ")
+    s"Duplicate resolved output path '$path' from outputs: $ids"
+  }
+}
+
+final case class UnresolvedPathPlaceholder(placeholder: String) extends CodegenValidationError {
+  override def message: String =
+    s"Unresolved path template placeholder: $placeholder"
+}
+
+final case class MissingStaticResource(resourcePath: String, outputId: OutputId) extends CodegenValidationError {
+  override def message: String =
+    s"Missing static resource '$resourcePath' for output ${outputId.value}"
+}
+
+final case class TemplateRenderFailed(templatePath: String, reason: String) extends CodegenValidationError {
+  override def message: String =
+    s"Failed to render template '$templatePath': $reason"
 }

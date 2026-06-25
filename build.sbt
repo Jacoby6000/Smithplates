@@ -371,6 +371,7 @@ lazy val smithplatesSqlServiceQueryRendererSqlite = (project in file(
   )
 
 lazy val smithplatesScalatePrecompiler = (project in file("modules/smithplates-scalate-precompiler"))
+  .dependsOn(smithplatesCodegenCore)
   .settings(
     strictScala3Settings,
     publishedModuleSettings,
