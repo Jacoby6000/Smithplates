@@ -46,13 +46,6 @@ object ScalateSspTemplateEngine {
     internal.prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
   }
 
-  def renderServiceModuleBaseName(templateRoot: String, serviceName: String): String =
-    renderClasspathPartial(
-      templateRoot,
-      "fragments/naming/service_module_base_name",
-      Map("serviceName" -> serviceName)
-    ).strip()
-
   def renderClasspathPartial(
       templateRoot: String,
       partialReference: String,

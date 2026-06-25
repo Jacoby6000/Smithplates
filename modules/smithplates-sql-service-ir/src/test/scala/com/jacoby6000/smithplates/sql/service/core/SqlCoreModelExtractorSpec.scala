@@ -226,6 +226,46 @@ class SqlCoreModelExtractorSpec extends FunSuite {
       )
   }
 
+  test("core extraction normalizes primitive operation inputs to None") {
+    val model = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |
+        |@sqlTable(name: "widgets")
+        |structure Widget {
+        |    @sqlPrimaryKey
+        |    id: String
+        |    name: String
+        |}
+        |
+        |operation GetWidgetLabel {
+        |    input: String
+        |    output: Widget
+        |}
+        |
+        |@sqlService
+        |service WidgetRepository {
+        |    version: "1"
+        |    operations: [GetWidgetLabel]
+        |}
+        |""".stripMargin
+    )
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val getWidgetLabel = services.head.operations.head
+          assertEquals(getWidgetLabel.input, None)
+          assertEquals(getWidgetLabel.output.map(_.id.name), Some("Widget"))
+          ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
+        }
+      )
+  }
+
   test("core extraction normalizes primitive operation outputs to None") {
     val model = SqlTestModelBuilder.assemble(
       """

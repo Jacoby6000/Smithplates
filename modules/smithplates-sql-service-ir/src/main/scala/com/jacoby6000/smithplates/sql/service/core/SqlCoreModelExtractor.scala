@@ -113,7 +113,9 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
             ),
             input = internal.operationInputRef(operation),
             output = internal.operationOutputRef(operation),
-            errors = operation.errorShapes.map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId)))
+            errors = operation.errorShapes
+              .filterNot(SmithyPrelude.isPrimitiveShapeId)
+              .map(shapeId => ModelRef(ModelIds.fromShapeId(shapeId)))
           )
         }
 

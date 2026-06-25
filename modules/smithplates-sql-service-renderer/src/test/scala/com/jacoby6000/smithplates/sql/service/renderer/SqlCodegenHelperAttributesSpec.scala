@@ -72,6 +72,7 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
       ServiceTemplateView(
         serviceShapeId = "example#WidgetRepository",
         serviceName = "WidgetRepository",
+        serviceModuleName = "widget_repository",
         dialectKey = "sqlite",
         packageName = "generated.example",
         models = Nil,
@@ -99,6 +100,7 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
       ServiceTemplateView(
         serviceShapeId = "example#RecordRepository",
         serviceName = "RecordRepository",
+        serviceModuleName = "record_repository",
         dialectKey = "sqlite",
         packageName = "generated.example",
         models = Nil,

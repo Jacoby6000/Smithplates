@@ -19,7 +19,7 @@ MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(ctx.serviceShapeId, con
 
 
 @pytest_asyncio.fixture
-async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}(
+async def ${serviceFixtureName(ctx.serviceModuleName)}(
     postgres_container: PostgresContainer,
 ) -> AsyncIterator[${implementationClassName(ctx.serviceName, ctx.dialectKey)}]:
     connection = await psycopg.AsyncConnection.connect(
@@ -44,13 +44,13 @@ async def ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}(
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_derived_sql_methods_lifecycle(${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    entity_id_result = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+async def test_derived_sql_methods_lifecycle(${serviceFixtureName(ctx.serviceModuleName)}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
+    entity_id_result = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
     entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
 
-    fetched = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    fetched = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
 <% if (test.selectOneOperation.hasResultAssertions) { %>
 <% for (assertion <- test.selectOneOperation.resultAssertions) { %>

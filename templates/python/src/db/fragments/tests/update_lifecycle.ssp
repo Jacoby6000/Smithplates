@@ -1,10 +1,10 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
 
-    updated = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.updateOperation.name)}(${test.updateOperation.callArguments})
+    updated = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.updateOperation.name)}(${test.updateOperation.callArguments})
     assert updated${test.updateOperation.outputValueAccessor} is True
 
-    fetched_after_update = await ${serviceFixtureName(serviceModuleBaseName(ctx.serviceName))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    fetched_after_update = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched_after_update, ${test.selectOneOperation.outputShapeName})
 <% if (test.selectOneOperation.hasUpdatedResultAssertions) { %>
 <% for (assertion <- test.selectOneOperation.updatedResultAssertions) { %>

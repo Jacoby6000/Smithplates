@@ -14,7 +14,6 @@ import com.jacoby6000.smithplates.codegen.core.planning.CodegenSettings
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
-import com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfigLoader
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.model.SqlIntEnum
@@ -165,32 +164,7 @@ object SqlServiceCodegenRenderer {
         (templatePath.contains("migrations_service") && context.migration.isEmpty)
 
     def sqlCodegenSettings(settings: SqlServiceCodegenSettings): SqlValidated[CodegenSettings] =
-      toSqlValidated(loadBaseConfig(settings).map { baseConfig =>
-        CodegenSettings(
-          sourceOutputDirectory = settings.sourceOutputDirectory.map(normalizeDirectory).getOrElse(""),
-          testOutputDirectory = settings.testOutputDirectory.map(normalizeDirectory).getOrElse(""),
-          conventions = baseConfig.conventions(settings.rootNamespace)
-        )
-      })
-
-    def loadBaseConfig(settings: SqlServiceCodegenSettings): CodegenValidated[
-      com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfig
-    ] = {
-      val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("python")
-      Option(getClass.getClassLoader.getResourceAsStream(s"$languageId/base_config.json")) match {
-        case Some(stream) =>
-          try {
-            val text = scala.io.Source.fromInputStream(stream, "UTF-8").mkString
-            LanguageBaseConfigLoader.loadJson(text)
-          } finally stream.close()
-        case None         =>
-          com.jacoby6000.smithplates.codegen.core
-            .InvalidLanguageBaseConfig(
-              s"missing language base config resource: $languageId/base_config.json"
-            )
-            .invalidNel
-      }
-    }
+      toSqlValidated(SqlCodegenLanguageConventions.codegenSettings(settings))
 
     def contextForService(
         model: Model,
@@ -328,6 +302,6 @@ object SqlServiceCodegenRenderer {
       path.startsWith(s"$dialectKey/") || path.contains(s"/$dialectKey/")
 
     def normalizeDirectory(directory: String): String =
-      directory.stripSuffix("/").stripSuffix("\\")
+      SqlCodegenLanguageConventions.normalizeDirectory(directory)
   }
 }

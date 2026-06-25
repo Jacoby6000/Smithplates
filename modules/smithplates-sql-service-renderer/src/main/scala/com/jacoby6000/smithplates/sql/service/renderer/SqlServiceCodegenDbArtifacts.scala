@@ -107,15 +107,6 @@ object SqlServiceCodegenDbArtifacts {
       )
     )
 
-  def isIntegrationTestTemplate(output: CodegenOutput): Boolean =
-    templatePath(output).exists(_.contains("service_derived_sql_integration_tests"))
-
-  def isMigrationServiceTemplate(output: CodegenOutput): Boolean =
-    templatePath(output).exists(_.contains("migrations_service"))
-
-  def isPostgresTestcontainersStub(output: CodegenOutput): Boolean =
-    templatePath(output).exists(_.contains("stubs/testcontainers"))
-
   def templatePath(output: CodegenOutput): Option[String] =
     output match {
       case template: CodegenOutput.CodegenTemplateBindingOutput => Some(template.templatePath)
