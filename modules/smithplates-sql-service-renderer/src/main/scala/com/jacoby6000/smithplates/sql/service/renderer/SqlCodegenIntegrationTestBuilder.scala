@@ -59,6 +59,7 @@ object SqlCodegenIntegrationTestBuilder {
             testImports = testImports,
             localImportBlock = SqlCodegenPythonImports.integrationTestLocalImportBlock(
               context.packageName,
+              context.moduleName,
               context.name,
               context.dialectKey,
               testImports
@@ -512,8 +513,7 @@ object SqlCodegenIntegrationTestBuilder {
         selectOneOperation: SqlCodegenIntegrationTestOperation,
         updateOperation: Option[SqlCodegenIntegrationTestOperation]
     ): String = {
-      val serviceModuleBase    =
-        ScalateSspTemplateEngine.renderServiceModuleBaseName("python/src/db", context.name)
+      val serviceModuleBase    = context.moduleName
       val callText             =
         List(
           Some(insertOperation.callArguments),

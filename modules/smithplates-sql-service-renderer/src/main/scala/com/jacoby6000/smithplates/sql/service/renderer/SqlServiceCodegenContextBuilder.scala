@@ -23,77 +23,83 @@ object SqlServiceCodegenContextBuilder {
       queryRenderer: Option[SqlQueryRenderer],
       bindPlaceholderStyle: SqlBindPlaceholder,
       settings: SqlServiceCodegenSettings
-  ): SqlValidated[SqlCodegenServiceContext] = {
-    val rootShapeIds =
-      service.operations
-        .flatMap { operation =>
-          val errorShapes =
-            SqlOperationQueryResolver.resolve(queries, operation.shapeId) match {
-              case Some(_: ResolvedSqlOperationQuery.SelectOne) =>
-                Nil
-              case _                                            => operation.errorShapes
+  ): SqlValidated[SqlCodegenServiceContext] =
+    SqlCodegenLanguageConventions
+      .serviceModuleName(settings, service.shapeId.getName)
+      .leftMap(_.map(error => InvalidPluginConfig(error.message)))
+      .andThen { moduleName =>
+        val rootShapeIds =
+          service.operations
+            .flatMap { operation =>
+              val errorShapes =
+                SqlOperationQueryResolver.resolve(queries, operation.shapeId) match {
+                  case Some(_: ResolvedSqlOperationQuery.SelectOne) =>
+                    Nil
+                  case _                                            => operation.errorShapes
+                }
+              List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
             }
-          List(operation.inputShape) ++ operation.outputShape.toList ++ errorShapes
+            .filterNot(_ == SqlShapeGraph.UnitShapeId)
+            .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
+            .distinct
+
+        val tableShapeIds = schema.tables.map(_.shapeId)
+
+        SqlShapeIrExtractor.extract(model, rootShapeIds ++ tableShapeIds).andThen { shapeIr =>
+          service.operations
+            .traverse(internal.buildOperation(model, shapeIr, queries, _, queryRenderer))
+            .map { operations =>
+              val (resolvedOperations, derivedModels) = internal.applySelectOneDerivedOutputs(operations, queries)
+              val uuidTypeNames                       = SqlCodegenUuidTypeNames.fromSchema(schema, shapeIr)
+              val (stringEnums, intEnums)             =
+                SqlEnumExtractor.extractReferenced(
+                  model = model,
+                  namespace = service.shapeId.getNamespace,
+                  structures = shapeIr.structures ++ derivedModels,
+                  unions = shapeIr.unions,
+                  extraTypeNames = resolvedOperations.flatMap(_.parameters.map(_.typeName)) ++
+                    resolvedOperations.flatMap(_.outputTypeName)
+                )
+              val baseContext                         =
+                SqlCodegenServiceContext(
+                  shapeId = service.shapeId,
+                  name = service.shapeId.getName,
+                  moduleName = moduleName,
+                  namespace = service.shapeId.getNamespace,
+                  version = service.version,
+                  dialectKey = queryRenderer.map(_.key).getOrElse(SqlServiceCodegenSettings.SharedDialectKey),
+                  packageName = CodegenPackageNames.resolvePackageName(
+                    settings.rootNamespace,
+                    service.shapeId.getNamespace,
+                    settings.packageNameOverride
+                  ),
+                  bindPlaceholderStyle = bindPlaceholderStyle,
+                  hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
+                  models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
+                  unions = shapeIr.unions.sortBy(_.shapeId.toString),
+                  stringEnums = stringEnums,
+                  intEnums = intEnums,
+                  operations = resolvedOperations,
+                  uuidTypeNames = uuidTypeNames
+                )
+
+              val migrationDirectory =
+                queryRenderer.flatMap(renderer => settings.migrationDirectories.get(renderer.key))
+              baseContext.copy(
+                integrationTest = queryRenderer.flatMap(_ =>
+                  SqlCodegenIntegrationTestBuilder.build(
+                    baseContext,
+                    schema,
+                    queries,
+                    settings.schemaDdlRenderers
+                  )),
+                migration = migrationDirectory.flatMap(directory =>
+                  queryRenderer.flatMap(renderer =>
+                    SqlCodegenMigrationBuilder.build(schema, renderer.key, settings.schemaDdlRenderers, directory)))
+              )
+            }
         }
-        .filterNot(_ == SqlShapeGraph.UnitShapeId)
-        .filterNot(_ == SqlQueryExtractor.DerivedStructShapeId)
-        .distinct
-
-    val tableShapeIds = schema.tables.map(_.shapeId)
-
-    SqlShapeIrExtractor.extract(model, rootShapeIds ++ tableShapeIds).andThen { shapeIr =>
-      service.operations
-        .traverse(internal.buildOperation(model, shapeIr, queries, _, queryRenderer))
-        .map { operations =>
-          val (resolvedOperations, derivedModels) = internal.applySelectOneDerivedOutputs(operations, queries)
-          val uuidTypeNames                       = SqlCodegenUuidTypeNames.fromSchema(schema, shapeIr)
-          val (stringEnums, intEnums)             =
-            SqlEnumExtractor.extractReferenced(
-              model = model,
-              namespace = service.shapeId.getNamespace,
-              structures = shapeIr.structures ++ derivedModels,
-              unions = shapeIr.unions,
-              extraTypeNames = resolvedOperations.flatMap(_.parameters.map(_.typeName)) ++
-                resolvedOperations.flatMap(_.outputTypeName)
-            )
-          val baseContext                         =
-            SqlCodegenServiceContext(
-              shapeId = service.shapeId,
-              name = service.shapeId.getName,
-              namespace = service.shapeId.getNamespace,
-              version = service.version,
-              dialectKey = queryRenderer.map(_.key).getOrElse(SqlServiceCodegenSettings.SharedDialectKey),
-              packageName = CodegenPackageNames.resolvePackageName(
-                settings.rootNamespace,
-                service.shapeId.getNamespace,
-                settings.packageNameOverride
-              ),
-              bindPlaceholderStyle = bindPlaceholderStyle,
-              hasSqlOperations = resolvedOperations.exists(_.sql.isDefined),
-              models = (shapeIr.structures ++ derivedModels).sortBy(_.shapeId.toString),
-              unions = shapeIr.unions.sortBy(_.shapeId.toString),
-              stringEnums = stringEnums,
-              intEnums = intEnums,
-              operations = resolvedOperations,
-              uuidTypeNames = uuidTypeNames
-            )
-
-          val migrationDirectory = queryRenderer.flatMap(renderer => settings.migrationDirectories.get(renderer.key))
-          baseContext.copy(
-            integrationTest = queryRenderer.flatMap(_ =>
-              SqlCodegenIntegrationTestBuilder.build(
-                baseContext,
-                schema,
-                queries,
-                settings.schemaDdlRenderers
-              )),
-            migration = migrationDirectory.flatMap(directory =>
-              queryRenderer.flatMap(renderer =>
-                SqlCodegenMigrationBuilder.build(schema, renderer.key, settings.schemaDdlRenderers, directory)))
-          )
-        }
-    }
-  }
+      }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {

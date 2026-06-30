@@ -76,12 +76,12 @@ object SqlCodegenPythonImports {
   def protocolTableModelImportBlock(context: SqlCodegenServiceContext): String = {
     val (tableModels, unions) = protocolReferencedNames(context)
     internal
-      .renderModelsImport(context.packageName, serviceModuleBaseName(context.name), tableModels, unions)
+      .renderModelsImport(context.packageName, context.moduleName, tableModels, unions)
       .getOrElse("")
   }
 
   def serviceLocalImportBlock(context: SqlCodegenServiceContext): String = {
-    val moduleBase            = serviceModuleBaseName(context.name)
+    val moduleBase            = context.moduleName
     val (tableModels, unions) = serviceReferencedNames(context)
     val operationResultNames  = internal.serviceReferencedOperationResultNames(context)
 
@@ -181,12 +181,13 @@ object SqlCodegenPythonImports {
 
   def integrationTestLocalImportBlock(
       packageName: String,
+      moduleName: String,
       serviceName: String,
       dialectKey: String,
       testImports: String
   ): String = {
     val implementationModule =
-      s"${serviceModuleBaseName(serviceName)}${dialectKey match {
+      s"$moduleName${dialectKey match {
           case "sqlite"   => "_aiosqlite"
           case "postgres" => "_psycopg"
           case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")

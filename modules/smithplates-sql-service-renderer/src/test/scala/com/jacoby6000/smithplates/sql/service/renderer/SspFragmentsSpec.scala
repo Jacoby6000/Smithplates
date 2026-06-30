@@ -49,6 +49,7 @@ class SspFragmentsSpec extends munit.FunSuite {
           "ctx" -> ServiceTemplateView(
             serviceShapeId = "example#Service",
             serviceName = "ExampleService",
+            serviceModuleName = "example_service",
             dialectKey = "postgres",
             packageName = "generated.example",
             models = Nil,
@@ -112,6 +113,7 @@ object SspFragmentsSpec {
       ServiceTemplateView(
         serviceShapeId = "example#WidgetRepository",
         serviceName = "WidgetRepository",
+        serviceModuleName = "widget_repository",
         dialectKey = "sqlite",
         packageName = "generated.example",
         models = Nil,

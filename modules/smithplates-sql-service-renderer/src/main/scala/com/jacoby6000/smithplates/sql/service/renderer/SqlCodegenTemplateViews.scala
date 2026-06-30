@@ -160,6 +160,7 @@ final case class MigrationView(
 final case class ServiceTemplateView(
     serviceShapeId: String,
     serviceName: String,
+    serviceModuleName: String,
     dialectKey: String,
     packageName: String,
     models: List[TemplateModelView],
@@ -189,6 +190,7 @@ object SqlCodegenTemplateViews {
     ServiceTemplateView(
       serviceShapeId = context.shapeId.toString,
       serviceName = context.name,
+      serviceModuleName = context.moduleName,
       dialectKey = context.dialectKey,
       packageName = context.packageName,
       models = tableModels.map(internal.modelView),

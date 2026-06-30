@@ -790,6 +790,30 @@ class CodegenPlannerSpec extends FunSuite {
     )
   }
 
+  test("plan expands namespace-scoped Service bindings once per namespace") {
+    val otherService =
+      ServiceModel(
+        ModelId("example", "OtherService"),
+        ServiceMeta(None, Nil, ()),
+        List(untaggedOp)
+      )
+    val outputs      =
+      List(
+        templateOutput(
+          "shared.migrations",
+          SmithyBinding.Service,
+          outputPath = "{{smithyNamespaceDir}}/sqlite/migrations.py"
+        )
+      )
+
+    assertEquals(
+      CodegenPlanner
+        .plan(outputs, models, List(service, otherService), settings, templateRenderer)
+        .map(_.map(_.relativePath)),
+      CodegenValidated.valid(List("src/example/sqlite/migrations.py"))
+    )
+  }
+
   test("plan expands Operation All grouping once per service") {
     val otherService =
       ServiceModel(

@@ -106,7 +106,7 @@ object CodegenPlanner {
       output.binding match {
         case SmithyBinding.Service                     =>
           Right(
-            services.map { service =>
+            servicesForServiceBinding(output, services).map { service =>
               WorkItem(
                 outputId = output.id,
                 artifactKind = output.kind,
@@ -366,6 +366,33 @@ object CodegenPlanner {
                 Right(rootBindings)
             }
         }
+      }
+    }
+
+    def serviceScopedPathPlaceholders: Set[String] =
+      Set(
+        "serviceName",
+        "serviceClassName",
+        "serviceFileName",
+        "serviceModuleName",
+        "serviceNamespace",
+        "serviceShapeId",
+        "serviceVersion"
+      )
+
+    def servicesForServiceBinding[S, O](
+        output: CodegenOutput.CodegenTemplateBindingOutput,
+        services: List[ServiceModel[S, O]]
+    ): List[ServiceModel[S, O]] = {
+      val pathPlaceholders = PathTemplate.placeholders(output.outputPath)
+      if (pathPlaceholders.intersect(serviceScopedPathPlaceholders).nonEmpty) {
+        services
+      } else {
+        services
+          .groupBy(_.id.namespace)
+          .values
+          .map(_.sortBy(_.id.name).head)
+          .toList
       }
     }
 

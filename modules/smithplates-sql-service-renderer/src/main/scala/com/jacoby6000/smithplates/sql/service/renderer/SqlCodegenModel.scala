@@ -79,6 +79,7 @@ final case class SqlCodegenSqlBinding(
 final case class SqlCodegenServiceContext(
     shapeId: ShapeId,
     name: String,
+    moduleName: String,
     namespace: String,
     version: String,
     dialectKey: String,

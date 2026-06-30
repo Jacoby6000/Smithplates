@@ -49,12 +49,13 @@ object PathTemplate {
     namespaceBindings(conventions, serviceId.namespace).merge(
       PathBindings(
         Map(
-          "serviceName"      -> serviceId.name,
-          "serviceClassName" -> conventions.className(serviceId),
-          "serviceFileName"  -> conventions.fileName(serviceId),
-          "serviceNamespace" -> serviceId.namespace,
-          "serviceShapeId"   -> s"${serviceId.namespace}#${serviceId.name}",
-          "serviceVersion"   -> serviceVersion
+          "serviceName"       -> serviceId.name,
+          "serviceClassName"  -> conventions.className(serviceId),
+          "serviceFileName"   -> conventions.fileName(serviceId),
+          "serviceModuleName" -> conventions.memberName(serviceId.name),
+          "serviceNamespace"  -> serviceId.namespace,
+          "serviceShapeId"    -> s"${serviceId.namespace}#${serviceId.name}",
+          "serviceVersion"    -> serviceVersion
         )
       )
     )

@@ -16,11 +16,11 @@ def qualifiedModule(packageName: String, relativeModulePath: String): String = {
   s"$packageName.$suffix"
 }
 
-def protocolModulePath(serviceName: String): String =
-  s"${serviceModuleBaseName(serviceName)}_protocol"
+def protocolModulePath(moduleBaseName: String): String =
+  s"${moduleBaseName}_protocol"
 
-def modelsModulePath(serviceName: String): String =
-  s"models/${serviceModuleBaseName(serviceName)}_models"
+def modelsModulePath(moduleBaseName: String): String =
+  s"models/${moduleBaseName}_models"
 
 def migrationServiceModulePath(dialectKey: String): String =
   dialectKey match {
@@ -46,8 +46,8 @@ def implementationClassName(serviceName: String, dialectKey: String): String =
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
 
-def implementationModuleName(serviceName: String, dialectKey: String): String =
-  s"${serviceModuleBaseName(serviceName)}${implementationModuleSuffix(dialectKey)}"
+def implementationModuleName(moduleBaseName: String, dialectKey: String): String =
+  s"${moduleBaseName}${implementationModuleSuffix(dialectKey)}"
 
 def implementationModuleSuffix(dialectKey: String): String =
   dialectKey match {
