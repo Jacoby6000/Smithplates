@@ -1526,4 +1526,58 @@ class HttpIrExtractorSpec extends FunSuite {
     assert(ir.warnings.head.message.contains("about:blank"))
     assert(ir.warnings.head.message.contains("HTTPS URL"))
   }
+
+  test("HttpIrExtractor collects enums referenced only from operation inputs") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#httpQuery
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service ItemApi {
+          |    version: "1"
+          |    operations: [ListItems]
+          |}
+          |
+          |enum ItemKind {
+          |    FILE
+          |    FOLDER
+          |}
+          |
+          |intEnum ItemPriority {
+          |    LOW = 1
+          |    HIGH = 2
+          |}
+          |
+          |@tags(["items"])
+          |@http(method: "GET", uri: "/items", code: 200)
+          |operation ListItems {
+          |    input: ListItemsInput
+          |    output: ListItems200
+          |}
+          |
+          |structure ListItemsInput {
+          |    @httpQuery("kind")
+          |    kind: ItemKind
+          |
+          |    @httpQuery("priority")
+          |    priority: ItemPriority
+          |}
+          |
+          |structure ListItems200 {
+          |    @required
+          |    items: String
+          |}
+          |""".stripMargin
+    )
+
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.stringEnums.map(_.name), List("ItemKind"))
+    assertEquals(service.intEnums.map(_.name), List("ItemPriority"))
+  }
 }

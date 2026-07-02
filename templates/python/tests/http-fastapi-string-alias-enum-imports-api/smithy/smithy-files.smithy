@@ -24,6 +24,11 @@ enum ItemKind {
     FOLDER
 }
 
+intEnum ItemPriority {
+    LOW = 1
+    HIGH = 2
+}
+
 @tags(["items"])
 @http(method: "GET", uri: "/items/{itemId}", code: 200)
 operation GetItem {
@@ -53,6 +58,9 @@ structure GetItem200 {
 structure ListItemsInput {
     @httpQuery("kind")
     kind: ItemKind
+
+    @httpQuery("priority")
+    priority: ItemPriority
 }
 
 structure ListItems200 {

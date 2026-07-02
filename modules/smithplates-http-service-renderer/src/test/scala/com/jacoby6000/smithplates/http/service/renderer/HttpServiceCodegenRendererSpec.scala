@@ -336,6 +336,12 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
 
     assert(protocolContent.contains("from generated.example.widget_status import WidgetStatus"))
     assert(protocolContent.contains("status: WidgetStatus | None"))
+
+    val artifacts    = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
+    val enumArtifact =
+      artifacts.find(_.relativePath.endsWith("widget_status.py")).map(_.content).getOrElse("")
+    assert(enumArtifact.contains("class WidgetStatus(StrEnum)"))
+    assert(enumArtifact.contains("ACTIVE = \"ACTIVE\""))
   }
 }
 object HttpServiceCodegenRendererSpec {

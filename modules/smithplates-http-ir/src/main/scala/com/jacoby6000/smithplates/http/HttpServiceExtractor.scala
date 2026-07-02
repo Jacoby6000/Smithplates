@@ -48,7 +48,8 @@ private[http] object HttpServiceExtractor {
                             model,
                             serviceShape,
                             extractedShapes.structures,
-                            extractedShapes.unions
+                            extractedShapes.unions,
+                            operations
                           )
                         (
                           HttpService(

@@ -12,6 +12,7 @@ from generated.example.app_services import ApiServices, get_api_services
 from generated.example.item_kind import ItemKind
 from generated.example.item_list_output import ItemListOutput
 from generated.example.item_output import ItemOutput
+from generated.example.item_priority import ItemPriority
 from generated.example.operation_bindings import OPERATION_HTTP_BINDINGS
 from pydantic import Field  # noqa: F401
 
@@ -45,8 +46,9 @@ async def get_item(
 async def list_items(
     services: Annotated[ApiServices, Depends(get_api_services)],
     kind: ItemKind | None = Query(None, alias="kind"),
+    priority: ItemPriority | None = Query(None, alias="priority"),
 ) -> ItemListOutput:
     return dispatch_api_response(
-        await services.items_api.list_items(kind=kind),
+        await services.items_api.list_items(kind=kind, priority=priority),
         OPERATION_HTTP_BINDINGS["list_items"],
     )

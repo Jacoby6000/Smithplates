@@ -42,7 +42,7 @@ object HttpServiceCodegenRenderer {
       internal
         .toHttpValidated(
           CodegenPlanner.plan(
-            internal.outputsForPlan(settings.artifacts, emittableModels),
+            internal.outputsForPlan(settings.artifacts, emittableModels, services),
             emittableModels,
             services,
             codegenSettings,
@@ -107,12 +107,34 @@ object HttpServiceCodegenRenderer {
       ModelSet(modelSet.all.filter(model => emittedShapeIds.contains(shapeId(model.id))))
     }
 
-    def outputsForPlan(outputs: List[CodegenOutput], emittableModels: ModelSet[HttpMeta]): List[CodegenOutput] =
-      if (emittableModels.all.exists(_.id.name == "Problem")) {
+    def outputsForPlan(
+        outputs: List[CodegenOutput],
+        emittableModels: ModelSet[HttpMeta],
+        services: List[ServiceModel[?, ?]]
+    ): List[CodegenOutput] =
+      if (shouldSuppressBundledProblem(emittableModels, services)) {
         outputs.filterNot(_.id == OutputId("python.http.models.problem"))
       } else {
         outputs
       }
+
+    def shouldSuppressBundledProblem(
+        emittableModels: ModelSet[HttpMeta],
+        services: List[ServiceModel[?, ?]]
+    ): Boolean = {
+      val userProblemNamespaces =
+        emittableModels.structures.filter(_.id.name == "Problem").map(_.id.namespace).toSet
+      if (userProblemNamespaces.isEmpty || services.isEmpty) {
+        false
+      } else {
+        val serviceNamespaces = services.map(_.id.namespace).toSet
+        // Suppress the bundled static Problem module only when every service
+        // namespace in this plan also defines its own Problem structure. A
+        // partial overlap leaves the bundled output in place and relies on
+        // duplicate-path detection for the colliding namespace(s).
+        serviceNamespaces.subsetOf(userProblemNamespaces)
+      }
+    }
 
     def viewForService(settings: HttpServiceCodegenSettings, service: HttpService): HttpCodegenTemplateView =
       HttpCodegenTemplateView(

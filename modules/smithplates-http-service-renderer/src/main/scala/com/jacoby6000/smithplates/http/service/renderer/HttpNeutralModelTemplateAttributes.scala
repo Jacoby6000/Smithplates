@@ -131,9 +131,14 @@ object HttpNeutralModelTemplateAttributes {
       case TimestampT(TimestampFormat.EpochSeconds) => "float"
       case TimestampT(TimestampFormat.DateTime)     => "datetime"
       case ref: ModelRef                            =>
-        resolver(ctx).resolve(ref).flatMap(_.asAlias) match {
-          case Some(alias) => renderType(alias.underlying, ctx)
-          case None        => ctx.conventions.className(ref.id)
+        // DESNOTE(jbarber, 2026-07-02): Follow alias chains via the core's
+        // @tailrec TypeResolver.underlying (per #34) rather than hand-rolling
+        // single-level resolution. Smithy extraction only ever produces
+        // primitive alias underlyings (SmithyPrelude.userDefinedAliasUnderlying),
+        // so chains cannot arise today, but this keeps the criterion satisfied.
+        resolver(ctx).underlying(ref) match {
+          case resolved: ModelRef => ctx.conventions.className(resolved.id)
+          case other              => renderType(other, ctx)
         }
     }
 
