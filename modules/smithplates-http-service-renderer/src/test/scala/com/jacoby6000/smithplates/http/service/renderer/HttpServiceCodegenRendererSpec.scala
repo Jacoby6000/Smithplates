@@ -229,11 +229,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |    id: String
           |}
           |
-          |structure Problem {
-          |    @required
-          |    title: String
-          |}
-          |
           |@httpProblem(
           |    type: "https://example.com/errors/widget-not-found"
           |    title: "Widget not found"
@@ -241,9 +236,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget404 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |
           |@httpProblem(
@@ -253,9 +245,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget409 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |
           |@httpProblem(
@@ -265,9 +254,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget422 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |""".stripMargin
     )
@@ -286,7 +272,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val mutateWidget404 =
       artifacts.find(_.relativePath.endsWith("mutate_widget404.py")).map(_.content).getOrElse("")
     assert(mutateWidget404.contains("class MutateWidget404(Problem)"))
-    assert(mutateWidget404.contains("title: str = Field(...)"))
+    assert(mutateWidget404.contains("title: str | None = Field(default=\"Widget not found\")"))
   }
 
   test("HttpServiceCodegenRenderer imports enum types used in route parameter signatures") {

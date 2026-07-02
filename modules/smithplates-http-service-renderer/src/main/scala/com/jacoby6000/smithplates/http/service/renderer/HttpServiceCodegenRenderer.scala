@@ -10,9 +10,7 @@ import com.jacoby6000.smithplates.codegen.core.ModelSet
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
-import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
-import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -42,7 +40,7 @@ object HttpServiceCodegenRenderer {
       internal
         .toHttpValidated(
           CodegenPlanner.plan(
-            internal.outputsForPlan(settings.artifacts, emittableModels, services),
+            settings.artifacts,
             emittableModels,
             services,
             codegenSettings,
@@ -105,35 +103,6 @@ object HttpServiceCodegenRenderer {
             service.intEnums.map(_.shapeId)
         }.toSet
       ModelSet(modelSet.all.filter(model => emittedShapeIds.contains(shapeId(model.id))))
-    }
-
-    def outputsForPlan(
-        outputs: List[CodegenOutput],
-        emittableModels: ModelSet[HttpMeta],
-        services: List[ServiceModel[?, ?]]
-    ): List[CodegenOutput] =
-      if (shouldSuppressBundledProblem(emittableModels, services)) {
-        outputs.filterNot(_.id == OutputId("python.http.models.problem"))
-      } else {
-        outputs
-      }
-
-    def shouldSuppressBundledProblem(
-        emittableModels: ModelSet[HttpMeta],
-        services: List[ServiceModel[?, ?]]
-    ): Boolean = {
-      val userProblemNamespaces =
-        emittableModels.structures.filter(_.id.name == "Problem").map(_.id.namespace).toSet
-      if (userProblemNamespaces.isEmpty || services.isEmpty) {
-        false
-      } else {
-        val serviceNamespaces = services.map(_.id.namespace).toSet
-        // Suppress the bundled static Problem module only when every service
-        // namespace in this plan also defines its own Problem structure. A
-        // partial overlap leaves the bundled output in place and relies on
-        // duplicate-path detection for the colliding namespace(s).
-        serviceNamespaces.subsetOf(userProblemNamespaces)
-      }
     }
 
     def viewForService(settings: HttpServiceCodegenSettings, service: HttpService): HttpCodegenTemplateView =

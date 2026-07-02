@@ -1306,11 +1306,6 @@ class HttpIrExtractorSpec extends FunSuite {
           |    id: String
           |}
           |
-          |structure Problem {
-          |    @required
-          |    title: String
-          |}
-          |
           |@httpProblem(
           |    type: "https://example.com/errors/state-conflict"
           |    title: "Asset state conflict"
@@ -1318,9 +1313,6 @@ class HttpIrExtractorSpec extends FunSuite {
           |)
           |@error("client")
           |structure UpdateAssetState409 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |""".stripMargin
     )
@@ -1387,7 +1379,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |}
           |
           |@httpStaticHeader(name: "Content-Type", value: "application/problem+json")
-          |structure Problem {
+          |structure ConflictPayload {
           |    @required
           |    title: String
           |}
@@ -1397,7 +1389,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |structure UpdateAssetState409 {
           |    @httpPayload
           |    @required
-          |    body: Problem
+          |    body: ConflictPayload
           |}
           |""".stripMargin
     )
@@ -1579,5 +1571,51 @@ class HttpIrExtractorSpec extends FunSuite {
     val service = HttpIrExtractor.extractOrThrow(model).services.head
     assertEquals(service.stringEnums.map(_.name), List("ItemKind"))
     assertEquals(service.intEnums.map(_.name), List("ItemPriority"))
+  }
+
+  test("HttpIrExtractor rejects user-defined Problem structures") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#httpPayload
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [GetWidget]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/v1/widgets/{id}", code: 200)
+          |operation GetWidget {
+          |    input: GetWidgetInput
+          |    output: WidgetOutput
+          |}
+          |
+          |structure GetWidgetInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure WidgetOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure Problem {
+          |    @required
+          |    title: String
+          |}
+          |""".stripMargin
+    )
+
+    val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
+    assert(error.getMessage.contains("structure 'Problem' is reserved"))
   }
 }

@@ -8,4 +8,4 @@ from pydantic import Field
 
 class MutateWidget404(Problem):
     type: str | None = Field(default="https://example.com/errors/widget-not-found")
-    title: str = Field(...)
+    title: str | None = Field(default="Widget not found")

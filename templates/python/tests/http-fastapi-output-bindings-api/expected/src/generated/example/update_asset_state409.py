@@ -8,5 +8,4 @@ from pydantic import Field
 
 class UpdateAssetState409(Problem):
     type: str | None = Field(default="https://example.com/errors/state-conflict")
-    title: str = Field(...)
-    detail: str | None = Field(default=None)
+    title: str | None = Field(default="Asset state conflict")

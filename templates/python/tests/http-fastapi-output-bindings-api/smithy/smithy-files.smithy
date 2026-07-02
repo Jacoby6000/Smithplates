@@ -88,13 +88,6 @@ structure Redirect {
     url: String
 }
 
-structure Problem {
-    @required
-    title: String
-
-    detail: String
-}
-
 @error("client")
 @httpError(404)
 structure GetAssetContent404 {
@@ -109,7 +102,4 @@ structure GetAssetContent404 {
 )
 @error("client")
 structure UpdateAssetState409 {
-    @httpPayload
-    @required
-    body: Problem
 }

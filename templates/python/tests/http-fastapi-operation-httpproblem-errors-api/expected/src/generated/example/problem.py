@@ -6,4 +6,25 @@ from pydantic import BaseModel, Field
 
 
 class Problem(BaseModel):
-    title: str = Field(...)
+    """RFC 9457 problem details object (`application/problem+json`)."""
+
+    type: str | None = Field(
+        default=None,
+        description=("URI reference identifying the problem type; prefer an HTTPS URL to documentation."),
+    )
+    title: str | None = Field(
+        default=None,
+        description="Short, human-readable summary of the problem type.",
+    )
+    status: int | None = Field(
+        default=None,
+        description="HTTP status code generated for this occurrence of the problem.",
+    )
+    detail: str | None = Field(
+        default=None,
+        description="Human-readable explanation specific to this occurrence of the problem.",
+    )
+    instance: str | None = Field(
+        default=None,
+        description=("URI reference identifying this specific occurrence (for example a trace or request identifier)."),
+    )

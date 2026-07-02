@@ -20,7 +20,7 @@ object HttpNeutralModelTemplateAttributes {
   type ModelView[S]  = TemplateView[S, HttpMeta]
 
   def structureFields(ctx: StructureView): List[Field] =
-    problemPayloadFields(ctx).getOrElse(ctx.subject.fields)
+    ctx.subject.fields
 
   def problemError(ctx: StructureView): Option[HttpErrorMeta] =
     ctx.subject.meta.feature match {
@@ -46,7 +46,6 @@ object HttpNeutralModelTemplateAttributes {
     ctx.usedTypes
       .filterNot(_.id == subject.id)
       .filterNot(_.asAlias.isDefined)
-      .filterNot(model => subject.asStructure.exists(extendsProblemStructure(_, model)))
       .distinctBy(_.id)
       .sortBy(model => ctx.conventions.modulePath(model.id))
 
@@ -148,18 +147,6 @@ object HttpNeutralModelTemplateAttributes {
       case _            => false
     }
 
-  private def problemPayloadFields(ctx: StructureView): Option[List[Field]] =
-    problemError(ctx).flatMap { _ =>
-      ctx.subject.fields match {
-        case List(Field(_, ref: ModelRef)) =>
-          ctx.usedTypes
-            .find(model => model.id == ref.id && model.id.name == "Problem")
-            .flatMap(_.asStructure)
-            .map(_.fields)
-        case _                             => None
-      }
-    }
-
   private def defaultField(
       name: String,
       value: Option[String],
@@ -171,15 +158,6 @@ object HttpNeutralModelTemplateAttributes {
 
   private def renderedTypeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
     renderType(tpe, ctx).contains("datetime")
-
-  private def extendsProblemStructure(structure: Model.Structure[HttpMeta], model: Model[HttpMeta]): Boolean =
-    model.id.name == "Problem" && problemResponseMeta(structure).isDefined
-
-  private def problemResponseMeta(structure: Model.Structure[HttpMeta]): Option[HttpErrorMeta] =
-    structure.meta.feature match {
-      case HttpMeta.HttpResponseMeta(_, _, _, error) => error
-      case _                                         => None
-    }
 
   private def unionMemberTypeNameCollidesWithVariant(
       ctx: UnionView,

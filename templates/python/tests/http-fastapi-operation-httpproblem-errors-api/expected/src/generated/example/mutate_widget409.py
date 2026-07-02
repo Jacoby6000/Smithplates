@@ -8,4 +8,4 @@ from pydantic import Field
 
 class MutateWidget409(Problem):
     type: str | None = Field(default="https://example.com/errors/widget-conflict")
-    title: str = Field(...)
+    title: str | None = Field(default="Widget conflict")

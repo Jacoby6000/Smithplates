@@ -65,11 +65,6 @@ structure DeleteWidgetInput {
     id: String
 }
 
-structure Problem {
-    @required
-    title: String
-}
-
 @httpProblem(
     type: "https://example.com/errors/widget-not-found"
     title: "Widget not found"
@@ -77,9 +72,6 @@ structure Problem {
 )
 @error("client")
 structure MutateWidget404 {
-    @httpPayload
-    @required
-    body: Problem
 }
 
 @httpProblem(
@@ -89,9 +81,6 @@ structure MutateWidget404 {
 )
 @error("client")
 structure MutateWidget409 {
-    @httpPayload
-    @required
-    body: Problem
 }
 
 @error("client")
