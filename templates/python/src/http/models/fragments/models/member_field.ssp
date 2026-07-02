@@ -1,2 +1,0 @@
-<%@ val member: com.jacoby6000.smithplates.http.model.HttpStructureMember %>
-    ${member.name}: ${structureMemberPythonType(member)}<% if (!member.required) { %> | None<% } %> = Field(<% if (member.required) { %>...<% } else { %>default=None<% } %>)

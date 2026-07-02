@@ -1,10 +1,9 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
-import com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateSource
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
-import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenArtifactConfig
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
@@ -62,13 +61,14 @@ object HttpLanguageTargetTemplateValidator {
     def validateRequiredArtifactsExist(
         languageId: String,
         defaultTemplateDirectory: String,
-        artifacts: List[HttpServiceCodegenArtifactConfig]
+        artifacts: List[CodegenOutput]
     ): SqlValidated[Unit] = {
       val missingTemplates =
         artifacts
-          .map { artifact =>
-            val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, artifact)
-            (templateDirectory, artifact.template)
+          .flatMap(HttpServiceCodegenApiArtifacts.templatePath)
+          .map { template =>
+            val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
+            (templateDirectory, stripTemplateDirectoryPrefix(template))
           }
           .distinct
           .filterNot { case (templateDirectory, template) =>
@@ -92,11 +92,15 @@ object HttpLanguageTargetTemplateValidator {
     def resolvedArtifactTemplateDirectory(
         languageId: String,
         defaultTemplateDirectory: String,
-        artifact: HttpServiceCodegenArtifactConfig
+        templatePath: String
     ): String =
-      artifact.templateSource match {
-        case HttpCodegenTemplateSource.Service => defaultTemplateDirectory
-        case HttpCodegenTemplateSource.Models  => defaultModelsTemplateDirectory(languageId)
+      if (templatePath.startsWith("models/")) {
+        defaultModelsTemplateDirectory(languageId)
+      } else {
+        defaultTemplateDirectory
       }
+
+    def stripTemplateDirectoryPrefix(templatePath: String): String =
+      templatePath.stripPrefix("models/")
   }
 }

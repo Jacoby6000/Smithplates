@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.http.model.HttpRouteGroup
-import com.jacoby6000.smithplates.http.model.HttpStructure
 import com.jacoby6000.smithplates.scalate.PreambleTemplateRootResourceLoader
 import com.jacoby6000.smithplates.scalate.ScalateTemplatePaths
 import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
@@ -171,7 +170,6 @@ object ScalateSspTemplateEngine {
           case routeGroup: HttpRouteGroup                                     => routeGroup.asInstanceOf[Object]
           case operation: com.jacoby6000.smithplates.http.model.HttpOperation =>
             operation.asInstanceOf[Object]
-          case structure: HttpStructure                                       => structure.asInstanceOf[Object]
           case other                                                          => other.asInstanceOf[Object]
         })
       }

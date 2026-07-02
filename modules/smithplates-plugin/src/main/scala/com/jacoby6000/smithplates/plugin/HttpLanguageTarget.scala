@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
@@ -109,7 +110,7 @@ object HttpLanguageTarget {
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String,
-      artifacts: List[com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenArtifactConfig]
+      artifacts: List[CodegenOutput]
   ): HttpServiceCodegenSettings =
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,
