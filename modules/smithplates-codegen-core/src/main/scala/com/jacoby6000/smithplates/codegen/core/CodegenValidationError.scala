@@ -57,6 +57,11 @@ final case class InvalidLanguageBaseConfig(reason: String) extends CodegenValida
     s"Invalid language base config: $reason"
 }
 
+final case class InvalidCodegenOutputConfig(reason: String) extends CodegenValidationError {
+  override def message: String =
+    s"Invalid codegen output config: $reason"
+}
+
 final case class UnknownOutputOverride(overrideId: OutputId) extends CodegenValidationError {
   override def message: String =
     s"Unknown codegen output override id: ${overrideId.value}"

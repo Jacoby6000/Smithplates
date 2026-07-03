@@ -50,8 +50,12 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         enabledFrameworkKeys = List("fastapi"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts =
-          HttpServiceCodegenApiArtifacts.forEnabledFrameworks(List("fastapi"), List("v1_widgets"), emitModels = true),
+        artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+          serverTemplateDirectory = HttpServiceCodegenRendererSpec.internal.PythonServerTemplateDirectory,
+          modelsTemplateDirectory = HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory,
+          frameworkKeys = List("fastapi"),
+          emitModels = true
+        ),
         rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
@@ -115,8 +119,13 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         enabledFrameworkKeys = List("httpx"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List("httpx"), List("v1_widgets")) ++
-          HttpServiceCodegenApiArtifacts.sharedModels,
+        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(
+          HttpServiceCodegenRendererSpec.internal.PythonClientTemplateDirectory,
+          List("httpx")
+        ) ++
+          HttpServiceCodegenApiArtifacts.sharedModels(
+            HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory
+          ),
         rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
@@ -362,9 +371,11 @@ object HttpServiceCodegenRendererSpec {
           sourceOutputDirectory = Some("src/generated"),
           testOutputDirectory = Some("tests"),
           artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-            List("fastapi"),
-            List(routeGroupTag),
-            emitModels = true),
+            serverTemplateDirectory = PythonServerTemplateDirectory,
+            modelsTemplateDirectory = PythonModelsTemplateDirectory,
+            frameworkKeys = List("fastapi"),
+            emitModels = true
+          ),
           rootNamespace = RootNamespace,
           packageNameOverride = None,
           modelsPackageNameOverride = None,

@@ -142,7 +142,7 @@ object SqlServiceCodegenRenderer {
         try {
           val resolvedTemplatePath = resolveTemplatePath(settings, templatePath)
           val content              =
-            if (SqlServiceCodegenDbArtifacts.bundledTemplatePaths.contains(templatePath)) {
+            if (!SqlServiceCodegenDbArtifacts.isRenderedTemplate(templatePath)) {
               ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
             } else {
               val templateRoot = settings.templateDirectory.stripPrefix("classpath:")

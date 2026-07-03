@@ -1,140 +1,39 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-import com.jacoby6000.smithplates.codegen.core.ModelKind
-import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
-import com.jacoby6000.smithplates.codegen.core.planning.BindingFilterAtom
-import com.jacoby6000.smithplates.codegen.core.planning.BindingGroup
+import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
-import com.jacoby6000.smithplates.codegen.core.planning.OutputId
-import com.jacoby6000.smithplates.codegen.core.planning.SmithyBinding
+import com.jacoby6000.smithplates.codegen.core.planning.config.CodegenOutputDeckLoader
 
-/** Bundled `@httpService` artifact paths relative to the HTTP server template root. */
+/** Composes bundled `@httpService` server artifacts from `outputs.json` deck resources located beside each language's
+  * templates. The deck data (ids, template paths, output paths, bindings) lives entirely in JSON, so this object holds
+  * only language-neutral composition logic and no per-language paths.
+  */
 object HttpServiceCodegenApiArtifacts {
-  val sharedPerService: List[CodegenOutput] =
-    List(
-      serviceTemplate(
-        id = "python.http.server.app_factory",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "app_factory.ssp",
-        outputFile = "app_factory.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.app_services",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "app_services.ssp",
-        outputFile = "app_services.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.model_validation",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "model_validation.ssp",
-        outputFile = "model_validation.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.api_response",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_response.ssp",
-        outputFile = "api_response.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.operation_bindings",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "operation_bindings.ssp",
-        outputFile = "operation_bindings.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.api_exceptions",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_exceptions.ssp",
-        outputFile = "api_exceptions.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.api_exception_handler",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_exception_handler.ssp",
-        outputFile = "api_exception_handler.py"
-      ),
-      serviceTemplate(
-        id = "python.http.server.apis_init",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "apis/__init__.ssp",
-        outputFile = "apis/__init__.py"
-      )
-    )
+  def frameworkArtifacts(
+      serverTemplateDirectory: String,
+      modelsTemplateDirectory: String,
+      frameworkKeys: List[String],
+      emitModels: Boolean
+  ): CodegenValidated[List[CodegenOutput]] =
+    (
+      internal.enabled(serverTemplateDirectory, frameworkKeys),
+      if (emitModels) modelArtifacts(modelsTemplateDirectory) else List.empty[CodegenOutput].validNel
+    ).mapN(_ ++ _)
 
-  val sharedModels: List[CodegenOutput] =
-    List(
-      modelSupportTemplate(
-        id = "python.http.models.init",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "__init__.ssp",
-        outputFile = "__init__.py"
-      ),
-      modelSupportTemplate(
-        id = "python.http.models.problem",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "problem.ssp",
-        outputFile = "problem.py"
-      ),
-      modelTemplate(
-        id = "python.http.models.structure",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "structure.ssp",
-        outputFile = "{{modelFileName}}",
-        modelKind = ModelKind.Structure
-      ),
-      modelTemplate(
-        id = "python.http.models.union",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "union.ssp",
-        outputFile = "{{modelFileName}}",
-        modelKind = ModelKind.Union
-      ),
-      modelTemplate(
-        id = "python.http.models.enum",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "enum.ssp",
-        outputFile = "{{modelFileName}}",
-        modelKind = ModelKind.Enum
-      )
-    )
-
-  def fastapi: List[CodegenOutput] =
-    List(
-      operationTagTemplate(
-        id = "python.http.server.fastapi.route_group_protocol",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "fastapi/route_group_protocol.ssp",
-        outputFile = "apis/{{tagName}}_api_base.py"
-      ),
-      operationTagTemplate(
-        id = "python.http.server.fastapi.route_group_routes",
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "fastapi/route_group_routes.ssp",
-        outputFile = "apis/{{tagName}}_api.py"
-      )
-    )
-
-  def frameworkSpecific(frameworkKey: String): List[CodegenOutput] =
-    frameworkKey match {
-      case "fastapi" => fastapi
-      case other     => throw new IllegalArgumentException(s"unsupported HTTP framework key: $other")
-    }
+  def modelArtifacts(modelsTemplateDirectory: String): CodegenValidated[List[CodegenOutput]] =
+    internal.deck(modelsTemplateDirectory).map(_.shared)
 
   def forEnabledFrameworks(
+      serverTemplateDirectory: String,
+      modelsTemplateDirectory: String,
       frameworkKeys: List[String],
-      routeGroupTags: List[String],
       emitModels: Boolean
-  ): List[CodegenOutput] = {
-    val _                  = routeGroupTags
-    val frameworkArtifacts =
-      if (frameworkKeys.isEmpty) {
-        Nil
-      } else {
-        frameworkKeys.flatMap(frameworkSpecific)
-      }
-    sharedPerService ++ frameworkArtifacts ++ (if (emitModels) sharedModels else Nil)
-  }
+  ): List[CodegenOutput] =
+    internal.orThrow(frameworkArtifacts(serverTemplateDirectory, modelsTemplateDirectory, frameworkKeys, emitModels))
+
+  def sharedModels(modelsTemplateDirectory: String): List[CodegenOutput] =
+    internal.orThrow(modelArtifacts(modelsTemplateDirectory))
 
   def templatePath(output: CodegenOutput): Option[String] =
     output match {
@@ -142,86 +41,20 @@ object HttpServiceCodegenApiArtifacts {
       case _: CodegenOutput.CodegenStaticOutput                 => None
     }
 
-  def serviceTemplate(
-      id: String,
-      kind: HttpServiceCodegenArtifactKind,
-      template: String,
-      outputFile: String
-  ): CodegenOutput.CodegenTemplateBindingOutput =
-    templateOutput(
-      id = id,
-      kind = kind,
-      templatePath = template,
-      outputPath = outputFile,
-      binding = SmithyBinding.Service
-    )
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def deck(templateDirectory: String) =
+      CodegenOutputDeckLoader.load(templateDirectory, getClass.getClassLoader)
 
-  def modelSupportTemplate(
-      id: String,
-      kind: HttpServiceCodegenArtifactKind,
-      template: String,
-      outputFile: String
-  ): CodegenOutput.CodegenTemplateBindingOutput =
-    templateOutput(
-      id = id,
-      kind = kind,
-      templatePath = s"models/$template",
-      outputPath = outputFile,
-      binding = SmithyBinding.Service
-    )
+    def enabled(templateDirectory: String, enabledKeys: List[String]): CodegenValidated[List[CodegenOutput]] =
+      deck(templateDirectory).andThen(_.forEnabled(enabledKeys))
 
-  def modelTemplate(
-      id: String,
-      kind: HttpServiceCodegenArtifactKind,
-      template: String,
-      outputFile: String,
-      modelKind: ModelKind
-  ): CodegenOutput.CodegenTemplateBindingOutput =
-    templateOutput(
-      id = id,
-      kind = kind,
-      templatePath = s"models/$template",
-      outputPath = outputFile,
-      binding = SmithyBinding.Model(List(BindingFilterAtom.Kind(modelKind)), BindingGroup.None)
-    )
-
-  def operationTagTemplate(
-      id: String,
-      kind: HttpServiceCodegenArtifactKind,
-      template: String,
-      outputFile: String
-  ): CodegenOutput.CodegenTemplateBindingOutput =
-    templateOutput(
-      id = id,
-      kind = kind,
-      templatePath = template,
-      outputPath = outputFile,
-      binding = SmithyBinding.Operation(List(BindingFilterAtom.Tagged), BindingGroup.Tag)
-    )
-
-  def templateOutput(
-      id: String,
-      kind: HttpServiceCodegenArtifactKind,
-      templatePath: String,
-      outputPath: String,
-      binding: SmithyBinding
-  ): CodegenOutput.CodegenTemplateBindingOutput =
-    CodegenOutput.CodegenTemplateBindingOutput(
-      id = OutputId(id),
-      kind = artifactKind(kind),
-      templatePath = templatePath,
-      outputPath = namespaceRelative(outputPath),
-      binding = binding
-    )
-
-  def namespaceRelative(outputPath: String): String =
-    s"{{smithyNamespaceDir}}/${outputPath.stripPrefix("/")}"
-
-  def artifactKind(kind: HttpServiceCodegenArtifactKind): ArtifactKind =
-    kind match {
-      case HttpServiceCodegenArtifactKind.Src  => ArtifactKind.Src
-      case HttpServiceCodegenArtifactKind.Test => ArtifactKind.Test
-    }
+    def orThrow(artifacts: CodegenValidated[List[CodegenOutput]]): List[CodegenOutput] =
+      artifacts.fold(
+        errors => throw new IllegalStateException(errors.map(_.message).toList.mkString("; ")),
+        identity
+      )
+  }
 }
 
 final case class HttpServiceCodegenSettings(

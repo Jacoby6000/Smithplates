@@ -1,0 +1,78 @@
+{
+  "shared": [
+    {
+      "id": "python.http.server.app_factory",
+      "artifactKind": "src",
+      "template": "app_factory.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/app_factory.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.app_services",
+      "artifactKind": "src",
+      "template": "app_services.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/app_services.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.model_validation",
+      "artifactKind": "src",
+      "template": "model_validation.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/model_validation.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.api_response",
+      "artifactKind": "src",
+      "template": "api_response.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/api_response.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.operation_bindings",
+      "artifactKind": "src",
+      "template": "operation_bindings.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/operation_bindings.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.api_exceptions",
+      "artifactKind": "src",
+      "template": "api_exceptions.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/api_exceptions.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.api_exception_handler",
+      "artifactKind": "src",
+      "template": "api_exception_handler.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/api_exception_handler.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.server.apis_init",
+      "artifactKind": "src",
+      "template": "apis/__init__.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/apis/__init__.py",
+      "binding": { "type": "service" }
+    }
+  ],
+  "variants": {
+    "fastapi": [
+      {
+        "id": "python.http.server.fastapi.route_group_protocol",
+        "artifactKind": "src",
+        "template": "fastapi/route_group_protocol.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/apis/{{tagName}}_api_base.py",
+        "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
+      },
+      {
+        "id": "python.http.server.fastapi.route_group_routes",
+        "artifactKind": "src",
+        "template": "fastapi/route_group_routes.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/apis/{{tagName}}_api.py",
+        "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
+      }
+    ]
+  }
+}

@@ -246,7 +246,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .swap
         .toOption
         .getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("missing required templates")))
+    assert(errors.exists(_.message.contains("missing codegen output deck")))
     assert(errors.exists(_.message.contains("http/models")))
   }
 

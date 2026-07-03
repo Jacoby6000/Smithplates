@@ -35,11 +35,16 @@ final case class HttpServerTarget(
       emitModels = emitModels,
       sourceOutputDir = sourceOutputDir,
       testOutputDir = testOutputDir,
-      artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-        List(webFramework),
-        routeGroupTags,
-        emitModels
-      )
+      artifacts = {
+        val _ = routeGroupTags
+        HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+          serverTemplateDirectory =
+            HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId),
+          modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId),
+          frameworkKeys = List(webFramework),
+          emitModels = emitModels
+        )
+      }
     )
 }
 
@@ -57,8 +62,19 @@ final case class HttpClientTarget(
       sourceOutputDir: String,
       testOutputDir: String
   ): HttpServiceCodegenSettings = {
-    val clientArtifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List(httpLibrary), routeGroupTags)
-    val modelArtifacts  = if (emitModels) HttpServiceCodegenApiArtifacts.sharedModels else Nil
+    val _               = routeGroupTags
+    val clientArtifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(
+      clientTemplateDirectory = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId),
+      libraryKeys = List(httpLibrary)
+    )
+    val modelArtifacts  =
+      if (emitModels) {
+        HttpServiceCodegenApiArtifacts.sharedModels(
+          HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
+        )
+      } else {
+        Nil
+      }
     HttpLanguageTarget.buildCodegenSettings(
       languageId = languageId,
       frameworkKey = httpLibrary,

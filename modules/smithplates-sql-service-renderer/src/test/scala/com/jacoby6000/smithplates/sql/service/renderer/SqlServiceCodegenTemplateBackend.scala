@@ -95,7 +95,7 @@ object SqlServiceCodegenTemplateBackend {
         codegenBindPlaceholder = SqlBindPlaceholder("?")
       ),
       schemaDdlRenderer = SqliteRenderer,
-      artifacts = SqlServiceCodegenDbArtifacts.sqlite()
+      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("sqlite"))
     )
 
   val pythonPostgres: ConfiguredBackend =
@@ -107,6 +107,6 @@ object SqlServiceCodegenTemplateBackend {
         codegenBindPlaceholder = SqlBindPlaceholder("%s")
       ),
       schemaDdlRenderer = PostgresRenderer,
-      artifacts = SqlServiceCodegenDbArtifacts.postgres()
+      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("postgres"))
     )
 }

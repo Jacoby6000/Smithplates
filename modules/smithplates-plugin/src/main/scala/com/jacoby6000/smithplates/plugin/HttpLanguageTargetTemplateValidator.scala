@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
@@ -27,37 +28,57 @@ object HttpLanguageTargetTemplateValidator {
   def validateServer(
       languageId: String,
       target: HttpServerTarget
-  ): SqlValidated[Unit] =
+  ): SqlValidated[Unit] = {
+    val serverTemplateDirectory = resolveServerTemplateDirectory(target, languageId)
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.server", target.templateDirectory)
       .andThen(_ =>
+        internal.loadedArtifacts(
+          HttpServiceCodegenApiArtifacts.frameworkArtifacts(
+            serverTemplateDirectory = serverTemplateDirectory,
+            modelsTemplateDirectory = defaultModelsTemplateDirectory(languageId),
+            frameworkKeys = List(target.webFramework),
+            emitModels = true
+          )))
+      .andThen(artifacts =>
         internal.validateRequiredArtifactsExist(
           languageId = languageId,
-          defaultTemplateDirectory = resolveServerTemplateDirectory(target, languageId),
-          artifacts = HttpServiceCodegenApiArtifacts
-            .forEnabledFrameworks(List(target.webFramework), List("placeholder"), emitModels = true)
+          defaultTemplateDirectory = serverTemplateDirectory,
+          artifacts = artifacts
         ))
+  }
 
   def validateClient(
       languageId: String,
       target: HttpClientTarget,
       emitModels: Boolean
   ): SqlValidated[Unit] = {
-    val clientArtifacts = HttpClientCodegenApiArtifacts
-      .forEnabledLibraries(List(target.httpLibrary), List("placeholder"))
-    val modelArtifacts  = if (emitModels) HttpServiceCodegenApiArtifacts.sharedModels else Nil
+    val clientTemplateDirectory = resolveClientTemplateDirectory(target, languageId)
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.client", target.templateDirectory)
       .andThen(_ =>
+        internal.loadedArtifacts(
+          (
+            HttpClientCodegenApiArtifacts.libraryArtifacts(clientTemplateDirectory, List(target.httpLibrary)),
+            if (emitModels) {
+              HttpServiceCodegenApiArtifacts.modelArtifacts(defaultModelsTemplateDirectory(languageId))
+            } else {
+              List.empty[CodegenOutput].validNel
+            }
+          ).mapN(_ ++ _)))
+      .andThen(artifacts =>
         internal.validateRequiredArtifactsExist(
           languageId = languageId,
-          defaultTemplateDirectory = resolveClientTemplateDirectory(target, languageId),
-          artifacts = clientArtifacts ++ modelArtifacts
+          defaultTemplateDirectory = clientTemplateDirectory,
+          artifacts = artifacts
         ))
   }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def loadedArtifacts(artifacts: CodegenValidated[List[CodegenOutput]]): SqlValidated[List[CodegenOutput]] =
+      artifacts.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+
     def validateRequiredArtifactsExist(
         languageId: String,
         defaultTemplateDirectory: String,
