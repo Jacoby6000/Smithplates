@@ -52,7 +52,7 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
       modelIds,
       List(
         "python.http.models.init",
-        "python.http.models.problem",
+        "python.http.models.http_problem",
         "python.http.models.structure",
         "python.http.models.union",
         "python.http.models.enum"
@@ -73,6 +73,16 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
         "python.http.client.httpx.route_group_client"
       )
     )
+  }
+
+  test("http_problem deck entry emits once at the trait namespace") {
+    HttpServiceCodegenApiArtifacts.sharedModels(ModelsDir).find(_.id.value == "python.http.models.http_problem") match {
+      case Some(template: CodegenOutput.CodegenTemplateBindingOutput) =>
+        assertEquals(template.outputPath, "smithplates/codegen/http/http_problem.py")
+        assertEquals(template.binding, SmithyBinding.Once)
+      case other                                                      =>
+        fail(s"expected http_problem template output, got $other")
+    }
   }
 
   test("model outputs carry kind-filtered model bindings") {

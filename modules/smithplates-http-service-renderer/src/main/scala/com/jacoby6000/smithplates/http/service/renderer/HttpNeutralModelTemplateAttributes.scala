@@ -31,6 +31,12 @@ object HttpNeutralModelTemplateAttributes {
   def extendsProblem(ctx: StructureView): Boolean =
     problemError(ctx).isDefined
 
+  def httpProblemImportModule[S](ctx: ModelView[S]): String =
+    HttpCodegenProblemBase.importModule(ctx)
+
+  def httpProblemClassName: String =
+    HttpCodegenProblemBase.ClassName
+
   def problemDefaultFields(ctx: StructureView): List[(String, String)] = {
     val fieldNames = structureFields(ctx).map(_.name).toSet
     problemError(ctx).toList.flatMap { error =>

@@ -5,14 +5,12 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
-class Problem(BaseModel):
+class HttpProblem(BaseModel):
     """RFC 9457 problem details object (`application/problem+json`)."""
 
     type: str | None = Field(
         default=None,
-        description=(
-            "URI reference identifying the problem type; prefer an HTTPS URL to documentation."
-        ),
+        description=("URI reference identifying the problem type; prefer an HTTPS URL to documentation."),
     )
     title: str | None = Field(
         default=None,
@@ -28,8 +26,5 @@ class Problem(BaseModel):
     )
     instance: str | None = Field(
         default=None,
-        description=(
-            "URI reference identifying this specific occurrence "
-            "(for example a trace or request identifier)."
-        ),
+        description=("URI reference identifying this specific occurrence (for example a trace or request identifier)."),
     )

@@ -13,14 +13,14 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 <% } %>
 <% if (H.extendsProblem(ctx)) { %>
-from ${ctx.conventions.packageName(ctx.subject.id.namespace)}.problem import Problem
+from ${H.httpProblemImportModule(ctx)} import ${H.httpProblemClassName}
 <% } %>
 <% for (model <- importModels) { %>
 from ${H.modulePath(ctx, model)} import ${ctx.conventions.className(model.id)}
 <% } %>
 
 
-class ${H.className(ctx)}(<% if (H.extendsProblem(ctx)) { %>Problem<% } else { %>BaseModel<% } %>):
+class ${H.className(ctx)}(<% if (H.extendsProblem(ctx)) { %>${H.httpProblemClassName}<% } else { %>BaseModel<% } %>):
 <% if (fields.isEmpty && !H.extendsProblem(ctx)) { %>
     pass
 <% } %>

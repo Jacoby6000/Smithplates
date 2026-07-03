@@ -280,7 +280,12 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val artifacts       = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
     val mutateWidget404 =
       artifacts.find(_.relativePath.endsWith("mutate_widget404.py")).map(_.content).getOrElse("")
-    assert(mutateWidget404.contains("class MutateWidget404(Problem)"))
+    assert(mutateWidget404.contains("class MutateWidget404(HttpProblem)"))
+    assert(
+      mutateWidget404.contains(
+        "from generated.smithplates.codegen.http.http_problem import HttpProblem"
+      )
+    )
     assert(mutateWidget404.contains("title: str | None = Field(default=\"Widget not found\")"))
   }
 

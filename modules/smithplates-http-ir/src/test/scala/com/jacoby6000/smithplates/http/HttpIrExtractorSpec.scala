@@ -1573,7 +1573,7 @@ class HttpIrExtractorSpec extends FunSuite {
     assertEquals(service.intEnums.map(_.name), List("ItemPriority"))
   }
 
-  test("HttpIrExtractor rejects user-defined Problem structures") {
+  test("HttpIrExtractor allows user-defined Problem structures unrelated to @httpProblem") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->
         """$version: "2.0"
@@ -1615,7 +1615,7 @@ class HttpIrExtractorSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val error = intercept[IllegalArgumentException](HttpIrExtractor.extractOrThrow(model))
-    assert(error.getMessage.contains("structure 'Problem' is reserved"))
+    val service = HttpIrExtractor.extractOrThrow(model).services.head
+    assertEquals(service.routeGroups.flatMap(_.operations.map(_.name)), List("GetWidget"))
   }
 }

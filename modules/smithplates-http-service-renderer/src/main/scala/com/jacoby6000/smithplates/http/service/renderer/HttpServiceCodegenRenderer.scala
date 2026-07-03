@@ -86,6 +86,8 @@ object HttpServiceCodegenRenderer {
             }
           case _: CodegenModel[?]                                         =>
             renderNeutralTemplate(settings, templatePath, view)
+          case ()                                                         =>
+            renderNeutralTemplate(settings, templatePath, view)
           case unsupported                                                =>
             TemplateRenderFailed(
               templatePath,
@@ -110,6 +112,7 @@ object HttpServiceCodegenRenderer {
         service = service,
         packageName = HttpCodegenPackageNames.servicePackageName(settings, service),
         modelsPackageName = HttpCodegenPackageNames.modelsPackageName(settings, service.shapeId.getNamespace),
+        httpProblemImportModule = HttpCodegenProblemBase.importModule(settings),
         typePackageNames = HttpCodegenPackageNames.buildTypePackageNames(service, settings)
       )
 

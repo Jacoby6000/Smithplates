@@ -107,7 +107,21 @@ This keeps generated files replaceable and avoids editing generated route module
 
 ## Problem details
 
-Use `@httpProblem` on Smithy error structures when generated HTTP code should expose problem detail responses.
+Use `@httpProblem` on Smithy error structures when generated HTTP code should expose
+[RFC 9457](https://datatracker.ietf.org/doc/html/rfc9457) problem detail responses.
+This is the recommended way to model HTTP errors: you declare a Smithy error structure
+with trait defaults, and smithplates generates exception classes, Pydantic error
+models, and FastAPI handlers that serialize `application/problem+json`.
+
+Smithplates emits a shared base model **`HttpProblem`** once per codegen run at
+`{rootNamespace}/smithplates/codegen/http/http_problem.py` (namespace
+`smithplates.codegen.http`, aligned with the `@httpProblem` trait). Error structures
+annotated with `@httpProblem` extend `HttpProblem` in generated Python. You do **not**
+need to define your own RFC 9457 base type.
+
+You may still define an ordinary structure named `Problem` (or any other name) in your
+service namespace when it is unrelated to `@httpProblem`; it is generated like any
+other model and does not collide with the bundled `HttpProblem` base.
 
 `@httpProblem` can:
 
@@ -133,7 +147,10 @@ structure WidgetNotFound {
 }
 ```
 
-Generated application code raises the generated exception type; generated FastAPI handlers serialize the problem response.
+Generated `@httpProblem` error models extend `HttpProblem` and inherit RFC 9457
+fields (`type`, `title`, `status`, `detail`, `instance`). Generated application code
+raises the generated exception type; generated FastAPI handlers serialize the problem
+response.
 
 Smithplates also ships projection transforms for tools that expect only standard Smithy traits:
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
-class Problem(BaseModel):
+class HttpProblem(BaseModel):
     """RFC 9457 problem details object (`application/problem+json`)."""
 
     type: str | None = Field(

@@ -9,8 +9,8 @@ from typing import Protocol
 from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from generated.example.problem import Problem
 from generated.project_api.api_exceptions import NotImplementedApiError
+from generated.smithplates.codegen.http.http_problem import HttpProblem
 from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ class FallbackApiExceptionHandler(Protocol):
     ) -> JSONResponse: ...
 
 
-def problem_json_response(status_code: int, problem: Problem) -> JSONResponse:
+def problem_json_response(status_code: int, problem: HttpProblem) -> JSONResponse:
     content = problem.model_dump(mode="json", exclude_none=True)
     content.setdefault("status", status_code)
     return JSONResponse(
@@ -60,7 +60,7 @@ class DefaultFallbackApiExceptionHandler:
         request: Request,
         exc: NotImplementedApiError,
     ) -> JSONResponse:
-        return problem_json_response(501, Problem(title="Not implemented", status=501))
+        return problem_json_response(501, HttpProblem(title="Not implemented", status=501))
 
     async def handle_validation_error(
         self,
@@ -69,7 +69,7 @@ class DefaultFallbackApiExceptionHandler:
     ) -> JSONResponse:
         return problem_json_response(
             422,
-            Problem(
+            HttpProblem(
                 title="Request validation failed",
                 status=422,
                 detail=str(exc.errors()),
@@ -90,7 +90,7 @@ class DefaultFallbackApiExceptionHandler:
         detail = traceback.format_exc()
         return problem_json_response(
             500,
-            Problem(
+            HttpProblem(
                 title="Internal Server Error",
                 status=500,
                 detail=detail,

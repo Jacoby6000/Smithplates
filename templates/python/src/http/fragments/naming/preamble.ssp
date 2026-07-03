@@ -53,6 +53,9 @@ def serviceErrorsNeedProblemImport(
 ): Boolean =
   service.serviceErrors.exists(_.problemBinding.isDefined)
 
+def httpProblemClassName: String =
+  com.jacoby6000.smithplates.http.service.renderer.HttpCodegenProblemBase.ClassName
+
 def problemBindingDefaultDetailLiteral(
     binding: com.jacoby6000.smithplates.http.model.HttpProblemBinding
 ): String =

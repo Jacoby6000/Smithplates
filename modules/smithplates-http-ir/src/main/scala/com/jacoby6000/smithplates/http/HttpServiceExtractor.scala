@@ -5,7 +5,6 @@ import com.jacoby6000.smithplates.http.SmithyHttpTraitAccess.*
 import com.jacoby6000.smithplates.http.model.*
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ServiceShape
-import software.amazon.smithy.model.shapes.ShapeId
 
 import scala.jdk.CollectionConverters.*
 
@@ -41,11 +40,8 @@ private[http] object HttpServiceExtractor {
                   if (operations.isEmpty) {
                     EmptyHttpService(serviceShape).invalidNel
                   } else {
-                    internal
-                      .validateReservedProblemStructure(model, serviceShape)
-                      .andThen { _ =>
-                        HttpStructureExtractor.extractForService(model, serviceShape, operations, serviceErrors)
-                      }
+                    HttpStructureExtractor
+                      .extractForService(model, serviceShape, operations, serviceErrors)
                       .map { extractedShapes =>
                         val (stringEnums, intEnums) =
                           HttpEnumExtractor.extractReferenced(
@@ -99,22 +95,5 @@ private[http] object HttpServiceExtractor {
 
     def extractResources(model: Model, service: ServiceShape): HttpValidated[List[HttpResource]] =
       HttpResourceExtractor.extractAllForService(model, service)
-
-    def validateReservedProblemStructure(model: Model, serviceShape: ShapeId): HttpValidated[Unit] = {
-      val reservedProblemDefined =
-        model.getStructureShapes.asScala.exists { shape =>
-          shape.getId.getName == "Problem" &&
-          shape.getId.getNamespace == serviceShape.getNamespace
-        }
-      if (reservedProblemDefined) {
-        InvalidHttpService(
-          serviceShape,
-          "structure 'Problem' is reserved for the bundled RFC 9457 problem base model; " +
-            "apply @httpProblem to error shapes instead of defining your own Problem structure"
-        ).invalidNel
-      } else {
-        ().validNel
-      }
-    }
   }
 }
