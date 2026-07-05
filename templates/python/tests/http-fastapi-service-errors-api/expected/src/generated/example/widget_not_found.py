@@ -9,3 +9,4 @@ from pydantic import Field
 class WidgetNotFound(HttpProblem):
     type: str | None = Field(default="https://example.com/errors/widget-not-found")
     title: str | None = Field(default="Widget not found")
+    detail: str | None = Field(default="The requested widget does not exist.")

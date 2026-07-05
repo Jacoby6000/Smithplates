@@ -34,6 +34,21 @@ object StrictJsonDecoding {
     case _: (label *: tail) => Set(constValue[label].asInstanceOf[String]) ++ elemLabels[tail]
   }
 
+  def rejectExtraKeys(cursor: HCursor, allowedKeys: Set[String]): Decoder.Result[Unit] =
+    cursor.as[JsonObject].flatMap { jsonObject =>
+      val extraKeys = jsonObject.keys.filterNot(allowedKeys.contains).toList.sorted
+      if (extraKeys.isEmpty) {
+        Right(())
+      } else {
+        Left(
+          DecodingFailure(
+            s"unexpected keys: ${extraKeys.mkString(", ")} (allowed: ${allowedKeys.toList.sorted.mkString(", ")})",
+            cursor.history
+          )
+        )
+      }
+    }
+
   private def validateUnknownKeys(cursor: HCursor, allowedKeys: Set[String]): Decoder.Result[Unit] =
     cursor.as[JsonObject].flatMap { jsonObject =>
       val allowedNormalized = allowedKeys.map(_.toLowerCase)

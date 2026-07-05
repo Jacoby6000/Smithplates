@@ -56,10 +56,10 @@ object HttpNeutralModelTemplateAttributes {
       .sortBy(model => ctx.conventions.modulePath(model.id))
 
   def structureNeedsDatetimeImport(ctx: StructureView): Boolean =
-    structureFields(ctx).exists(field => renderedTypeContainsDatetime(field.tpe, ctx))
+    structureFields(ctx).exists(field => typeContainsDatetime(field.tpe, ctx))
 
   def unionNeedsDatetimeImport(ctx: UnionView): Boolean =
-    ctx.subject.members.exists(member => renderedTypeContainsDatetime(member.tpe, ctx))
+    ctx.subject.members.exists(member => typeContainsDatetime(member.tpe, ctx))
 
   def fieldName(ctx: StructureView, field: Field): String =
     field.name
@@ -162,8 +162,20 @@ object HttpNeutralModelTemplateAttributes {
       .filter(_ => !existingFieldNames.contains(name))
       .map(inner => name -> pythonStringLiteral(inner))
 
-  private def renderedTypeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
-    renderType(tpe, ctx).contains("datetime")
+  private def typeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
+    tpe match {
+      case TimestampT(TimestampFormat.DateTime) => true
+      case OptionalT(inner)                     => typeContainsDatetime(inner, ctx)
+      case ListT(element)                       => typeContainsDatetime(element, ctx)
+      case MapT(key, value)                     =>
+        typeContainsDatetime(key, ctx) || typeContainsDatetime(value, ctx)
+      case ref: ModelRef                        =>
+        resolver(ctx).underlying(ref) match {
+          case resolved: ModelRef => typeContainsDatetime(resolved, ctx)
+          case other              => typeContainsDatetime(other, ctx)
+        }
+      case _                                    => false
+    }
 
   private def unionMemberTypeNameCollidesWithVariant(
       ctx: UnionView,

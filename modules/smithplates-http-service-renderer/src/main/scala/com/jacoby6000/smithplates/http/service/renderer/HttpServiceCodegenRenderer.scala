@@ -170,14 +170,14 @@ object HttpServiceCodegenRenderer {
         settings: HttpServiceCodegenSettings,
         templatePath: String
     ): String =
-      if (templatePath.startsWith("models/")) {
-        settings.resolvedModelTemplateDirectory
-      } else {
-        settings.templateDirectory
-      }
+      HttpCodegenTemplatePaths.resolvedTemplateDirectory(
+        settings.templateDirectory,
+        settings.resolvedModelTemplateDirectory,
+        templatePath
+      )
 
     def stripTemplateDirectoryPrefix(templatePath: String): String =
-      templatePath.stripPrefix("models/")
+      HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
 
     def httpArtifact(artifact: ResolvedArtifact): HttpCodegenArtifact =
       HttpCodegenArtifact(

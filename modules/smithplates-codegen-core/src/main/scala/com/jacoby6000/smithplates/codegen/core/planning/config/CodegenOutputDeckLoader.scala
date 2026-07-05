@@ -17,14 +17,15 @@ object CodegenOutputDeckLoader {
     s"${templateDirectory.stripPrefix("classpath:").stripSuffix("/")}/$OutputsFileName"
 
   def load(templateDirectory: String, classLoader: ClassLoader): CodegenValidated[CodegenOutputDeck] = {
-    val path = resourcePath(templateDirectory)
-    internal.cache.get(path) match {
+    val path     = resourcePath(templateDirectory)
+    val cacheKey = internal.cacheKey(path, classLoader)
+    internal.cache.get(cacheKey) match {
       case cached: CodegenOutputDeck => cached.validNel
       case null                      =>
         internal.readResource(path, classLoader) match {
           case Some(text) =>
             CodegenOutputDeck.loadJson(text).map { deck =>
-              val _ = internal.cache.putIfAbsent(path, deck)
+              val _ = internal.cache.putIfAbsent(cacheKey, deck)
               deck
             }
           case None       =>
@@ -41,7 +42,14 @@ object CodegenOutputDeckLoader {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    // DESNOTE(jbarber, 2026-07-04): Deck JSON is immutable classpath data; memoize parsed
+    // decks per (classLoader, resource path) so repeated planner passes avoid re-parsing.
+    // Keys include classLoader identity so two loaders exposing different `outputs.json`
+    // at the same path cannot cross-pollinate.
     val cache = new ConcurrentHashMap[String, CodegenOutputDeck]()
+
+    def cacheKey(resourcePath: String, classLoader: ClassLoader): String =
+      s"${System.identityHashCode(classLoader)}:$resourcePath"
 
     def readResource(resourcePath: String, classLoader: ClassLoader): Option[String] =
       Option(classLoader.getResourceAsStream(resourcePath)).map { stream =>

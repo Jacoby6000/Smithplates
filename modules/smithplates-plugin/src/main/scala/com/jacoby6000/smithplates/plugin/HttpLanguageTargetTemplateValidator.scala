@@ -4,6 +4,7 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
+import com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplatePaths
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
@@ -115,13 +116,13 @@ object HttpLanguageTargetTemplateValidator {
         defaultTemplateDirectory: String,
         templatePath: String
     ): String =
-      if (templatePath.startsWith("models/")) {
-        defaultModelsTemplateDirectory(languageId)
-      } else {
-        defaultTemplateDirectory
-      }
+      HttpCodegenTemplatePaths.resolvedTemplateDirectory(
+        defaultTemplateDirectory,
+        defaultModelsTemplateDirectory(languageId),
+        templatePath
+      )
 
     def stripTemplateDirectoryPrefix(templatePath: String): String =
-      templatePath.stripPrefix("models/")
+      HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
   }
 }

@@ -13,6 +13,7 @@ import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
+import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import munit.FunSuite
 
@@ -123,5 +124,59 @@ class HttpNeutralModelTemplateAttributesSpec extends FunSuite {
   test("unionVariantTypeName combines the union class name with the capitalized member name") {
     val union = Model.Union(id("Payload"), meta, Nil)
     assertEquals(H.unionVariantTypeName(view(union), "text"), "PayloadText")
+  }
+
+  test("structureNeedsDatetimeImport walks NeutralType for DateTime timestamps only") {
+    val withDatetime       = Model.Structure(
+      id("Event"),
+      meta,
+      List(Field("at", TimestampT(TimestampFormat.DateTime)))
+    )
+    val withEpoch          = Model.Structure(
+      id("Event"),
+      meta,
+      List(Field("at", TimestampT(TimestampFormat.EpochSeconds)))
+    )
+    val withNestedDatetime = Model.Structure(
+      id("Event"),
+      meta,
+      List(Field("tags", ListT(OptionalT(TimestampT(TimestampFormat.DateTime)))))
+    )
+    val withModelRefOnly   = Model.Structure(
+      id("Event"),
+      meta,
+      List(Field("widget", ModelRef(id("Widget"))))
+    )
+
+    assert(H.structureNeedsDatetimeImport(view(withDatetime)))
+    assert(!H.structureNeedsDatetimeImport(view(withEpoch)))
+    assert(H.structureNeedsDatetimeImport(view(withNestedDatetime)))
+    assert(!H.structureNeedsDatetimeImport(view(withModelRefOnly)))
+  }
+
+  test("problemDefaultFields emits detail default from HttpErrorMeta") {
+    val errorMeta                            = HttpMeta.HttpResponseMeta(
+      statusCode = 404,
+      staticHeaders = Map.empty,
+      dynamicHeaderFields = Map.empty,
+      error = Some(
+        HttpErrorMeta(
+          problemType = Some("https://example.com/errors/widget-not-found"),
+          title = Some("Widget not found"),
+          defaultDetail = Some("The requested widget does not exist.")
+        )
+      )
+    )
+    val structure: Model.Structure[HttpMeta] =
+      Model.Structure(id("WidgetNotFound"), ModelMeta(None, Nil, errorMeta), Nil)
+
+    assertEquals(
+      H.problemDefaultFields(view(structure)),
+      List(
+        "type"   -> "\"https://example.com/errors/widget-not-found\"",
+        "title"  -> "\"Widget not found\"",
+        "detail" -> "\"The requested widget does not exist.\""
+      )
+    )
   }
 }

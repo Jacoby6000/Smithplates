@@ -4,10 +4,9 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.InvalidCodegenOutputConfig
 import com.jacoby6000.smithplates.codegen.core.json.JsonDecoding
+import com.jacoby6000.smithplates.codegen.core.json.StrictJsonDecoding
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import io.circe.Decoder
-import io.circe.HCursor
-import io.circe.JsonObject
 
 /** A language-neutral bundle of [[CodegenOutput]]s loaded from a JSON resource. `shared` outputs are always emitted;
   * each `variants` entry is composed in only when its key (e.g. a framework or library) is enabled.
@@ -39,7 +38,7 @@ object CodegenOutputDeck {
     import CodegenOutputDecoders.given
     Decoder.instance { cursor =>
       for {
-        _        <- rejectExtraKeys(cursor, Set("shared", "variants"))
+        _        <- StrictJsonDecoding.rejectExtraKeys(cursor, Set("shared", "variants"))
         shared   <- cursor.getOrElse[List[CodegenOutput]]("shared")(Nil)
         variants <- cursor.getOrElse[Map[String, List[CodegenOutput]]]("variants")(Map.empty)
       } yield CodegenOutputDeck(shared, variants)
@@ -50,19 +49,4 @@ object CodegenOutputDeck {
     JsonDecoding.decodeJsonValidated[CodegenOutputDeck, InvalidCodegenOutputConfig](
       text,
       InvalidCodegenOutputConfig.apply)
-
-  private def rejectExtraKeys(cursor: HCursor, allowedKeys: Set[String]): Decoder.Result[Unit] =
-    cursor.as[JsonObject].flatMap { jsonObject =>
-      val extraKeys = jsonObject.keys.filterNot(allowedKeys.contains).toList.sorted
-      if (extraKeys.isEmpty) {
-        Right(())
-      } else {
-        Left(
-          io.circe.DecodingFailure(
-            s"unexpected keys: ${extraKeys.mkString(", ")} (allowed: ${allowedKeys.toList.sorted.mkString(", ")})",
-            cursor.history
-          )
-        )
-      }
-    }
 }

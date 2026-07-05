@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.codegen.core.planning.config
 
 import com.jacoby6000.smithplates.codegen.core.ModelKind
+import com.jacoby6000.smithplates.codegen.core.json.StrictJsonDecoding
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.BindingFilterAtom
 import com.jacoby6000.smithplates.codegen.core.planning.BindingGroup
@@ -10,7 +11,6 @@ import com.jacoby6000.smithplates.codegen.core.planning.SmithyBinding
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.HCursor
-import io.circe.JsonObject
 
 /** Circe decoders that build language-neutral [[CodegenOutput]] decks from JSON resource files.
   *
@@ -55,8 +55,8 @@ object CodegenOutputDecoders {
   given smithyBindingDecoder: Decoder[SmithyBinding] =
     Decoder.instance { cursor =>
       cursor.get[String]("type").flatMap {
-        case "service"   => rejectExtraKeys(cursor, Set("type")).map(_ => SmithyBinding.Service)
-        case "once"      => rejectExtraKeys(cursor, Set("type")).map(_ => SmithyBinding.Once)
+        case "service"   => StrictJsonDecoding.rejectExtraKeys(cursor, Set("type")).map(_ => SmithyBinding.Service)
+        case "once"      => StrictJsonDecoding.rejectExtraKeys(cursor, Set("type")).map(_ => SmithyBinding.Once)
         case "operation" =>
           decodeBindingSelector(cursor).map((filters, groupBy) => SmithyBinding.Operation(filters, groupBy))
         case "model"     =>
@@ -84,14 +84,15 @@ object CodegenOutputDecoders {
 
   private val kindFilterDecoder: Decoder[BindingFilterAtom] =
     Decoder.instance { cursor =>
-      rejectExtraKeys(cursor, Set("kind"))
+      StrictJsonDecoding
+        .rejectExtraKeys(cursor, Set("kind"))
         .flatMap(_ => cursor.get[ModelKind]("kind"))
         .map(BindingFilterAtom.Kind(_))
     }
 
   private def decodeBindingSelector(cursor: HCursor): Decoder.Result[(List[BindingFilterAtom], BindingGroup)] =
     for {
-      _       <- rejectExtraKeys(cursor, Set("type", "filters", "groupBy"))
+      _       <- StrictJsonDecoding.rejectExtraKeys(cursor, Set("type", "filters", "groupBy"))
       filters <- cursor.getOrElse[List[BindingFilterAtom]]("filters")(Nil)
       groupBy <- cursor.getOrElse[BindingGroup]("groupBy")(BindingGroup.None)
     } yield (filters, groupBy)
@@ -107,7 +108,7 @@ object CodegenOutputDecoders {
       overrides: Option[String]
   ): Decoder.Result[CodegenOutput] =
     for {
-      _          <- rejectExtraKeys(cursor, TemplateOutputKeys)
+      _          <- StrictJsonDecoding.rejectExtraKeys(cursor, TemplateOutputKeys)
       template   <- cursor.get[String]("template")
       outputPath <- cursor.get[String]("outputPath")
       binding    <- cursor.get[SmithyBinding]("binding")
@@ -127,7 +128,7 @@ object CodegenOutputDecoders {
       overrides: Option[String]
   ): Decoder.Result[CodegenOutput] =
     for {
-      _          <- rejectExtraKeys(cursor, StaticOutputKeys)
+      _          <- StrictJsonDecoding.rejectExtraKeys(cursor, StaticOutputKeys)
       filePath   <- cursor.get[String]("filePath")
       copyToPath <- cursor.get[String]("copyToPath")
     } yield CodegenOutput.CodegenStaticOutput(
@@ -137,19 +138,4 @@ object CodegenOutputDecoders {
       copyToPath = copyToPath,
       overrides = overrides.map(OutputId(_))
     )
-
-  private def rejectExtraKeys(cursor: HCursor, allowedKeys: Set[String]): Decoder.Result[Unit] =
-    cursor.as[JsonObject].flatMap { jsonObject =>
-      val extraKeys = jsonObject.keys.filterNot(allowedKeys.contains).toList.sorted
-      if (extraKeys.isEmpty) {
-        Right(())
-      } else {
-        Left(
-          DecodingFailure(
-            s"unexpected keys: ${extraKeys.mkString(", ")} (allowed: ${allowedKeys.toList.sorted.mkString(", ")})",
-            cursor.history
-          )
-        )
-      }
-    }
 }
