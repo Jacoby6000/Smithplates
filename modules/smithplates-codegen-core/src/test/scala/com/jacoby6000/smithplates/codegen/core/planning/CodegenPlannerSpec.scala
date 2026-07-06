@@ -476,6 +476,74 @@ class CodegenPlannerSpec extends FunSuite {
     }
   }
 
+  test("plan resolves usedTypes against resolutionModels when the emitted set omits a ref") {
+    val detail    =
+      Model.Structure(ModelId("example", "Detail"), meta(), List(Field("value", StringT)))
+    val container =
+      Model.Structure(ModelId("example", "Container"), meta(), List(Field("detail", ref("Detail"))))
+
+    val emittableModels  = ModelSet[Unit](List(container))
+    val resolutionModels = ModelSet[Unit](List(container, detail))
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.container",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
+          outputPath = "models/{{modelFileName}}"
+        )
+      )
+
+    val resolved =
+      CodegenPlanner.plan(
+        outputs,
+        emittableModels,
+        List.empty[ServiceModel[Unit, Unit]],
+        settings,
+        templateRenderer,
+        resolutionModels = Some(resolutionModels)
+      )
+
+    resolved match {
+      case Validated.Valid(artifacts) =>
+        assertEquals(artifacts.map(_.relativePath), List("src/models/container.py"))
+        // `Detail` is emitted by no binding yet still resolves for usedTypes.
+        assert(artifacts.head.content.endsWith(":Detail"), artifacts.head.content)
+      case other                      =>
+        fail(s"Expected valid plan resolving against resolutionModels, got $other")
+    }
+  }
+
+  test("plan defaults usedTypes resolution to the emitted models when resolutionModels is None") {
+    val container =
+      Model.Structure(ModelId("example", "Container"), meta(), List(Field("detail", ref("Detail"))))
+
+    val outputs =
+      List(
+        templateOutput(
+          "model.container",
+          SmithyBinding.Model(List(BindingFilterAtom.Kind(ModelKind.Structure)), BindingGroup.None),
+          outputPath = "models/{{modelFileName}}"
+        )
+      )
+
+    CodegenPlanner.plan(
+      outputs,
+      ModelSet[Unit](List(container)),
+      List.empty[ServiceModel[Unit, Unit]],
+      settings,
+      templateRenderer
+    ) match {
+      case Validated.Invalid(errors) =>
+        assertEquals(
+          errors.head,
+          UnresolvedModelRef(ref("Detail"), "codegen output model.container usedTypes")
+        )
+      case other                     =>
+        fail(s"Expected unresolved model ref without resolutionModels, got $other")
+    }
+  }
+
   test("plan expands Service binding once per service") {
     val outputs =
       List(

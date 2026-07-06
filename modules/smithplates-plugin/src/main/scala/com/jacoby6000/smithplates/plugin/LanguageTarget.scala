@@ -40,7 +40,7 @@ final case class LanguageTarget(
       migrationDirectories = migrationDirectories,
       sourceOutputDirectory = Some(sourceOutputDir),
       testOutputDirectory = Some(testOutputDir),
-      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(enabledDialectKeys),
+      artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects(templateDirectory, enabledDialectKeys),
       rootNamespace = rootNamespace,
       packageNameOverride = packageName
     )

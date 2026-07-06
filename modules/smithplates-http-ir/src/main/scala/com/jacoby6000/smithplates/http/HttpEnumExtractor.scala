@@ -12,11 +12,14 @@ private[http] object HttpEnumExtractor {
       model: Model,
       serviceShape: ShapeId,
       structures: List[HttpStructure],
-      unions: List[HttpUnion]
+      unions: List[HttpUnion],
+      operations: List[HttpOperation]
   ): (List[HttpStringEnum], List[HttpIntEnum]) = {
     val namespace = serviceShape.getNamespace
     val typeNames =
-      (structures.flatMap(_.members.map(_.typeName)) ++ unions.flatMap(_.members.map(_.typeName)))
+      (structures.flatMap(_.members.map(_.typeName)) ++
+        unions.flatMap(_.members.map(_.typeName)) ++
+        operations.flatMap(internal.operationMemberTypeNames))
         .flatMap(internal.componentTypeNames)
         .distinct
     val extracted = typeNames.flatMap(typeName => internal.extractEnum(model, namespace, typeName))
@@ -28,6 +31,13 @@ private[http] object HttpEnumExtractor {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def operationMemberTypeNames(operation: HttpOperation): List[String] =
+      operation.inputMembers.map(_.typeName) ++
+        (operation.bodyBinding match {
+          case HttpOperationBodyBinding.Members(members) => members.map(_.typeName)
+          case _                                         => Nil
+        })
+
     def componentTypeNames(typeName: String): List[String] =
       if (typeName.startsWith("List[")) {
         componentTypeNames(typeName.substring(5, typeName.length - 1))

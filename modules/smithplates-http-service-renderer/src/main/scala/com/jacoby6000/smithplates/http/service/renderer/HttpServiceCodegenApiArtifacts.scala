@@ -1,131 +1,61 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-/** Bundled `@httpService` artifact paths relative to the HTTP server template root. */
+import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.config.CodegenOutputDeckLoader
+
+/** Composes bundled `@httpService` server artifacts from `outputs.json` deck resources located beside each language's
+  * templates. The deck data (ids, template paths, output paths, bindings) lives entirely in JSON, so this object holds
+  * only language-neutral composition logic and no per-language paths.
+  */
 object HttpServiceCodegenApiArtifacts {
-  val sharedPerService: List[HttpServiceCodegenArtifactConfig] =
-    List(
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "app_factory.ssp",
-        outputFile = "app_factory.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "app_services.ssp",
-        outputFile = "app_services.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "model_validation.ssp",
-        outputFile = "model_validation.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_response.ssp",
-        outputFile = "api_response.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "operation_bindings.ssp",
-        outputFile = "operation_bindings.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_exceptions.ssp",
-        outputFile = "api_exceptions.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "api_exception_handler.ssp",
-        outputFile = "api_exception_handler.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "apis/__init__.ssp",
-        outputFile = "apis/__init__.py",
-        scope = HttpCodegenArtifactScope.Service
-      )
-    )
+  def frameworkArtifacts(
+      serverTemplateDirectory: String,
+      modelsTemplateDirectory: String,
+      frameworkKeys: List[String],
+      emitModels: Boolean
+  ): CodegenValidated[List[CodegenOutput]] =
+    (
+      internal.enabled(serverTemplateDirectory, frameworkKeys),
+      if (emitModels) modelArtifacts(modelsTemplateDirectory) else List.empty[CodegenOutput].validNel
+    ).mapN(_ ++ _)
 
-  val sharedModels: List[HttpServiceCodegenArtifactConfig] =
-    List(
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "__init__.ssp",
-        outputFile = "__init__.py",
-        scope = HttpCodegenArtifactScope.Service,
-        templateSource = HttpCodegenTemplateSource.Models
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "problem.ssp",
-        outputFile = "problem.py",
-        scope = HttpCodegenArtifactScope.Service,
-        templateSource = HttpCodegenTemplateSource.Models
-      )
-    )
-
-  def fastapi(routeGroupTag: String): List[HttpServiceCodegenArtifactConfig] =
-    List(
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "fastapi/route_group_protocol.ssp",
-        outputFile = s"apis/${routeGroupTag}_api_base.py",
-        scope = HttpCodegenArtifactScope.RouteGroup(routeGroupTag)
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "fastapi/route_group_routes.ssp",
-        outputFile = s"apis/${routeGroupTag}_api.py",
-        scope = HttpCodegenArtifactScope.RouteGroup(routeGroupTag)
-      )
-    )
-
-  def frameworkSpecific(frameworkKey: String, routeGroupTags: List[String]): List[HttpServiceCodegenArtifactConfig] =
-    frameworkKey match {
-      case "fastapi" => routeGroupTags.flatMap(fastapi)
-      case other     => throw new IllegalArgumentException(s"unsupported HTTP framework key: $other")
-    }
+  def modelArtifacts(modelsTemplateDirectory: String): CodegenValidated[List[CodegenOutput]] =
+    internal.deck(modelsTemplateDirectory).map(_.shared)
 
   def forEnabledFrameworks(
+      serverTemplateDirectory: String,
+      modelsTemplateDirectory: String,
       frameworkKeys: List[String],
-      routeGroupTags: List[String],
       emitModels: Boolean
-  ): List[HttpServiceCodegenArtifactConfig] = {
-    val frameworkArtifacts =
-      if (frameworkKeys.isEmpty) {
-        Nil
-      } else {
-        frameworkKeys.flatMap(frameworkKey => frameworkSpecific(frameworkKey, routeGroupTags))
-      }
-    sharedPerService ++ frameworkArtifacts ++ (if (emitModels) sharedModels else Nil)
+  ): List[CodegenOutput] =
+    internal.orThrow(frameworkArtifacts(serverTemplateDirectory, modelsTemplateDirectory, frameworkKeys, emitModels))
+
+  def sharedModels(modelsTemplateDirectory: String): List[CodegenOutput] =
+    internal.orThrow(modelArtifacts(modelsTemplateDirectory))
+
+  def templatePath(output: CodegenOutput): Option[String] =
+    output match {
+      case template: CodegenOutput.CodegenTemplateBindingOutput => Some(template.templatePath)
+      case _: CodegenOutput.CodegenStaticOutput                 => None
+    }
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def deck(templateDirectory: String) =
+      CodegenOutputDeckLoader.load(templateDirectory, getClass.getClassLoader)
+
+    def enabled(templateDirectory: String, enabledKeys: List[String]): CodegenValidated[List[CodegenOutput]] =
+      deck(templateDirectory).andThen(_.forEnabled(enabledKeys))
+
+    def orThrow(artifacts: CodegenValidated[List[CodegenOutput]]): List[CodegenOutput] =
+      artifacts.fold(
+        errors => throw new IllegalStateException(errors.map(_.message).toList.mkString("; ")),
+        identity
+      )
   }
 }
-
-enum HttpCodegenArtifactScope {
-  case Service
-  case RouteGroup(tag: String)
-}
-
-enum HttpCodegenTemplateSource {
-  case Service
-  case Models
-}
-
-final case class HttpServiceCodegenArtifactConfig(
-    kind: HttpServiceCodegenArtifactKind,
-    template: String,
-    outputFile: String,
-    scope: HttpCodegenArtifactScope,
-    templateSource: HttpCodegenTemplateSource = HttpCodegenTemplateSource.Service
-)
 
 final case class HttpServiceCodegenSettings(
     templateDirectory: String,
@@ -133,7 +63,7 @@ final case class HttpServiceCodegenSettings(
     enabledFrameworkKeys: List[String],
     sourceOutputDirectory: Option[String] = None,
     testOutputDirectory: Option[String] = None,
-    artifacts: List[HttpServiceCodegenArtifactConfig],
+    artifacts: List[CodegenOutput],
     rootNamespace: Option[String],
     packageNameOverride: Option[String] = None,
     modelsPackageNameOverride: Option[String] = None,

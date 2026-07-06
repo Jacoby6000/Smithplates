@@ -1,64 +1,22 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-/** Bundled `@httpService` client artifact paths relative to the HTTP client template root. */
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+
+/** Composes bundled `@httpService` client artifacts from the `outputs.json` deck resource located beside each
+  * language's client templates. The deck data lives entirely in JSON, so this object holds only language-neutral
+  * composition logic.
+  */
 object HttpClientCodegenApiArtifacts {
-  val sharedPerService: List[HttpServiceCodegenArtifactConfig] =
-    List(
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "model_validation.ssp",
-        outputFile = "model_validation.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "operation_bindings.ssp",
-        outputFile = "client/operation_bindings.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "client_response.ssp",
-        outputFile = "client/client_response.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "client_registry.ssp",
-        outputFile = "client/client_registry.py",
-        scope = HttpCodegenArtifactScope.Service
-      ),
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "clients/__init__.ssp",
-        outputFile = "clients/__init__.py",
-        scope = HttpCodegenArtifactScope.Service
-      )
-    )
-
-  def httpx(routeGroupTag: String): List[HttpServiceCodegenArtifactConfig] =
-    List(
-      HttpServiceCodegenArtifactConfig(
-        kind = HttpServiceCodegenArtifactKind.Src,
-        template = "httpx/route_group_client.ssp",
-        outputFile = s"clients/${routeGroupTag}_client.py",
-        scope = HttpCodegenArtifactScope.RouteGroup(routeGroupTag)
-      )
-    )
-
-  def librarySpecific(libraryKey: String, routeGroupTags: List[String]): List[HttpServiceCodegenArtifactConfig] =
-    libraryKey match {
-      case "httpx" => routeGroupTags.flatMap(httpx)
-      case other   => throw new IllegalArgumentException(s"unsupported HTTP client library key: $other")
-    }
+  def libraryArtifacts(
+      clientTemplateDirectory: String,
+      libraryKeys: List[String]
+  ): CodegenValidated[List[CodegenOutput]] =
+    HttpServiceCodegenApiArtifacts.internal.enabled(clientTemplateDirectory, libraryKeys)
 
   def forEnabledLibraries(
-      libraryKeys: List[String],
-      routeGroupTags: List[String]
-  ): List[HttpServiceCodegenArtifactConfig] =
-    if (libraryKeys.isEmpty) {
-      sharedPerService
-    } else {
-      sharedPerService ++ libraryKeys.flatMap(libraryKey => librarySpecific(libraryKey, routeGroupTags))
-    }
+      clientTemplateDirectory: String,
+      libraryKeys: List[String]
+  ): List[CodegenOutput] =
+    HttpServiceCodegenApiArtifacts.internal.orThrow(libraryArtifacts(clientTemplateDirectory, libraryKeys))
 }

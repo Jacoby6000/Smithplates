@@ -1,0 +1,39 @@
+{
+  "shared": [
+    {
+      "id": "python.http.models.init",
+      "artifactKind": "src",
+      "template": "models/__init__.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/__init__.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.models.http_problem",
+      "artifactKind": "src",
+      "template": "models/http_problem.ssp",
+      "outputPath": "smithplates/codegen/http/http_problem.py",
+      "binding": { "type": "once" }
+    },
+    {
+      "id": "python.http.models.structure",
+      "artifactKind": "src",
+      "template": "models/structure.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "structure" }], "groupBy": "none" }
+    },
+    {
+      "id": "python.http.models.union",
+      "artifactKind": "src",
+      "template": "models/union.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "union" }], "groupBy": "none" }
+    },
+    {
+      "id": "python.http.models.enum",
+      "artifactKind": "src",
+      "template": "models/enum.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "enum" }], "groupBy": "none" }
+    }
+  ]
+}

@@ -153,6 +153,7 @@ build_python_example() {
   require_java
 
   echo "==> example/python smithy build"
+  rm -rf "${example_dir}/build"
   (
     cd "${example_dir}"
     run_smithy_build_with_local_plugin

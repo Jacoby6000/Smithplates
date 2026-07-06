@@ -219,7 +219,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 error = HttpProblemBindingExtractor.extract(model, error.shapeId).map { binding =>
                   HttpErrorMeta(
                     problemType = Some(binding.problemType),
-                    title = Some(binding.title)
+                    title = Some(binding.title),
+                    defaultDetail = binding.defaultDetail
                   )
                 }
               )
@@ -360,7 +361,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 error = error.problemBinding.map { binding =>
                   HttpErrorMeta(
                     problemType = Some(binding.problemType),
-                    title = Some(binding.title)
+                    title = Some(binding.title),
+                    defaultDetail = binding.defaultDetail
                   )
                 }
               )

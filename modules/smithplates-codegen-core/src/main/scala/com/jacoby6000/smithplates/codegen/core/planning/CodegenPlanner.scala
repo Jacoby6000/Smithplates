@@ -14,8 +14,10 @@ object CodegenPlanner {
       services: List[ServiceModel[S, O]],
       settings: CodegenSettings,
       templateRenderer: TemplateRenderer,
-      typeUsageAnalyzer: TypeUsageAnalyzer = TypeUsageAnalyzer.default
-  ): CodegenValidated[List[ResolvedArtifact]] =
+      typeUsageAnalyzer: TypeUsageAnalyzer = TypeUsageAnalyzer.default,
+      resolutionModels: Option[ModelSet[A]] = None
+  ): CodegenValidated[List[ResolvedArtifact]] = {
+    val modelSetForResolution = resolutionModels.getOrElse(models)
     CodegenValidated.fromEither {
       for {
         mergedOutputs <- mergeOutputs(outputs).toCodegenEither
@@ -24,9 +26,10 @@ object CodegenPlanner {
                          )
         expandedPaths <- workItemLists.flatten.traverse(expandWorkItemPath(_, settings))
         _             <- detectPathCollisions(expandedPaths).toCodegenEither
-        planned       <- expandedPaths.traverse(renderExpandedWorkItem(_, models, settings, templateRenderer))
+        planned       <- expandedPaths.traverse(renderExpandedWorkItem(_, modelSetForResolution, settings, templateRenderer))
       } yield planned.map(_.artifact)
     }
+  }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {

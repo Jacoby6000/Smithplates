@@ -7,6 +7,7 @@ final case class HttpCodegenTemplateView(
     service: HttpService,
     packageName: String,
     modelsPackageName: String,
+    httpProblemImportModule: String,
     typePackageNames: Map[String, String] = Map.empty,
     routeGroup: Option[HttpRouteGroup] = None
 )

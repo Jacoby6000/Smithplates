@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from generated.example.problem import Problem
+from generated.smithplates.codegen.http.http_problem import HttpProblem
 from pydantic import Field
 
 
-class MutateWidget409(Problem):
+class MutateWidget409(HttpProblem):
     type: str | None = Field(default="https://example.com/errors/widget-conflict")
-    title: str = Field(...)
+    title: str | None = Field(default="Widget conflict")

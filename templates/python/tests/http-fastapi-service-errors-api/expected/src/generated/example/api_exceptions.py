@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from generated.example.internal_widget_error import InternalWidgetError
-from generated.example.problem import Problem
+from generated.smithplates.codegen.http.http_problem import HttpProblem
 
 
 class NotImplementedApiError(Exception):
@@ -26,9 +26,9 @@ class WidgetNotFoundApiError(Exception):
         self.detail = detail
         self.instance = instance
 
-    def to_problem(self, status_code: int) -> Problem:
+    def to_problem(self, status_code: int) -> HttpProblem:
         resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
-        return Problem(
+        return HttpProblem(
             type=self._PROBLEM_TYPE,
             title=self._PROBLEM_TITLE,
             status=status_code,

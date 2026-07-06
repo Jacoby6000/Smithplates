@@ -133,7 +133,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         schemaDdlRenderers = Map.empty,
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = SqlServiceCodegenDbArtifacts.shared,
+        artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", Nil),
         rootNamespace = Some("generated"),
         packageNameOverride = None
       )
@@ -274,7 +274,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         schemaDdlRenderers = Map.empty,
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = SqlServiceCodegenDbArtifacts.shared,
+        artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", Nil),
         rootNamespace = Some("generated"),
         packageNameOverride = None
       )
@@ -302,7 +302,7 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
             queryRenderers = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.queryRenderers,
             schemaDdlRenderers = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.schemaDdlRenderers,
             migrationDirectories = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.migrationDirectories,
-            artifacts = SqlServiceCodegenDbArtifacts.sqlite()
+            artifacts = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("sqlite"))
           )
         )
         .toEither

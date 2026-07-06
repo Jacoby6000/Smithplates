@@ -20,6 +20,7 @@ service WidgetApi {
 @httpProblem(
     type: "https://example.com/errors/widget-not-found"
     title: "Widget not found"
+    detail: "The requested widget does not exist."
     code: 404
 )
 @error("client")

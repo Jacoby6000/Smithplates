@@ -50,8 +50,12 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         enabledFrameworkKeys = List("fastapi"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts =
-          HttpServiceCodegenApiArtifacts.forEnabledFrameworks(List("fastapi"), List("v1_widgets"), emitModels = true),
+        artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+          serverTemplateDirectory = HttpServiceCodegenRendererSpec.internal.PythonServerTemplateDirectory,
+          modelsTemplateDirectory = HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory,
+          frameworkKeys = List("fastapi"),
+          emitModels = true
+        ),
         rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
@@ -115,8 +119,13 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         enabledFrameworkKeys = List("httpx"),
         sourceOutputDirectory = Some("src/generated"),
         testOutputDirectory = Some("tests"),
-        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List("httpx"), List("v1_widgets")) ++
-          HttpServiceCodegenApiArtifacts.sharedModels,
+        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(
+          HttpServiceCodegenRendererSpec.internal.PythonClientTemplateDirectory,
+          List("httpx")
+        ) ++
+          HttpServiceCodegenApiArtifacts.sharedModels(
+            HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory
+          ),
         rootNamespace = HttpServiceCodegenRendererSpec.internal.RootNamespace,
         packageNameOverride = None,
         modelsPackageNameOverride = None,
@@ -229,11 +238,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |    id: String
           |}
           |
-          |structure Problem {
-          |    @required
-          |    title: String
-          |}
-          |
           |@httpProblem(
           |    type: "https://example.com/errors/widget-not-found"
           |    title: "Widget not found"
@@ -241,9 +245,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget404 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |
           |@httpProblem(
@@ -253,9 +254,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget409 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |
           |@httpProblem(
@@ -265,9 +263,6 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |)
           |@error("client")
           |structure MutateWidget422 {
-          |    @httpPayload
-          |    @required
-          |    body: Problem
           |}
           |""".stripMargin
     )
@@ -285,8 +280,13 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     val artifacts       = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
     val mutateWidget404 =
       artifacts.find(_.relativePath.endsWith("mutate_widget404.py")).map(_.content).getOrElse("")
-    assert(mutateWidget404.contains("class MutateWidget404(Problem)"))
-    assert(mutateWidget404.contains("title: str = Field(...)"))
+    assert(mutateWidget404.contains("class MutateWidget404(HttpProblem)"))
+    assert(
+      mutateWidget404.contains(
+        "from generated.smithplates.codegen.http.http_problem import HttpProblem"
+      )
+    )
+    assert(mutateWidget404.contains("title: str | None = Field(default=\"Widget not found\")"))
   }
 
   test("HttpServiceCodegenRenderer imports enum types used in route parameter signatures") {
@@ -336,6 +336,12 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
 
     assert(protocolContent.contains("from generated.example.widget_status import WidgetStatus"))
     assert(protocolContent.contains("status: WidgetStatus | None"))
+
+    val artifacts    = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
+    val enumArtifact =
+      artifacts.find(_.relativePath.endsWith("widget_status.py")).map(_.content).getOrElse("")
+    assert(enumArtifact.contains("class WidgetStatus(StrEnum)"))
+    assert(enumArtifact.contains("ACTIVE = \"ACTIVE\""))
   }
 }
 object HttpServiceCodegenRendererSpec {
@@ -370,9 +376,11 @@ object HttpServiceCodegenRendererSpec {
           sourceOutputDirectory = Some("src/generated"),
           testOutputDirectory = Some("tests"),
           artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-            List("fastapi"),
-            List(routeGroupTag),
-            emitModels = true),
+            serverTemplateDirectory = PythonServerTemplateDirectory,
+            modelsTemplateDirectory = PythonModelsTemplateDirectory,
+            frameworkKeys = List("fastapi"),
+            emitModels = true
+          ),
           rootNamespace = RootNamespace,
           packageNameOverride = None,
           modelsPackageNameOverride = None,

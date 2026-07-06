@@ -40,7 +40,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(codegenSettings.packageNameOverride, None)
     assertEquals(codegenSettings.sourceOutputDirectory, Some("src/generated"))
     assertEquals(codegenSettings.testOutputDirectory, Some("tests"))
-    assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.forEnabledDialects(List("postgres")))
+    assertEquals(
+      codegenSettings.artifacts,
+      SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("postgres")))
   }
 
   test("dialect enable defaults to false") {
@@ -136,7 +138,9 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assertEquals(codegenSettings.enabledDialectKeys, Nil)
     assertEquals(codegenSettings.queryRenderers, Map.empty)
     assertEquals(codegenSettings.schemaDdlRenderers, Map.empty)
-    assertEquals(codegenSettings.artifacts, SqlServiceCodegenDbArtifacts.shared)
+    assertEquals(
+      codegenSettings.artifacts,
+      SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:custom-templates/python/src/db", Nil))
   }
 
   test("combines bundled artifacts for multiple enabled dialects") {
@@ -168,7 +172,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
     assertEquals(
       codegenSettings.artifacts,
-      SqlServiceCodegenDbArtifacts.forEnabledDialects(List("sqlite", "postgres"))
+      SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("sqlite", "postgres"))
     )
   }
 
@@ -249,7 +253,7 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .swap
         .toOption
         .getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("missing required templates")))
+    assert(errors.exists(_.message.contains("missing codegen output deck")))
   }
 
   test("rejects explicit templateDirectory missing dialect-specific templates") {

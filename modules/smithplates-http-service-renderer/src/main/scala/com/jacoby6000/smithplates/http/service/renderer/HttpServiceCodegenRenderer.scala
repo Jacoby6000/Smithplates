@@ -1,97 +1,164 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import cats.syntax.all.*
-import com.jacoby6000.smithplates.codegen.CodegenPackageNames
-import com.jacoby6000.smithplates.http.HttpModelTypeNames
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated
+import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
+import com.jacoby6000.smithplates.codegen.core.CodegenValidationError
+import com.jacoby6000.smithplates.codegen.core.Model as CodegenModel
+import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.ModelSet
+import com.jacoby6000.smithplates.codegen.core.ServiceModel
+import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
+import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
+import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.http.HttpValidated
-import com.jacoby6000.smithplates.http.model.HttpIntEnum
+import com.jacoby6000.smithplates.http.codegen.HttpCoreModelExtractor
+import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.model.HttpService
 import com.jacoby6000.smithplates.http.model.HttpServiceIr
-import com.jacoby6000.smithplates.http.model.HttpStringEnum
-import com.jacoby6000.smithplates.http.model.HttpStructure
-import com.jacoby6000.smithplates.http.model.HttpUnion
+import com.jacoby6000.smithplates.http.model.InvalidHttpService
 import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.shapes.ShapeId
 
 object HttpServiceCodegenRenderer {
   def render(
       model: Model,
       serviceIr: HttpServiceIr,
       settings: HttpServiceCodegenSettings
-  ): HttpValidated[List[HttpCodegenArtifact]] = {
-    val _ = model
-    serviceIr.services
-      .traverse { service =>
-        val servicePackageName  = HttpCodegenPackageNames.servicePackageName(settings, service)
-        val modelsPackageName   = HttpCodegenPackageNames.modelsPackageName(settings, service.shapeId.getNamespace)
-        val typePackageNames    = HttpCodegenPackageNames.buildTypePackageNames(service, settings)
-        val view                =
-          HttpCodegenTemplateView(
-            service = service,
-            packageName = servicePackageName,
-            modelsPackageName = modelsPackageName,
-            typePackageNames = typePackageNames
+  ): HttpValidated[List[HttpCodegenArtifact]] =
+    (
+      internal.toHttpValidated(HttpCoreModelExtractor.extract(model)),
+      internal.toHttpValidated(HttpCodegenLanguageConventions.codegenSettings(settings))
+    ).mapN((_, _)).andThen { case ((modelSet, services), codegenSettings) =>
+      val emittableModels  =
+        internal.emittableModelSet(modelSet, serviceIr)
+      val templateRenderer =
+        internal.HttpPlannerTemplateRenderer(serviceIr, settings)
+      internal
+        .toHttpValidated(
+          CodegenPlanner.plan(
+            settings.artifacts,
+            emittableModels,
+            services,
+            codegenSettings,
+            templateRenderer,
+            resolutionModels = Some(modelSet)
           )
-        val configuredArtifacts =
-          settings.artifacts
-            .traverse { artifactConfig =>
-              artifactConfig.scope match {
-                case HttpCodegenArtifactScope.Service         =>
-                  internal.renderArtifact(settings, artifactConfig, view)
-                case HttpCodegenArtifactScope.RouteGroup(tag) =>
-                  service.routeGroups.find(_.tag == tag) match {
-                    case Some(routeGroup) =>
-                      internal.renderArtifact(
-                        settings,
-                        artifactConfig,
-                        view.copy(routeGroup = Some(routeGroup))
-                      )
-                    case None             => Nil.validNel
-                  }
-              }
-            }
-            .map(_.flatten)
-        configuredArtifacts.map { artifacts =>
-          if (!settings.emitModels) {
-            artifacts
-          } else {
-            val enumNames           = (service.stringEnums.map(_.name) ++ service.intEnums.map(_.name)).toSet
-            val structureArtifacts  =
-              service.structures.map(structure =>
-                internal.renderStructureModelArtifact(model, settings, service, structure, enumNames))
-            val unionArtifacts      =
-              service.unions.map(union => internal.renderUnionModelArtifact(settings, service, union, enumNames))
-            val stringEnumArtifacts =
-              service.stringEnums.map(stringEnum => internal.renderStringEnumModelArtifact(settings, stringEnum))
-            val intEnumArtifacts    =
-              service.intEnums.map(intEnum => internal.renderIntEnumModelArtifact(settings, intEnum))
-            artifacts ++ structureArtifacts ++ unionArtifacts ++ stringEnumArtifacts ++ intEnumArtifacts
-          }
-        }
-      }
-      .map(_.flatten)
-  }
+        )
+        .map(_.map(internal.httpArtifact))
+    }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    def renderArtifact(
-        settings: HttpServiceCodegenSettings,
-        artifactConfig: HttpServiceCodegenArtifactConfig,
-        view: HttpCodegenTemplateView
-    ): HttpValidated[List[HttpCodegenArtifact]] = {
-      val templateSettings =
-        settings.copy(templateDirectory = resolvedTemplateDirectory(settings, artifactConfig))
-      val templatePath     = resolveTemplatePath(templateSettings, artifactConfig.template)
-      val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
-      val content          = ScalateSspTemplateEngine.renderClasspathTemplate(templatePath, view, Some(templateRoot))
-      val relativePath     = resolveOutputPath(settings, artifactConfig, view.service, view.packageName)
-      List(
-        HttpCodegenArtifact(
-          relativePath = relativePath,
-          content = content,
-          kind = artifactConfig.kind
-        )
-      ).validNel
+    final case class HttpPlannerTemplateRenderer(
+        serviceIr: HttpServiceIr,
+        settings: HttpServiceCodegenSettings
+    ) extends TemplateRenderer {
+      def render[S, M](templatePath: String, view: TemplateView[S, M]): CodegenValidated[String] =
+        view.subject match {
+          case service: ServiceModel[?, ?]                                =>
+            legacyService(serviceIr, service.id) match {
+              case Some(httpService) =>
+                renderTemplate(settings, templatePath, viewForService(settings, httpService))
+              case None              =>
+                missingService(templatePath, service.id)
+            }
+          case group: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
+            legacyService(serviceIr, group.service.id) match {
+              case Some(httpService) =>
+                httpService.routeGroups.find(_.tag == group.tag) match {
+                  case Some(routeGroup) =>
+                    renderTemplate(
+                      settings,
+                      templatePath,
+                      viewForService(settings, httpService).copy(routeGroup = Some(routeGroup)))
+                  case None             =>
+                    TemplateRenderFailed(
+                      templatePath,
+                      s"HTTP route group '${group.tag}' not found for service ${group.service.id.namespace}#${group.service.id.name}"
+                    ).invalidNel
+                }
+              case None              =>
+                missingService(templatePath, group.service.id)
+            }
+          case _: CodegenModel[?]                                         =>
+            renderNeutralTemplate(settings, templatePath, view)
+          case ()                                                         =>
+            renderNeutralTemplate(settings, templatePath, view)
+          case unsupported                                                =>
+            TemplateRenderFailed(
+              templatePath,
+              s"unsupported HTTP template subject: ${unsupported.getClass.getName}"
+            ).invalidNel
+        }
     }
+
+    def emittableModelSet(modelSet: ModelSet[HttpMeta], serviceIr: HttpServiceIr): ModelSet[HttpMeta] = {
+      val emittedShapeIds =
+        serviceIr.services.flatMap { service =>
+          service.structures.map(_.shapeId) ++
+            service.unions.map(_.shapeId) ++
+            service.stringEnums.map(_.shapeId) ++
+            service.intEnums.map(_.shapeId)
+        }.toSet
+      ModelSet(modelSet.all.filter(model => emittedShapeIds.contains(shapeId(model.id))))
+    }
+
+    def viewForService(settings: HttpServiceCodegenSettings, service: HttpService): HttpCodegenTemplateView =
+      HttpCodegenTemplateView(
+        service = service,
+        packageName = HttpCodegenPackageNames.servicePackageName(settings, service),
+        modelsPackageName = HttpCodegenPackageNames.modelsPackageName(settings, service.shapeId.getNamespace),
+        httpProblemImportModule = HttpCodegenProblemBase.importModule(settings),
+        typePackageNames = HttpCodegenPackageNames.buildTypePackageNames(service, settings)
+      )
+
+    def renderTemplate(
+        settings: HttpServiceCodegenSettings,
+        templatePath: String,
+        view: HttpCodegenTemplateView
+    ): CodegenValidated[String] =
+      try {
+        val templateSettings =
+          settings.copy(templateDirectory = resolvedTemplateDirectory(settings, templatePath))
+        val resolvedPath     = resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
+        val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
+        CodegenValidated.valid(ScalateSspTemplateEngine.renderClasspathTemplate(resolvedPath, view, Some(templateRoot)))
+      } catch {
+        case error: Exception =>
+          TemplateRenderFailed(
+            templatePath,
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
+          ).invalidNel
+      }
+
+    def renderNeutralTemplate[S, M](
+        settings: HttpServiceCodegenSettings,
+        templatePath: String,
+        view: TemplateView[S, M]
+    ): CodegenValidated[String] =
+      try {
+        val templateSettings =
+          settings.copy(templateDirectory = resolvedTemplateDirectory(settings, templatePath))
+        val resolvedPath     = resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
+        val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
+        CodegenValidated.valid(
+          ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
+            resolvedPath,
+            Map("ctx" -> view),
+            Some(templateRoot)
+          )
+        )
+      } catch {
+        case error: Exception =>
+          TemplateRenderFailed(
+            templatePath,
+            Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
+          ).invalidNel
+      }
 
     def resolveTemplatePath(settings: HttpServiceCodegenSettings, template: String): String = {
       val baseDirectory = settings.templateDirectory.stripPrefix("classpath:")
@@ -99,170 +166,51 @@ object HttpServiceCodegenRenderer {
       s"classpath:$normalized$template"
     }
 
-    def resolveOutputPath(
-        settings: HttpServiceCodegenSettings,
-        artifactConfig: HttpServiceCodegenArtifactConfig,
-        service: HttpService,
-        packageName: String
-    ): String = {
-      val outputPrefix       = CodegenPackageNames.outputPathPrefix(service.shapeId.getNamespace)
-      val renderedOutputFile =
-        HttpCodegenTemplateAttributes.renderOutputPath(artifactConfig.outputFile, service, packageName)
-      val relativeOutputFile = s"$outputPrefix/$renderedOutputFile"
-      val prefixedOutputFile =
-        artifactConfig.kind match {
-          case HttpServiceCodegenArtifactKind.Src  =>
-            settings.sourceOutputDirectory match {
-              case Some(sourceOutputDirectory) =>
-                s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"
-              case None                        => relativeOutputFile
-            }
-          case HttpServiceCodegenArtifactKind.Test =>
-            settings.testOutputDirectory match {
-              case Some(testOutputDirectory) =>
-                s"${normalizeDirectory(testOutputDirectory)}/$relativeOutputFile"
-              case None                      => relativeOutputFile
-            }
-        }
-      prefixedOutputFile
-    }
-
     def resolvedTemplateDirectory(
         settings: HttpServiceCodegenSettings,
-        artifactConfig: HttpServiceCodegenArtifactConfig
+        templatePath: String
     ): String =
-      artifactConfig.templateSource match {
-        case HttpCodegenTemplateSource.Service => settings.templateDirectory
-        case HttpCodegenTemplateSource.Models  => settings.resolvedModelTemplateDirectory
+      HttpCodegenTemplatePaths.resolvedTemplateDirectory(
+        settings.templateDirectory,
+        settings.resolvedModelTemplateDirectory,
+        templatePath
+      )
+
+    def stripTemplateDirectoryPrefix(templatePath: String): String =
+      HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
+
+    def httpArtifact(artifact: ResolvedArtifact): HttpCodegenArtifact =
+      HttpCodegenArtifact(
+        relativePath = artifact.relativePath,
+        content = artifact.content,
+        kind = artifactKind(artifact.kind)
+      )
+
+    def artifactKind(kind: ArtifactKind): HttpServiceCodegenArtifactKind =
+      kind match {
+        case ArtifactKind.Src  => HttpServiceCodegenArtifactKind.Src
+        case ArtifactKind.Test => HttpServiceCodegenArtifactKind.Test
       }
 
-    def normalizeDirectory(directory: String): String =
-      directory.stripSuffix("/")
+    def toHttpValidated[A](value: CodegenValidated[A]): HttpValidated[A] =
+      value.leftMap(errors => errors.map(codegenError))
 
-    def renderStructureModelArtifact(
-        model: Model,
-        settings: HttpServiceCodegenSettings,
-        service: HttpService,
-        structure: HttpStructure,
-        enumNames: Set[String]
-    ): HttpCodegenArtifact = {
-      val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
-      val packageName  = HttpCodegenPackageNames.modelsPackageName(settings, structure.shapeId.getNamespace)
-      val view         = HttpStructureModelTemplateAttributes.build(model, service, structure, enumNames, packageName)
-      val content      =
-        ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-          resolveTemplatePath(
-            settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
-            "structure.ssp"),
-          Map(
-            "structure"           -> view.structure,
-            "structureMembers"    -> view.members,
-            "problemBinding"      -> view.problemBinding,
-            "packageName"         -> view.packageName,
-            "importTypeNames"     -> view.importTypeNames,
-            "needsDatetimeImport" -> view.needsDatetimeImport
-          ),
-          Some(templateRoot)
-        )
-      val moduleName   = HttpCodegenTemplateAttributes.toSnakeCase(structure.name)
-      val relativePath = modelArtifactRelativePath(settings, moduleName, structure.shapeId.getNamespace)
-      HttpCodegenArtifact(
-        relativePath = relativePath,
-        content = content,
-        kind = HttpServiceCodegenArtifactKind.Src
+    def codegenError(error: CodegenValidationError): InvalidHttpService =
+      InvalidHttpService(
+        ShapeId.from("smithplates.codegen.http#HttpCodegen"),
+        error.message
       )
-    }
 
-    def renderUnionModelArtifact(
-        settings: HttpServiceCodegenSettings,
-        service: HttpService,
-        union: HttpUnion,
-        enumNames: Set[String]
-    ): HttpCodegenArtifact = {
-      val templateRoot    = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
-      val structureNames  = service.structures.map(_.name).toSet
-      val unionNames      = service.unions.map(_.name).toSet
-      val importTypeNames = HttpModelTypeNames.unionReferencedTypeNames(union, structureNames, unionNames, enumNames)
-      val needsDatetime   = HttpModelTypeNames.unionNeedsDatetimeImport(union.members)
-      val packageName     = HttpCodegenPackageNames.modelsPackageName(settings, union.shapeId.getNamespace)
-      val content         =
-        ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-          resolveTemplatePath(settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory), "union.ssp"),
-          Map(
-            "union"               -> union,
-            "packageName"         -> packageName,
-            "importTypeNames"     -> importTypeNames,
-            "needsDatetimeImport" -> needsDatetime
-          ),
-          Some(templateRoot)
-        )
-      val moduleName      = HttpCodegenTemplateAttributes.toSnakeCase(union.name)
-      val relativePath    = modelArtifactRelativePath(settings, moduleName, union.shapeId.getNamespace)
-      HttpCodegenArtifact(
-        relativePath = relativePath,
-        content = content,
-        kind = HttpServiceCodegenArtifactKind.Src
-      )
-    }
+    def legacyService(serviceIr: HttpServiceIr, id: ModelId): Option[HttpService] =
+      serviceIr.services.find(_.shapeId == shapeId(id))
 
-    def modelArtifactRelativePath(
-        settings: HttpServiceCodegenSettings,
-        moduleName: String,
-        smithyNamespace: String
-    ): String = {
-      val outputPrefix = CodegenPackageNames.outputPathPrefix(smithyNamespace)
-      settings.sourceOutputDirectory match {
-        case Some(sourceOutputDirectory) =>
-          s"${normalizeDirectory(sourceOutputDirectory)}/$outputPrefix/$moduleName.py"
-        case None                        =>
-          s"$outputPrefix/$moduleName.py"
-      }
-    }
+    def shapeId(id: ModelId): ShapeId =
+      ShapeId.from(s"${id.namespace}#${id.name}")
 
-    def renderStringEnumModelArtifact(
-        settings: HttpServiceCodegenSettings,
-        stringEnum: HttpStringEnum
-    ): HttpCodegenArtifact = {
-      val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
-      val content      =
-        ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-          resolveTemplatePath(
-            settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
-            "string_enum.ssp"),
-          Map("stringEnum" -> stringEnum),
-          Some(templateRoot)
-        )
-      HttpCodegenArtifact(
-        relativePath = modelArtifactRelativePath(
-          settings,
-          HttpCodegenTemplateAttributes.toSnakeCase(stringEnum.name),
-          stringEnum.shapeId.getNamespace),
-        content = content,
-        kind = HttpServiceCodegenArtifactKind.Src
-      )
-    }
-
-    def renderIntEnumModelArtifact(
-        settings: HttpServiceCodegenSettings,
-        intEnum: HttpIntEnum
-    ): HttpCodegenArtifact = {
-      val templateRoot = settings.resolvedModelTemplateDirectory.stripPrefix("classpath:")
-      val content      =
-        ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-          resolveTemplatePath(
-            settings.copy(templateDirectory = settings.resolvedModelTemplateDirectory),
-            "int_enum.ssp"),
-          Map("intEnum" -> intEnum),
-          Some(templateRoot)
-        )
-      HttpCodegenArtifact(
-        relativePath = modelArtifactRelativePath(
-          settings,
-          HttpCodegenTemplateAttributes.toSnakeCase(intEnum.name),
-          intEnum.shapeId.getNamespace),
-        content = content,
-        kind = HttpServiceCodegenArtifactKind.Src
-      )
-    }
+    def missingService(templatePath: String, id: ModelId): CodegenValidated[String] =
+      TemplateRenderFailed(
+        templatePath,
+        s"HTTP service ${id.namespace}#${id.name} not found in legacy HTTP IR"
+      ).invalidNel
   }
 }

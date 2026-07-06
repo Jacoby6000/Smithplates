@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from generated.example.problem import Problem
+from generated.smithplates.codegen.http.http_problem import HttpProblem
 from pydantic import Field
 
 
-class WidgetNotFound(Problem):
+class WidgetNotFound(HttpProblem):
     type: str | None = Field(default="https://example.com/errors/widget-not-found")
     title: str | None = Field(default="Widget not found")
+    detail: str | None = Field(default="The requested widget does not exist.")

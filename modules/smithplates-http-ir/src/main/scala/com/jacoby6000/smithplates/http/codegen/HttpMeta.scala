@@ -21,7 +21,8 @@ object HttpMeta {
 
 final case class HttpErrorMeta(
     problemType: Option[String],
-    title: Option[String]
+    title: Option[String],
+    defaultDetail: Option[String] = None
 )
 
 /** Service-level HTTP feature metadata. */

@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
@@ -34,11 +35,16 @@ final case class HttpServerTarget(
       emitModels = emitModels,
       sourceOutputDir = sourceOutputDir,
       testOutputDir = testOutputDir,
-      artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-        List(webFramework),
-        routeGroupTags,
-        emitModels
-      )
+      artifacts = {
+        val _ = routeGroupTags
+        HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+          serverTemplateDirectory =
+            HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId),
+          modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId),
+          frameworkKeys = List(webFramework),
+          emitModels = emitModels
+        )
+      }
     )
 }
 
@@ -56,8 +62,19 @@ final case class HttpClientTarget(
       sourceOutputDir: String,
       testOutputDir: String
   ): HttpServiceCodegenSettings = {
-    val clientArtifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(List(httpLibrary), routeGroupTags)
-    val modelArtifacts  = if (emitModels) HttpServiceCodegenApiArtifacts.sharedModels else Nil
+    val _               = routeGroupTags
+    val clientArtifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(
+      clientTemplateDirectory = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId),
+      libraryKeys = List(httpLibrary)
+    )
+    val modelArtifacts  =
+      if (emitModels) {
+        HttpServiceCodegenApiArtifacts.sharedModels(
+          HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
+        )
+      } else {
+        Nil
+      }
     HttpLanguageTarget.buildCodegenSettings(
       languageId = languageId,
       frameworkKey = httpLibrary,
@@ -109,7 +126,7 @@ object HttpLanguageTarget {
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String,
-      artifacts: List[com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenArtifactConfig]
+      artifacts: List[CodegenOutput]
   ): HttpServiceCodegenSettings =
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,

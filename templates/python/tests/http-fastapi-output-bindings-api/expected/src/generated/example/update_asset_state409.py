@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from generated.example.problem import Problem
+from generated.smithplates.codegen.http.http_problem import HttpProblem
 from pydantic import Field
 
 
-class UpdateAssetState409(Problem):
+class UpdateAssetState409(HttpProblem):
     type: str | None = Field(default="https://example.com/errors/state-conflict")
-    title: str = Field(...)
-    detail: str | None = Field(default=None)
+    title: str | None = Field(default="Asset state conflict")

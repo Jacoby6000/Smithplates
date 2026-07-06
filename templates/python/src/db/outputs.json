@@ -1,0 +1,87 @@
+{
+  "shared": [
+    {
+      "id": "python.sql.db.models",
+      "artifactKind": "src",
+      "template": "models/models.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "python.sql.db.service_protocol",
+      "artifactKind": "src",
+      "template": "service_protocol.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py",
+      "binding": { "type": "service" }
+    }
+  ],
+  "variants": {
+    "sqlite": [
+      {
+        "id": "python.sql.db.sqlite.transaction_run",
+        "artifactKind": "src",
+        "template": "sqlite/sqlite_transaction_run.py",
+        "outputPath": "{{smithyNamespaceDir}}/sqlite/sqlite_transaction_run.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.sqlite.migrations_service",
+        "artifactKind": "src",
+        "template": "sqlite/migrations_service.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/sqlite/sqlite_migrations.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.sqlite.service",
+        "artifactKind": "src",
+        "template": "sqlite/service_aiosqlite.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/sqlite/{{serviceModuleName}}_aiosqlite.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.sqlite.integration_tests",
+        "artifactKind": "test",
+        "template": "sqlite/tests/service_derived_sql_integration_tests.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/sqlite/test_{{serviceModuleName}}_derived_sql.py",
+        "binding": { "type": "service" }
+      }
+    ],
+    "postgres": [
+      {
+        "id": "python.sql.db.postgres.transaction_run",
+        "artifactKind": "src",
+        "template": "postgres/psycopg_transaction_run.py",
+        "outputPath": "{{smithyNamespaceDir}}/postgres/psycopg_transaction_run.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.postgres.migrations_service",
+        "artifactKind": "src",
+        "template": "postgres/migrations_service.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/postgres/psycopg_migrations.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.postgres.service",
+        "artifactKind": "src",
+        "template": "postgres/service_psycopg.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/postgres/{{serviceModuleName}}_psycopg.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.postgres.integration_tests",
+        "artifactKind": "test",
+        "template": "postgres/tests/service_derived_sql_integration_tests_postgres.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/postgres/test_{{serviceModuleName}}_derived_sql.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.sql.db.postgres.testcontainers_stub",
+        "artifactKind": "test",
+        "template": "postgres/stubs/testcontainers/postgres.pyi",
+        "outputPath": "{{smithyNamespaceDir}}/postgres/stubs/testcontainers/postgres.pyi",
+        "binding": { "type": "service" }
+      }
+    ]
+  }
+}

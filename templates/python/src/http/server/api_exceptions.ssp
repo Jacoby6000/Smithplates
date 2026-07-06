@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 <% if (serviceErrorsNeedProblemImport(ctx.service)) { %>
-from ${ctx.modelsPackageName}.problem import Problem
+from ${ctx.httpProblemImportModule} import ${httpProblemClassName}
 <% } %>
 <% for (error <- ctx.service.serviceErrors if !serviceErrorUsesProblem(error)) { %>
 from ${modelTypeImportModule(ctx, error.name)} import ${error.name}
@@ -33,9 +33,9 @@ class ${serviceErrorExceptionName(error.name)}(Exception):
         self.detail = detail
         self.instance = instance
 
-    def to_problem(self, status_code: int) -> Problem:
+    def to_problem(self, status_code: int) -> ${httpProblemClassName}:
         resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
-        return Problem(
+        return ${httpProblemClassName}(
             type=self._PROBLEM_TYPE,
             title=self._PROBLEM_TITLE,
             status=status_code,

@@ -4,6 +4,7 @@ from typing import Annotated, Protocol  # noqa: F401
 from generated.example.item_kind import ItemKind
 from generated.example.item_list_output import ItemListOutput
 from generated.example.item_output import ItemOutput
+from generated.example.item_priority import ItemPriority
 from pydantic import Field  # noqa: F401
 
 
@@ -15,4 +16,5 @@ class ItemsApiServiceProtocol(Protocol):
     async def list_items(
         self,
         kind: ItemKind | None,
+        priority: ItemPriority | None,
     ) -> ItemListOutput: ...
