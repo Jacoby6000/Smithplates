@@ -37,6 +37,18 @@ class CodegenPlannerSpec extends FunSuite {
       s"$templatePath:${view.subject}:${view.usedTypes.map(_.id.name).mkString(",")}"
     }
 
+  private lazy val typeUsageAnalyzer = TypeUsageAnalyzer.default
+
+  private def onceBindingRenderedContent(templatePath: String): String = {
+    val usedTypeNames =
+      service.operations
+        .flatMap(typeUsageAnalyzer.usedTypes(_))
+        .distinct
+        .map(_.id.name)
+        .mkString(",")
+    s"$templatePath:$service:$usedTypeNames"
+  }
+
   private def meta(tags: List[String] = Nil): ModelMeta[Unit] =
     ModelMeta(None, tags, ())
 
@@ -167,7 +179,7 @@ class CodegenPlannerSpec extends FunSuite {
         List(
           ResolvedArtifact(
             relativePath = "src/shared.py",
-            content = "templates/custom.ssp:():",
+            content = onceBindingRenderedContent("templates/custom.ssp"),
             kind = ArtifactKind.Src
           )
         )
@@ -384,7 +396,7 @@ class CodegenPlannerSpec extends FunSuite {
         List(
           ResolvedArtifact(
             relativePath = "test/support.py",
-            content = "templates/test.once.ssp:():",
+            content = onceBindingRenderedContent("templates/test.once.ssp"),
             kind = ArtifactKind.Test
           )
         )
@@ -573,11 +585,28 @@ class CodegenPlannerSpec extends FunSuite {
         List(
           ResolvedArtifact(
             relativePath = "src/middleware.py",
-            content = "templates/once.middleware.ssp:():",
+            content = onceBindingRenderedContent("templates/once.middleware.ssp"),
             kind = ArtifactKind.Src
           )
         )
       )
+    )
+  }
+
+  test("plan expands Once binding with smithyNamespaceDir from the sole service namespace") {
+    val outputs =
+      List(
+        templateOutput(
+          "once.namespace",
+          SmithyBinding.Once,
+          outputPath = "{{smithyNamespaceDir}}/middleware.py"
+        )
+      )
+    val result  = CodegenPlanner.plan(outputs, models, List(service), settings, templateRenderer)
+
+    assertEquals(
+      result.map(_.map(_.relativePath)),
+      CodegenValidated.valid(List("src/example/middleware.py"))
     )
   }
 

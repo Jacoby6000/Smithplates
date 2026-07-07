@@ -95,6 +95,14 @@ final case class InconsistentGroupedModelNamespaces(outputId: OutputId, namespac
   }
 }
 
+final case class AmbiguousOnceBindingNamespaces(outputId: OutputId, namespaces: NonEmptyList[String])
+    extends CodegenValidationError {
+  override def message: String = {
+    val ns = namespaces.toList.mkString(", ")
+    s"Once binding output ${outputId.value} uses namespace-scoped path placeholders across multiple service namespaces: $ns"
+  }
+}
+
 final case class DuplicateResolvedOutputPath(path: String, outputIds: NonEmptyList[OutputId])
     extends CodegenValidationError {
   override def message: String = {

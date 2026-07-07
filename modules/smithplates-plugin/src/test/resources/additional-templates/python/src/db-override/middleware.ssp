@@ -1,2 +1,1 @@
-<% val _ = ctx %>
 # custom middleware override

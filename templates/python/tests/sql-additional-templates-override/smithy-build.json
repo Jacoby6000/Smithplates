@@ -1,0 +1,25 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "plugins": {
+    "smithplates": {
+      "python": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "test",
+        "sql": {
+          "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-override",
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "postgres": {
+            "enable": true,
+            "migrationLocation": "db/migrations/postgres"
+          }
+        }
+      }
+    }
+  }
+}
