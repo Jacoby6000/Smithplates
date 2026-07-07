@@ -1,12 +1,12 @@
 {
   "shared": [
     {
-      "id": "custom.sql.override",
+      "id": "custom.sql.service_protocol",
       "artifactKind": "src",
       "overrides": "python.sql.db.service_protocol",
-      "template": "middleware.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/custom_protocol.py",
-      "binding": { "type": "once" }
+      "template": "service_protocol.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py",
+      "binding": { "type": "service" }
     }
   ]
 }
