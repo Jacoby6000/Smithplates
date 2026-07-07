@@ -1,0 +1,18 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.dup",
+      "artifactKind": "src",
+      "template": "middleware.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/one.py",
+      "binding": { "type": "once" }
+    },
+    {
+      "id": "custom.sql.dup",
+      "artifactKind": "src",
+      "template": "middleware.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/two.py",
+      "binding": { "type": "once" }
+    }
+  ]
+}

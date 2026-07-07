@@ -91,16 +91,19 @@ object SqlServiceCodegenRenderer {
   def resolveTemplatePath(
       settings: SqlServiceCodegenSettings,
       templatePath: String
-  ): String = {
-    val baseDirectory      = settings.templateDirectory.stripPrefix("classpath:").stripSuffix("/")
-    val normalizedTemplate =
-      if (templatePath.startsWith("/")) {
-        templatePath.stripPrefix("/")
-      } else {
-        templatePath
-      }
-    s"classpath:$baseDirectory/$normalizedTemplate"
-  }
+  ): String =
+    if (com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+      templatePath
+    } else {
+      val baseDirectory      = settings.templateDirectory.stripPrefix("classpath:").stripSuffix("/")
+      val normalizedTemplate =
+        if (templatePath.startsWith("/")) {
+          templatePath.stripPrefix("/")
+        } else {
+          templatePath
+        }
+      s"classpath:$baseDirectory/$normalizedTemplate"
+    }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
@@ -145,7 +148,14 @@ object SqlServiceCodegenRenderer {
             if (!SqlServiceCodegenDbArtifacts.isRenderedTemplate(templatePath)) {
               ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
             } else {
-              val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+              val templateRoot =
+                if (com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths.isClasspathQualified(
+                    templatePath
+                  )) {
+                  templatePath.stripPrefix("classpath:").split("/").dropRight(1).mkString("/")
+                } else {
+                  settings.templateDirectory.stripPrefix("classpath:")
+                }
               val view         = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, view, Some(templateRoot))
             }

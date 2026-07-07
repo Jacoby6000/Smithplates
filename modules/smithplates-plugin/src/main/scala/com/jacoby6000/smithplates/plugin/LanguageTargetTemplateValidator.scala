@@ -52,9 +52,13 @@ object LanguageTargetTemplateValidator {
 
       val missingTemplates =
         requiredTemplates.filterNot { template =>
-          ScalateSspTemplateEngine.classpathResourceExists(
-            PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
-          )
+          val resourcePath =
+            if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
+              template.stripPrefix("classpath:")
+            } else {
+              PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+            }
+          ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
         }
 
       if (missingTemplates.isEmpty) {

@@ -14,6 +14,7 @@ import io.circe.Json
 final case class HttpServerTarget(
     webFramework: String,
     templateDirectory: Option[String],
+    additionalTemplatesDirectory: Option[String] = None,
     packageName: Option[String]
 ) {
   def toCodegenSettings(
@@ -24,33 +25,42 @@ final case class HttpServerTarget(
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String
-  ): HttpServiceCodegenSettings =
-    HttpLanguageTarget.buildCodegenSettings(
-      languageId = languageId,
-      frameworkKey = webFramework,
-      templateDirectory = HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId),
-      rootNamespace = rootNamespace,
-      packageNameOverride = packageName,
-      modelsPackageNameOverride = modelsPackageNameOverride,
-      emitModels = emitModels,
-      sourceOutputDir = sourceOutputDir,
-      testOutputDir = testOutputDir,
-      artifacts = {
-        val _ = routeGroupTags
-        HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-          serverTemplateDirectory =
-            HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId),
-          modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId),
-          frameworkKeys = List(webFramework),
-          emitModels = emitModels
+  ): SqlValidated[HttpServiceCodegenSettings] = {
+    val _                       = routeGroupTags
+    val serverTemplateDirectory =
+      HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(this, languageId)
+    val modelsTemplateDirectory =
+      HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
+    HttpLanguageTarget.internal
+      .composedServerArtifacts(
+        serverTemplateDirectory = serverTemplateDirectory,
+        modelsTemplateDirectory = modelsTemplateDirectory,
+        frameworkKeys = List(webFramework),
+        emitModels = emitModels,
+        additionalTemplatesDirectory = additionalTemplatesDirectory
+      )
+      .map { artifacts =>
+        HttpLanguageTarget.buildCodegenSettings(
+          languageId = languageId,
+          frameworkKey = webFramework,
+          templateDirectory = serverTemplateDirectory,
+          rootNamespace = rootNamespace,
+          packageNameOverride = packageName,
+          modelsPackageNameOverride = modelsPackageNameOverride,
+          emitModels = emitModels,
+          sourceOutputDir = sourceOutputDir,
+          testOutputDir = testOutputDir,
+          artifacts = artifacts,
+          modelTemplateDirectory = Some(modelsTemplateDirectory)
         )
       }
-    )
+  }
 }
 
 final case class HttpClientTarget(
     httpLibrary: String,
     templateDirectory: Option[String],
+    additionalTemplatesDirectory: Option[String] = None,
     packageName: Option[String]
 ) {
   def toCodegenSettings(
@@ -61,32 +71,35 @@ final case class HttpClientTarget(
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String
-  ): HttpServiceCodegenSettings = {
-    val _               = routeGroupTags
-    val clientArtifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(
-      clientTemplateDirectory = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId),
-      libraryKeys = List(httpLibrary)
-    )
-    val modelArtifacts  =
-      if (emitModels) {
-        HttpServiceCodegenApiArtifacts.sharedModels(
-          HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
+  ): SqlValidated[HttpServiceCodegenSettings] = {
+    val _                       = routeGroupTags
+    val clientTemplateDirectory =
+      HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId)
+    val modelsTemplateDirectory =
+      HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
+    HttpLanguageTarget.internal
+      .composedClientArtifacts(
+        clientTemplateDirectory = clientTemplateDirectory,
+        modelsTemplateDirectory = modelsTemplateDirectory,
+        libraryKeys = List(httpLibrary),
+        emitModels = emitModels,
+        additionalTemplatesDirectory = additionalTemplatesDirectory
+      )
+      .map { artifacts =>
+        HttpLanguageTarget.buildCodegenSettings(
+          languageId = languageId,
+          frameworkKey = httpLibrary,
+          templateDirectory = clientTemplateDirectory,
+          rootNamespace = rootNamespace,
+          packageNameOverride = packageName,
+          modelsPackageNameOverride = modelsPackageNameOverride,
+          emitModels = emitModels,
+          sourceOutputDir = sourceOutputDir,
+          testOutputDir = testOutputDir,
+          artifacts = artifacts,
+          modelTemplateDirectory = Some(modelsTemplateDirectory)
         )
-      } else {
-        Nil
       }
-    HttpLanguageTarget.buildCodegenSettings(
-      languageId = languageId,
-      frameworkKey = httpLibrary,
-      templateDirectory = HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(this, languageId),
-      rootNamespace = rootNamespace,
-      packageNameOverride = packageName,
-      modelsPackageNameOverride = modelsPackageNameOverride,
-      emitModels = emitModels,
-      sourceOutputDir = sourceOutputDir,
-      testOutputDir = testOutputDir,
-      artifacts = clientArtifacts ++ modelArtifacts
-    )
   }
 }
 
@@ -126,7 +139,8 @@ object HttpLanguageTarget {
       emitModels: Boolean,
       sourceOutputDir: String,
       testOutputDir: String,
-      artifacts: List[CodegenOutput]
+      artifacts: List[CodegenOutput],
+      modelTemplateDirectory: Option[String]
   ): HttpServiceCodegenSettings =
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,
@@ -139,6 +153,60 @@ object HttpLanguageTarget {
       packageNameOverride = packageNameOverride,
       modelsPackageNameOverride = modelsPackageNameOverride,
       emitModels = emitModels,
-      modelTemplateDirectory = Some(HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId))
+      modelTemplateDirectory = modelTemplateDirectory
     )
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def composedServerArtifacts(
+        serverTemplateDirectory: String,
+        modelsTemplateDirectory: String,
+        frameworkKeys: List[String],
+        emitModels: Boolean,
+        additionalTemplatesDirectory: Option[String]
+    ): SqlValidated[List[CodegenOutput]] =
+      HttpServiceCodegenApiArtifacts
+        .frameworkArtifacts(
+          serverTemplateDirectory = serverTemplateDirectory,
+          modelsTemplateDirectory = modelsTemplateDirectory,
+          frameworkKeys = frameworkKeys,
+          emitModels = emitModels
+        )
+        .andThen { bundled =>
+          additionalTemplatesDirectory match {
+            case None                => bundled.validNel
+            case Some(additionalDir) =>
+              ConsumerCodegenOutputs
+                .additionalOutputs(additionalDir, frameworkKeys, getClass.getClassLoader)
+                .map(ConsumerCodegenOutputs.compose(bundled, _))
+          }
+        }
+        .leftMap(_.map(error => InvalidPluginConfig(error.message)))
+
+    def composedClientArtifacts(
+        clientTemplateDirectory: String,
+        modelsTemplateDirectory: String,
+        libraryKeys: List[String],
+        emitModels: Boolean,
+        additionalTemplatesDirectory: Option[String]
+    ): SqlValidated[List[CodegenOutput]] =
+      (
+        HttpClientCodegenApiArtifacts.libraryArtifacts(clientTemplateDirectory, libraryKeys),
+        if (emitModels) {
+          HttpServiceCodegenApiArtifacts.modelArtifacts(modelsTemplateDirectory)
+        } else {
+          List.empty[CodegenOutput].validNel
+        }
+      ).mapN(_ ++ _)
+        .andThen { bundled =>
+          additionalTemplatesDirectory match {
+            case None                => bundled.validNel
+            case Some(additionalDir) =>
+              ConsumerCodegenOutputs
+                .additionalOutputs(additionalDir, libraryKeys, getClass.getClassLoader)
+                .map(ConsumerCodegenOutputs.compose(bundled, _))
+          }
+        }
+        .leftMap(_.map(error => InvalidPluginConfig(error.message)))
+  }
 }

@@ -159,6 +159,24 @@ class CodegenOutputDeckSpec extends FunSuite {
     }
   }
 
+  test("forAvailable composes shared outputs and ignores missing variant keys") {
+    val deck = loadValid("""
+      {
+        "shared": [
+          { "id": "shared", "artifactKind": "src", "template": "a.ssp", "outputPath": "a.py", "binding": { "type": "service" } }
+        ],
+        "variants": {
+          "fastapi": [
+            { "id": "fastapi", "artifactKind": "src", "template": "b.ssp", "outputPath": "b.py", "binding": { "type": "service" } }
+          ]
+        }
+      }
+    """)
+
+    assertEquals(deck.forAvailable(List("fastapi", "flask")).map(_.id.value), List("shared", "fastapi"))
+    assertEquals(deck.forAvailable(Nil).map(_.id.value), List("shared"))
+  }
+
   test("loadJson rejects invalid JSON") {
     CodegenOutputDeck.loadJson("{") match {
       case Validated.Invalid(errors) => assert(errors.head.message.contains("invalid JSON"))

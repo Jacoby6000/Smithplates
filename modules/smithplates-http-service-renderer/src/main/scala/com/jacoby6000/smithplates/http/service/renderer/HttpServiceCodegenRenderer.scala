@@ -11,6 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -160,24 +161,35 @@ object HttpServiceCodegenRenderer {
           ).invalidNel
       }
 
-    def resolveTemplatePath(settings: HttpServiceCodegenSettings, template: String): String = {
-      val baseDirectory = settings.templateDirectory.stripPrefix("classpath:")
-      val normalized    = if (baseDirectory.endsWith("/")) baseDirectory else s"$baseDirectory/"
-      s"classpath:$normalized$template"
-    }
+    def resolveTemplatePath(settings: HttpServiceCodegenSettings, template: String): String =
+      if (CodegenTemplatePaths.isClasspathQualified(template)) {
+        template
+      } else {
+        val baseDirectory = settings.templateDirectory.stripPrefix("classpath:")
+        val normalized    = if (baseDirectory.endsWith("/")) baseDirectory else s"$baseDirectory/"
+        s"classpath:$normalized$template"
+      }
 
     def resolvedTemplateDirectory(
         settings: HttpServiceCodegenSettings,
         templatePath: String
     ): String =
-      HttpCodegenTemplatePaths.resolvedTemplateDirectory(
-        settings.templateDirectory,
-        settings.resolvedModelTemplateDirectory,
-        templatePath
-      )
+      if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+        templatePath.stripPrefix("classpath:").split("/").dropRight(1).mkString("/")
+      } else {
+        HttpCodegenTemplatePaths.resolvedTemplateDirectory(
+          settings.templateDirectory,
+          settings.resolvedModelTemplateDirectory,
+          templatePath
+        )
+      }
 
     def stripTemplateDirectoryPrefix(templatePath: String): String =
-      HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
+      if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+        templatePath.stripPrefix("classpath:").split("/").last
+      } else {
+        HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
+      }
 
     def httpArtifact(artifact: ResolvedArtifact): HttpCodegenArtifact =
       HttpCodegenArtifact(

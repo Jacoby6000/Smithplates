@@ -89,14 +89,21 @@ object HttpLanguageTargetTemplateValidator {
         artifacts
           .flatMap(HttpServiceCodegenApiArtifacts.templatePath)
           .map { template =>
-            val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
-            (templateDirectory, stripTemplateDirectoryPrefix(template))
+            if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
+              (template.stripPrefix("classpath:"), template)
+            } else {
+              val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
+              (
+                PluginTemplatePaths
+                  .classpathResourcePath(templateDirectory, stripTemplateDirectoryPrefix(template))
+                  .stripPrefix("/"),
+                template
+              )
+            }
           }
           .distinct
-          .filterNot { case (templateDirectory, template) =>
-            ScalateSspTemplateEngine.classpathResourceExists(
-              PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
-            )
+          .filterNot { case (resourcePath, _) =>
+            ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
           }
 
       if (missingTemplates.isEmpty) {
@@ -105,7 +112,10 @@ object HttpLanguageTargetTemplateValidator {
         SqlValidated.invalid(
           InvalidPluginConfig(
             s"smithplates.$languageId.http is missing required templates: " +
-              missingTemplates.map { case (directory, template) => s"$directory/$template" }.sorted.mkString(", ")
+              missingTemplates
+                .map { case (resourcePath, template) => s"$resourcePath ($template)" }
+                .sorted
+                .mkString(", ")
           )
         )
       }

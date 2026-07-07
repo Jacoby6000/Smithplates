@@ -28,18 +28,22 @@ final case class SmithplatesSqlSettings(
         .map(dialectKey -> _)
     }.toMap
 
-  def toCodegenSettings(languageId: String): Option[SqlServiceCodegenSettings] =
-    languageTargets.get(languageId).map { languageTarget =>
-      val enabledKeys = languageTarget.target.enabledDialectKeys
-      languageTarget.target.toCodegenSettings(
-        languageId = languageId,
-        enabledDialectKeys = enabledKeys,
-        queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
-        schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys),
-        migrationDirectories = dialectMigrationDirectories.view.filterKeys(enabledKeys.toSet).toMap,
-        sourceOutputDir = languageTarget.sourceOutputDir,
-        testOutputDir = languageTarget.testOutputDir
-      )
+  def toCodegenSettings(languageId: String): SqlValidated[Option[SqlServiceCodegenSettings]] =
+    languageTargets.get(languageId) match {
+      case None                 => Option.empty[SqlServiceCodegenSettings].validNel
+      case Some(languageTarget) =>
+        val enabledKeys = languageTarget.target.enabledDialectKeys
+        languageTarget.target
+          .toCodegenSettings(
+            languageId = languageId,
+            enabledDialectKeys = enabledKeys,
+            queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
+            schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys),
+            migrationDirectories = dialectMigrationDirectories.view.filterKeys(enabledKeys.toSet).toMap,
+            sourceOutputDir = languageTarget.sourceOutputDir,
+            testOutputDir = languageTarget.testOutputDir
+          )
+          .map(Some(_))
     }
 }
 
@@ -59,11 +63,19 @@ object SmithplatesSqlSettings {
     ): SqlValidated[SmithplatesSqlSettings] =
       settings.languageTargets.toList
         .traverse { case (languageId, languageTarget) =>
-          LanguageTargetTemplateValidator.validate(
-            languageId,
-            languageTarget.target,
-            languageTarget.target.enabledDialectKeys
-          )
+          (
+            LanguageTargetTemplateValidator.validate(
+              languageId,
+              languageTarget.target,
+              languageTarget.target.enabledDialectKeys
+            ),
+            ConsumerCodegenOutputValidator.validateSqlAdditionalDeck(
+              languageId = languageId,
+              target = languageTarget.target,
+              enabledDialectKeys = languageTarget.target.enabledDialectKeys,
+              enableExternalTemplates = languageTarget.enableExternalTemplates
+            )
+          ).mapN((_, _) => ())
         }
         .map(_ => settings)
 
