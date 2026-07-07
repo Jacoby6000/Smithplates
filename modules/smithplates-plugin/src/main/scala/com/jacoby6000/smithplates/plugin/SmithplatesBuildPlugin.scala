@@ -29,6 +29,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
           s"smithplates plugin failed validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
         )
       case Validated.Valid(settings) =>
+        SmithplatesBuildPlugin.internal.warnWhenExternalTemplatesEnabled(settings)
         settings.sql.foreach(SmithplatesBuildPlugin.internal.executeSql(context, model, _))
         settings.http.foreach(SmithplatesBuildPlugin.internal.executeHttp(context, model, _))
     }
@@ -40,6 +41,17 @@ object SmithplatesBuildPlugin {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val logger: Logger = Logger.getLogger(classOf[SmithplatesBuildPlugin].getName)
+
+    def warnWhenExternalTemplatesEnabled(settings: SmithplatesSettings): Unit = {
+      val externalEnabled =
+        settings.sql.exists(_.languageTargets.values.exists(_.enableExternalTemplates)) ||
+          settings.http.exists(_.languageTargets.values.exists(_.enableExternalTemplates))
+      if (externalEnabled) {
+        logger.warning(
+          "smithplates enableExternalTemplates is enabled: external SSP templates execute arbitrary Scala at build time"
+        )
+      }
+    }
 
     def executeSql(
         context: PluginContext,

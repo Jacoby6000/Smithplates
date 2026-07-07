@@ -11,8 +11,8 @@ import com.jacoby6000.smithplates.codegen.core.planning.config.CodegenOutputDeck
   * Its outputs are appended after the bundled outputs; the
   * [[com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner]] then resolves `overrides` by id and rejects
   * duplicate resolved paths. Because the consumer templates live under a different directory than the bundled ones,
-  * each output's template/resource path is rewritten to an absolute `classpath:` path anchored at the additional
-  * directory so renderers resolve it against that directory.
+  * each output's template/resource path is rewritten to an absolute `classpath:` or `file:` path anchored at the
+  * additional directory so renderers resolve it against that directory.
   */
 object ConsumerCodegenOutputs {
   def compose(bundled: List[CodegenOutput], additional: List[CodegenOutput]): List[CodegenOutput] =
@@ -23,13 +23,15 @@ object ConsumerCodegenOutputs {
       additionalTemplatesDirectory: String,
       enabledKeys: List[String],
       classLoader: ClassLoader
-  ): CodegenValidated[List[CodegenOutput]] =
+  ): CodegenValidated[List[CodegenOutput]] = {
+    val normalizedDirectory = ConsumerTemplateDirectories.normalize(additionalTemplatesDirectory)
     CodegenOutputDeckLoader
-      .load(additionalTemplatesDirectory, classLoader)
-      .map(deck => deck.forAvailable(enabledKeys).map(qualify(additionalTemplatesDirectory, _)))
+      .load(normalizedDirectory, classLoader)
+      .map(deck => deck.forAvailable(enabledKeys).map(qualify(normalizedDirectory, _)))
+  }
 
-  /** Rewrites a consumer output's relative template/resource path to an absolute `classpath:` path anchored at the
-    * additional directory, so it is resolved against that directory rather than the bundled template root.
+  /** Rewrites a consumer output's relative template/resource path to an absolute `classpath:` or `file:` path anchored
+    * at the additional directory, so it is resolved against that directory rather than the bundled template root.
     */
   def qualify(additionalTemplatesDirectory: String, output: CodegenOutput): CodegenOutput = {
     val base = normalizedBase(additionalTemplatesDirectory)
@@ -42,13 +44,13 @@ object ConsumerCodegenOutputs {
   }
 
   def isAdditionalTemplatePath(templatePath: String): Boolean =
-    CodegenTemplatePaths.isClasspathQualified(templatePath)
+    CodegenTemplatePaths.isQualified(templatePath)
 
   private def normalizedBase(additionalTemplatesDirectory: String): String =
-    s"classpath:${additionalTemplatesDirectory.stripPrefix("classpath:").stripSuffix("/")}"
+    ConsumerTemplateDirectories.normalize(additionalTemplatesDirectory)
 
   private def absolutePath(base: String, relative: String): String =
-    if (CodegenTemplatePaths.isClasspathQualified(relative)) {
+    if (CodegenTemplatePaths.isQualified(relative)) {
       relative
     } else {
       s"$base/${relative.stripPrefix("/")}"

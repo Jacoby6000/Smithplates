@@ -35,7 +35,7 @@ class ConsumerCodegenOutputValidatorSpec extends FunSuite {
       additionalOutputs = outputs,
       bundledIds = bundledIds,
       enableExternalTemplates = enableExternalTemplates,
-      templateClasspathExists = templateExists
+      templateExists = templateExists
     )
 
   test("validateAdditionalDeck accepts a distinct id with a valid override target") {
@@ -88,14 +88,25 @@ class ConsumerCodegenOutputValidatorSpec extends FunSuite {
     }
   }
 
-  test("validateAdditionalDeck allows missing classpath templates when enableExternalTemplates is true") {
+  test("validateAdditionalDeck rejects missing templates when enableExternalTemplates is true") {
     validate(
       outputs = List(templateOutput("custom", "classpath:missing/template.ssp")),
       enableExternalTemplates = true,
       templateExists = _ => false
     ) match {
-      case Validated.Valid(_)        => ()
-      case Validated.Invalid(errors) => fail(errors.toList.map(_.message).mkString("; "))
+      case Validated.Valid(_)        => fail("expected missing template error")
+      case Validated.Invalid(errors) => assert(errors.exists(_.message.contains("missing template")))
+    }
+  }
+
+  test("validateAdditionalDeck rejects file templates without enableExternalTemplates") {
+    validate(
+      outputs = List(templateOutput("custom", "file:/tmp/missing.ssp")),
+      enableExternalTemplates = false,
+      templateExists = _ => false
+    ) match {
+      case Validated.Valid(_)        => fail("expected external template gate error")
+      case Validated.Invalid(errors) => assert(errors.exists(_.message.contains("enableExternalTemplates")))
     }
   }
 }

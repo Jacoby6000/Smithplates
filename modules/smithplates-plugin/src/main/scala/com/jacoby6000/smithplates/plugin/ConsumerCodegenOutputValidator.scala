@@ -4,6 +4,7 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.BindingFilter
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import com.jacoby6000.smithplates.codegen.core.planning.SmithyBinding
 import com.jacoby6000.smithplates.codegen.core.planning.config.CodegenOutputDeck
@@ -12,6 +13,9 @@ import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArt
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 /** Config-time validation for consumer `additionalTemplatesDirectory` decks. */
 object ConsumerCodegenOutputValidator {
@@ -23,14 +27,14 @@ object ConsumerCodegenOutputValidator {
       additionalOutputs: List[CodegenOutput],
       bundledIds: Set[OutputId],
       enableExternalTemplates: Boolean,
-      templateClasspathExists: CodegenOutput.CodegenTemplateBindingOutput => Boolean
+      templateExists: CodegenOutput.CodegenTemplateBindingOutput => Boolean
   ): SqlValidated[Unit] =
     (
       validateUniqueAdditionalIds(configPath, additionalOutputs),
       validateNoBundledIdCollisions(configPath, additionalOutputs, bundledIds),
       validateOverrideTargets(configPath, additionalOutputs, bundledIds),
       validateBindings(configPath, additionalOutputs),
-      validateExternalTemplates(configPath, additionalOutputs, enableExternalTemplates, templateClasspathExists)
+      validateExternalTemplates(configPath, additionalOutputs, enableExternalTemplates, templateExists)
     ).mapN((_, _, _, _, _) => ())
 
   def validateSqlAdditionalDeck(
@@ -44,28 +48,26 @@ object ConsumerCodegenOutputValidator {
       case Some(additionalDir) =>
         val configPath        = s"smithplates.$languageId.sql.additionalTemplatesDirectory"
         val templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(target, languageId)
-        (
-          CodegenOutputDeckLoader.load(templateDirectory, getClass.getClassLoader),
-          SqlServiceCodegenDbArtifacts.dialectArtifacts(templateDirectory, enabledDialectKeys),
-          ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledDialectKeys, getClass.getClassLoader)
-        ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
-          validateAdditionalDeck(
-            configPath = configPath,
-            additionalOutputs = additionalOutputs,
-            bundledIds = bundledDeckIds(bundledDeck),
-            enableExternalTemplates = enableExternalTemplates,
-            templateClasspathExists = template =>
-              com.jacoby6000.smithplates.sql.service.renderer.ScalateSspTemplateEngine.classpathResourceExists(
-                template.templatePath.stripPrefix("classpath:")
-              )
-          ).andThen(_ =>
-            LanguageTargetTemplateValidator.internal.validateTemplatesExist(
-              languageId = languageId,
-              templateDirectory = templateDirectory,
-              artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
-            ))
-        }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
-          .andThen(identity)
+        validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
+          (
+            CodegenOutputDeckLoader.load(templateDirectory, getClass.getClassLoader),
+            SqlServiceCodegenDbArtifacts.dialectArtifacts(templateDirectory, enabledDialectKeys),
+            ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledDialectKeys, getClass.getClassLoader)
+          ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
+            validateAdditionalDeck(
+              configPath = configPath,
+              additionalOutputs = additionalOutputs,
+              bundledIds = bundledDeckIds(bundledDeck),
+              enableExternalTemplates = enableExternalTemplates,
+              templateExists = internal.sqlTemplateExists
+            ).andThen(_ =>
+              LanguageTargetTemplateValidator.internal.validateTemplatesExist(
+                languageId = languageId,
+                templateDirectory = templateDirectory,
+                artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
+              ))
+          }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+            .andThen(identity))
     }
 
   def validateHttpServerAdditionalDeck(
@@ -81,30 +83,31 @@ object ConsumerCodegenOutputValidator {
         val modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
         val configPath              = s"smithplates.$languageId.http.server.additionalTemplatesDirectory"
         val enabledKeys             = List(target.webFramework)
-        (
-          internal.httpServerBundledDeck(serverTemplateDirectory, modelsTemplateDirectory),
-          HttpServiceCodegenApiArtifacts.frameworkArtifacts(
-            serverTemplateDirectory = serverTemplateDirectory,
-            modelsTemplateDirectory = modelsTemplateDirectory,
-            frameworkKeys = enabledKeys,
-            emitModels = true
-          ),
-          ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
-        ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
-          validateAdditionalDeck(
-            configPath = configPath,
-            additionalOutputs = additionalOutputs,
-            bundledIds = bundledDeckIds(bundledDeck),
-            enableExternalTemplates = enableExternalTemplates,
-            templateClasspathExists = internal.httpTemplateClasspathExists
-          ).andThen(_ =>
-            HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
-              languageId = languageId,
-              defaultTemplateDirectory = serverTemplateDirectory,
-              artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
-            ))
-        }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
-          .andThen(identity)
+        validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
+          (
+            internal.httpServerBundledDeck(serverTemplateDirectory, modelsTemplateDirectory),
+            HttpServiceCodegenApiArtifacts.frameworkArtifacts(
+              serverTemplateDirectory = serverTemplateDirectory,
+              modelsTemplateDirectory = modelsTemplateDirectory,
+              frameworkKeys = enabledKeys,
+              emitModels = true
+            ),
+            ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
+          ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
+            validateAdditionalDeck(
+              configPath = configPath,
+              additionalOutputs = additionalOutputs,
+              bundledIds = bundledDeckIds(bundledDeck),
+              enableExternalTemplates = enableExternalTemplates,
+              templateExists = internal.httpTemplateExists
+            ).andThen(_ =>
+              HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
+                languageId = languageId,
+                defaultTemplateDirectory = serverTemplateDirectory,
+                artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
+              ))
+          }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+            .andThen(identity))
     }
 
   def validateHttpClientAdditionalDeck(
@@ -121,34 +124,35 @@ object ConsumerCodegenOutputValidator {
         val modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
         val configPath              = s"smithplates.$languageId.http.client.additionalTemplatesDirectory"
         val enabledKeys             = List(target.httpLibrary)
-        (
-          internal.httpClientBundledDeck(clientTemplateDirectory, modelsTemplateDirectory, emitModels),
-          com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts.libraryArtifacts(
-            clientTemplateDirectory,
-            enabledKeys
-          ),
-          if (emitModels) {
-            HttpServiceCodegenApiArtifacts.modelArtifacts(modelsTemplateDirectory)
-          } else {
-            List.empty[CodegenOutput].validNel
-          },
-          ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
-        ).mapN { (bundledDeck, clientArtifacts, modelArtifacts, additionalOutputs) =>
-          val bundledOutputs = clientArtifacts ++ modelArtifacts
-          validateAdditionalDeck(
-            configPath = configPath,
-            additionalOutputs = additionalOutputs,
-            bundledIds = bundledDeckIds(bundledDeck),
-            enableExternalTemplates = enableExternalTemplates,
-            templateClasspathExists = internal.httpTemplateClasspathExists
-          ).andThen(_ =>
-            HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
-              languageId = languageId,
-              defaultTemplateDirectory = clientTemplateDirectory,
-              artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
-            ))
-        }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
-          .andThen(identity)
+        validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
+          (
+            internal.httpClientBundledDeck(clientTemplateDirectory, modelsTemplateDirectory, emitModels),
+            com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts.libraryArtifacts(
+              clientTemplateDirectory,
+              enabledKeys
+            ),
+            if (emitModels) {
+              HttpServiceCodegenApiArtifacts.modelArtifacts(modelsTemplateDirectory)
+            } else {
+              List.empty[CodegenOutput].validNel
+            },
+            ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
+          ).mapN { (bundledDeck, clientArtifacts, modelArtifacts, additionalOutputs) =>
+            val bundledOutputs = clientArtifacts ++ modelArtifacts
+            validateAdditionalDeck(
+              configPath = configPath,
+              additionalOutputs = additionalOutputs,
+              bundledIds = bundledDeckIds(bundledDeck),
+              enableExternalTemplates = enableExternalTemplates,
+              templateExists = internal.httpTemplateExists
+            ).andThen(_ =>
+              HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
+                languageId = languageId,
+                defaultTemplateDirectory = clientTemplateDirectory,
+                artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
+              ))
+          }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+            .andThen(identity))
     }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
@@ -192,6 +196,30 @@ object ConsumerCodegenOutputValidator {
       com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine.classpathResourceExists(
         template.templatePath.stripPrefix("classpath:")
       )
+
+    def sqlTemplateExists(template: CodegenOutput.CodegenTemplateBindingOutput): Boolean =
+      internal.templateExists(
+        template,
+        classpathExists =
+          path => com.jacoby6000.smithplates.sql.service.renderer.ScalateSspTemplateEngine.classpathResourceExists(path)
+      )
+
+    def httpTemplateExists(template: CodegenOutput.CodegenTemplateBindingOutput): Boolean =
+      internal.templateExists(
+        template,
+        classpathExists = path =>
+          com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine.classpathResourceExists(path)
+      )
+
+    def templateExists(
+        template: CodegenOutput.CodegenTemplateBindingOutput,
+        classpathExists: String => Boolean
+    ): Boolean =
+      if (CodegenTemplatePaths.isFileQualified(template.templatePath)) {
+        Files.isRegularFile(Paths.get(CodegenTemplatePaths.filePath(template.templatePath)))
+      } else {
+        classpathExists(template.templatePath.stripPrefix("classpath:"))
+      }
   }
 
   private def validateUniqueAdditionalIds(
@@ -272,27 +300,49 @@ object ConsumerCodegenOutputValidator {
       }
     }
 
+  private def validateExternalDirectory(
+      configPath: String,
+      additionalDirectory: String,
+      enableExternalTemplates: Boolean
+  ): SqlValidated[Unit] =
+    if (ConsumerTemplateDirectories.requiresEnableExternalTemplates(additionalDirectory) && !enableExternalTemplates) {
+      SqlValidated.invalid(
+        InvalidPluginConfig(
+          s"$configPath '$additionalDirectory' is not on the classpath; set `enableExternalTemplates` to true on smithplates.<language> " +
+            "to use external SSP templates"
+        )
+      )
+    } else {
+      ().validNel
+    }
+
   private def validateExternalTemplates(
       configPath: String,
       additionalOutputs: List[CodegenOutput],
       enableExternalTemplates: Boolean,
-      templateClasspathExists: CodegenOutput.CodegenTemplateBindingOutput => Boolean
+      templateExists: CodegenOutput.CodegenTemplateBindingOutput => Boolean
   ): SqlValidated[Unit] = {
-    val missingClasspathTemplates =
+    val missingTemplates =
       additionalOutputs.collect {
         case template: CodegenOutput.CodegenTemplateBindingOutput
             if SqlServiceCodegenDbArtifacts.isRenderedTemplate(template.templatePath) &&
-              !templateClasspathExists(template) =>
+              !templateExists(template) =>
           template
       }
 
-    missingClasspathTemplates match {
+    missingTemplates match {
       case template :: _ if !enableExternalTemplates =>
         SqlValidated.invalid(
           InvalidPluginConfig(
             s"$configPath output '${template.id.value}' references template '${template.templatePath}' " +
               "that is not on the classpath; set `enableExternalTemplates` to true on smithplates.<language> " +
               "to use external SSP templates"
+          )
+        )
+      case template :: _                             =>
+        SqlValidated.invalid(
+          InvalidPluginConfig(
+            s"$configPath output '${template.id.value}' references missing template '${template.templatePath}'"
           )
         )
       case _                                         => ().validNel

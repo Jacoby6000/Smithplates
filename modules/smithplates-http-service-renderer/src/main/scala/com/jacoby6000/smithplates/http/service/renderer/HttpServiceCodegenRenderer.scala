@@ -122,63 +122,53 @@ object HttpServiceCodegenRenderer {
         templatePath: String,
         view: HttpCodegenTemplateView
     ): CodegenValidated[String] =
-      try {
-        val bundledTemplateRoot  = settings.templateDirectory.stripPrefix("classpath:")
-        val isAdditionalTemplate =
-          CodegenTemplatePaths.isClasspathQualified(templatePath) &&
-            !templatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")
-        val templateRoot         =
-          if (isAdditionalTemplate) {
-            bundledTemplateRoot
-          } else {
-            resolvedTemplateDirectory(settings, templatePath).stripPrefix("classpath:")
-          }
-        val templateSettings     = settings.copy(templateDirectory = s"classpath:$templateRoot")
-        val resolvedPath         =
-          if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
-            templatePath
-          } else {
-            resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
-          }
-        CodegenValidated.valid(ScalateSspTemplateEngine.renderClasspathTemplate(resolvedPath, view, Some(templateRoot)))
-      } catch {
-        case error: Exception =>
-          TemplateRenderFailed(
-            templatePath,
-            Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
-          ).invalidNel
-      }
+      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
 
     def renderNeutralTemplate[S, M](
         settings: HttpServiceCodegenSettings,
         templatePath: String,
         view: TemplateView[S, M]
     ): CodegenValidated[String] =
+      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
+
+    def renderTemplateAttributes(
+        settings: HttpServiceCodegenSettings,
+        templatePath: String,
+        attributes: Map[String, Any]
+    ): CodegenValidated[String] =
       try {
-        val bundledTemplateRoot  = settings.templateDirectory.stripPrefix("classpath:")
-        val isAdditionalTemplate =
-          CodegenTemplatePaths.isClasspathQualified(templatePath) &&
-            !templatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")
-        val templateRoot         =
-          if (isAdditionalTemplate) {
-            bundledTemplateRoot
+        val bundledTemplateRoot = settings.templateDirectory.stripPrefix("classpath:")
+        val content             =
+          if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+            ScalateSspTemplateEngine.renderFilesystemTemplate(
+              CodegenTemplatePaths.filePath(templatePath),
+              bundledTemplateRoot,
+              attributes
+            )
           } else {
-            resolvedTemplateDirectory(settings, templatePath).stripPrefix("classpath:")
+            val isAdditionalClasspathTemplate =
+              CodegenTemplatePaths.isClasspathQualified(templatePath) &&
+                !templatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")
+            val templateRoot                  =
+              if (isAdditionalClasspathTemplate) {
+                bundledTemplateRoot
+              } else {
+                resolvedTemplateDirectory(settings, templatePath).stripPrefix("classpath:")
+              }
+            val templateSettings              = settings.copy(templateDirectory = s"classpath:$templateRoot")
+            val resolvedPath                  =
+              if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+                templatePath
+              } else {
+                resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
+              }
+            ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
+              resolvedPath,
+              attributes,
+              Some(templateRoot)
+            )
           }
-        val templateSettings     = settings.copy(templateDirectory = s"classpath:$templateRoot")
-        val resolvedPath         =
-          if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
-            templatePath
-          } else {
-            resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
-          }
-        CodegenValidated.valid(
-          ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-            resolvedPath,
-            Map("ctx" -> view),
-            Some(templateRoot)
-          )
-        )
+        CodegenValidated.valid(content)
       } catch {
         case error: Exception =>
           TemplateRenderFailed(

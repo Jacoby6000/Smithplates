@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.scalate.FilesystemClasspathHybridResourceLoader
 import com.jacoby6000.smithplates.scalate.PreambleTemplateRootResourceLoader
 import com.jacoby6000.smithplates.scalate.ScalateTemplatePaths
 import com.jacoby6000.smithplates.scalate.precompiler.ConfiguredTemplateEngine
@@ -7,6 +8,7 @@ import com.jacoby6000.smithplates.scalate.precompiler.ScalateTemplatePrecompiler
 import org.fusesource.scalate.Template
 import org.fusesource.scalate.TemplateEngine
 
+import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
@@ -44,6 +46,29 @@ object ScalateSspTemplateEngine {
         engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
       )
     internal.prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
+  }
+
+  def renderFilesystemTemplate(
+      filesystemTemplatePath: String,
+      bundledTemplateRoot: String,
+      view: ServiceTemplateView
+  ): String = {
+    val normalizedBundledRoot = ScalateTemplatePaths.normalizeTemplateRoot(bundledTemplateRoot)
+    val filesystemTemplate    = Paths.get(filesystemTemplatePath)
+    val templateUri           = filesystemTemplate.getFileName.toString
+    val engine                = internal.filesystemTemplateEngine(
+      bundledTemplateRoot = normalizedBundledRoot,
+      filesystemTemplate = filesystemTemplate
+    )
+    val template              = internal.compiledTemplateCache.computeIfAbsent(
+      s"file:$filesystemTemplatePath:$normalizedBundledRoot:$templateUri",
+      _ => engine.load(templateUri)
+    )
+    val renderedBody          =
+      ScalateTemplatePaths.normalizeRenderedOutput(
+        engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
+      )
+    internal.prependGeneratedFileHeader(view, normalizedBundledRoot, renderedBody)
   }
 
   def renderClasspathPartial(
@@ -108,6 +133,24 @@ object ScalateSspTemplateEngine {
         getClass.getClassLoader,
         normalizedTemplateRoot,
         contextBindingPreamble(normalizedTemplateRoot, templateRoot)
+      )
+      created
+    }
+
+    def filesystemTemplateEngine(
+        bundledTemplateRoot: String,
+        filesystemTemplate: java.nio.file.Path
+    ): TemplateEngine = {
+      val created = new ConfiguredTemplateEngine
+      created.allowCaching = true
+      created.allowReload = false
+      created.escapeMarkup = false
+      created.packagePrefix = ScalateTemplatePrecompiler.packagePrefix(bundledTemplateRoot)
+      created.resourceLoader = new FilesystemClasspathHybridResourceLoader(
+        getClass.getClassLoader,
+        bundledTemplateRoot,
+        contextBindingPreamble(bundledTemplateRoot, Some(bundledTemplateRoot)),
+        filesystemTemplate
       )
       created
     }

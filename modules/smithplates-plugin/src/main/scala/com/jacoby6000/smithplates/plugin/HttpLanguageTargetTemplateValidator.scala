@@ -3,12 +3,16 @@ package com.jacoby6000.smithplates.plugin
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplatePaths
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object HttpLanguageTargetTemplateValidator {
   def defaultServerTemplateDirectory(languageId: String): String =
@@ -89,7 +93,9 @@ object HttpLanguageTargetTemplateValidator {
         artifacts
           .flatMap(HttpServiceCodegenApiArtifacts.templatePath)
           .map { template =>
-            if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
+            if (CodegenTemplatePaths.isFileQualified(template)) {
+              (CodegenTemplatePaths.filePath(template), template)
+            } else if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
               (template.stripPrefix("classpath:"), template)
             } else {
               val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
@@ -102,8 +108,12 @@ object HttpLanguageTargetTemplateValidator {
             }
           }
           .distinct
-          .filterNot { case (resourcePath, _) =>
-            ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
+          .filterNot { case (resourcePath, template) =>
+            if (CodegenTemplatePaths.isFileQualified(template)) {
+              Files.isRegularFile(Paths.get(resourcePath))
+            } else {
+              ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
+            }
           }
 
       if (missingTemplates.isEmpty) {

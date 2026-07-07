@@ -11,6 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenSettings
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -27,6 +28,10 @@ import com.jacoby6000.smithplates.sql.service.core.SqlServiceMeta
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
 
 final case class SqlServiceCodegenSettings(
     templateDirectory: String,
@@ -92,7 +97,7 @@ object SqlServiceCodegenRenderer {
       settings: SqlServiceCodegenSettings,
       templatePath: String
   ): String =
-    if (com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+    if (CodegenTemplatePaths.isQualified(templatePath)) {
       templatePath
     } else {
       val baseDirectory      = settings.templateDirectory.stripPrefix("classpath:").stripSuffix("/")
@@ -144,23 +149,35 @@ object SqlServiceCodegenRenderer {
       } else {
         try {
           val resolvedTemplatePath = resolveTemplatePath(settings, templatePath)
+          val bundledTemplateRoot  = settings.templateDirectory.stripPrefix("classpath:")
           val content              =
             if (!SqlServiceCodegenDbArtifacts.isRenderedTemplate(templatePath)) {
-              ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
+              if (CodegenTemplatePaths.isFileQualified(resolvedTemplatePath)) {
+                Files.readString(
+                  Paths.get(CodegenTemplatePaths.filePath(resolvedTemplatePath)),
+                  StandardCharsets.UTF_8
+                )
+              } else {
+                ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
+              }
+            } else if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+              val view = SqlCodegenTemplateAttributes.forService(context)
+              ScalateSspTemplateEngine.renderFilesystemTemplate(
+                CodegenTemplatePaths.filePath(resolvedTemplatePath),
+                bundledTemplateRoot,
+                view
+              )
             } else {
-              val bundledTemplateRoot = settings.templateDirectory.stripPrefix("classpath:")
-              val templateRoot        =
-                if (com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
-                    .isClasspathQualified(templatePath) &&
+              val templateRoot =
+                if (CodegenTemplatePaths.isClasspathQualified(templatePath) &&
                   !resolvedTemplatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")) {
                   bundledTemplateRoot
-                } else if (com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
-                    .isClasspathQualified(templatePath)) {
+                } else if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
                   templatePath.stripPrefix("classpath:").split("/").dropRight(1).mkString("/")
                 } else {
                   bundledTemplateRoot
                 }
-              val view                = SqlCodegenTemplateAttributes.forService(context)
+              val view         = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, view, Some(templateRoot))
             }
           CodegenValidated.valid(content)

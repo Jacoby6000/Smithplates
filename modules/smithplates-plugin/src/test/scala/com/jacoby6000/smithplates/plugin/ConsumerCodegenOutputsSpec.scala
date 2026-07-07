@@ -9,6 +9,9 @@ import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import com.jacoby6000.smithplates.codegen.core.planning.SmithyBinding
 import munit.FunSuite
 
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+
 class ConsumerCodegenOutputsSpec extends FunSuite {
   private def templateOutput(
       id: String,
@@ -33,7 +36,7 @@ class ConsumerCodegenOutputsSpec extends FunSuite {
     )
   }
 
-  test("qualify rewrites relative template and static paths under the additional directory") {
+  test("qualify rewrites relative template paths under classpath additional directory") {
     val qualified =
       ConsumerCodegenOutputs.qualify(
         "classpath:additional-templates/python/src/db",
@@ -43,10 +46,30 @@ class ConsumerCodegenOutputsSpec extends FunSuite {
       qualified.asInstanceOf[CodegenOutput.CodegenTemplateBindingOutput].templatePath,
       "classpath:additional-templates/python/src/db/middleware.ssp"
     )
+  }
+
+  test("qualify rewrites relative paths under filesystem additional directory") {
+    val qualified =
+      ConsumerCodegenOutputs.qualify(
+        "/tmp/consumer-templates",
+        templateOutput("custom", "middleware.ssp")
+      )
+    assert(
+      qualified
+        .asInstanceOf[CodegenOutput.CodegenTemplateBindingOutput]
+        .templatePath
+        .startsWith("file:")
+    )
+    assert(
+      qualified
+        .asInstanceOf[CodegenOutput.CodegenTemplateBindingOutput]
+        .templatePath
+        .endsWith("/middleware.ssp")
+    )
 
     val qualifiedStatic =
       ConsumerCodegenOutputs.qualify(
-        "additional-templates/python/src/db",
+        "/tmp/consumer-templates",
         CodegenOutput.CodegenStaticOutput(
           id = OutputId("static"),
           kind = ArtifactKind.Src,
@@ -54,10 +77,8 @@ class ConsumerCodegenOutputsSpec extends FunSuite {
           copyToPath = "{{smithyNamespaceDir}}/runtime.py"
         )
       )
-    assertEquals(
-      qualifiedStatic.asInstanceOf[CodegenOutput.CodegenStaticOutput].filePath,
-      "classpath:additional-templates/python/src/db/support/runtime.py"
-    )
+    assert(qualifiedStatic.asInstanceOf[CodegenOutput.CodegenStaticOutput].filePath.startsWith("file:"))
+    assert(qualifiedStatic.asInstanceOf[CodegenOutput.CodegenStaticOutput].filePath.endsWith("/support/runtime.py"))
   }
 
   test("qualify leaves already-qualified classpath paths unchanged") {
@@ -107,6 +128,50 @@ class ConsumerCodegenOutputsSpec extends FunSuite {
         assert(!outputs.exists(_.id.value.contains("sqlite")))
       case Validated.Invalid(errors) =>
         fail(errors.toList.map(_.message).mkString("; "))
+    }
+  }
+
+  test("additionalOutputs loads deck from filesystem directory") {
+    val root = Files.createTempDirectory("smithplates-consumer-deck")
+    try {
+      Files.writeString(
+        root.resolve("outputs.json"),
+        """{
+          |  "shared": [
+          |    {
+          |      "id": "custom.fs",
+          |      "artifactKind": "src",
+          |      "template": "middleware.ssp",
+          |      "outputPath": "{{smithyNamespaceDir}}/middleware.py",
+          |      "binding": { "type": "once" }
+          |    }
+          |  ],
+          |  "variants": {}
+          |}
+          |""".stripMargin,
+        StandardCharsets.UTF_8
+      )
+      Files.writeString(root.resolve("middleware.ssp"), "# external middleware", StandardCharsets.UTF_8)
+
+      ConsumerCodegenOutputs.additionalOutputs(
+        root.toString,
+        enabledKeys = Nil,
+        classLoader = getClass.getClassLoader
+      ) match {
+        case Validated.Valid(outputs)  =>
+          val templatePath =
+            outputs
+              .collectFirst { case template: CodegenOutput.CodegenTemplateBindingOutput =>
+                template.templatePath
+              }
+              .getOrElse(fail("expected template output"))
+          assert(templatePath.startsWith("file:"))
+          assert(templatePath.endsWith("/middleware.ssp"))
+        case Validated.Invalid(errors) =>
+          fail(errors.toList.map(_.message).mkString("; "))
+      }
+    } finally {
+      val _ = root.toFile.delete()
     }
   }
 
