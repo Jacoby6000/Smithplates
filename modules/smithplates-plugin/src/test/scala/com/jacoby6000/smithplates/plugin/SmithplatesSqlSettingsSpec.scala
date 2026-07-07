@@ -509,6 +509,44 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
     assert(errors.exists(_.message.contains("enableExternalTemplates")))
   }
 
+  test("rejects filesystem additionalTemplatesDirectory without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "templates/python/tests/sql-additional-templates-external/additional-templates"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("accepts filesystem additionalTemplatesDirectory when enableExternalTemplates is true") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "sql": {
+              "additionalTemplatesDirectory": "templates/python/tests/sql-additional-templates-external/additional-templates"
+            }
+          }
+        }
+      """)
+      .toEither
+      .getOrElse(fail("expected valid settings"))
+  }
+
   test("accepts additional deck that overrides a bundled output by id") {
     SmithplatesSettings
       .parseJson("""

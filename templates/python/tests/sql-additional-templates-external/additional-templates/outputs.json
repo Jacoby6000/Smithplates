@@ -1,0 +1,12 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.middleware",
+      "artifactKind": "src",
+      "template": "middleware.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/middleware.py",
+      "binding": { "type": "once" }
+    }
+  ],
+  "variants": {}
+}
