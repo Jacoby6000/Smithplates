@@ -1,0 +1,11 @@
+{
+  "shared": [
+    {
+      "id": "python.http.server.app_factory",
+      "artifactKind": "src",
+      "template": "custom_once.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/app_factory.py",
+      "binding": { "type": "service" }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "shared": [
+    {
+      "id": "custom.http.server.once",
+      "artifactKind": "src",
+      "template": "custom_once.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/custom_once.py",
+      "binding": { "type": "once" }
+    }
+  ],
+  "variants": {}
+}

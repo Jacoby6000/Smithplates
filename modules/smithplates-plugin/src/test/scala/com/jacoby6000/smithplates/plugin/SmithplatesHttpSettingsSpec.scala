@@ -428,4 +428,178 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("http.server contains unknown key(s) 'outputs'")))
   }
+
+  test("parses enableExternalTemplates on the language block for HTTP") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "http": {
+              "server": {}
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        assertEquals(settings.languageTargets("python").enableExternalTemplates, true)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects additional HTTP deck output id that collides with a bundled id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/server"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("collides with a bundled output id")))
+  }
+
+  test("rejects additional HTTP deck with unknown bundled override id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("unknown bundled output override id")))
+  }
+
+  test("rejects HTTP additionalTemplatesDirectory missing outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:missing-additional-deck"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("missing codegen output deck")))
+  }
+
+  test("rejects duplicate ids in additional HTTP deck outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("duplicate output id 'custom.http.dup'")))
+  }
+
+  test("rejects additional HTTP deck referencing missing classpath template without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("rejects filesystem HTTP additionalTemplatesDirectory without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("accepts filesystem HTTP additionalTemplatesDirectory when enableExternalTemplates is true") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
+              }
+            }
+          }
+        }
+      """)
+      .toEither
+      .getOrElse(fail("expected valid settings"))
+  }
 }

@@ -44,6 +44,10 @@ Consumers can also append bundled outputs via `additionalTemplatesDirectory` on 
 language entry). See
 [`docs/usage/configuration.md`](../docs/usage/configuration.md#custom-codegen-outputs).
 
+Path collision detection for merged decks runs at codegen time (after the Smithy model
+is loaded), not during plugin config validation. Consumer-deck static file copy
+(`CodegenStaticOutput`) is not wired yet.
+
 ### Templates
 
 Only `python` has bundled templates (default `classpath:`; sources under

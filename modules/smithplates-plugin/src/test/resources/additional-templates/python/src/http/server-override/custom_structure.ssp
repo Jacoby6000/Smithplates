@@ -1,2 +1,2 @@
-<% val _ = ctx %>
+<%@ val ctx: com.jacoby6000.smithplates.codegen.core.planning.TemplateView[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.http.codegen.HttpMeta], com.jacoby6000.smithplates.http.codegen.HttpMeta] %>
 # custom structure

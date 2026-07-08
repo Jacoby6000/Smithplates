@@ -141,7 +141,7 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
 |-------|----------|---------|
 | `sourceOutputDir` | Yes | Base output directory for generated source artifacts (SQL and HTTP). |
 | `testOutputDir` | Yes | Base output directory for generated test artifacts (SQL and HTTP). |
-| `enableExternalTemplates` | No; default `false` | When `true`, allows `outputs` entries to reference SSP templates outside the bundled classpath (see [Custom outputs](#custom-codegen-outputs)). Emits a build warning because external SSP executes arbitrary Scala at build time. |
+| `enableExternalTemplates` | No; default `false` | When `true`, allows `additionalTemplatesDirectory` to reference SSP templates outside the bundled classpath (see [Custom outputs](#custom-codegen-outputs)). Emits a build warning because external SSP executes arbitrary Scala at build time. |
 
 Do not set `sourceOutputDir` or `testOutputDir` under `sql`, `http.server`, or `http.client`; configure them once on `smithplates.<language>`.
 
@@ -247,6 +247,26 @@ in the additional `outputs.json` to replace a bundled output (for example
 Set `"enableExternalTemplates": true` on `smithplates.<language>` when templates in the
 additional directory are not on the plugin classpath (filesystem paths). External SSP
 templates execute arbitrary Scala at build time and bypass precompiled template classes.
+
+#### Merge semantics and path collisions
+
+The additional deck is **appended** to the bundled deck. The planner then resolves
+`overrides` by id (replacing the bundled entry) and rejects **duplicate resolved output
+paths** among the merged outputs.
+
+Path collision detection runs at **codegen (plan/render) time**, not during
+`smithy-build.json` validation. Resolved paths depend on Smithy model facts (service
+namespaces, operation tags, enabled dialects, and path-template placeholders such as
+`{{smithyNamespaceDir}}`), so config validation cannot prove collisions with complete
+certainty before the model is loaded.
+
+#### Static resource outputs
+
+`outputs.json` may declare static (non-`.ssp`) entries for verbatim file copy.
+Consumer-deck static outputs (`CodegenStaticOutput`) are **not wired yet** — only SSP
+template bindings are rendered from `additionalTemplatesDirectory` today. Use
+`templateDirectory` full-deck replacement when a custom language needs static support
+files in the deck.
 
 ### `templateDirectory` (full deck replacement)
 
