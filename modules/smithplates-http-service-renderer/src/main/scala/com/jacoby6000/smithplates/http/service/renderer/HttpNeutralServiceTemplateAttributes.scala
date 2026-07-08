@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
@@ -62,6 +63,30 @@ object HttpNeutralServiceTemplateAttributes {
       .toList
       .sorted
 
+  def operations(ctx: ServiceView): List[OperationModel[HttpOperationMeta]] =
+    ctx.subject.operations
+
+  def operationMethodName(ctx: ServiceView, operationName: String): String =
+    ctx.conventions.functionName(operationName)
+
+  def operationBindingKeys(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): List[String] = {
+    val methodName = operationMethodName(ctx, operation.id.name)
+    if (methodName == operation.id.name) {
+      List(methodName)
+    } else {
+      List(methodName, operation.id.name)
+    }
+  }
+
+  def responseVariantMediaType(mediaType: Option[String]): String =
+    mediaType.map(value => s"'$value'").getOrElse("None")
+
+  def responseVariantHeaderBindings(headerBindings: List[(String, String)]): String =
+    internal.pythonTupleOfPairs(headerBindings)
+
+  def responseVariantStaticHeaders(staticHeaders: List[(String, String)]): String =
+    internal.pythonTupleOfPairs(staticHeaders)
+
   def apiModuleName(tag: String): String =
     s"${tag}_api"
 
@@ -117,6 +142,16 @@ object HttpNeutralServiceTemplateAttributes {
         segment
       } else {
         s"${segment.head.toUpper}${segment.tail}"
+      }
+
+    def pythonTupleOfPairs(pairs: List[(String, String)]): String =
+      pairs match {
+        case Nil           => "()"
+        case (a, b) :: Nil => s"""(("$a", "$b"),)"""
+        case _             =>
+          pairs
+            .map { case (left, right) => s"(\"$left\", \"$right\")" }
+            .mkString("(", ", ", ")")
       }
   }
 }

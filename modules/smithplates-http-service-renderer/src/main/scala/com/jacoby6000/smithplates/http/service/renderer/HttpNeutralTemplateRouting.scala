@@ -14,6 +14,7 @@ object HttpNeutralTemplateRouting {
       "api_exceptions.ssp",
       "api_exception_handler.ssp",
       "app_factory.ssp",
+      "operation_bindings.ssp",
       "apis/__init__.ssp",
       "clients/__init__.ssp"
     )

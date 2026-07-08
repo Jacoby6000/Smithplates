@@ -101,7 +101,16 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
               feature = HttpOperationMeta(
                 method = operation.method,
                 uriPattern = operation.uri,
-                successStatus = operation.successStatusCode
+                successStatus = operation.successStatusCode,
+                responseVariants = operation.responseBinding.allVariants.map { variant =>
+                  HttpResponseVariantMeta(
+                    variantTypeName = variant.variantTypeName,
+                    statusCode = variant.statusCode,
+                    mediaType = variant.mediaType,
+                    headerBindings = variant.headerBindings,
+                    staticHeaders = variant.staticHeaders
+                  )
+                }
               )
             ),
             input = if (operation.inputShape == HttpStructureExtractor.internal.UnitShapeId) {

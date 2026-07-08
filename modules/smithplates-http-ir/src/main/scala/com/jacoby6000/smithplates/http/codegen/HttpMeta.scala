@@ -44,8 +44,18 @@ final case class HttpServiceMeta(
 )
 
 /** Operation-level HTTP feature metadata. */
+final case class HttpResponseVariantMeta(
+    variantTypeName: String,
+    statusCode: Int,
+    mediaType: Option[String] = None,
+    headerBindings: List[(String, String)] = Nil,
+    staticHeaders: List[(String, String)] = Nil
+)
+
+/** Operation-level HTTP feature metadata. */
 final case class HttpOperationMeta(
     method: String,
     uriPattern: String,
-    successStatus: Int
+    successStatus: Int,
+    responseVariants: List[HttpResponseVariantMeta] = Nil
 )

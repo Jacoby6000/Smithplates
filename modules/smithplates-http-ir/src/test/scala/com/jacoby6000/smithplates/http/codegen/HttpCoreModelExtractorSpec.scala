@@ -45,10 +45,10 @@ class HttpCoreModelExtractorSpec extends FunSuite {
 
           val operation = services.head.operations.head
           assertEquals(operation.input, Some(ModelRef(input.id)))
-          assertEquals(
-            operation.meta.feature,
-            HttpOperationMeta(method = "GET", uriPattern = "/v1/widgets/{id}", successStatus = 200)
-          )
+          assertEquals(operation.meta.feature.method, "GET")
+          assertEquals(operation.meta.feature.uriPattern, "/v1/widgets/{id}")
+          assertEquals(operation.meta.feature.successStatus, 200)
+          assert(operation.meta.feature.responseVariants.nonEmpty)
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
@@ -249,6 +249,14 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           assertEquals(
             getWidget.errors.map(_.id.name),
             List("GetWidget404")
+          )
+          assert(
+            getWidget.meta.feature.responseVariants.exists(variant =>
+              variant.variantTypeName == "WidgetOutput" && variant.statusCode == 200)
+          )
+          assert(
+            getWidget.meta.feature.responseVariants.exists(variant =>
+              variant.variantTypeName == "GetWidget404" && variant.statusCode == 404)
           )
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)

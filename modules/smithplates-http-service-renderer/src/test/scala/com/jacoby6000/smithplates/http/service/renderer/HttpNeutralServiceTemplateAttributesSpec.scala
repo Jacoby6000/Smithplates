@@ -12,6 +12,7 @@ import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
 import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import munit.FunSuite
@@ -56,6 +57,43 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
     assertEquals(
       HttpNeutralServiceTemplateAttributes.routeGroupTags(view),
       List("assets", "default", "widgets")
+    )
+  }
+
+  test("operation binding helpers mirror HTTP preamble literals") {
+    val getWidget =
+      operation("GetWidget", List("v1_widgets")).copy(
+        meta = OperationMeta(
+          None,
+          List("v1_widgets"),
+          HttpOperationMeta(
+            method = "GET",
+            uriPattern = "/v1/widgets/{id}",
+            successStatus = 200,
+            responseVariants = List(
+              HttpResponseVariantMeta(
+                variantTypeName = "WidgetOutput",
+                statusCode = 200,
+                mediaType = Some("application/json"),
+                headerBindings = List(("url", "Location")),
+                staticHeaders = List(("X-Request-Id", "abc"))
+              )
+            )
+          )
+        )
+      )
+    val view      = serviceView(List(getWidget))
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.operationBindingKeys(view, getWidget),
+      List("get_widget", "GetWidget")
+    )
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.responseVariantMediaType(Some("application/json")),
+      "'application/json'"
+    )
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.responseVariantHeaderBindings(List(("url", "Location"))),
+      """(("url", "Location"),)"""
     )
   }
 
