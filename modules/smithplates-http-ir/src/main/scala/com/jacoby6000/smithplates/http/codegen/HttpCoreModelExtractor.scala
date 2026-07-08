@@ -121,7 +121,23 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         meta = ServiceMeta(
           documentation = httpService.documentation,
           tags = Nil,
-          feature = HttpServiceMeta()
+          feature = HttpServiceMeta(
+            title = httpService.title,
+            version = httpService.version,
+            serviceErrors = httpService.serviceErrors.map { error =>
+              HttpServiceErrorMeta(
+                id = ModelIds.fromShapeId(error.shapeId),
+                statusCode = error.statusCode,
+                error = error.problemBinding.map { binding =>
+                  HttpErrorMeta(
+                    problemType = Some(binding.problemType),
+                    title = Some(binding.title),
+                    defaultDetail = binding.defaultDetail
+                  )
+                }
+              )
+            }
+          )
         ),
         operations = operations
       )

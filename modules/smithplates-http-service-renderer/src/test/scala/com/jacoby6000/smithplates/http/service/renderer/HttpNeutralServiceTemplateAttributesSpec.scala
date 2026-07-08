@@ -10,7 +10,9 @@ import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
+import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import munit.FunSuite
 
@@ -30,11 +32,12 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
     )
 
   private def serviceView(
-      operations: List[OperationModel[HttpOperationMeta]]): HttpNeutralServiceTemplateAttributes.ServiceView =
+      operations: List[OperationModel[HttpOperationMeta]],
+      serviceErrors: List[HttpServiceErrorMeta] = Nil): HttpNeutralServiceTemplateAttributes.ServiceView =
     TemplateView(
       subject = ServiceModel(
         id = ModelId("example", "AssetApi"),
-        meta = ServiceMeta(None, Nil, HttpServiceMeta()),
+        meta = ServiceMeta(None, Nil, HttpServiceMeta(serviceErrors = serviceErrors)),
         operations = operations
       ),
       usedTypes = Nil,
@@ -53,6 +56,30 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
     assertEquals(
       HttpNeutralServiceTemplateAttributes.routeGroupTags(view),
       List("assets", "default", "widgets")
+    )
+  }
+
+  test("service error helpers follow HTTP preamble naming") {
+    val view =
+      serviceView(
+        Nil,
+        List(
+          HttpServiceErrorMeta(
+            id = ModelId("example", "WidgetNotFound"),
+            statusCode = 404,
+            error = Some(HttpErrorMeta(problemType = Some("about:blank"), title = Some("Not found")))
+          )
+        )
+      )
+    assertEquals(HttpNeutralServiceTemplateAttributes.serviceErrors(view).map(_.name), List("WidgetNotFound"))
+    assert(HttpNeutralServiceTemplateAttributes.serviceErrorsNeedProblemImport(view))
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.serviceErrorHandlerName(view, "WidgetNotFound"),
+      "handle_widget_not_found_api_error"
+    )
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.routerImportAlias("v1_widgets_api"),
+      "V1WidgetsApiRouter"
     )
   }
 

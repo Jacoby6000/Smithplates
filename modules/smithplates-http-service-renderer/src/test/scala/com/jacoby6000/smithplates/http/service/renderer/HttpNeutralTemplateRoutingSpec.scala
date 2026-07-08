@@ -9,7 +9,9 @@ class HttpNeutralTemplateRoutingSpec extends FunSuite {
     assert(HttpNeutralTemplateRouting.isNeutralServiceTemplate("client_registry.ssp"))
     assert(HttpNeutralTemplateRouting.isNeutralServiceTemplate("client_response.ssp"))
     assert(HttpNeutralTemplateRouting.isNeutralServiceTemplate("file:/tmp/additional/apis/__init__.ssp"))
-    assert(!HttpNeutralTemplateRouting.isNeutralServiceTemplate("app_factory.ssp"))
+    assert(HttpNeutralTemplateRouting.isNeutralServiceTemplate("app_factory.ssp"))
+    assert(HttpNeutralTemplateRouting.isNeutralServiceTemplate("api_exceptions.ssp"))
+    assert(!HttpNeutralTemplateRouting.isNeutralServiceTemplate("operation_bindings.ssp"))
     assert(!HttpNeutralTemplateRouting.isNeutralServiceTemplate("fastapi/route_group_routes.ssp"))
   }
 }

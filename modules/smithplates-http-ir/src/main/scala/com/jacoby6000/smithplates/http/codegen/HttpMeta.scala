@@ -1,5 +1,7 @@
 package com.jacoby6000.smithplates.http.codegen
 
+import com.jacoby6000.smithplates.codegen.core.ModelId
+
 /** Model-level HTTP feature metadata carried on [[com.jacoby6000.smithplates.codegen.core.ModelMeta]]. */
 sealed trait HttpMeta
 
@@ -25,8 +27,21 @@ final case class HttpErrorMeta(
     defaultDetail: Option[String] = None
 )
 
+/** Smithy service error metadata carried on [[HttpServiceMeta]]. */
+final case class HttpServiceErrorMeta(
+    id: ModelId,
+    statusCode: Int,
+    error: Option[HttpErrorMeta] = None
+) {
+  def name: String = id.name
+}
+
 /** Service-level HTTP feature metadata. */
-final case class HttpServiceMeta()
+final case class HttpServiceMeta(
+    title: Option[String] = None,
+    version: String = "",
+    serviceErrors: List[HttpServiceErrorMeta] = Nil
+)
 
 /** Operation-level HTTP feature metadata. */
 final case class HttpOperationMeta(

@@ -1005,6 +1005,13 @@ class HttpCoreModelExtractorSpec extends FunSuite {
         errors => fail(errors.toList.map(_.message).mkString("; ")),
         { case (modelSet, services) =>
           assertions(legacyService, modelSet)
+          val serviceMeta = services.head.meta.feature
+          assertEquals(serviceMeta.version, legacyService.version)
+          assertEquals(serviceMeta.title, legacyService.title)
+          assertEquals(
+            serviceMeta.serviceErrors.map(error => (error.name, error.statusCode)),
+            legacyService.serviceErrors.map(error => (error.name, error.statusCode))
+          )
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )

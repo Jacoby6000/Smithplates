@@ -6,6 +6,7 @@ import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 
 /** Neutral [[TemplateView]] helpers for HTTP service-scoped SSP templates. */
@@ -17,6 +18,42 @@ object HttpNeutralServiceTemplateAttributes {
 
   def serviceName(ctx: ServiceView): String =
     ctx.subject.id.name
+
+  def serviceTitle(ctx: ServiceView): String =
+    ctx.subject.meta.feature.title.getOrElse(ctx.subject.id.name)
+
+  def serviceVersion(ctx: ServiceView): String =
+    ctx.subject.meta.feature.version
+
+  def serviceDocumentation(ctx: ServiceView): Option[String] =
+    ctx.subject.meta.documentation
+
+  def serviceErrors(ctx: ServiceView): List[HttpServiceErrorMeta] =
+    ctx.subject.meta.feature.serviceErrors
+
+  def serviceErrorsNeedProblemImport(ctx: ServiceView): Boolean =
+    serviceErrors(ctx).exists(_.error.isDefined)
+
+  def serviceErrorUsesProblem(error: HttpServiceErrorMeta): Boolean =
+    error.error.isDefined
+
+  def serviceErrorExceptionName(errorName: String): String =
+    s"${errorName}ApiError"
+
+  def serviceErrorHandlerName(ctx: ServiceView, errorName: String): String =
+    s"handle_${ctx.conventions.memberName(errorName)}_api_error"
+
+  def serviceErrorRegistrationName(ctx: ServiceView, errorName: String): String =
+    s"on_${ctx.conventions.memberName(errorName)}_api_error"
+
+  def httpProblemImportModule(ctx: ServiceView): String =
+    HttpCodegenProblemBase.importModule(ctx)
+
+  def httpProblemClassName: String =
+    HttpCodegenProblemBase.ClassName
+
+  def routerImportAlias(moduleName: String): String =
+    internal.tagSegments(moduleName).map(internal.capitalizeSegment).mkString + "Router"
 
   def routeGroupTags(ctx: ServiceView): List[String] =
     ctx.subject.operations
@@ -46,8 +83,9 @@ object HttpNeutralServiceTemplateAttributes {
 
   def modelTypeImportModule(ctx: ServiceView, typeName: String): String =
     internal
-      .responseModelRefs(ctx)
+      .serviceErrorModelRefs(ctx)
       .find(ref => ctx.conventions.className(ref.id) == typeName)
+      .orElse(internal.responseModelRefs(ctx).find(ref => ctx.conventions.className(ref.id) == typeName))
       .orElse(
         ctx.usedTypes
           .find(model => ctx.conventions.className(model.id) == typeName)
@@ -64,6 +102,9 @@ object HttpNeutralServiceTemplateAttributes {
   object internal {
     def responseModelRefs(ctx: ServiceView): List[ModelRef] =
       ctx.subject.operations.flatMap(operation => operation.output.toList ++ operation.errors).distinct
+
+    def serviceErrorModelRefs(ctx: ServiceView): List[ModelRef] =
+      serviceErrors(ctx).map(error => ModelRef(error.id))
 
     def modelsPackageName(ctx: ServiceView): String =
       s"${packageName(ctx)}.models"
