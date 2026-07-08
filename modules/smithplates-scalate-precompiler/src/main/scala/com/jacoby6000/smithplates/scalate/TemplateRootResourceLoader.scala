@@ -10,7 +10,8 @@ final class TemplateRootResourceLoader(classLoader: ClassLoader, templateRoot: S
     templateRoot.stripPrefix("/").stripSuffix("/")
 
   override def resource(uri: String): Option[Resource] = {
-    val resourcePath = TemplateRootResourceLoader.internal.classpathPath(uri, normalizedRoot)
+    val resourcePath =
+      TemplateRootResourceLoader.internal.classpathPath(uri, normalizedRoot, classLoader)
     Option(classLoader.getResource(resourcePath)).map(Resource.fromURL)
   }
 
@@ -42,7 +43,20 @@ object TemplateRootResourceLoader {
       }
     }
 
-    def classpathPath(uri: String, normalizedRoot: String): String =
-      normalizeUri(uri, normalizedRoot)
+    def classpathPath(uri: String, normalizedRoot: String, classLoader: ClassLoader): String = {
+      val relativePath = normalizeUri(uri, normalizedRoot)
+      val stripped     = uri.stripPrefix("/")
+      if (stripped.contains("/") && !stripped.startsWith(s"$normalizedRoot/")) {
+        val absolutePath = ScalateTemplatePaths.normalizeResourcePath(stripped).stripPrefix("/")
+        if (classLoader.getResource(absolutePath) != null &&
+          classLoader.getResource(relativePath) == null) {
+          absolutePath
+        } else {
+          relativePath
+        }
+      } else {
+        relativePath
+      }
+    }
   }
 }

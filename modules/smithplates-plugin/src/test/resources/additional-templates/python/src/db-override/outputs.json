@@ -1,0 +1,12 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.service_protocol",
+      "artifactKind": "src",
+      "overrides": "python.sql.db.service_protocol",
+      "template": "service_protocol.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py",
+      "binding": { "type": "service" }
+    }
+  ]
+}

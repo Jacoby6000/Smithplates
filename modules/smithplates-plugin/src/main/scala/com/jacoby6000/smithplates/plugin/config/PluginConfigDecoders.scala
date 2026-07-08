@@ -61,6 +61,7 @@ object PluginConfigDecoders {
         sqlite: Option[SqlDialectJson] = None,
         postgres: Option[SqlDialectJson] = None,
         templateDirectory: Option[String] = None,
+        additionalTemplatesDirectory: Option[String] = None,
         rootNamespace: Option[String] = None,
         packageName: Option[String] = None
     ) {
@@ -75,6 +76,7 @@ object PluginConfigDecoders {
               postgresDialect.map("postgres" -> _)
             ).flatten.toMap,
             templateDirectory = templateDirectory,
+            additionalTemplatesDirectory = additionalTemplatesDirectory,
             rootNamespace = rootNamespace,
             packageName = packageName
           )
@@ -84,12 +86,14 @@ object PluginConfigDecoders {
     final case class HttpServerTargetJson(
         webFramework: Option[String] = None,
         templateDirectory: Option[String] = None,
+        additionalTemplatesDirectory: Option[String] = None,
         packageName: Option[String] = None
     ) {
       def toDomain: HttpServerTarget =
         HttpServerTarget(
           webFramework = webFramework.getOrElse("fastapi"),
           templateDirectory = templateDirectory,
+          additionalTemplatesDirectory = additionalTemplatesDirectory,
           packageName = packageName
         )
     }
@@ -97,12 +101,14 @@ object PluginConfigDecoders {
     final case class HttpClientTargetJson(
         httpLibrary: Option[String] = None,
         templateDirectory: Option[String] = None,
+        additionalTemplatesDirectory: Option[String] = None,
         packageName: Option[String] = None
     ) {
       def toDomain: HttpClientTarget =
         HttpClientTarget(
           httpLibrary = httpLibrary.getOrElse("httpx"),
           templateDirectory = templateDirectory,
+          additionalTemplatesDirectory = additionalTemplatesDirectory,
           packageName = packageName
         )
     }

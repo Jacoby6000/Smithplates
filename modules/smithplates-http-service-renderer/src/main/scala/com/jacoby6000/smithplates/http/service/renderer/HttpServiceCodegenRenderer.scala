@@ -11,6 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -121,37 +122,53 @@ object HttpServiceCodegenRenderer {
         templatePath: String,
         view: HttpCodegenTemplateView
     ): CodegenValidated[String] =
-      try {
-        val templateSettings =
-          settings.copy(templateDirectory = resolvedTemplateDirectory(settings, templatePath))
-        val resolvedPath     = resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
-        val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
-        CodegenValidated.valid(ScalateSspTemplateEngine.renderClasspathTemplate(resolvedPath, view, Some(templateRoot)))
-      } catch {
-        case error: Exception =>
-          TemplateRenderFailed(
-            templatePath,
-            Option(error.getMessage).getOrElse(error.getClass.getSimpleName)
-          ).invalidNel
-      }
+      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
 
     def renderNeutralTemplate[S, M](
         settings: HttpServiceCodegenSettings,
         templatePath: String,
         view: TemplateView[S, M]
     ): CodegenValidated[String] =
+      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
+
+    def renderTemplateAttributes(
+        settings: HttpServiceCodegenSettings,
+        templatePath: String,
+        attributes: Map[String, Any]
+    ): CodegenValidated[String] =
       try {
-        val templateSettings =
-          settings.copy(templateDirectory = resolvedTemplateDirectory(settings, templatePath))
-        val resolvedPath     = resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
-        val templateRoot     = templateSettings.templateDirectory.stripPrefix("classpath:")
-        CodegenValidated.valid(
-          ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
-            resolvedPath,
-            Map("ctx" -> view),
-            Some(templateRoot)
-          )
-        )
+        val bundledTemplateRoot = settings.templateDirectory.stripPrefix("classpath:")
+        val content             =
+          if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+            ScalateSspTemplateEngine.renderFilesystemTemplate(
+              CodegenTemplatePaths.filePath(templatePath),
+              bundledTemplateRoot,
+              attributes
+            )
+          } else {
+            val isAdditionalClasspathTemplate =
+              CodegenTemplatePaths.isClasspathQualified(templatePath) &&
+                !templatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")
+            val templateRoot                  =
+              if (isAdditionalClasspathTemplate) {
+                bundledTemplateRoot
+              } else {
+                resolvedTemplateDirectory(settings, templatePath).stripPrefix("classpath:")
+              }
+            val templateSettings              = settings.copy(templateDirectory = s"classpath:$templateRoot")
+            val resolvedPath                  =
+              if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+                templatePath
+              } else {
+                resolveTemplatePath(templateSettings, stripTemplateDirectoryPrefix(templatePath))
+              }
+            ScalateSspTemplateEngine.renderClasspathTemplateAttributes(
+              resolvedPath,
+              attributes,
+              Some(templateRoot)
+            )
+          }
+        CodegenValidated.valid(content)
       } catch {
         case error: Exception =>
           TemplateRenderFailed(
@@ -160,24 +177,35 @@ object HttpServiceCodegenRenderer {
           ).invalidNel
       }
 
-    def resolveTemplatePath(settings: HttpServiceCodegenSettings, template: String): String = {
-      val baseDirectory = settings.templateDirectory.stripPrefix("classpath:")
-      val normalized    = if (baseDirectory.endsWith("/")) baseDirectory else s"$baseDirectory/"
-      s"classpath:$normalized$template"
-    }
+    def resolveTemplatePath(settings: HttpServiceCodegenSettings, template: String): String =
+      if (CodegenTemplatePaths.isClasspathQualified(template)) {
+        template
+      } else {
+        val baseDirectory = settings.templateDirectory.stripPrefix("classpath:")
+        val normalized    = if (baseDirectory.endsWith("/")) baseDirectory else s"$baseDirectory/"
+        s"classpath:$normalized$template"
+      }
 
     def resolvedTemplateDirectory(
         settings: HttpServiceCodegenSettings,
         templatePath: String
     ): String =
-      HttpCodegenTemplatePaths.resolvedTemplateDirectory(
-        settings.templateDirectory,
-        settings.resolvedModelTemplateDirectory,
-        templatePath
-      )
+      if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+        templatePath.stripPrefix("classpath:").split("/").dropRight(1).mkString("/")
+      } else {
+        HttpCodegenTemplatePaths.resolvedTemplateDirectory(
+          settings.templateDirectory,
+          settings.resolvedModelTemplateDirectory,
+          templatePath
+        )
+      }
 
     def stripTemplateDirectoryPrefix(templatePath: String): String =
-      HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
+      if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+        templatePath.stripPrefix("classpath:").split("/").last
+      } else {
+        HttpCodegenTemplatePaths.stripTemplateDirectoryPrefix(templatePath)
+      }
 
     def httpArtifact(artifact: ResolvedArtifact): HttpCodegenArtifact =
       HttpCodegenArtifact(

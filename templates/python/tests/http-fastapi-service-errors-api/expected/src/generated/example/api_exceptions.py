@@ -15,7 +15,7 @@ class WidgetNotFoundApiError(Exception):
 
     _PROBLEM_TYPE: str = "https://example.com/errors/widget-not-found"
     _PROBLEM_TITLE: str = "Widget not found"
-    _PROBLEM_DETAIL: str | None = None
+    _PROBLEM_DETAIL: str | None = "The requested widget does not exist."
 
     def __init__(
         self,

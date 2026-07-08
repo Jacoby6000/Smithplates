@@ -1,0 +1,12 @@
+{
+  "shared": [
+    {
+      "id": "custom.http.models.structure",
+      "artifactKind": "src",
+      "overrides": "python.http.models.structure",
+      "template": "custom_structure.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "structure" }], "groupBy": "none" }
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.data.Validated
+import com.jacoby6000.smithplates.codegen.core.planning.OutputId
+import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import munit.FunSuite
 
 class SmithplatesHttpSettingsSpec extends FunSuite {
@@ -266,5 +268,470 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .toOption
         .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
+  }
+
+  test("loads additionalTemplatesDirectory deck and appends HTTP server outputs") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server"
+              }
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val server     = settings.languageTargets("python").target.server.getOrElse(fail("expected server target"))
+        assertEquals(server.additionalTemplatesDirectory, Some("classpath:additional-templates/python/src/http/server"))
+        val bundled    =
+          HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+            serverTemplateDirectory = "classpath:python/src/http/server",
+            modelsTemplateDirectory = "classpath:python/src/http/models",
+            frameworkKeys = List("fastapi"),
+            emitModels = true
+          )
+        val additional =
+          ConsumerCodegenOutputs
+            .additionalOutputs(
+              "classpath:additional-templates/python/src/http/server",
+              List("fastapi"),
+              getClass.getClassLoader)
+            .fold(errors => fail(errors.map(_.message).toList.mkString("; ")), identity)
+        settings
+          .toServerCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          case Validated.Valid(Some(codegenSettings)) =>
+            assertEquals(codegenSettings.artifacts, ConsumerCodegenOutputs.compose(bundled, additional))
+            assert(codegenSettings.artifacts.exists(_.id.value == "custom.http.server.once"))
+          case Validated.Valid(None)                  => fail("expected codegen settings")
+          case Validated.Invalid(errors)              => fail(errors.map(_.message).toList.mkString("; "))
+        }
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects additional HTTP operation binding with kind filter") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-bad-binding"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
+  }
+
+  test("accepts additional HTTP deck that overrides a bundled id") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-override"
+              }
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val additional =
+          ConsumerCodegenOutputs
+            .additionalOutputs(
+              "classpath:additional-templates/python/src/http/server-override",
+              List("fastapi"),
+              getClass.getClassLoader
+            )
+            .fold(errors => fail(errors.map(_.message).toList.mkString("; ")), identity)
+        val overrideId = additional.headOption.flatMap(_.overrides).getOrElse(fail("expected override"))
+        assertEquals(overrideId, OutputId("python.http.models.structure"))
+        settings
+          .toServerCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          case Validated.Valid(Some(_))  => ()
+          case Validated.Valid(None)     => fail("expected codegen settings")
+          case Validated.Invalid(errors) => fail(errors.map(_.message).toList.mkString("; "))
+        }
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("loads additionalTemplatesDirectory deck for HTTP client outputs") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/client"
+              }
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val client = settings.languageTargets("python").target.client.getOrElse(fail("expected client target"))
+        assertEquals(client.additionalTemplatesDirectory, Some("classpath:additional-templates/python/src/http/client"))
+        settings
+          .toClientCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          case Validated.Valid(Some(codegenSettings)) =>
+            assert(codegenSettings.artifacts.exists(_.id.value == "custom.http.client.once"))
+          case Validated.Valid(None)                  => fail("expected codegen settings")
+          case Validated.Invalid(errors)              => fail(errors.map(_.message).toList.mkString("; "))
+        }
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects removed inline outputs key under http.server") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "outputs": []
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.server contains unknown key(s) 'outputs'")))
+  }
+
+  test("parses enableExternalTemplates on the language block for HTTP") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "http": {
+              "server": {}
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        assertEquals(settings.languageTargets("python").enableExternalTemplates, true)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects additional HTTP deck output id that collides with a bundled id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/server"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("collides with a bundled output id")))
+  }
+
+  test("rejects additional HTTP deck with unknown bundled override id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("unknown bundled output override id")))
+  }
+
+  test("rejects HTTP additionalTemplatesDirectory missing outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:missing-additional-deck"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("missing codegen output deck")))
+  }
+
+  test("rejects duplicate ids in additional HTTP deck outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("duplicate output id 'custom.http.dup'")))
+  }
+
+  test("rejects additional HTTP deck referencing missing classpath template without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("rejects filesystem HTTP additionalTemplatesDirectory without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("accepts filesystem HTTP additionalTemplatesDirectory when enableExternalTemplates is true") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "http": {
+              "server": {
+                "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
+              }
+            }
+          }
+        }
+      """)
+      .toEither
+      .getOrElse(fail("expected valid settings"))
+  }
+
+  test("rejects additional HTTP client operation binding with kind filter") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-bad-binding"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
+  }
+
+  test("rejects additional HTTP client deck output id that collides with a bundled id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/client"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("collides with a bundled output id")))
+  }
+
+  test("rejects additional HTTP client deck with unknown bundled override id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("unknown bundled output override id")))
+  }
+
+  test("rejects duplicate ids in additional HTTP client deck outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("duplicate output id 'custom.http.dup'")))
+  }
+
+  test("rejects additional HTTP client deck referencing missing classpath template without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("rejects removed inline outputs key under http.client") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "outputs": []
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.client contains unknown key(s) 'outputs'")))
   }
 }

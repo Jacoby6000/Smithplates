@@ -170,9 +170,16 @@ object HttpNeutralModelTemplateAttributes {
       case MapT(key, value)                     =>
         typeContainsDatetime(key, ctx) || typeContainsDatetime(value, ctx)
       case ref: ModelRef                        =>
+        // DESNOTE(jbarber, 2026-07-07): Mirror `renderType`'s stop condition.
+        // `TypeResolver.underlying` returns the ref unchanged for a non-alias
+        // model reference (structure/union/enum) or an unresolved id, so
+        // recursing on that same `ModelRef` loops forever. A reference to
+        // another model is imported by class name and never introduces a
+        // `datetime` import in this file, so only aliases that resolve to a
+        // concrete (non-`ModelRef`) type can require one.
         resolver(ctx).underlying(ref) match {
-          case resolved: ModelRef => typeContainsDatetime(resolved, ctx)
-          case other              => typeContainsDatetime(other, ctx)
+          case _: ModelRef => false
+          case other       => typeContainsDatetime(other, ctx)
         }
       case _                                    => false
     }

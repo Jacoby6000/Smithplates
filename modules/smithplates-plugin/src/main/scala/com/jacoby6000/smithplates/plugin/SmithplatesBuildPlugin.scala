@@ -29,6 +29,7 @@ final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
           s"smithplates plugin failed validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
         )
       case Validated.Valid(settings) =>
+        SmithplatesBuildPlugin.internal.warnWhenExternalTemplatesEnabled(settings)
         settings.sql.foreach(SmithplatesBuildPlugin.internal.executeSql(context, model, _))
         settings.http.foreach(SmithplatesBuildPlugin.internal.executeHttp(context, model, _))
     }
@@ -40,6 +41,17 @@ object SmithplatesBuildPlugin {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val logger: Logger = Logger.getLogger(classOf[SmithplatesBuildPlugin].getName)
+
+    def warnWhenExternalTemplatesEnabled(settings: SmithplatesSettings): Unit = {
+      val externalEnabled =
+        settings.sql.exists(_.languageTargets.values.exists(_.enableExternalTemplates)) ||
+          settings.http.exists(_.languageTargets.values.exists(_.enableExternalTemplates))
+      if (externalEnabled) {
+        logger.warning(
+          "smithplates enableExternalTemplates is enabled: external SSP templates execute arbitrary Scala at build time"
+        )
+      }
+    }
 
     def executeSql(
         context: PluginContext,
@@ -74,7 +86,7 @@ object SmithplatesBuildPlugin {
 
         sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
           sqlSettings.toCodegenSettings(languageId) match {
-            case Some(codegenSettings) =>
+            case Validated.Valid(Some(codegenSettings)) =>
               if (serviceIr.services.isEmpty) {
                 logger.info(
                   s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
@@ -91,7 +103,11 @@ object SmithplatesBuildPlugin {
                     )
                 }
               }
-            case None                  => ()
+            case Validated.Valid(None)                  => ()
+            case Validated.Invalid(errors)              =>
+              throw new IllegalArgumentException(
+                s"smithplates plugin failed $languageId SQL codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+              )
           }
         }
       } match {
@@ -116,11 +132,23 @@ object SmithplatesBuildPlugin {
             s"Skipping $languageId HTTP codegen: Smithy model contains no @httpService services"
           )
         } else {
-          httpSettings.toServerCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
-            renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
+          httpSettings.toServerCodegenSettings(languageId, serviceIr) match {
+            case Validated.Valid(Some(codegenSettings)) =>
+              renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
+            case Validated.Valid(None)                  => ()
+            case Validated.Invalid(errors)              =>
+              throw new IllegalArgumentException(
+                s"smithplates plugin failed $languageId HTTP server codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+              )
           }
-          httpSettings.toClientCodegenSettings(languageId, serviceIr).foreach { codegenSettings =>
-            renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
+          httpSettings.toClientCodegenSettings(languageId, serviceIr) match {
+            case Validated.Valid(Some(codegenSettings)) =>
+              renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
+            case Validated.Valid(None)                  => ()
+            case Validated.Invalid(errors)              =>
+              throw new IllegalArgumentException(
+                s"smithplates plugin failed $languageId HTTP client codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+              )
           }
         }
       }

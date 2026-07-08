@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.plugin
 
+import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 
@@ -34,7 +35,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
 
     assertEquals(settings.dialectMigrationDirectories, Map("postgres" -> "db/migrations/postgres"))
 
-    val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
+    val codegenSettings =
+      settings
+        .toCodegenSettings("python")
+        .fold(
+          errors => fail(errors.map(_.message).toList.mkString("; ")),
+          _.getOrElse(fail("expected codegen settings")))
     assertEquals(codegenSettings.templateDirectory, "classpath:python/src/db")
     assertEquals(codegenSettings.rootNamespace, Some("generated"))
     assertEquals(codegenSettings.packageNameOverride, None)
@@ -132,7 +138,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .getOrElse(fail("expected valid settings"))
         .sql
         .getOrElse(fail("expected SQL settings"))
-    val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
+    val codegenSettings =
+      settings
+        .toCodegenSettings("python")
+        .fold(
+          errors => fail(errors.map(_.message).toList.mkString("; ")),
+          _.getOrElse(fail("expected codegen settings")))
     assertEquals(codegenSettings.templateDirectory, "classpath:custom-templates/python/src/db")
     assertEquals(codegenSettings.defaultDialectKey, SqlServiceCodegenSettings.SharedDialectKey)
     assertEquals(codegenSettings.enabledDialectKeys, Nil)
@@ -169,7 +180,12 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .sql
         .getOrElse(fail("expected SQL settings"))
     assertEquals(settings.enabledDialectKeys, List("sqlite", "postgres"))
-    val codegenSettings = settings.toCodegenSettings("python").getOrElse(fail("expected codegen settings"))
+    val codegenSettings =
+      settings
+        .toCodegenSettings("python")
+        .fold(
+          errors => fail(errors.map(_.message).toList.mkString("; ")),
+          _.getOrElse(fail("expected codegen settings")))
     assertEquals(
       codegenSettings.artifacts,
       SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", List("sqlite", "postgres"))
@@ -312,6 +328,260 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
         .toOption
         .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("conflicting sqlite migrationLocation")))
+  }
+
+  test("loads additionalTemplatesDirectory deck and appends outputs to bundled artifacts") {
+    val settings =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db"
+            }
+          }
+        }
+      """)
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
+
+    val languageTarget = settings.languageTargets("python")
+    assertEquals(
+      languageTarget.target.additionalTemplatesDirectory,
+      Some("classpath:additional-templates/python/src/db"))
+
+    val codegenSettings =
+      settings
+        .toCodegenSettings("python")
+        .fold(
+          errors => fail(errors.map(_.message).toList.mkString("; ")),
+          _.getOrElse(fail("expected codegen settings")))
+    val bundled         = SqlServiceCodegenDbArtifacts.forEnabledDialects("classpath:python/src/db", Nil)
+    val additional      =
+      ConsumerCodegenOutputs
+        .additionalOutputs("classpath:additional-templates/python/src/db", Nil, getClass.getClassLoader)
+        .fold(errors => fail(errors.map(_.message).toList.mkString("; ")), identity)
+    assertEquals(codegenSettings.artifacts, ConsumerCodegenOutputs.compose(bundled, additional))
+    assert(codegenSettings.artifacts.exists(_.id.value == "custom.sql.middleware"))
+  }
+
+  test("parses enableExternalTemplates on the language block") {
+    val settings =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "sql": {}
+          }
+        }
+      """)
+        .toEither
+        .getOrElse(fail("expected valid settings"))
+        .sql
+        .getOrElse(fail("expected SQL settings"))
+    assertEquals(settings.languageTargets("python").enableExternalTemplates, true)
+  }
+
+  test("rejects additional deck output id that collides with a bundled id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:custom-templates/python/src/db"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("collides with a bundled output id")))
+  }
+
+  test("rejects additional deck with unknown bundled override id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-unknown-override"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("unknown bundled output override id")))
+  }
+
+  test("rejects additionalTemplatesDirectory missing outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:missing-additional-deck"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("missing codegen output deck")))
+  }
+
+  test("rejects removed inline outputs key under sql") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "outputs": []
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("sql contains unknown key(s) 'outputs'")))
+  }
+
+  test("rejects duplicate ids in additional deck outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-duplicate-id"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("duplicate output id 'custom.sql.dup'")))
+  }
+
+  test("rejects additional deck referencing missing classpath template without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-missing-template"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("rejects filesystem additionalTemplatesDirectory without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "templates/python/tests/sql-additional-templates-external/additional-templates"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("accepts filesystem additionalTemplatesDirectory when enableExternalTemplates is true") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "enableExternalTemplates": true,
+            "sql": {
+              "additionalTemplatesDirectory": "templates/python/tests/sql-additional-templates-external/additional-templates"
+            }
+          }
+        }
+      """)
+      .toEither
+      .getOrElse(fail("expected valid settings"))
+  }
+
+  test("accepts additional deck that overrides a bundled output by id") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-override"
+            }
+          }
+        }
+      """)
+      .toEither
+      .getOrElse(fail("expected valid settings"))
+  }
+
+  test("rejects additional SQL operation binding with kind filter") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-bad-binding"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
   }
 }
 

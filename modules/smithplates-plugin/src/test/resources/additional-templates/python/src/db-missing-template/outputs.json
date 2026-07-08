@@ -1,0 +1,11 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.missing",
+      "artifactKind": "src",
+      "template": "does_not_exist.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/missing.py",
+      "binding": { "type": "once" }
+    }
+  ]
+}

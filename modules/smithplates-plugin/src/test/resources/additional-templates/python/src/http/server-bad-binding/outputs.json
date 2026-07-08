@@ -1,0 +1,15 @@
+{
+  "shared": [
+    {
+      "id": "custom.http.routes",
+      "artifactKind": "src",
+      "template": "custom_once.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/apis/{{tagName}}_api.py",
+      "binding": {
+        "type": "operation",
+        "filters": [{ "kind": "structure" }],
+        "groupBy": "tag"
+      }
+    }
+  ]
+}

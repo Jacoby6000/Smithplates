@@ -1,0 +1,12 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.override",
+      "artifactKind": "src",
+      "overrides": "missing.bundled.id",
+      "template": "middleware.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/custom.py",
+      "binding": { "type": "once" }
+    }
+  ]
+}

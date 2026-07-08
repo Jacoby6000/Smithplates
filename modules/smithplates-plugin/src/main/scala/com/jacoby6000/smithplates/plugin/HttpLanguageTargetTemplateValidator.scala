@@ -3,12 +3,16 @@ package com.jacoby6000.smithplates.plugin
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplatePaths
 import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArtifacts
 import com.jacoby6000.smithplates.http.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object HttpLanguageTargetTemplateValidator {
   def defaultServerTemplateDirectory(languageId: String): String =
@@ -89,14 +93,27 @@ object HttpLanguageTargetTemplateValidator {
         artifacts
           .flatMap(HttpServiceCodegenApiArtifacts.templatePath)
           .map { template =>
-            val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
-            (templateDirectory, stripTemplateDirectoryPrefix(template))
+            if (CodegenTemplatePaths.isFileQualified(template)) {
+              (CodegenTemplatePaths.filePath(template), template)
+            } else if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
+              (template.stripPrefix("classpath:"), template)
+            } else {
+              val templateDirectory = resolvedArtifactTemplateDirectory(languageId, defaultTemplateDirectory, template)
+              (
+                PluginTemplatePaths
+                  .classpathResourcePath(templateDirectory, stripTemplateDirectoryPrefix(template))
+                  .stripPrefix("/"),
+                template
+              )
+            }
           }
           .distinct
-          .filterNot { case (templateDirectory, template) =>
-            ScalateSspTemplateEngine.classpathResourceExists(
-              PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
-            )
+          .filterNot { case (resourcePath, template) =>
+            if (CodegenTemplatePaths.isFileQualified(template)) {
+              Files.isRegularFile(Paths.get(resourcePath))
+            } else {
+              ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
+            }
           }
 
       if (missingTemplates.isEmpty) {
@@ -105,7 +122,10 @@ object HttpLanguageTargetTemplateValidator {
         SqlValidated.invalid(
           InvalidPluginConfig(
             s"smithplates.$languageId.http is missing required templates: " +
-              missingTemplates.map { case (directory, template) => s"$directory/$template" }.sorted.mkString(", ")
+              missingTemplates
+                .map { case (resourcePath, template) => s"$resourcePath ($template)" }
+                .sorted
+                .mkString(", ")
           )
         )
       }

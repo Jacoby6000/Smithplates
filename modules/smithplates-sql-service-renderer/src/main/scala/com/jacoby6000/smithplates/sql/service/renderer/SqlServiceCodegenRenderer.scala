@@ -11,6 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenSettings
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -27,6 +28,10 @@ import com.jacoby6000.smithplates.sql.service.core.SqlServiceMeta
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
+
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.Paths
 
 final case class SqlServiceCodegenSettings(
     templateDirectory: String,
@@ -91,16 +96,19 @@ object SqlServiceCodegenRenderer {
   def resolveTemplatePath(
       settings: SqlServiceCodegenSettings,
       templatePath: String
-  ): String = {
-    val baseDirectory      = settings.templateDirectory.stripPrefix("classpath:").stripSuffix("/")
-    val normalizedTemplate =
-      if (templatePath.startsWith("/")) {
-        templatePath.stripPrefix("/")
-      } else {
-        templatePath
-      }
-    s"classpath:$baseDirectory/$normalizedTemplate"
-  }
+  ): String =
+    if (CodegenTemplatePaths.isQualified(templatePath)) {
+      templatePath
+    } else {
+      val baseDirectory      = settings.templateDirectory.stripPrefix("classpath:").stripSuffix("/")
+      val normalizedTemplate =
+        if (templatePath.startsWith("/")) {
+          templatePath.stripPrefix("/")
+        } else {
+          templatePath
+        }
+      s"classpath:$baseDirectory/$normalizedTemplate"
+    }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
@@ -141,11 +149,34 @@ object SqlServiceCodegenRenderer {
       } else {
         try {
           val resolvedTemplatePath = resolveTemplatePath(settings, templatePath)
+          val bundledTemplateRoot  = settings.templateDirectory.stripPrefix("classpath:")
           val content              =
             if (!SqlServiceCodegenDbArtifacts.isRenderedTemplate(templatePath)) {
-              ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
+              if (CodegenTemplatePaths.isFileQualified(resolvedTemplatePath)) {
+                Files.readString(
+                  Paths.get(CodegenTemplatePaths.filePath(resolvedTemplatePath)),
+                  StandardCharsets.UTF_8
+                )
+              } else {
+                ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
+              }
+            } else if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+              val view = SqlCodegenTemplateAttributes.forService(context)
+              ScalateSspTemplateEngine.renderFilesystemTemplate(
+                CodegenTemplatePaths.filePath(resolvedTemplatePath),
+                bundledTemplateRoot,
+                view
+              )
             } else {
-              val templateRoot = settings.templateDirectory.stripPrefix("classpath:")
+              val templateRoot =
+                if (CodegenTemplatePaths.isClasspathQualified(templatePath) &&
+                  !resolvedTemplatePath.stripPrefix("classpath:").startsWith(s"$bundledTemplateRoot/")) {
+                  bundledTemplateRoot
+                } else if (CodegenTemplatePaths.isClasspathQualified(templatePath)) {
+                  templatePath.stripPrefix("classpath:").split("/").dropRight(1).mkString("/")
+                } else {
+                  bundledTemplateRoot
+                }
               val view         = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, view, Some(templateRoot))
             }

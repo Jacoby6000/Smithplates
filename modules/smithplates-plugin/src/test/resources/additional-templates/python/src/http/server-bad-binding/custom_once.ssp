@@ -1,0 +1,2 @@
+<% val _ = ctx %>
+# custom once

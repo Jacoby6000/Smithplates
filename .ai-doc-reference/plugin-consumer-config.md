@@ -27,6 +27,10 @@ optional `templateDirectory`, `rootNamespace`, and `packageName`.
 
 Configure SQL outputs in `smithplates.<language>.sql`.
 
+Consumers can append bundled outputs via `additionalTemplatesDirectory` on the `sql`
+block (and `enableExternalTemplates` on the language entry). See
+[`docs/usage/configuration.md`](../docs/usage/configuration.md#custom-codegen-outputs).
+
 ### HTTP
 
 HTTP configuration uses `smithplates.<language>.http.server` and/or
@@ -34,6 +38,15 @@ HTTP configuration uses `smithplates.<language>.http.server` and/or
 
 Configure HTTP server/client outputs in
 `smithplates.<language>.http.server` / `smithplates.<language>.http.client`.
+
+Consumers can also append bundled outputs via `additionalTemplatesDirectory` on each
+`sql` / `http.server` / `http.client` block (and `enableExternalTemplates` on the
+language entry). See
+[`docs/usage/configuration.md`](../docs/usage/configuration.md#custom-codegen-outputs).
+
+Path collision detection for merged decks runs at codegen time (after the Smithy model
+is loaded), not during plugin config validation. Consumer-deck static file copy
+(`CodegenStaticOutput`) is not wired yet.
 
 ### Templates
 

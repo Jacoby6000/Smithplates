@@ -37,7 +37,8 @@ object SmithplatesSettings {
             languageId -> SmithplatesSqlLanguageTarget(
               target = config.sql.get,
               sourceOutputDir = config.sourceOutputDir,
-              testOutputDir = config.testOutputDir
+              testOutputDir = config.testOutputDir,
+              enableExternalTemplates = config.enableExternalTemplates
             )
         }
         val httpTargets = configs.collect {
@@ -45,7 +46,8 @@ object SmithplatesSettings {
             languageId -> SmithplatesHttpLanguageTarget(
               target = config.http.get,
               sourceOutputDir = config.sourceOutputDir,
-              testOutputDir = config.testOutputDir
+              testOutputDir = config.testOutputDir,
+              enableExternalTemplates = config.enableExternalTemplates
             )
         }
 
@@ -93,13 +95,15 @@ object SmithplatesSettings {
       ).mapN { (sourceOutputDir, testOutputDir) =>
         (sourceOutputDir, testOutputDir)
       }.andThen { case (sourceOutputDir, testOutputDir) =>
+        val enableExternalTemplates =
+          PluginConfigMembers.optionalBooleanMember(json, "enableExternalTemplates").getOrElse(false)
         json.asObject.toList
           .flatMap(_.toList)
           .traverse { case (key, memberJson) =>
             key.toLowerCase match {
-              case "sourceoutputdir" | "testoutputdir" =>
+              case "sourceoutputdir" | "testoutputdir" | "enableexternaltemplates" =>
                 None.validNel
-              case "sql"                               =>
+              case "sql"                                                           =>
                 if (memberJson.isObject) {
                   LanguageTarget
                     .parse(languageId, memberJson)
@@ -109,7 +113,7 @@ object SmithplatesSettings {
                     InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
                   )
                 }
-              case "http"                              =>
+              case "http"                                                          =>
                 if (memberJson.isObject) {
                   HttpLanguageTarget
                     .parse(languageId, memberJson)
@@ -119,11 +123,11 @@ object SmithplatesSettings {
                     InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
                   )
                 }
-              case other                               =>
+              case other                                                           =>
                 SqlValidated.invalid(
                   InvalidPluginConfig(
                     s"smithplates.$languageId contains unknown key '$other'; expected `sql`, `http`, " +
-                      "`sourceOutputDir`, or `testOutputDir`"
+                      "`sourceOutputDir`, `testOutputDir`, or `enableExternalTemplates`"
                   )
                 )
             }
@@ -147,6 +151,7 @@ object SmithplatesSettings {
               SmithplatesLanguageConfiguration(
                 sourceOutputDir = sourceOutputDir,
                 testOutputDir = testOutputDir,
+                enableExternalTemplates = enableExternalTemplates,
                 sql = sqlTargets.headOption,
                 http = httpTargets.headOption
               ).validNel

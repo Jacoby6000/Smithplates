@@ -1,0 +1,27 @@
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+from __future__ import annotations
+
+# custom protocol override
+<% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass
+<% } %>from typing import Protocol, TypeVar
+
+<% if (ctx.protocolTableModelImportBlock != "") { %>${ctx.protocolTableModelImportBlock}
+<% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
+
+
+<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (ctx.protocolTableModelImportBlock != "") { %>
+
+<% } %>
+T = TypeVar("T", contravariant=True)
+
+
+class ${serviceProtocolName(ctx.serviceName)}(Protocol[T]):
+<% for (operation <- ctx.operations) { %>    async def ${operationMethodName(operation.name)}(
+        self,
+<% for (parameter <- operation.parameters) { %>
+        ${parameter.name}: <% render("fragments/types/parameter_annotation", Map("typeName" -> parameter.typeName, "optional" -> parameter.optional)) %>,
+<% } %>
+<% include("fragments/types/transaction_parameter_protocol") %>
+    ) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
+        ...
+<% } %>

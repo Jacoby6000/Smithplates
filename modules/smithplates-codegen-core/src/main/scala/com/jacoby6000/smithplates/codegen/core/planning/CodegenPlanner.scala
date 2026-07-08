@@ -123,20 +123,24 @@ object CodegenPlanner {
             }
           )
         case SmithyBinding.Once                        =>
-          Right(
+          oncePathBindings(output.id, output.outputPath, services, settings).map { pathBindings =>
+            val primaryService = services.sortBy(_.id.name).headOption
+            val subject        = primaryService.getOrElse(())
+            val usedTypeRefs   =
+              primaryService.map(serviceUsedTypeRefs(_, typeUsageAnalyzer)).getOrElse(Nil)
             List(
               WorkItem(
                 outputId = output.id,
                 artifactKind = output.kind,
                 outputPathPattern = output.outputPath,
-                pathBindings = PathBindings.empty,
+                pathBindings = pathBindings,
                 templatePath = Some(output.templatePath),
                 staticResourcePath = None,
-                subject = (),
-                usedTypeRefs = Nil
+                subject = subject,
+                usedTypeRefs = usedTypeRefs
               )
             )
-          )
+          }
         case SmithyBinding.Operation(filters, groupBy) =>
           BindingFilter.validateOperationFilters(filters) match {
             case Some(error) =>
@@ -365,6 +369,48 @@ object CodegenPlanner {
             NonEmptyList.fromList(namespaces) match {
               case Some(namespaceList) =>
                 Left(NonEmptyList.one(InconsistentGroupedModelNamespaces(outputId, namespaceList)))
+              case None                =>
+                Right(rootBindings)
+            }
+        }
+      }
+    }
+
+    def oncePathBindings[S, O](
+        outputId: OutputId,
+        outputPathPattern: String,
+        services: List[ServiceModel[S, O]],
+        settings: CodegenSettings
+    ): CodegenEither[PathBindings] = {
+      val placeholders           = PathTemplate.placeholders(outputPathPattern)
+      val namespaceSensitive     = Set("modelNamespace", "packageName", "smithyNamespaceDir")
+      val needsNamespaceBindings = placeholders.exists(namespaceSensitive.contains)
+      val needsRootNamespaceDir  = placeholders.contains("rootNamespaceDir")
+      val rootBindings           =
+        if (needsRootNamespaceDir) {
+          PathBindings(Map("rootNamespaceDir" -> settings.conventions.rootNamespaceDir))
+        } else {
+          PathBindings.empty
+        }
+
+      if (!needsNamespaceBindings) {
+        Right(rootBindings)
+      } else {
+        val namespaces = services.map(_.id.namespace).distinct.sorted
+        namespaces match {
+          case Nil              => Right(rootBindings)
+          case namespace :: Nil =>
+            Right(
+              rootBindings.merge(
+                PathTemplate
+                  .namespaceBindings(settings.conventions, namespace)
+                  .withBinding("modelNamespace", namespace)
+              )
+            )
+          case multiple         =>
+            NonEmptyList.fromList(multiple) match {
+              case Some(namespaceList) =>
+                Left(NonEmptyList.one(AmbiguousOnceBindingNamespaces(outputId, namespaceList)))
               case None                =>
                 Right(rootBindings)
             }

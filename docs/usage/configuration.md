@@ -141,6 +141,7 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
 |-------|----------|---------|
 | `sourceOutputDir` | Yes | Base output directory for generated source artifacts (SQL and HTTP). |
 | `testOutputDir` | Yes | Base output directory for generated test artifacts (SQL and HTTP). |
+| `enableExternalTemplates` | No; default `false` | When `true`, allows `additionalTemplatesDirectory` to reference SSP templates outside the bundled classpath (see [Custom outputs](#custom-codegen-outputs)). Emits a build warning because external SSP executes arbitrary Scala at build time. |
 
 Do not set `sourceOutputDir` or `testOutputDir` under `sql`, `http.server`, or `http.client`; configure them once on `smithplates.<language>`.
 
@@ -178,6 +179,7 @@ SQL configuration has two independent concerns:
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for Python import packages (for example `generated.example` for a service in namespace `example`). |
 | `packageName` | No | Override the derived SQL import package exactly (for example `generated.db`). When omitted, packages include the Smithy service namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. A custom root must also contain an [`outputs.json` output deck](custom-templates.md#output-deck-outputsjson) beside the templates. |
+| `additionalTemplatesDirectory` | No | Classpath (or external, with `enableExternalTemplates`) root containing an `outputs.json` deck appended to the bundled SQL deck. See [Custom outputs](configuration.md#custom-codegen-outputs). |
 
 When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
 
@@ -212,6 +214,68 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
 | `modelsPackageName` | No | Override the derived models import package exactly. When omitted, per-shape model packages include each shape's Smithy namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root for custom HTTP templates. A custom root must also contain an [`outputs.json` output deck](custom-templates.md#output-deck-outputsjson) beside the templates. |
+| `additionalTemplatesDirectory` | No | Root containing an `outputs.json` deck appended to the bundled server/client deck. See [Custom outputs](configuration.md#custom-codegen-outputs). |
+
+## Custom codegen outputs
+
+Consumers extend bundled Python SQL/HTTP codegen in two ways:
+
+### `additionalTemplatesDirectory` (append to bundled outputs)
+
+For **existing bundled features** (Python SQL, HTTP server/client), point
+`additionalTemplatesDirectory` at a folder that ships an `outputs.json` deck
+beside its templates — the same layout as bundled language template roots under
+`templates/python/src/...`.
+
+```json
+{
+  "python": {
+    "sourceOutputDir": "src/generated",
+    "testOutputDir": "tests",
+    "sql": {
+      "sqlite": { "enable": true, "migrationLocation": "db/migrations/sqlite" },
+      "additionalTemplatesDirectory": "classpath:my-templates/sql"
+    }
+  }
+}
+```
+
+The additional deck is **appended** to the bundled deck. Use `"overrides": "<bundled-id>"`
+in the additional `outputs.json` to replace a bundled output (for example
+`"python.http.models.structure"`). Additional output ids must be distinct from bundled ids.
+
+Set `"enableExternalTemplates": true` on `smithplates.<language>` when templates in the
+additional directory are not on the plugin classpath (filesystem paths). External SSP
+templates execute arbitrary Scala at build time and bypass precompiled template classes.
+
+#### Merge semantics and path collisions
+
+The additional deck is **appended** to the bundled deck. The planner then resolves
+`overrides` by id (replacing the bundled entry) and rejects **duplicate resolved output
+paths** among the merged outputs.
+
+Path collision detection runs at **codegen (plan/render) time**, not during
+`smithy-build.json` validation. Resolved paths depend on Smithy model facts (service
+namespaces, operation tags, enabled dialects, and path-template placeholders such as
+`{{smithyNamespaceDir}}`), so config validation cannot prove collisions with complete
+certainty before the model is loaded.
+
+#### Static resource outputs
+
+`outputs.json` may declare static (non-`.ssp`) entries for verbatim file copy.
+Consumer-deck static outputs (`CodegenStaticOutput`) are **not wired yet** — only SSP
+template bindings are rendered from `additionalTemplatesDirectory` today. Use
+`templateDirectory` full-deck replacement when a custom language needs static support
+files in the deck.
+
+### `templateDirectory` (full deck replacement)
+
+For **new languages** or **fully custom feature templates**, set `templateDirectory`
+to a root that ships its own complete `outputs.json` deck. This replaces the bundled
+deck for that block (existing behavior). See [custom-templates.md](custom-templates.md).
+
+Bundled output ids for overrides are listed in
+`templates/python/src/{db,http/**}/outputs.json`.
 
 ## Output root
 

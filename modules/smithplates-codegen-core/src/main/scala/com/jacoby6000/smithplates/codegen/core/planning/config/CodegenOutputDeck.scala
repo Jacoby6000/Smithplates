@@ -29,6 +29,13 @@ final case class CodegenOutputDeck(
             ).invalidNel
         })
       .map(perVariant => shared ++ perVariant.flatten)
+
+  /** Like [[forEnabled]] but tolerant of missing variants: enabled keys with no matching variant contribute nothing
+    * rather than failing. Consumer `additionalTemplatesDirectory` decks are not required to redeclare every bundled
+    * dialect/framework variant, so a missing key is not an error for them.
+    */
+  def forAvailable(keys: List[String]): List[CodegenOutput] =
+    shared ++ keys.flatMap(key => variant(key).getOrElse(Nil))
 }
 
 object CodegenOutputDeck {

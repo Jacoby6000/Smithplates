@@ -2,9 +2,13 @@ package com.jacoby6000.smithplates.plugin
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.service.renderer.ScalateSspTemplateEngine
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifacts
+
+import java.nio.file.Files
+import java.nio.file.Paths
 
 object LanguageTargetTemplateValidator {
   def defaultTemplateDirectory(languageId: String): String =
@@ -52,9 +56,17 @@ object LanguageTargetTemplateValidator {
 
       val missingTemplates =
         requiredTemplates.filterNot { template =>
-          ScalateSspTemplateEngine.classpathResourceExists(
-            PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
-          )
+          if (CodegenTemplatePaths.isFileQualified(template)) {
+            Files.isRegularFile(Paths.get(CodegenTemplatePaths.filePath(template)))
+          } else {
+            val resourcePath =
+              if (ConsumerCodegenOutputs.isAdditionalTemplatePath(template)) {
+                template.stripPrefix("classpath:")
+              } else {
+                PluginTemplatePaths.classpathResourcePath(templateDirectory, template)
+              }
+            ScalateSspTemplateEngine.classpathResourceExists(resourcePath)
+          }
         }
 
       if (missingTemplates.isEmpty) {

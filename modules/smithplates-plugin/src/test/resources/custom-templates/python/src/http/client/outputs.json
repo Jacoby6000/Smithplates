@@ -1,0 +1,11 @@
+{
+  "shared": [
+    {
+      "id": "python.http.client.client_registry",
+      "artifactKind": "src",
+      "template": "custom_client.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/client/client_registry.py",
+      "binding": { "type": "once" }
+    }
+  ]
+}
