@@ -1,0 +1,11 @@
+{
+  "shared": [
+    {
+      "id": "custom.http.server.collision",
+      "artifactKind": "src",
+      "template": "collision.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/app_factory.py",
+      "binding": { "type": "service" }
+    }
+  ]
+}

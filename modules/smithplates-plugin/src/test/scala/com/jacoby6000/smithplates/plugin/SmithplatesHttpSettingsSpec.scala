@@ -602,4 +602,136 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .toEither
       .getOrElse(fail("expected valid settings"))
   }
+
+  test("rejects additional HTTP client operation binding with kind filter") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-bad-binding"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
+  }
+
+  test("rejects additional HTTP client deck output id that collides with a bundled id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/client"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("collides with a bundled output id")))
+  }
+
+  test("rejects additional HTTP client deck with unknown bundled override id") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("unknown bundled output override id")))
+  }
+
+  test("rejects duplicate ids in additional HTTP client deck outputs.json") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("duplicate output id 'custom.http.dup'")))
+  }
+
+  test("rejects additional HTTP client deck referencing missing classpath template without enableExternalTemplates") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("enableExternalTemplates")))
+  }
+
+  test("rejects removed inline outputs key under http.client") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "http": {
+              "client": {
+                "outputs": []
+              }
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("http.client contains unknown key(s) 'outputs'")))
+  }
 }

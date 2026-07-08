@@ -1,0 +1,15 @@
+{
+  "shared": [
+    {
+      "id": "custom.sql.bad_binding",
+      "artifactKind": "src",
+      "template": "custom_once.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/bad_binding.py",
+      "binding": {
+        "type": "operation",
+        "filters": [{ "kind": "structure" }],
+        "groupBy": "tag"
+      }
+    }
+  ]
+}

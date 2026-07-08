@@ -1,7 +1,10 @@
 package com.jacoby6000.smithplates.plugin
 
 import cats.data.Validated
+import com.jacoby6000.smithplates.codegen.core.ModelKind
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
+import com.jacoby6000.smithplates.codegen.core.planning.BindingFilterAtom
+import com.jacoby6000.smithplates.codegen.core.planning.BindingGroup
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.codegen.core.planning.OutputId
 import com.jacoby6000.smithplates.codegen.core.planning.SmithyBinding
@@ -107,6 +110,34 @@ class ConsumerCodegenOutputValidatorSpec extends FunSuite {
     ) match {
       case Validated.Valid(_)        => fail("expected external template gate error")
       case Validated.Invalid(errors) => assert(errors.exists(_.message.contains("enableExternalTemplates")))
+    }
+  }
+
+  test("validateAdditionalDeck accepts existing file templates when enableExternalTemplates is true") {
+    validate(
+      outputs = List(templateOutput("custom", "file:/tmp/custom.ssp")),
+      enableExternalTemplates = true,
+      templateExists = _ => true
+    ) match {
+      case Validated.Valid(_)        => ()
+      case Validated.Invalid(errors) => fail(errors.toList.map(_.message).mkString("; "))
+    }
+  }
+
+  test("validateAdditionalDeck rejects operation bindings with kind filters") {
+    validate(
+      List(
+        templateOutput("custom", "a.ssp").copy(
+          binding = SmithyBinding.Operation(
+            List(BindingFilterAtom.Kind(ModelKind.Structure)),
+            BindingGroup.Tag
+          )
+        )
+      )
+    ) match {
+      case Validated.Valid(_)        => fail("expected invalid operation binding error")
+      case Validated.Invalid(errors) =>
+        assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
     }
   }
 }

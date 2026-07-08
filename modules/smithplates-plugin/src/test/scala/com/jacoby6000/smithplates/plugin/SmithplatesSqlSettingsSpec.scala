@@ -563,6 +563,26 @@ class SmithplatesSqlSettingsSpec extends munit.FunSuite {
       .toEither
       .getOrElse(fail("expected valid settings"))
   }
+
+  test("rejects additional SQL operation binding with kind filter") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sourceOutputDir": "src/generated",
+            "testOutputDir": "tests",
+            "sql": {
+              "additionalTemplatesDirectory": "classpath:additional-templates/python/src/db-bad-binding"
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("Operation bindings do not support kind filter")))
+  }
 }
 
 class SmithplatesSettingsSpec extends munit.FunSuite {

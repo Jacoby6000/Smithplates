@@ -94,6 +94,19 @@ class ConsumerCodegenOutputsSpec extends FunSuite {
     )
   }
 
+  test("qualify leaves already-qualified file paths unchanged") {
+    val alreadyQualified = "file:/tmp/consumer-templates/middleware.ssp"
+    val qualified        =
+      ConsumerCodegenOutputs.qualify(
+        "/tmp/consumer-templates",
+        templateOutput("custom", alreadyQualified)
+      )
+    assertEquals(
+      qualified.asInstanceOf[CodegenOutput.CodegenTemplateBindingOutput].templatePath,
+      alreadyQualified
+    )
+  }
+
   test("additionalOutputs loads deck and qualifies template paths") {
     ConsumerCodegenOutputs.additionalOutputs(
       "classpath:additional-templates/python/src/db",
