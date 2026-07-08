@@ -61,11 +61,15 @@ object HttpServiceCodegenRenderer {
       def render[S, M](templatePath: String, view: TemplateView[S, M]): CodegenValidated[String] =
         view.subject match {
           case service: ServiceModel[?, ?]                                =>
-            legacyService(serviceIr, service.id) match {
-              case Some(httpService) =>
-                renderTemplate(settings, templatePath, viewForService(settings, httpService))
-              case None              =>
-                missingService(templatePath, service.id)
+            if (HttpNeutralTemplateRouting.isNeutralServiceTemplate(templatePath)) {
+              renderNeutralTemplate(settings, templatePath, view)
+            } else {
+              legacyService(serviceIr, service.id) match {
+                case Some(httpService) =>
+                  renderTemplate(settings, templatePath, viewForService(settings, httpService))
+                case None              =>
+                  missingService(templatePath, service.id)
+              }
             }
           case group: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
             legacyService(serviceIr, group.service.id) match {

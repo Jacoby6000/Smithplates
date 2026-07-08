@@ -30,9 +30,44 @@ object HttpCodegenLanguageConventions {
       CodegenSettings(
         sourceOutputDirectory = settings.sourceOutputDirectory.map(normalizeDirectory).getOrElse(""),
         testOutputDirectory = settings.testOutputDirectory.map(normalizeDirectory).getOrElse(""),
-        conventions =
-          httpConventions(baseConfig.conventions(settings.rootNamespace), settings.modelsPackageNameOverride)
+        conventions = httpConventions(
+          applyServicePackageOverride(baseConfig.conventions(settings.rootNamespace), settings.packageNameOverride),
+          settings.modelsPackageNameOverride
+        )
       )
+    }
+
+  def applyServicePackageOverride(delegate: Conventions, packageNameOverride: Option[String]): Conventions =
+    packageNameOverride match {
+      case None                 => delegate
+      case Some(servicePackage) =>
+        new Conventions {
+          def className(id: ModelId): String =
+            delegate.className(id)
+
+          def modulePath(id: ModelId): String =
+            delegate.modulePath(id)
+
+          def fileName(id: ModelId): String =
+            delegate.fileName(id)
+
+          def memberName(smithyName: String): String =
+            delegate.memberName(smithyName)
+
+          def functionName(smithyName: String): String =
+            delegate.functionName(smithyName)
+
+          def constantName(smithyName: String): String =
+            delegate.constantName(smithyName)
+
+          def packageName(smithyNamespace: String): String = {
+            val _ = smithyNamespace
+            servicePackage
+          }
+
+          def rootNamespaceDir: String =
+            delegate.rootNamespaceDir
+        }
     }
 
   def normalizeDirectory(directory: String): String =
