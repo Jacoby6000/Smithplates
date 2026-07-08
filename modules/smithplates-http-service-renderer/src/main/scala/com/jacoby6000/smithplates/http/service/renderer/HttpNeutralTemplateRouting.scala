@@ -8,6 +8,8 @@ object HttpNeutralTemplateRouting {
     Set(
       "model_validation.ssp",
       "api_response.ssp",
+      "app_services.ssp",
+      "client_registry.ssp",
       "apis/__init__.ssp",
       "clients/__init__.ssp"
     )
