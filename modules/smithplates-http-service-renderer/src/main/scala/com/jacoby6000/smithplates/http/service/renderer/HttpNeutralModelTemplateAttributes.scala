@@ -41,9 +41,9 @@ object HttpNeutralModelTemplateAttributes {
     val fieldNames = structureFields(ctx).map(_.name).toSet
     problemError(ctx).toList.flatMap { error =>
       List(
-        defaultField("type", error.problemType, fieldNames),
-        defaultField("title", error.title, fieldNames),
-        defaultField("detail", error.defaultDetail, fieldNames)
+        internal.defaultField("type", error.problemType, fieldNames),
+        internal.defaultField("title", error.title, fieldNames),
+        internal.defaultField("detail", error.defaultDetail, fieldNames)
       ).flatten
     }
   }
@@ -56,10 +56,10 @@ object HttpNeutralModelTemplateAttributes {
       .sortBy(model => ctx.conventions.modulePath(model.id))
 
   def structureNeedsDatetimeImport(ctx: StructureView): Boolean =
-    structureFields(ctx).exists(field => typeContainsDatetime(field.tpe, ctx))
+    structureFields(ctx).exists(field => internal.typeContainsDatetime(field.tpe, ctx))
 
   def unionNeedsDatetimeImport(ctx: UnionView): Boolean =
-    ctx.subject.members.exists(member => typeContainsDatetime(member.tpe, ctx))
+    ctx.subject.members.exists(member => internal.typeContainsDatetime(member.tpe, ctx))
 
   def fieldName(ctx: StructureView, field: Field): String =
     field.name
@@ -75,7 +75,7 @@ object HttpNeutralModelTemplateAttributes {
     }
 
   def className[S](ctx: ModelView[S]): String =
-    subjectModel(ctx).map(model => ctx.conventions.className(model.id)).getOrElse("")
+    internal.subjectModel(ctx).map(model => ctx.conventions.className(model.id)).getOrElse("")
 
   def enumBaseClass(ctx: EnumView): String =
     ctx.subject.base match {
@@ -88,7 +88,7 @@ object HttpNeutralModelTemplateAttributes {
 
   def enumValueLiteral(value: EnumValue): String =
     value.value match {
-      case PrimitiveLiteral.StringValue(inner) => pythonStringLiteral(inner)
+      case PrimitiveLiteral.StringValue(inner) => internal.pythonStringLiteral(inner)
       case PrimitiveLiteral.IntValue(inner)    => inner.toString
     }
 
@@ -102,14 +102,14 @@ object HttpNeutralModelTemplateAttributes {
     memberName
 
   def unionMemberType(ctx: UnionView, member: com.jacoby6000.smithplates.codegen.core.Variant): String =
-    if (unionMemberTypeNameCollidesWithVariant(ctx, member)) {
-      s"${modelRefClassName(member.tpe, ctx)}Shape"
+    if (internal.unionMemberTypeNameCollidesWithVariant(ctx, member)) {
+      s"${internal.modelRefClassName(member.tpe, ctx)}Shape"
     } else {
       renderType(member.tpe, ctx)
     }
 
   def unionImportedTypeAlias(ctx: UnionView, model: Model[HttpMeta]): String =
-    if (ctx.subject.members.exists(member => unionMemberTypeNameCollidesWithVariant(ctx, member))) {
+    if (ctx.subject.members.exists(member => internal.unionMemberTypeNameCollidesWithVariant(ctx, member))) {
       s"${ctx.conventions.className(model.id)}Shape"
     } else {
       ctx.conventions.className(model.id)
@@ -141,7 +141,7 @@ object HttpNeutralModelTemplateAttributes {
         // single-level resolution. Smithy extraction only ever produces
         // primitive alias underlyings (SmithyPrelude.userDefinedAliasUnderlying),
         // so chains cannot arise today, but this keeps the criterion satisfied.
-        resolver(ctx).underlying(ref) match {
+        internal.resolver(ctx).underlying(ref) match {
           case resolved: ModelRef => ctx.conventions.className(resolved.id)
           case other              => renderType(other, ctx)
         }
@@ -153,65 +153,69 @@ object HttpNeutralModelTemplateAttributes {
       case _            => false
     }
 
-  private def defaultField(
-      name: String,
-      value: Option[String],
-      existingFieldNames: Set[String]
-  ): Option[(String, String)] =
-    value
-      .filter(_ => !existingFieldNames.contains(name))
-      .map(inner => name -> pythonStringLiteral(inner))
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def defaultField(
+        name: String,
+        value: Option[String],
+        existingFieldNames: Set[String]
+    ): Option[(String, String)] =
+      value
+        .filter(_ => !existingFieldNames.contains(name))
+        .map(inner => name -> pythonStringLiteral(inner))
 
-  private def typeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
-    tpe match {
-      case TimestampT(TimestampFormat.DateTime) => true
-      case OptionalT(inner)                     => typeContainsDatetime(inner, ctx)
-      case ListT(element)                       => typeContainsDatetime(element, ctx)
-      case MapT(key, value)                     =>
-        typeContainsDatetime(key, ctx) || typeContainsDatetime(value, ctx)
-      case ref: ModelRef                        =>
-        // DESNOTE(jbarber, 2026-07-07): Mirror `renderType`'s stop condition.
-        // `TypeResolver.underlying` returns the ref unchanged for a non-alias
-        // model reference (structure/union/enum) or an unresolved id, so
-        // recursing on that same `ModelRef` loops forever. A reference to
-        // another model is imported by class name and never introduces a
-        // `datetime` import in this file, so only aliases that resolve to a
-        // concrete (non-`ModelRef`) type can require one.
-        resolver(ctx).underlying(ref) match {
-          case _: ModelRef => false
-          case other       => typeContainsDatetime(other, ctx)
-        }
-      case _                                    => false
-    }
+    def typeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
+      tpe match {
+        case TimestampT(TimestampFormat.DateTime) => true
+        case OptionalT(inner)                     => typeContainsDatetime(inner, ctx)
+        case ListT(element)                       => typeContainsDatetime(element, ctx)
+        case MapT(key, value)                     =>
+          typeContainsDatetime(key, ctx) || typeContainsDatetime(value, ctx)
+        case ref: ModelRef                        =>
+          // DESNOTE(jbarber, 2026-07-07): Mirror `renderType`'s stop condition.
+          // `TypeResolver.underlying` returns the ref unchanged for a non-alias
+          // model reference (structure/union/enum) or an unresolved id, so
+          // recursing on that same `ModelRef` loops forever. A reference to
+          // another model is imported by class name and never introduces a
+          // `datetime` import in this file, so only aliases that resolve to a
+          // concrete (non-`ModelRef`) type can require one.
+          resolver(ctx).underlying(ref) match {
+            case _: ModelRef => false
+            case other       => typeContainsDatetime(other, ctx)
+          }
+        case _                                    => false
+      }
 
-  private def unionMemberTypeNameCollidesWithVariant(
-      ctx: UnionView,
-      member: com.jacoby6000.smithplates.codegen.core.Variant
-  ): Boolean =
-    unionVariantTypeName(ctx, member.name) == modelRefClassName(member.tpe, ctx)
+    def unionMemberTypeNameCollidesWithVariant(
+        ctx: UnionView,
+        member: com.jacoby6000.smithplates.codegen.core.Variant
+    ): Boolean =
+      HttpNeutralModelTemplateAttributes.unionVariantTypeName(ctx, member.name) ==
+        modelRefClassName(member.tpe, ctx)
 
-  private def modelRefClassName[S](tpe: NeutralType, ctx: ModelView[S]): String =
-    tpe match {
-      case ref: ModelRef => ctx.conventions.className(ref.id)
-      case _             => renderType(tpe, ctx)
-    }
+    def modelRefClassName[S](tpe: NeutralType, ctx: ModelView[S]): String =
+      tpe match {
+        case ref: ModelRef => ctx.conventions.className(ref.id)
+        case _             => HttpNeutralModelTemplateAttributes.renderType(tpe, ctx)
+      }
 
-  private def resolver[S](ctx: ModelView[S]): TypeResolver[HttpMeta] =
-    TypeResolver.fromModelSet(ModelSet(subjectModel(ctx).toList ++ ctx.usedTypes))
+    def resolver[S](ctx: ModelView[S]): TypeResolver[HttpMeta] =
+      TypeResolver.fromModelSet(ModelSet(subjectModel(ctx).toList ++ ctx.usedTypes))
 
-  private def subjectModel[S](ctx: ModelView[S]): Option[Model[HttpMeta]] =
-    ctx.subject match {
-      case model: Model[?] => Some(model.asInstanceOf[Model[HttpMeta]])
-      case _               => None
-    }
+    def subjectModel[S](ctx: ModelView[S]): Option[Model[HttpMeta]] =
+      ctx.subject match {
+        case model: Model[?] => Some(model.asInstanceOf[Model[HttpMeta]])
+        case _               => None
+      }
 
-  private def pythonStringLiteral(value: String): String =
-    "\"" + value.flatMap {
-      case '\\' => "\\\\"
-      case '"'  => "\\\""
-      case '\n' => "\\n"
-      case '\r' => "\\r"
-      case '\t' => "\\t"
-      case ch   => ch.toString
-    } + "\""
+    def pythonStringLiteral(value: String): String =
+      "\"" + value.flatMap {
+        case '\\' => "\\\\"
+        case '"'  => "\\\""
+        case '\n' => "\\n"
+        case '\r' => "\\r"
+        case '\t' => "\\t"
+        case ch   => ch.toString
+      } + "\""
+  }
 }

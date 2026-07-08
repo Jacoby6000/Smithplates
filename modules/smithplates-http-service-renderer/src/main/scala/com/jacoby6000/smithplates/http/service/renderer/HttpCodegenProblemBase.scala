@@ -19,10 +19,10 @@ object HttpCodegenProblemBase {
     importModuleFromRoot(settings.rootNamespace)
 
   def importModuleFromRoot(rootNamespace: Option[String]): String =
-    modulePathSegments(rootNamespace).mkString(".")
+    internal.modulePathSegments(rootNamespace).mkString(".")
 
   def importModuleFromConventionsRoot(rootNamespaceDir: String): String =
-    modulePathSegmentsFromDir(rootNamespaceDir).mkString(".")
+    internal.modulePathSegmentsFromDir(rootNamespaceDir).mkString(".")
 
   def importModule[S](ctx: TemplateView[S, HttpMeta]): String =
     importModuleFromConventionsRoot(ctx.conventions.rootNamespaceDir)
@@ -31,15 +31,15 @@ object HttpCodegenProblemBase {
   object internal {
     def namespaceSegments(namespace: String): List[String] =
       namespace.split('.').toList.filter(_.nonEmpty)
+
+    def modulePathSegments(rootNamespace: Option[String]): List[String] =
+      rootNamespace.toList.flatMap(namespaceSegments) ++
+        namespaceSegments(SmithyNamespace) :+
+        ModuleName
+
+    def modulePathSegmentsFromDir(rootNamespaceDir: String): List[String] =
+      rootNamespaceDir.split('/').filter(_.nonEmpty).toList ++
+        namespaceSegments(SmithyNamespace) :+
+        ModuleName
   }
-
-  private def modulePathSegments(rootNamespace: Option[String]): List[String] =
-    rootNamespace.toList.flatMap(internal.namespaceSegments) ++
-      internal.namespaceSegments(SmithyNamespace) :+
-      ModuleName
-
-  private def modulePathSegmentsFromDir(rootNamespaceDir: String): List[String] =
-    rootNamespaceDir.split('/').filter(_.nonEmpty).toList ++
-      internal.namespaceSegments(SmithyNamespace) :+
-      ModuleName
 }

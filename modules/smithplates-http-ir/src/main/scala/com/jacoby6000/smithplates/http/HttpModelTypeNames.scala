@@ -1,10 +1,5 @@
 package com.jacoby6000.smithplates.http
 
-import com.jacoby6000.smithplates.http.model.HttpStructure
-import com.jacoby6000.smithplates.http.model.HttpStructureMember
-import com.jacoby6000.smithplates.http.model.HttpUnion
-import com.jacoby6000.smithplates.http.model.HttpUnionMember
-
 object HttpModelTypeNames {
   def referencedModelTypeNames(
       typeName: String,
@@ -13,36 +8,6 @@ object HttpModelTypeNames {
       enumNames: Set[String] = Set.empty
   ): List[String] =
     internal.referencedModelTypeNamesRec(typeName, structureNames, unionNames, enumNames).toList.sorted
-
-  def structureReferencedTypeNames(
-      structure: HttpStructure,
-      serviceStructures: Set[String],
-      serviceUnions: Set[String],
-      serviceEnums: Set[String] = Set.empty
-  ): List[String] =
-    structure.members
-      .flatMap(member => referencedModelTypeNames(member.typeName, serviceStructures, serviceUnions, serviceEnums))
-      .filterNot(_ == structure.name)
-      .distinct
-      .sorted
-
-  def unionReferencedTypeNames(
-      union: HttpUnion,
-      serviceStructures: Set[String],
-      serviceUnions: Set[String],
-      serviceEnums: Set[String] = Set.empty
-  ): List[String] =
-    union.members
-      .flatMap(member => referencedModelTypeNames(member.typeName, serviceStructures, serviceUnions, serviceEnums))
-      .filterNot(_ == union.name)
-      .distinct
-      .sorted
-
-  def needsDatetimeImport(members: List[HttpStructureMember]): Boolean =
-    members.exists(member => internal.referencesTimestamp(member.typeName))
-
-  def unionNeedsDatetimeImport(members: List[HttpUnionMember]): Boolean =
-    members.exists(member => internal.referencesTimestamp(member.typeName))
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
@@ -62,17 +27,6 @@ object HttpModelTypeNames {
         Set(typeName)
       } else {
         Set.empty
-      }
-
-    def referencesTimestamp(typeName: String): Boolean =
-      if (typeName == "Timestamp") {
-        true
-      } else if (typeName.startsWith("List[")) {
-        referencesTimestamp(typeName.substring(5, typeName.length - 1))
-      } else if (typeName.startsWith("Map[String, ")) {
-        referencesTimestamp(typeName.substring(12, typeName.length - 1))
-      } else {
-        false
       }
   }
 }
