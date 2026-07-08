@@ -10,6 +10,7 @@ object HttpNeutralTemplateRouting {
       "api_response.ssp",
       "app_services.ssp",
       "client_registry.ssp",
+      "client_response.ssp",
       "apis/__init__.ssp",
       "clients/__init__.ssp"
     )

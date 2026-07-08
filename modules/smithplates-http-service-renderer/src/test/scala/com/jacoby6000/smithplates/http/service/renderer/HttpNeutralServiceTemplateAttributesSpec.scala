@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
 import com.jacoby6000.smithplates.codegen.core.OperationMeta
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.ServiceMeta
@@ -52,6 +53,28 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
     assertEquals(
       HttpNeutralServiceTemplateAttributes.routeGroupTags(view),
       List("assets", "default", "widgets")
+    )
+  }
+
+  test("responseModelTypeNames collects operation output and error shapes") {
+    val view =
+      serviceView(
+        List(
+          operation("ListAssets", List("assets"))
+            .copy(output = Some(ModelRef(ModelId("example", "AssetList")))),
+          operation("GetAsset", List("assets"))
+            .copy(
+              output = Some(ModelRef(ModelId("example", "Asset"))),
+              errors = List(ModelRef(ModelId("example", "NotFound"))))
+        )
+      )
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.responseModelTypeNames(view),
+      List("Asset", "AssetList", "NotFound")
+    )
+    assertEquals(
+      HttpNeutralServiceTemplateAttributes.modelTypeImportModule(view, "Asset"),
+      "generated.example.asset"
     )
   }
 

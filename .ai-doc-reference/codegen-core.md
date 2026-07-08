@@ -41,7 +41,7 @@ Smithy model
 | Area | Neutral today | Legacy bridge (pending template migration) |
 |------|---------------|--------------------------------------------|
 | HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` | — |
-| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
+| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
 | HTTP server/client route-group and wiring templates | planner + deck | `HttpCodegenTemplateView` via `HttpServiceCodegenRenderer.internal.HttpPlannerTemplateRenderer` |
 | SQL db templates (all bindings) | planner + deck | `ServiceTemplateView` / `SqlCodegenServiceContext` via `SqlServiceCodegenRenderer.internal.SqlPlannerTemplateRenderer` |
 
