@@ -128,6 +128,24 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           )
         }
 
+      val httpOperations         = httpService.routeGroups.flatMap(_.operations)
+      val serviceErrorShapeIds   = httpService.serviceErrors.map(_.shapeId).toSet
+      val operationErrors        = httpOperations.flatMap(_.operationErrors)
+      val operationErrorShapeIds = operationErrors.map(_.shapeId).toSet
+      val errorStructureShapeIds = serviceErrorShapeIds ++ operationErrorShapeIds
+      val operationShapeIds      =
+        httpOperations
+          .flatMap { operation =>
+            List(operation.inputShape) ++ operation.outputShape.toList
+          }
+          .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
+          .distinct
+      val existingStructureIds   = httpService.structures.map(_.shapeId).toSet
+      val extraStructureIds      =
+        operationShapeIds
+          .filterNot(existingStructureIds.contains)
+          .filterNot(errorStructureShapeIds.contains)
+
       val service = ServiceModel(
         id = serviceId,
         meta = ServiceMeta(
@@ -149,17 +167,12 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 }
               )
             },
-            modelNamespaces = internal.modelNamespaces(httpService)
+            modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds)
           )
         ),
         operations = operations
       )
 
-      val httpOperations         = httpService.routeGroups.flatMap(_.operations)
-      val serviceErrorShapeIds   = httpService.serviceErrors.map(_.shapeId).toSet
-      val operationErrors        = httpOperations.flatMap(_.operationErrors)
-      val operationErrorShapeIds = operationErrors.map(_.shapeId).toSet
-      val errorStructureShapeIds = serviceErrorShapeIds ++ operationErrorShapeIds
       val errorVariantsByShapeId =
         httpOperations
           .flatMap(_.responseBinding.errorVariants)
@@ -167,20 +180,6 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           .view
           .mapValues(_.head)
           .toMap
-
-      val operationShapeIds =
-        httpOperations
-          .flatMap { operation =>
-            List(operation.inputShape) ++ operation.outputShape.toList
-          }
-          .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
-          .distinct
-
-      val existingStructureIds = httpService.structures.map(_.shapeId).toSet
-      val extraStructureIds    =
-        operationShapeIds
-          .filterNot(existingStructureIds.contains)
-          .filterNot(errorStructureShapeIds.contains)
 
       val rootShapeIds =
         httpService.structures.map(_.shapeId) ++
@@ -450,13 +449,14 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         case HttpInputMemberBinding.Payload()          => HttpInputMemberBindingMeta.Payload
       }
 
-    def modelNamespaces(httpService: HttpService): Map[String, String] =
+    def modelNamespaces(httpService: HttpService, extraShapeIds: List[ShapeId] = Nil): Map[String, String] =
       (
         httpService.structures.map(shape => shape.name -> shape.shapeId.getNamespace) ++
           httpService.unions.map(shape => shape.name -> shape.shapeId.getNamespace) ++
           httpService.stringEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
           httpService.intEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
-          httpService.serviceErrors.map(error => error.name -> error.shapeId.getNamespace)
+          httpService.serviceErrors.map(error => error.name -> error.shapeId.getNamespace) ++
+          extraShapeIds.map(shapeId => shapeId.getName -> shapeId.getNamespace)
       ).toMap
 
     def httpErrorToCodegenError(

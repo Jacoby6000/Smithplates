@@ -203,6 +203,17 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
     assertEquals(R.modelTypeImportModule(view, "UnknownShape"), "generated.example.unknown_shape")
   }
 
+  test("modelTypeImportModule resolves operation-only shapes from modelNamespaces") {
+    val view =
+      routeGroupView(
+        Nil,
+        usedTypes = Nil,
+        modelNamespaces = Map("SearchInput" -> "example")
+      )
+
+    assertEquals(R.modelTypeImportModule(view, "SearchInput"), "generated.example.search_input")
+  }
+
   test("response and protocol return types handle empty success variants") {
     val deleteWidget =
       operation(

@@ -459,6 +459,7 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           }
           assertEquals(searchInput.meta.feature, HttpMeta.HttpRequestMeta())
           assertEquals(searchInput.fields.head.tpe, ModelRef(requestId.id))
+          assertEquals(services.head.meta.feature.modelNamespaces.get("SearchInput"), Some("example"))
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
