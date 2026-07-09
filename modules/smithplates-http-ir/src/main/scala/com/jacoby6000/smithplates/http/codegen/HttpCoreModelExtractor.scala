@@ -167,7 +167,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 }
               )
             },
-            modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds)
+            modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds),
+            emittedModelIds = internal.emittedModelIds(httpService)
           )
         ),
         operations = operations
@@ -458,6 +459,14 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           httpService.serviceErrors.map(error => error.name -> error.shapeId.getNamespace) ++
           extraShapeIds.map(shapeId => shapeId.getName -> shapeId.getNamespace)
       ).toMap
+
+    def emittedModelIds(httpService: HttpService): Set[ModelId] =
+      (
+        httpService.structures.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.unions.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.stringEnums.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.intEnums.map(shape => ModelIds.fromShapeId(shape.shapeId))
+      ).toSet
 
     def httpErrorToCodegenError(
         serviceShape: ShapeId,

@@ -5,7 +5,6 @@ import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidationError
 import com.jacoby6000.smithplates.codegen.core.Model as CodegenModel
-import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.ModelSet
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
@@ -18,7 +17,8 @@ import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.http.HttpValidated
 import com.jacoby6000.smithplates.http.codegen.HttpCoreModelExtractor
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
-import com.jacoby6000.smithplates.http.model.HttpServiceIr
+import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.InvalidHttpService
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
@@ -26,7 +26,6 @@ import software.amazon.smithy.model.shapes.ShapeId
 object HttpServiceCodegenRenderer {
   def render(
       model: Model,
-      serviceIr: HttpServiceIr,
       settings: HttpServiceCodegenSettings
   ): HttpValidated[List[HttpCodegenArtifact]] =
     (
@@ -34,7 +33,7 @@ object HttpServiceCodegenRenderer {
       internal.toHttpValidated(HttpCodegenLanguageConventions.codegenSettings(settings))
     ).mapN((_, _)).andThen { case ((modelSet, services), codegenSettings) =>
       val emittableModels  =
-        internal.emittableModelSet(modelSet, serviceIr)
+        internal.emittableModelSet(modelSet, services)
       val templateRenderer =
         internal.HttpPlannerTemplateRenderer(settings)
       internal
@@ -72,15 +71,12 @@ object HttpServiceCodegenRenderer {
         }
     }
 
-    def emittableModelSet(modelSet: ModelSet[HttpMeta], serviceIr: HttpServiceIr): ModelSet[HttpMeta] = {
-      val emittedShapeIds =
-        serviceIr.services.flatMap { service =>
-          service.structures.map(_.shapeId) ++
-            service.unions.map(_.shapeId) ++
-            service.stringEnums.map(_.shapeId) ++
-            service.intEnums.map(_.shapeId)
-        }.toSet
-      ModelSet(modelSet.all.filter(model => emittedShapeIds.contains(shapeId(model.id))))
+    def emittableModelSet(
+        modelSet: ModelSet[HttpMeta],
+        services: List[ServiceModel[HttpServiceMeta, HttpOperationMeta]]
+    ): ModelSet[HttpMeta] = {
+      val emittedModelIds = services.flatMap(_.meta.feature.emittedModelIds).toSet
+      ModelSet(modelSet.all.filter(model => emittedModelIds.contains(model.id)))
     }
 
     def renderNeutralTemplate[S, M](
@@ -187,8 +183,5 @@ object HttpServiceCodegenRenderer {
         ShapeId.from("smithplates.codegen.http#HttpCodegen"),
         error.message
       )
-
-    def shapeId(id: ModelId): ShapeId =
-      ShapeId.from(s"${id.namespace}#${id.name}")
   }
 }

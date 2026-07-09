@@ -42,7 +42,8 @@ final case class HttpServiceMeta(
     title: Option[String] = None,
     version: String = "",
     serviceErrors: List[HttpServiceErrorMeta] = Nil,
-    modelNamespaces: Map[String, String] = Map.empty
+    modelNamespaces: Map[String, String] = Map.empty,
+    emittedModelIds: Set[ModelId] = Set.empty
 )
 
 sealed trait HttpInputMemberBindingMeta
