@@ -102,6 +102,9 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 method = operation.method,
                 uriPattern = operation.uri,
                 successStatus = operation.successStatusCode,
+                documentation = operation.documentation,
+                inputMembers = operation.inputMembers.map(internal.toInputMemberMeta),
+                bodyBinding = internal.toBodyBindingMeta(operation.bodyBinding),
                 responseVariants = operation.responseBinding.allVariants.map { variant =>
                   HttpResponseVariantMeta(
                     variantTypeName = variant.variantTypeName,
@@ -145,7 +148,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                   )
                 }
               )
-            }
+            },
+            modelNamespaces = internal.modelNamespaces(httpService)
           )
         ),
         operations = operations
@@ -419,6 +423,41 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           case HttpTimestampFormat.EpochSeconds => CoreTimestampFormat.EpochSeconds
           case HttpTimestampFormat.HttpDate     => CoreTimestampFormat.DateTime
         }
+
+    def toInputMemberMeta(member: HttpOperationInputMember): HttpOperationInputMemberMeta =
+      HttpOperationInputMemberMeta(
+        name = member.name,
+        typeName = member.typeName,
+        timestampFormat = member.timestampFormat,
+        required = member.required,
+        binding = toInputBindingMeta(member.binding)
+      )
+
+    def toBodyBindingMeta(binding: HttpOperationBodyBinding): HttpOperationBodyBindingMeta =
+      binding match {
+        case HttpOperationBodyBinding.None               => HttpOperationBodyBindingMeta.None
+        case document: HttpOperationBodyBinding.Document =>
+          HttpOperationBodyBindingMeta.Document(document.inputShape.getName)
+        case members: HttpOperationBodyBinding.Members   =>
+          HttpOperationBodyBindingMeta.Members(members.members.map(toInputMemberMeta))
+      }
+
+    def toInputBindingMeta(binding: HttpInputMemberBinding): HttpInputMemberBindingMeta =
+      binding match {
+        case HttpInputMemberBinding.PathLabel()        => HttpInputMemberBindingMeta.PathLabel
+        case HttpInputMemberBinding.Query(queryName)   => HttpInputMemberBindingMeta.Query(queryName)
+        case HttpInputMemberBinding.Header(headerName) => HttpInputMemberBindingMeta.Header(headerName)
+        case HttpInputMemberBinding.Payload()          => HttpInputMemberBindingMeta.Payload
+      }
+
+    def modelNamespaces(httpService: HttpService): Map[String, String] =
+      (
+        httpService.structures.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.unions.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.stringEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.intEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.serviceErrors.map(error => error.name -> error.shapeId.getNamespace)
+      ).toMap
 
     def httpErrorToCodegenError(
         serviceShape: ShapeId,

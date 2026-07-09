@@ -24,6 +24,18 @@ object HttpNeutralTemplateRouting {
     neutralServiceTemplateSuffixes.exists(suffix => normalized == suffix || normalized.endsWith(s"/$suffix"))
   }
 
+  private val neutralRouteGroupTemplateSuffixes: Set[String] =
+    Set(
+      "fastapi/route_group_protocol.ssp",
+      "fastapi/route_group_routes.ssp",
+      "httpx/route_group_client.ssp"
+    )
+
+  def isNeutralRouteGroupTemplate(templatePath: String): Boolean = {
+    val normalized = normalize(templatePath)
+    neutralRouteGroupTemplateSuffixes.exists(suffix => normalized == suffix || normalized.endsWith(s"/$suffix"))
+  }
+
   private def normalize(templatePath: String): String =
     templatePath.stripPrefix("classpath:").stripPrefix("file:")
 }

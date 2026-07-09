@@ -1,6 +1,7 @@
 package com.jacoby6000.smithplates.http.codegen
 
 import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 
 /** Model-level HTTP feature metadata carried on [[com.jacoby6000.smithplates.codegen.core.ModelMeta]]. */
 sealed trait HttpMeta
@@ -40,8 +41,39 @@ final case class HttpServiceErrorMeta(
 final case class HttpServiceMeta(
     title: Option[String] = None,
     version: String = "",
-    serviceErrors: List[HttpServiceErrorMeta] = Nil
+    serviceErrors: List[HttpServiceErrorMeta] = Nil,
+    modelNamespaces: Map[String, String] = Map.empty
 )
+
+sealed trait HttpInputMemberBindingMeta
+
+object HttpInputMemberBindingMeta {
+  case object PathLabel extends HttpInputMemberBindingMeta
+
+  final case class Query(queryName: String) extends HttpInputMemberBindingMeta
+
+  final case class Header(headerName: String) extends HttpInputMemberBindingMeta
+
+  case object Payload extends HttpInputMemberBindingMeta
+}
+
+final case class HttpOperationInputMemberMeta(
+    name: String,
+    typeName: String,
+    timestampFormat: Option[HttpTimestampFormat] = None,
+    required: Boolean,
+    binding: HttpInputMemberBindingMeta
+)
+
+sealed trait HttpOperationBodyBindingMeta
+
+object HttpOperationBodyBindingMeta {
+  case object None extends HttpOperationBodyBindingMeta
+
+  final case class Document(inputShapeName: String) extends HttpOperationBodyBindingMeta
+
+  final case class Members(members: List[HttpOperationInputMemberMeta]) extends HttpOperationBodyBindingMeta
+}
 
 /** Operation-level HTTP feature metadata. */
 final case class HttpResponseVariantMeta(
@@ -57,5 +89,8 @@ final case class HttpOperationMeta(
     method: String,
     uriPattern: String,
     successStatus: Int,
+    documentation: Option[String] = None,
+    inputMembers: List[HttpOperationInputMemberMeta] = Nil,
+    bodyBinding: HttpOperationBodyBindingMeta = HttpOperationBodyBindingMeta.None,
     responseVariants: List[HttpResponseVariantMeta] = Nil
 )

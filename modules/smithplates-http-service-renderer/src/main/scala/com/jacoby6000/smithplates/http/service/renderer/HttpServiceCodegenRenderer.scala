@@ -72,22 +72,26 @@ object HttpServiceCodegenRenderer {
               }
             }
           case group: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
-            legacyService(serviceIr, group.service.id) match {
-              case Some(httpService) =>
-                httpService.routeGroups.find(_.tag == group.tag) match {
-                  case Some(routeGroup) =>
-                    renderTemplate(
-                      settings,
-                      templatePath,
-                      viewForService(settings, httpService).copy(routeGroup = Some(routeGroup)))
-                  case None             =>
-                    TemplateRenderFailed(
-                      templatePath,
-                      s"HTTP route group '${group.tag}' not found for service ${group.service.id.namespace}#${group.service.id.name}"
-                    ).invalidNel
-                }
-              case None              =>
-                missingService(templatePath, group.service.id)
+            if (HttpNeutralTemplateRouting.isNeutralRouteGroupTemplate(templatePath)) {
+              renderNeutralTemplate(settings, templatePath, view)
+            } else {
+              legacyService(serviceIr, group.service.id) match {
+                case Some(httpService) =>
+                  httpService.routeGroups.find(_.tag == group.tag) match {
+                    case Some(routeGroup) =>
+                      renderTemplate(
+                        settings,
+                        templatePath,
+                        viewForService(settings, httpService).copy(routeGroup = Some(routeGroup)))
+                    case None             =>
+                      TemplateRenderFailed(
+                        templatePath,
+                        s"HTTP route group '${group.tag}' not found for service ${group.service.id.namespace}#${group.service.id.name}"
+                      ).invalidNel
+                  }
+                case None              =>
+                  missingService(templatePath, group.service.id)
+              }
             }
           case _: CodegenModel[?]                                         =>
             renderNeutralTemplate(settings, templatePath, view)

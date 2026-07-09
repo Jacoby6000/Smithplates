@@ -42,7 +42,7 @@ Smithy model
 |------|---------------|--------------------------------------------|
 | HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` | — |
 | HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
-| HTTP server/client route-group and wiring templates | planner + deck | `HttpCodegenTemplateView` via `HttpServiceCodegenRenderer.internal.HttpPlannerTemplateRenderer` |
+| HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | — |
 | SQL db templates (all bindings) | planner + deck | `ServiceTemplateView` / `SqlCodegenServiceContext` via `SqlServiceCodegenRenderer.internal.SqlPlannerTemplateRenderer` |
 
 Removing the legacy bridges requires migrating the remaining SSP templates off
