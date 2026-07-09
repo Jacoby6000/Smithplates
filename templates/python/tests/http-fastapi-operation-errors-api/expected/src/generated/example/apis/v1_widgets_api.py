@@ -26,10 +26,10 @@ router = APIRouter()
 )
 async def get_widget(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
 ) -> WidgetOutput:
     return dispatch_api_response(
-        await services.v1_widgets_api.get_widget(id=id),
+        await services.v1_widgets_api.get_widget(id_=id_),
         OPERATION_HTTP_BINDINGS["get_widget"],
     )
 

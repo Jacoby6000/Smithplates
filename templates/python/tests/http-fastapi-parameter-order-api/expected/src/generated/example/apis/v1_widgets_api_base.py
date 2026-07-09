@@ -10,7 +10,7 @@ class V1WidgetsApiServiceProtocol(Protocol):
     async def inspect_widget(
         self,
         region: str | None,
-        id: str,
+        id_: str,
         category: str | None,
         since: float | None,
     ) -> WidgetOutput:

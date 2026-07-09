@@ -32,7 +32,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
     ctx.conventions.packageName(ctx.subject.service.id.namespace)
 
   def operationMethodName(ctx: RouteGroupView, operationName: String): String =
-    internal.snakeCaseName(operationName)
+    ctx.conventions.functionName(operationName)
 
   def protocolClassName(tag: String): String =
     HttpNeutralServiceTemplateAttributes.protocolClassName(tag)
@@ -108,7 +108,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
     member.binding match {
       case HttpInputMemberBindingMeta.PathLabel          =>
         val pathAlias =
-          if (routeParameterName(member.name) == member.name) {
+          if (routeParameterName(ctx, member.name) == member.name) {
             ""
           } else {
             s""", alias="${member.name}""""
@@ -209,14 +209,14 @@ object HttpNeutralRouteGroupTemplateAttributes {
     val feature     = operation.meta.feature
     val routeParams =
       feature.inputMembers.filter(isRouteParameter).map { member =>
-        s"${routeParameterName(member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
+        s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
       }
     val bodyParams  = feature.bodyBinding match {
       case HttpOperationBodyBindingMeta.Document(inputShapeName) =>
-        List(s"${routeParameterName(inputShapeName)}: $inputShapeName")
+        List(s"${routeParameterName(ctx, inputShapeName)}: $inputShapeName")
       case HttpOperationBodyBindingMeta.Members(members)         =>
         members.map { member =>
-          s"${routeParameterName(member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
+          s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
         }
       case HttpOperationBodyBindingMeta.None                     =>
         Nil
@@ -235,7 +235,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
       operation.meta.feature.inputMembers.filter(member => internal.isPathLabelBinding(member))
     val interpolatedUri =
       pathMembers.foldLeft(operation.meta.feature.uriPattern) { case (uri, member) =>
-        uri.replace("{" + member.name + "}", "{" + routeParameterName(member.name) + "}")
+        uri.replace("{" + member.name + "}", "{" + routeParameterName(ctx, member.name) + "}")
       }
     s"f\"{self._base_url}$interpolatedUri\""
   }
@@ -255,7 +255,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
             case HttpInputMemberBindingMeta.Header(name) => name
             case _                                       => member.name
           }
-          val paramName  = routeParameterName(member.name)
+          val paramName  = routeParameterName(ctx, member.name)
           if (member.required) {
             s"""        headers["$headerName"] = str($paramName)"""
           } else {
@@ -282,37 +282,31 @@ object HttpNeutralRouteGroupTemplateAttributes {
       case HttpOperationBodyBindingMeta.None                     =>
         ""
       case HttpOperationBodyBindingMeta.Document(inputShapeName) =>
-        val paramName = routeParameterName(inputShapeName)
+        val paramName = routeParameterName(ctx, inputShapeName)
         s", json=$paramName.model_dump(mode=\"json\", exclude_none=True)"
       case HttpOperationBodyBindingMeta.Members(members)         =>
         if (members.size == 1) {
           val member = members.head
           if (HttpSmithyTypeResolver.isStructureTypeName(member.typeName)) {
-            s", json=${routeParameterName(member.name)}.model_dump(mode=\"json\", exclude_none=True)"
+            s", json=${routeParameterName(ctx, member.name)}.model_dump(mode=\"json\", exclude_none=True)"
           } else {
-            s", json=${routeParameterName(member.name)}"
+            s", json=${routeParameterName(ctx, member.name)}"
           }
         } else {
           val entries =
-            members.map(member => s"\"${member.name}\": ${routeParameterName(member.name)}").mkString(", ")
+            members.map(member => s"\"${member.name}\": ${routeParameterName(ctx, member.name)}").mkString(", ")
           s", json={$entries}"
         }
     }
 
-  def routeParameterName(name: String): String =
-    internal.snakeCaseName(name)
+  def routeParameterName(ctx: RouteGroupView, name: String): String =
+    ctx.conventions.memberName(name)
 
   def memberName(ctx: RouteGroupView, smithyName: String): String =
-    routeParameterName(smithyName)
+    routeParameterName(ctx, smithyName)
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    def snakeCaseName(name: String): String =
-      name
-        .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-        .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
-        .toLowerCase
-
     def modelsPackageName(ctx: RouteGroupView): String =
       s"${packageName(ctx)}.models"
 
@@ -370,14 +364,14 @@ object HttpNeutralRouteGroupTemplateAttributes {
         feature.inputMembers
           .filter(member => HttpNeutralRouteGroupTemplateAttributes.isRouteParameter(member))
           .map(member =>
-            s"${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(member.name)}=${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(member.name)}")
+            s"${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}=${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}")
       val bodyArgs  = feature.bodyBinding match {
         case HttpOperationBodyBindingMeta.Document(inputShapeName) =>
-          val paramName = HttpNeutralRouteGroupTemplateAttributes.routeParameterName(inputShapeName)
+          val paramName = HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, inputShapeName)
           List(s"$paramName=$paramName")
         case HttpOperationBodyBindingMeta.Members(members)         =>
           members.map(member =>
-            s"${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(member.name)}=${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(member.name)}")
+            s"${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}=${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}")
         case HttpOperationBodyBindingMeta.None                     =>
           Nil
       }

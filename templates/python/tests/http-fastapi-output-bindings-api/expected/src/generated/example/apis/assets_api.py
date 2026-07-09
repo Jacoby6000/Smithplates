@@ -27,10 +27,10 @@ router = APIRouter()
 )
 async def get_asset(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
 ) -> AssetOutput:
     return dispatch_api_response(
-        await services.assets_api.get_asset(id=id),
+        await services.assets_api.get_asset(id_=id_),
         OPERATION_HTTP_BINDINGS["get_asset"],
     )
 
@@ -45,10 +45,10 @@ async def get_asset(
 )
 async def get_asset_content(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
 ) -> Redirect:
     return dispatch_api_response(
-        await services.assets_api.get_asset_content(id=id),
+        await services.assets_api.get_asset_content(id_=id_),
         OPERATION_HTTP_BINDINGS["get_asset_content"],
     )
 
@@ -63,10 +63,10 @@ async def get_asset_content(
 )
 async def update_asset_state(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
     body: AssetStatePatch = Body(...),
 ) -> AssetOutput:
     return dispatch_api_response(
-        await services.assets_api.update_asset_state(id=id, body=body),
+        await services.assets_api.update_asset_state(id_=id_, body=body),
         OPERATION_HTTP_BINDINGS["update_asset_state"],
     )

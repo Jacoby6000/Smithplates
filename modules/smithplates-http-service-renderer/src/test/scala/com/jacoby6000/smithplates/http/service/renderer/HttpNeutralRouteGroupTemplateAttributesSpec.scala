@@ -35,7 +35,8 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
         packageNames = NamingConvention.Unchanged,
         valueNames = NamingConvention.SnakeCase,
         constantNames = NamingConvention.ScreamingSnakeCase,
-        functionNames = NamingConvention.SnakeCase
+        functionNames = NamingConvention.SnakeCase,
+        reservedKeywordRemaps = Map("id" -> "id_")
       ),
       rootNamespace = Some("generated")
     )
@@ -212,6 +213,14 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
       )
 
     assertEquals(R.modelTypeImportModule(view, "SearchInput"), "generated.example.search_input")
+  }
+
+  test("route parameter naming follows language conventions including reserved keywords") {
+    val view = routeGroupView(Nil)
+
+    assertEquals(R.routeParameterName(view, "traceId"), "trace_id")
+    assertEquals(R.routeParameterName(view, "id"), "id_")
+    assertEquals(R.operationMethodName(view, "CreateWidget"), "create_widget")
   }
 
   test("response and protocol return types handle empty success variants") {

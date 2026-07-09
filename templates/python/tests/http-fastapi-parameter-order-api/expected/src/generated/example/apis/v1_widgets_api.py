@@ -28,14 +28,14 @@ router = APIRouter()
 async def inspect_widget(
     services: Annotated[ApiServices, Depends(get_api_services)],
     region: str | None = Header(None, alias="X-Region"),
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
     category: str | None = Query(None, alias="category"),
     since: float | None = Query(None, alias="since"),
 ) -> WidgetOutput:
     return dispatch_api_response(
         await services.v1_widgets_api.inspect_widget(
             region=region,
-            id=id,
+            id_=id_,
             category=category,
             since=since,
         ),

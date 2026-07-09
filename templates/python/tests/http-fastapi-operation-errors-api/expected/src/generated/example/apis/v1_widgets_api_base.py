@@ -10,7 +10,7 @@ from pydantic import Field  # noqa: F401
 class V1WidgetsApiServiceProtocol(Protocol):
     async def get_widget(
         self,
-        id: str,
+        id_: str,
     ) -> WidgetOutput | GetWidget404: ...
     async def list_widgets(
         self,
