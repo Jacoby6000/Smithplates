@@ -36,16 +36,16 @@ Smithy model
   → feature renderer writes Smithy build manifest
 ```
 
-**Template renderers** still bridge a subset of bindings to legacy SSP views:
+**Template renderers** still bridge SQL bindings to legacy SSP views:
 
-| Area | Neutral today | Legacy bridge (pending template migration) |
-|------|---------------|--------------------------------------------|
+| Area | Neutral today | Legacy bridge |
+|------|---------------|---------------|
 | HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` | — |
 | HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
 | HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | — |
 | SQL db templates (all bindings) | planner + deck | `ServiceTemplateView` / `SqlCodegenServiceContext` via `SqlServiceCodegenRenderer.internal.SqlPlannerTemplateRenderer` |
 
-Removing the legacy bridges requires migrating the remaining SSP templates off
+Removing the SQL legacy bridge requires migrating the remaining db SSP templates off
 stringly type names and legacy import helpers onto `ctx.conventions` and
 `ctx.usedTypes`.
 

@@ -1,6 +1,9 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-import com.jacoby6000.smithplates.http.model.HttpRouteGroup
+import com.jacoby6000.smithplates.codegen.core.Model
+import com.jacoby6000.smithplates.codegen.core.ServiceModel
+import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.scalate.FilesystemClasspathHybridResourceLoader
 import com.jacoby6000.smithplates.scalate.PreambleTemplateRootResourceLoader
 import com.jacoby6000.smithplates.scalate.ScalateTemplatePaths
@@ -13,13 +16,6 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
-  def renderClasspathTemplate(
-      templateClasspath: String,
-      view: HttpCodegenTemplateView,
-      templateRoot: Option[String] = None
-  ): String =
-    renderClasspathTemplateAttributes(templateClasspath, Map("ctx" -> view), templateRoot)
-
   def renderClasspathTemplateAttributes(
       templateClasspath: String,
       attributes: Map[String, Any],
@@ -128,7 +124,7 @@ object ScalateSspTemplateEngine {
         trimmedBody
       } else {
         val serviceShapeId =
-          attributes.get("ctx").collect { case view: HttpCodegenTemplateView => view.service.shapeId }.getOrElse {
+          attributes.get("ctx").collect { case view: TemplateView[?, ?] => templateViewShapeId(view) }.getOrElse {
             software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
           }
         val header         =
@@ -206,15 +202,23 @@ object ScalateSspTemplateEngine {
       }
     }
 
+    def templateViewShapeId(view: TemplateView[?, ?]): software.amazon.smithy.model.shapes.ShapeId =
+      view.subject match {
+        case service: ServiceModel[?, ?]                                =>
+          software.amazon.smithy.model.shapes.ShapeId.from(s"${service.id.namespace}#${service.id.name}")
+        case group: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
+          software.amazon.smithy.model.shapes.ShapeId.from(
+            s"${group.service.id.namespace}#${group.service.id.name}"
+          )
+        case model: Model[?]                                            =>
+          software.amazon.smithy.model.shapes.ShapeId.from(s"${model.id.namespace}#${model.id.name}")
+        case _                                                          =>
+          software.amazon.smithy.model.shapes.ShapeId.from("smithy.api#Unit")
+      }
+
     def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
       attributes.map { case (key, value) =>
-        key -> (value match {
-          case view: HttpCodegenTemplateView                                  => view.asInstanceOf[Object]
-          case routeGroup: HttpRouteGroup                                     => routeGroup.asInstanceOf[Object]
-          case operation: com.jacoby6000.smithplates.http.model.HttpOperation =>
-            operation.asInstanceOf[Object]
-          case other                                                          => other.asInstanceOf[Object]
-        })
+        key -> value.asInstanceOf[Object]
       }
   }
 }

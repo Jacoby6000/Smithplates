@@ -22,18 +22,6 @@ def routerImportAlias(moduleName: String): String =
 def modelsPackageName(packageName: String): String =
   s"$packageName.models"
 
-def modelTypePackageName(
-    ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView,
-    typeName: String
-): String =
-  ctx.typePackageNames.getOrElse(typeName, ctx.modelsPackageName)
-
-def modelTypeImportModule(
-    ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView,
-    typeName: String
-): String =
-  s"${modelTypePackageName(ctx, typeName)}.${snakeCase(typeName)}"
-
 def serviceErrorExceptionName(errorName: String): String =
   s"${errorName}ApiError"
 
