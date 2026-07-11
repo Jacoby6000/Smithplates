@@ -129,7 +129,12 @@ object SqlServiceCodegenRenderer {
               case Validated.Invalid(errors) =>
                 TemplateRenderFailed(templatePath, errors.map(_.message).toList.mkString("; ")).invalidNel
               case Validated.Valid(context)  =>
-                renderSqlTemplate(settings, templatePath, context)
+                val envelope =
+                  SqlNeutralServiceTemplateAttributes.envelope(
+                    view.asInstanceOf[SqlNeutralServiceTemplateAttributes.ServiceView],
+                    context
+                  )
+                renderSqlTemplate(settings, templatePath, envelope)
             }
           case unsupported                 =>
             TemplateRenderFailed(
@@ -142,9 +147,9 @@ object SqlServiceCodegenRenderer {
     def renderSqlTemplate(
         settings: SqlServiceCodegenSettings,
         templatePath: String,
-        context: SqlCodegenServiceContext
+        envelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope
     ): CodegenValidated[String] =
-      if (shouldSkip(templatePath, context)) {
+      if (shouldSkip(templatePath, envelope)) {
         CodegenValidated.valid(SkipArtifactContent)
       } else {
         try {
@@ -161,11 +166,10 @@ object SqlServiceCodegenRenderer {
                 ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
               }
             } else if (CodegenTemplatePaths.isFileQualified(templatePath)) {
-              val view = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderFilesystemTemplate(
                 CodegenTemplatePaths.filePath(resolvedTemplatePath),
                 bundledTemplateRoot,
-                view
+                envelope
               )
             } else {
               val templateRoot =
@@ -177,8 +181,7 @@ object SqlServiceCodegenRenderer {
                 } else {
                   bundledTemplateRoot
                 }
-              val view         = SqlCodegenTemplateAttributes.forService(context)
-              ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, view, Some(templateRoot))
+              ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, envelope, Some(templateRoot))
             }
           CodegenValidated.valid(content)
         } catch {
@@ -189,10 +192,12 @@ object SqlServiceCodegenRenderer {
         }
       }
 
-    def shouldSkip(templatePath: String, context: SqlCodegenServiceContext): Boolean =
+    def shouldSkip(templatePath: String, envelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope): Boolean = {
+      val templateData = SqlNeutralServiceTemplateAttributes.templateData(envelope)
       ((templatePath.contains("service_derived_sql_integration_tests") ||
-        templatePath.contains("stubs/testcontainers")) && context.integrationTest.isEmpty) ||
-        (templatePath.contains("migrations_service") && context.migration.isEmpty)
+        templatePath.contains("stubs/testcontainers")) && templateData.integrationTest.isEmpty) ||
+      (templatePath.contains("migrations_service") && templateData.migration.isEmpty)
+    }
 
     def sqlCodegenSettings(settings: SqlServiceCodegenSettings): SqlValidated[CodegenSettings] =
       toSqlValidated(SqlCodegenLanguageConventions.codegenSettings(settings))

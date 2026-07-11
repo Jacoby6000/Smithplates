@@ -211,25 +211,31 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/tests/service_derived_sql_integration_tests.ssp",
-        sharedContext.copy(integrationTest = None)
+        SqlServiceCodegenRendererSpec.internal.envelopeFromContext(
+          sharedContext.copy(integrationTest = None)
+        )
       )
     )
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "postgres/stubs/testcontainers/postgres.pyi",
-        sharedContext.copy(integrationTest = None)
+        SqlServiceCodegenRendererSpec.internal.envelopeFromContext(
+          sharedContext.copy(integrationTest = None)
+        )
       )
     )
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/migrations_service.ssp",
-        sharedContext.copy(migration = None)
+        SqlServiceCodegenRendererSpec.internal.envelopeFromContext(
+          sharedContext.copy(migration = None)
+        )
       )
     )
     assert(
       !SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/service_aiosqlite.ssp",
-        sharedContext
+        SqlServiceCodegenRendererSpec.internal.envelopeFromContext(sharedContext)
       )
     )
   }
@@ -378,5 +384,19 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         artifact.relativePath.startsWith("tests/generated/") &&
           artifact.relativePath.contains("test_widget_repository_derived_sql.py"))
     )
+  }
+}
+
+object SqlServiceCodegenRendererSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def envelopeFromContext(
+        context: SqlCodegenServiceContext
+    ): SqlNeutralServiceTemplateAttributes.ServiceEnvelope =
+      SqlNeutralServiceTemplateAttributes.ServiceEnvelope(
+        view = null.asInstanceOf[SqlNeutralServiceTemplateAttributes.ServiceView],
+        data = SqlCodegenTemplateViews.buildServiceView(context)
+      )
   }
 }

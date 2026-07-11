@@ -26,7 +26,7 @@ object ScalateSspTemplateEngine {
 
   def renderClasspathTemplate(
       templateClasspath: String,
-      view: ServiceTemplateView,
+      envelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope,
       templateRoot: Option[String] = None
   ): String = {
     val normalizedTemplatePath = ScalateTemplatePaths.normalizeClasspathUri(templateClasspath)
@@ -41,17 +41,26 @@ object ScalateSspTemplateEngine {
       s"$resolvedTemplateRoot:$templateUri",
       _ => engine.load(templateUri)
     )
+    val templateData           = SqlNeutralServiceTemplateAttributes.templateData(envelope)
     val renderedBody           =
       ScalateTemplatePaths.normalizeRenderedOutput(
-        engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
+        engine.layout(
+          templateUri,
+          template,
+          internal.toObjectMap(Map("envelope" -> envelope, "ctx" -> templateData))
+        )
       )
-    internal.prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
+    internal.prependGeneratedFileHeader(
+      templateData,
+      resolvedTemplateRoot,
+      renderedBody
+    )
   }
 
   def renderFilesystemTemplate(
       filesystemTemplatePath: String,
       bundledTemplateRoot: String,
-      view: ServiceTemplateView
+      envelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope
   ): String = {
     val normalizedBundledRoot = ScalateTemplatePaths.normalizeTemplateRoot(bundledTemplateRoot)
     val filesystemTemplate    = Paths.get(filesystemTemplatePath)
@@ -64,11 +73,20 @@ object ScalateSspTemplateEngine {
       s"file:$filesystemTemplatePath:$normalizedBundledRoot:$templateUri",
       _ => engine.load(templateUri)
     )
+    val templateData          = SqlNeutralServiceTemplateAttributes.templateData(envelope)
     val renderedBody          =
       ScalateTemplatePaths.normalizeRenderedOutput(
-        engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
+        engine.layout(
+          templateUri,
+          template,
+          internal.toObjectMap(Map("envelope" -> envelope, "ctx" -> templateData))
+        )
       )
-    internal.prependGeneratedFileHeader(view, normalizedBundledRoot, renderedBody)
+    internal.prependGeneratedFileHeader(
+      templateData,
+      normalizedBundledRoot,
+      renderedBody
+    )
   }
 
   def renderClasspathPartial(
@@ -207,23 +225,25 @@ object ScalateSspTemplateEngine {
     def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
       attributes.map { case (key, value) =>
         key -> (value match {
-          case view: ServiceTemplateView                => view.asInstanceOf[Object]
-          case operation: TemplateOperationView         => operation.asInstanceOf[Object]
-          case parameter: TemplateParameterView         => parameter.asInstanceOf[Object]
-          case member: TemplateMemberView               => member.asInstanceOf[Object]
-          case resultField: TemplateResultFieldView     => resultField.asInstanceOf[Object]
-          case bindParameter: TemplateBindParameterView => bindParameter.asInstanceOf[Object]
-          case factory: TemplateClassRowFactoryView     => factory.asInstanceOf[Object]
-          case integrationTest: IntegrationTestView     => integrationTest.asInstanceOf[Object]
-          case requirements: ImportRequirements         => requirements.asInstanceOf[Object]
-          case nested: Map[?, ?] @unchecked             =>
+          case envelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope =>
+            envelope.asInstanceOf[Object]
+          case view: ServiceTemplateView                                     => view.asInstanceOf[Object]
+          case operation: TemplateOperationView                              => operation.asInstanceOf[Object]
+          case parameter: TemplateParameterView                              => parameter.asInstanceOf[Object]
+          case member: TemplateMemberView                                    => member.asInstanceOf[Object]
+          case resultField: TemplateResultFieldView                          => resultField.asInstanceOf[Object]
+          case bindParameter: TemplateBindParameterView                      => bindParameter.asInstanceOf[Object]
+          case factory: TemplateClassRowFactoryView                          => factory.asInstanceOf[Object]
+          case integrationTest: IntegrationTestView                          => integrationTest.asInstanceOf[Object]
+          case requirements: ImportRequirements                              => requirements.asInstanceOf[Object]
+          case nested: Map[?, ?] @unchecked                                  =>
             nested
               .asInstanceOf[Map[String, Any]]
               .map { case (nestedKey, nestedValue) => nestedKey -> nestedValue.asInstanceOf[Object] }
               .asInstanceOf[Object]
-          case items: List[?] @unchecked                =>
+          case items: List[?] @unchecked                                     =>
             items.map(_.asInstanceOf[Object]).asInstanceOf[Object]
-          case other                                    =>
+          case other                                                         =>
             other.asInstanceOf[Object]
         })
       }

@@ -43,24 +43,23 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
     val model      = SqlTestModelBuilder.assemble(documentRecordSmithy)
     val extraction = SqlModelExtractor.extractOrThrow(model)
     val view       =
-      SqlCodegenTemplateAttributes
-        .forService(
-          SqlServiceCodegenContextBuilder
-            .build(
-              model = model,
-              schema = extraction.schema,
-              queries = extraction.serviceIr.queries,
-              service = extraction.serviceIr.services.head,
-              queryRenderer =
-                Some(SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.queryRenderers("sqlite")),
-              bindPlaceholderStyle = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
-                .queryRenderers("sqlite")
-                .codegenBindPlaceholder,
-              settings = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
-            )
-            .toEither
-            .getOrElse(fail("expected sqlite context build to succeed"))
-        )
+      SqlCodegenTemplateViews.buildServiceView(
+        SqlServiceCodegenContextBuilder
+          .build(
+            model = model,
+            schema = extraction.schema,
+            queries = extraction.serviceIr.queries,
+            service = extraction.serviceIr.services.head,
+            queryRenderer =
+              Some(SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.queryRenderers("sqlite")),
+            bindPlaceholderStyle = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
+              .queryRenderers("sqlite")
+              .codegenBindPlaceholder,
+            settings = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
+          )
+          .toEither
+          .getOrElse(fail("expected sqlite context build to succeed"))
+      )
 
     assert(SqlCodegenHelperAttributes.documentUsedAsJson(view))
     assert(SqlCodegenHelperAttributes.documentUsedAsJsonCol(view))
@@ -188,7 +187,10 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
         SqlServiceCodegenRenderer
           .render(model, extraction.schema, extraction.serviceIr, backend.settingsForTests)
           .toEither
-          .getOrElse(fail(s"expected $dialectKey render to succeed"))
+          .fold(
+            errors => fail(s"expected $dialectKey render to succeed: ${errors.toList.map(_.message).mkString("; ")}"),
+            identity
+          )
       val serviceArtifact =
         artifacts
           .find(_.relativePath.contains(s"$dialectKey/record_repository"))

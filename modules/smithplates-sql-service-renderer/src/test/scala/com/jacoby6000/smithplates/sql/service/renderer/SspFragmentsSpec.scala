@@ -5,7 +5,7 @@ class SspFragmentsSpec extends munit.FunSuite {
     val output =
       ScalateSspTemplateEngine.renderClasspathTemplate(
         s"classpath:${SspFragmentsSpec.internal.templateRoot}/service_protocol.ssp",
-        SspFragmentsSpec.internal.minimalServiceView,
+        SspFragmentsSpec.internal.minimalServiceEnvelope,
         Some(SspFragmentsSpec.internal.templateRoot)
       )
 
@@ -130,6 +130,12 @@ object SspFragmentsSpec {
         migration = None,
         uuidTypeNames = Nil,
         enumTypeNames = Nil
+      )
+
+    def minimalServiceEnvelope: SqlNeutralServiceTemplateAttributes.ServiceEnvelope =
+      SqlNeutralServiceTemplateAttributes.ServiceEnvelope(
+        view = null.asInstanceOf[SqlNeutralServiceTemplateAttributes.ServiceView],
+        data = minimalServiceView
       )
   }
 }

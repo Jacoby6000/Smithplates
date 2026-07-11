@@ -1,3 +1,4 @@
+<%@ val envelope: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceEnvelope %>
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val migration: com.jacoby6000.smithplates.sql.service.renderer.MigrationView = ctx.migration.get %>
 # Generated postgres migration service for sql-service-codegen. Do not edit by hand.

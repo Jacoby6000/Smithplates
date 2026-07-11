@@ -1,3 +1,4 @@
+<%@ val envelope: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceEnvelope %>
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
 <%@ val imports: com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations

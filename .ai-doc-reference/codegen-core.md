@@ -43,11 +43,11 @@ Smithy model
 | HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` | — |
 | HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
 | HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | — |
-| SQL db templates (all bindings) | planner + deck | `ServiceTemplateView` / `SqlCodegenServiceContext` via `SqlServiceCodegenRenderer.internal.SqlPlannerTemplateRenderer` |
+| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload built from `SqlCodegenServiceContext` for fragment/includes compatibility |
 
-Removing the SQL legacy bridge requires migrating the remaining db SSP templates off
+Full removal of the legacy `ServiceTemplateView` payload requires migrating db SSP fragments off
 stringly type names and legacy import helpers onto `ctx.conventions` and
-`ctx.usedTypes`.
+`ctx.usedTypes` (#39).
 
 ## Key packages
 
