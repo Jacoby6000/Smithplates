@@ -16,7 +16,7 @@ It owns:
 * **Planning** — `CodegenOutput` decks, `CodegenPlanner`, `PathTemplate`,
   `SmithyBinding`, `BindingFilter`, `BindingGroup`
 * **Rendering contract** — `TemplateView`, `TemplateRenderer`, `Conventions` /
-  `NamingStrategy`
+  `NamingStrategy`, `TypeRenderer` / `ConfigurableTypeRenderer`
 * **Validation** — `SystemValidator`, `CodegenValidationError` hierarchy
   (`CodegenValidated` / `ValidatedNel`)
 
@@ -40,10 +40,10 @@ Smithy model
 
 | Area | Neutral today | Legacy bridge |
 |------|---------------|---------------|
-| HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` | — |
-| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | — |
-| HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | — |
-| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload built from `SqlCodegenServiceContext` for fragment/includes compatibility |
+| HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` + `TypeRenderer` | — |
+| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | Python-specific helpers (`pythonTupleOfPairs`) in SSP preamble |
+| HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | String-based `referencedModelNames` inlined (was `HttpModelTypeNames`) |
+| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload built from `SqlCodegenServiceContext` for fragment/includes compatibility; `SqlCodegenPythonImports`, `SqlCodegenSnakeCase`, `SqlCodegenUuidTypeNames` |
 
 Full removal of the legacy `ServiceTemplateView` payload requires migrating db SSP fragments off
 stringly type names and legacy import helpers onto `ctx.conventions` and
@@ -56,7 +56,8 @@ stringly type names and legacy import helpers onto `ctx.conventions` and
 | `codegen.core` | `NeutralType`, models, `TypeResolver`, `TypeUsageAnalyzer`, `SystemValidator` |
 | `codegen.core.planning` | `CodegenPlanner`, `CodegenOutput`, `TemplateView`, `ResolvedArtifact`, `SmithyBinding` |
 | `codegen.core.planning.config` | `CodegenOutputDeck`, `CodegenOutputDeckLoader`, JSON decoders |
-| `codegen.core.strategy` | `NamingStrategy`, `Conventions`, `ConfigurableTypeRenderer` |
+| `codegen.core.strategy` | `NamingStrategy`, `Conventions`, `TypeRenderer`, `ConfigurableTypeRenderer`, `RenderContext` |
+| `codegen.core.strategy.config` | `TypeSyntaxConfig`, `LanguageBaseConfig`, `LanguageBaseConfigLoader` |
 
 ## Output decks
 
