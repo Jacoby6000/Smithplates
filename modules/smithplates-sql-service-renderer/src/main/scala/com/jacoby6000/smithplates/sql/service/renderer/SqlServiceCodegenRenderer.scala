@@ -114,6 +114,12 @@ object SqlServiceCodegenRenderer {
   object internal {
     val SkipArtifactContent: String = "__SMITHPLATES_SKIP_SQL_ARTIFACT__"
 
+    def toSnakeCase(value: String): String =
+      value
+        .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
+        .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
+        .toLowerCase
+
     final case class SqlPlannerTemplateRenderer(
         model: Model,
         schema: SqlSchema,
@@ -301,7 +307,7 @@ object SqlServiceCodegenRenderer {
         context: SqlCodegenServiceContext,
         enumName: String
     ): String = {
-      val relativeOutputFile = s"${context.namespace.replace('.', '/')}/${SqlCodegenSnakeCase.toSnakeCase(enumName)}.py"
+      val relativeOutputFile = s"${context.namespace.replace('.', '/')}/${internal.toSnakeCase(enumName)}.py"
       settings.sourceOutputDirectory match {
         case Some(sourceOutputDirectory) =>
           s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"

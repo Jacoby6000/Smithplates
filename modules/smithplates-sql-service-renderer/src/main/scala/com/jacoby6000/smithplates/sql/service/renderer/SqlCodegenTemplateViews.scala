@@ -132,7 +132,6 @@ final case class IntegrationTestView(
     setupSqlStatements: List[String],
     extraImports: String,
     testImports: String,
-    localImportBlock: String,
     insertOperation: TemplateIntegrationTestOperationView,
     selectOneOperation: TemplateIntegrationTestOperationView,
     updateOperation: TemplateIntegrationTestOperationView,
@@ -170,9 +169,6 @@ final case class ServiceTemplateView(
     usedJsonTypeNames: Set[String],
     usedJsonTypeNamesCol: Set[String],
     classRowFactories: List[TemplateClassRowFactoryView],
-    protocolTableModelImportBlock: String,
-    enumImportBlock: String,
-    serviceLocalImportBlock: String,
     integrationTest: Option[IntegrationTestView],
     migration: Option[MigrationView],
     uuidTypeNames: List[String],
@@ -181,7 +177,8 @@ final case class ServiceTemplateView(
 
 object SqlCodegenTemplateViews {
   def buildServiceView(context: SqlCodegenServiceContext): ServiceTemplateView = {
-    val enumTypeNames                        = SqlCodegenPythonImports.enumTypeNameSet(context)
+    val enumTypeNames                        =
+      (context.stringEnums.map(_.name) ++ context.intEnums.map(_.name)).toSet
     val operations                           = internal.withLastFlag(
       context.operations.map(internal.operationView(context.bindPlaceholderStyle, context.dialectKey, enumTypeNames, _))
     )((operation, last) => operation.copy(last = last))
@@ -208,9 +205,6 @@ object SqlCodegenTemplateViews {
       } else {
         Nil
       },
-      protocolTableModelImportBlock = SqlCodegenPythonImports.protocolTableModelImportBlock(context),
-      enumImportBlock = SqlCodegenPythonImports.enumImportBlock(context),
-      serviceLocalImportBlock = SqlCodegenPythonImports.serviceLocalImportBlock(context),
       integrationTest = context.integrationTest.map(internal.integrationTestView),
       migration = context.migration.map(internal.migrationView),
       uuidTypeNames = context.uuidTypeNames.toList.sorted,
@@ -248,7 +242,6 @@ object SqlCodegenTemplateViews {
           ""
         },
         testImports = integrationTest.testImports,
-        localImportBlock = integrationTest.localImportBlock,
         insertOperation = integrationOperationView(integrationTest.insertOperation),
         selectOneOperation = integrationOperationView(integrationTest.selectOneOperation),
         updateOperation = integrationTest.updateOperation

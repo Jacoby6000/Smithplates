@@ -6,8 +6,8 @@ from __future__ import annotations
 <% render("fragments/helpers/imports_postgres", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override
 
 import psycopg
-<% if (ctx.serviceLocalImportBlock != "") { %>
-${ctx.serviceLocalImportBlock}<% } %>
+<% if (serviceLocalImportBlock(ctx) != "") { %>
+${serviceLocalImportBlock(ctx)}<% } %>
 
 
 class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):

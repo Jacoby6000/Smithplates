@@ -5,11 +5,11 @@ from __future__ import annotations
 <% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass
 <% } %>from typing import Protocol, TypeVar
 
-<% if (ctx.protocolTableModelImportBlock != "") { %>${ctx.protocolTableModelImportBlock}
-<% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
+<% if (protocolTableModelImportBlock(ctx) != "") { %>${protocolTableModelImportBlock(ctx)}
+<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
 
 
-<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (ctx.protocolTableModelImportBlock != "") { %>
+<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (protocolTableModelImportBlock(ctx) != "") { %>
 
 <% } %>
 T = TypeVar("T", contravariant=True)

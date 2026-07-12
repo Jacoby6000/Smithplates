@@ -11,8 +11,8 @@ import psycopg
 import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
-<% if (test.localImportBlock != "") { %>
-${test.localImportBlock}
+<% if (integrationTestLocalImportBlock(test, ctx) != "") { %>
+${integrationTestLocalImportBlock(test, ctx)}
 <% } %>
 from ${qualifiedModule(ctx.packageName, migrationServiceModulePath(ctx.dialectKey))} import ${migrationServiceClassName(ctx.dialectKey)}
 

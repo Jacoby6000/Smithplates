@@ -215,4 +215,213 @@ def migrationsDirectoryFromTestFile(serviceShapeId: String, migrationsDirectory:
   val pathExpr = parts.map(part => s""""$part"""").mkString(" / ")
   s"Path(__file__).resolve().parents[$parentIndex] / $pathExpr"
 }
+
+def transactionRunModuleName(dialectKey: String): String =
+  dialectKey match {
+    case "sqlite"   => "sqlite_transaction_run"
+    case "postgres" => "psycopg_transaction_run"
+    case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
+  }
+
+def referencedTypeNames(typeName: String): List[String] = {
+  val listPattern = """(?i)list\[(.+)]""".r
+  typeName match {
+    case listPattern(inner) => List(inner.trim)
+    case other              => List(other)
+  }
+}
+
+def enumImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+  val enumNames = referencedEnumTypeNames(ctx).toList.sorted
+  if (enumNames.isEmpty) {
+    ""
+  } else {
+    enumNames
+      .map(enumName =>
+        s"from ${qualifiedModule(ctx.packageName, snakeCase(enumName))} import $enumName")
+      .mkString("\n", "\n", "\n")
+  }
+}
+
+def referencedEnumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] = {
+  val enumNames = ctx.enumTypeNames.toSet
+  val referenced = scala.collection.mutable.LinkedHashSet.empty[String]
+
+  def reference(typeName: String): Unit =
+    referencedTypeNames(typeName).foreach { candidate =>
+      if (enumNames.contains(candidate)) {
+        referenced += candidate
+      }
+    }
+
+  ctx.models.flatMap(_.members).foreach(member => reference(member.typeName))
+  ctx.unions.flatMap(_.members).foreach(member => reference(member.typeName))
+  ctx.operations.foreach { operation =>
+    operation.parameters.foreach(parameter => reference(parameter.typeName))
+    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
+    operation.bindParameters.foreach(bind => reference(bind.typeName))
+    operation.resultFields.foreach(field => reference(field.typeName))
+    operation.selectOneNestedBindings.foreach { nested =>
+      reference(nested.shapeName)
+      nested.fields.foreach(field => reference(field.typeName))
+    }
+  }
+
+  referenced.toSet
+}
+
+def protocolReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): (List[String], List[String]) = {
+  val tableModelNames = ctx.models.map(_.name).toSet
+  val unionNames      = ctx.unions.map(_.name).toSet
+  val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
+  val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
+
+  def reference(typeName: String): Unit =
+    referencedTypeNames(typeName).foreach { candidate =>
+      if (tableModelNames.contains(candidate)) {
+        referencedTable += candidate
+      }
+      if (unionNames.contains(candidate)) {
+        referencedUnion += candidate
+      }
+    }
+
+  ctx.operations.foreach { operation =>
+    operation.parameters.foreach(parameter => reference(parameter.typeName))
+    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
+  }
+
+  ctx.operationResultModels.flatMap(_.members).foreach(member => reference(member.typeName))
+
+  (referencedTable.toList.sorted, referencedUnion.toList.sorted)
+}
+
+def serviceReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): (List[String], List[String]) = {
+  val tableModelNames = ctx.models.map(_.name).toSet
+  val unionNames      = ctx.unions.map(_.name).toSet
+  val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
+  val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
+
+  def reference(typeName: String): Unit =
+    referencedTypeNames(typeName).foreach { candidate =>
+      if (tableModelNames.contains(candidate)) {
+        referencedTable += candidate
+      }
+      if (unionNames.contains(candidate)) {
+        referencedUnion += candidate
+        ctx.unions.find(_.name == candidate).foreach { union =>
+          union.members.foreach { member =>
+            referencedTable += unionVariantTypeName(union.name, member.name)
+          }
+        }
+      }
+    }
+
+  ctx.operations.filter(_.hasSql).foreach { operation =>
+    operation.parameters.foreach(parameter => reference(parameter.typeName))
+    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
+    operation.bindParameters.foreach { bindParameter =>
+      reference(bindParameter.typeName)
+      if (bindParameter.jsonTypeName.nonEmpty) {
+        reference(bindParameter.jsonTypeName)
+      }
+    }
+    operation.resultFields.foreach(resultField => reference(resultField.typeName))
+    operation.selectOneNestedBindings.foreach { nested =>
+      reference(nested.shapeName)
+      nested.fields.foreach(field => reference(field.typeName))
+    }
+  }
+
+  (referencedTable.toList.sorted, referencedUnion.toList.sorted)
+}
+
+def protocolTableModelImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+  val (tableModels, unions) = protocolReferencedNames(ctx)
+  val names = (tableModels ++ unions).sorted
+  if (names.isEmpty) {
+    ""
+  } else {
+    val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
+    s"from ${qualifiedModule(ctx.packageName, s"models/${ctx.serviceModuleName}_models")} import ($body)"
+  }
+}
+
+def serviceLocalImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+  val (tableModels, unions) = serviceReferencedNames(ctx)
+  val operationResultNames = ctx.operationResultModels.map(_.name).toSet
+  val derivedResultNames = ctx.operations.filter(_.hasSql).map(_.outputTypeName).filter(_.nonEmpty).filter(derivedNames(ctx).contains).distinct.sorted.toList
+
+  val blocks = List.newBuilder[String]
+
+  val modelNames = (tableModels ++ unions).sorted
+  if (modelNames.nonEmpty) {
+    val body = modelNames.map(name => s"    $name,").mkString("\n", "\n", "\n")
+    blocks += s"from ${qualifiedModule(ctx.packageName, s"models/${ctx.serviceModuleName}_models")} import ($body)"
+  }
+
+  val protocolName = serviceProtocolName(ctx.serviceName)
+  if (derivedResultNames.isEmpty) {
+    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.serviceModuleName}_protocol")} import $protocolName"
+  } else {
+    val body = (derivedResultNames.map(name => s"    $name,") :+ s"    $protocolName,").mkString("\n", "\n", "\n")
+    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.serviceModuleName}_protocol")} import ($body)"
+  }
+
+  val enumBlock = enumImportBlock(ctx)
+  if (enumBlock.nonEmpty) {
+    blocks += enumBlock.stripSuffix("\n")
+  }
+
+  if (ctx.operations.exists(_.hasSql)) {
+    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.dialectKey}/${transactionRunModuleName(ctx.dialectKey)}")} import run"
+  }
+
+  blocks.result().sortBy(_.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')).mkString("\n")
+}
+
+def derivedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
+  ctx.operationResultModels.map(_.name).toSet
+
+def extractImportModuleName(block: String): String =
+  block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')
+
+def importBlocks(importText: String): List[String] =
+  if (importText.isEmpty) {
+    Nil
+  } else {
+    val blocks  = List.newBuilder[String]
+    var current = List.newBuilder[String]
+    importText.linesIterator.foreach { line =>
+      if (line.startsWith("from ") && current.result().nonEmpty) {
+        blocks += current.result().mkString("\n")
+        current = List.newBuilder[String]
+      }
+      if (line.nonEmpty) {
+        current += line
+      }
+    }
+    if (current.result().nonEmpty) {
+      blocks += current.result().mkString("\n")
+    }
+    blocks.result()
+  }
+
+def integrationTestLocalImportBlock(
+    test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView,
+    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+): String = {
+  val implementationModule = s"${ctx.serviceModuleName}${implementationModuleSuffix(ctx.dialectKey)}"
+  val implementationClass  = implementationClassName(ctx.serviceName, ctx.dialectKey)
+  val implementationBlock  =
+    s"from ${qualifiedModule(ctx.packageName, s"${ctx.dialectKey}/$implementationModule")} import $implementationClass"
+  val blocks               = importBlocks(test.testImports) :+ implementationBlock
+  blocks
+    .groupBy(extractImportModuleName)
+    .values
+    .map(_.head)
+    .toList
+    .sortBy(extractImportModuleName)
+    .mkString("\n", "\n", "")
+}
 %>
