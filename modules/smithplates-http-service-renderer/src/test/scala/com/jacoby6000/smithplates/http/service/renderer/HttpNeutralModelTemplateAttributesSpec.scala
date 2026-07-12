@@ -13,6 +13,9 @@ import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
+import com.jacoby6000.smithplates.codegen.core.strategy.TypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.config.ConfigurableTypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.config.TypeSyntaxConfig
 import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import munit.FunSuite
@@ -47,8 +50,36 @@ class HttpNeutralModelTemplateAttributesSpec extends FunSuite {
   private val uuid2     = Model.Alias(id("Uuid2"), meta, ModelRef(id("Uuid")))
   private val usedTypes = List(widget, itemId, uuid, uuid2)
 
+  private def pythonTypeRenderer: TypeRenderer =
+    ConfigurableTypeRenderer(
+      TypeSyntaxConfig(
+        primitives = Map(
+          "boolean"    -> "bool",
+          "integer"    -> "int",
+          "long"       -> "int",
+          "bigInteger" -> "int",
+          "float"      -> "float",
+          "double"     -> "float",
+          "bigDecimal" -> "Decimal",
+          "string"     -> "str",
+          "bytes"      -> "bytes",
+          "document"   -> "object"
+        ),
+        timestamp = Map("dateTime" -> "datetime", "epochSeconds" -> "float"),
+        optional = "{inner} | None",
+        list = "list[{element}]",
+        map = "dict[{key}, {value}]",
+        modelRef = "{name}"
+      )
+    )
+
   private def view[S](subject: S): TemplateView[S, HttpMeta] =
-    TemplateView(subject = subject, usedTypes = usedTypes, conventions = conventions)
+    TemplateView(
+      subject = subject,
+      usedTypes = usedTypes,
+      conventions = conventions,
+      typeRenderer = pythonTypeRenderer
+    )
 
   private def render(tpe: NeutralType): String =
     H.renderType(tpe, view(widget))

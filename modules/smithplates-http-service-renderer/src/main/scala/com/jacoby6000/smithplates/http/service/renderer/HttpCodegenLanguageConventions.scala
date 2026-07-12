@@ -33,7 +33,8 @@ object HttpCodegenLanguageConventions {
         conventions = httpConventions(
           applyServicePackageOverride(baseConfig.conventions(settings.rootNamespace), settings.packageNameOverride),
           settings.modelsPackageNameOverride
-        )
+        ),
+        typeRenderer = baseConfig.typeRenderer
       )
     }
 

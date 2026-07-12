@@ -33,7 +33,8 @@ object SqlCodegenLanguageConventions {
       CodegenSettings(
         sourceOutputDirectory = settings.sourceOutputDirectory.map(normalizeDirectory).getOrElse(""),
         testOutputDirectory = settings.testOutputDirectory.map(normalizeDirectory).getOrElse(""),
-        conventions = baseConfig.conventions(settings.rootNamespace)
+        conventions = baseConfig.conventions(settings.rootNamespace),
+        typeRenderer = baseConfig.typeRenderer
       )
     }
 

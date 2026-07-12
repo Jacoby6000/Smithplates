@@ -10,6 +10,7 @@ import com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral
 import com.jacoby6000.smithplates.codegen.core.TimestampFormat
 import com.jacoby6000.smithplates.codegen.core.TypeResolver
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.codegen.core.strategy.RenderContext
 import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 
@@ -122,30 +123,7 @@ object HttpNeutralModelTemplateAttributes {
     ctx.conventions.modulePath(model.id)
 
   def renderType[S](tpe: NeutralType, ctx: ModelView[S]): String =
-    tpe match {
-      case OptionalT(inner)                         => s"${renderType(inner, ctx)} | None"
-      case ListT(element)                           => s"list[${renderType(element, ctx)}]"
-      case MapT(key, value)                         => s"dict[${renderType(key, ctx)}, ${renderType(value, ctx)}]"
-      case BooleanT                                 => "bool"
-      case IntegerT | LongT | BigIntegerT           => "int"
-      case FloatT | DoubleT                         => "float"
-      case BigDecimalT                              => "Decimal"
-      case StringT                                  => "str"
-      case BytesT                                   => "bytes"
-      case DocumentT                                => "object"
-      case TimestampT(TimestampFormat.EpochSeconds) => "float"
-      case TimestampT(TimestampFormat.DateTime)     => "datetime"
-      case ref: ModelRef                            =>
-        // DESNOTE(jbarber, 2026-07-02): Follow alias chains via the core's
-        // @tailrec TypeResolver.underlying (per #34) rather than hand-rolling
-        // single-level resolution. Smithy extraction only ever produces
-        // primitive alias underlyings (SmithyPrelude.userDefinedAliasUnderlying),
-        // so chains cannot arise today, but this keeps the criterion satisfied.
-        internal.resolver(ctx).underlying(ref) match {
-          case resolved: ModelRef => ctx.conventions.className(resolved.id)
-          case other              => renderType(other, ctx)
-        }
-    }
+    ctx.typeRenderer.render(tpe, internal.renderContext(ctx))
 
   def isOptional(tpe: NeutralType): Boolean =
     tpe match {
@@ -155,6 +133,9 @@ object HttpNeutralModelTemplateAttributes {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def renderContext[S](ctx: ModelView[S]): RenderContext[HttpMeta] =
+      RenderContext(typeResolver = resolver(ctx), conventions = ctx.conventions)
+
     def defaultField(
         name: String,
         value: Option[String],

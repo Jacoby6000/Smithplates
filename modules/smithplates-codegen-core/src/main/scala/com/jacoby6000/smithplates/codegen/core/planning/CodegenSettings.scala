@@ -1,5 +1,9 @@
 package com.jacoby6000.smithplates.codegen.core.planning
 
+import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
+import com.jacoby6000.smithplates.codegen.core.strategy.TypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.UnconfiguredTypeRenderer
+
 trait StaticResourceLoader {
   def loadContent(resourcePath: String): Option[String]
 }
@@ -15,7 +19,8 @@ object StaticResourceLoader {
 final case class CodegenSettings(
     sourceOutputDirectory: String,
     testOutputDirectory: String,
-    conventions: com.jacoby6000.smithplates.codegen.core.strategy.Conventions,
+    conventions: Conventions,
+    typeRenderer: TypeRenderer = UnconfiguredTypeRenderer,
     staticResourceLoader: StaticResourceLoader = StaticResourceLoader.fromMap(Map.empty)
 ) {
   def outputBaseDirectory(kind: ArtifactKind): String =
