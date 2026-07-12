@@ -5,8 +5,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
-<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
-<% for (uuidTypeName <- ctx.uuidTypeNames) { %>
+<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (ctx.uuidTypeNames.exists(name => pythonTypeName(name) == name)) { %>
+<% for (uuidTypeName <- ctx.uuidTypeNames.filter(name => pythonTypeName(name) == name)) { %>
 ${uuidTypeName} = str
 <% } %>
 <% } %><% if (ctx.unions.nonEmpty) { %>

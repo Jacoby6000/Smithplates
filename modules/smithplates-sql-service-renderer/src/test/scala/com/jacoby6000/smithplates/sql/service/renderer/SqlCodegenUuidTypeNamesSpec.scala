@@ -44,7 +44,7 @@ class SqlCodegenUuidTypeNamesSpec extends munit.FunSuite {
     )
   }
 
-  test("fromSchema - excludes builtin String members typed directly as UUID columns") {
+  test("fromSchema - collects builtin String members typed directly as UUID columns (filtering is now in templates)") {
     val model      = SqlTestModelBuilder.assemble(
       """
             |use smithplates.codegen.sql#sqlAutoUuid
@@ -71,7 +71,7 @@ class SqlCodegenUuidTypeNamesSpec extends munit.FunSuite {
 
     assertEquals(
       SqlCodegenUuidTypeNames.fromSchema(extraction.schema, shapeIr),
-      Set.empty[String]
+      Set("String")
     )
   }
 }
