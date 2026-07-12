@@ -47,8 +47,8 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             "${variant.variantTypeName}": ResponseVariantBinding(
                 status_code=${variant.statusCode},
                 media_type=${H.responseVariantMediaType(variant.mediaType)},
-                header_bindings=${H.responseVariantHeaderBindings(variant.headerBindings)},
-                static_headers=${H.responseVariantStaticHeaders(variant.staticHeaders)},
+                header_bindings=${pythonTupleOfPairs(variant.headerBindings)},
+                static_headers=${pythonTupleOfPairs(variant.staticHeaders)},
             ),
 <% } %>
         },

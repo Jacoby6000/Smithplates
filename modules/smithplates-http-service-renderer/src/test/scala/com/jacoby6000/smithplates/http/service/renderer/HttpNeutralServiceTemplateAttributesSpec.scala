@@ -91,10 +91,6 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
       HttpNeutralServiceTemplateAttributes.responseVariantMediaType(Some("application/json")),
       "'application/json'"
     )
-    assertEquals(
-      HttpNeutralServiceTemplateAttributes.responseVariantHeaderBindings(List(("url", "Location"))),
-      """(("url", "Location"),)"""
-    )
   }
 
   test("service error helpers follow HTTP preamble naming") {

@@ -81,12 +81,6 @@ object HttpNeutralServiceTemplateAttributes {
   def responseVariantMediaType(mediaType: Option[String]): String =
     mediaType.map(value => s"'$value'").getOrElse("None")
 
-  def responseVariantHeaderBindings(headerBindings: List[(String, String)]): String =
-    internal.pythonTupleOfPairs(headerBindings)
-
-  def responseVariantStaticHeaders(staticHeaders: List[(String, String)]): String =
-    internal.pythonTupleOfPairs(staticHeaders)
-
   def apiModuleName(tag: String): String =
     s"${tag}_api"
 
@@ -142,16 +136,6 @@ object HttpNeutralServiceTemplateAttributes {
         segment
       } else {
         s"${segment.head.toUpper}${segment.tail}"
-      }
-
-    def pythonTupleOfPairs(pairs: List[(String, String)]): String =
-      pairs match {
-        case Nil           => "()"
-        case (a, b) :: Nil => s"""(("$a", "$b"),)"""
-        case _             =>
-          pairs
-            .map { case (left, right) => s"(\"$left\", \"$right\")" }
-            .mkString("(", ", ", ")")
       }
   }
 }

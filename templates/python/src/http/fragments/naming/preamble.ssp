@@ -1,1 +1,23 @@
-<% /* HTTP naming helpers live in HttpNeutral*TemplateAttributes; this preamble is intentionally empty. */ %>
+<%
+def enumBaseClass(base: com.jacoby6000.smithplates.codegen.core.NeutralType): String =
+  base match {
+    case com.jacoby6000.smithplates.codegen.core.NeutralType.IntegerT => "IntEnum"
+    case _                                                            => "StrEnum"
+  }
+
+def enumValueLiteral(value: com.jacoby6000.smithplates.codegen.core.EnumValue): String =
+  value.value match {
+    case com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral.StringValue(inner) => pythonStringLiteral(inner)
+    case com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral.IntValue(inner)    => inner.toString
+  }
+
+def pythonTupleOfPairs(pairs: List[(String, String)]): String =
+  pairs match {
+    case Nil           => "()"
+    case (a, b) :: Nil => s"((${pythonStringLiteral(a)}, ${pythonStringLiteral(b)}),)"
+    case _             =>
+      pairs
+        .map { case (left, right) => s"(${pythonStringLiteral(left)}, ${pythonStringLiteral(right)})" }
+        .mkString("(", ", ", ")")
+  }
+%>

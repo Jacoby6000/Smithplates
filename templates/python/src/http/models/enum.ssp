@@ -4,10 +4,10 @@
 
 from __future__ import annotations
 
-from enum import ${H.enumBaseClass(ctx)}
+from enum import ${enumBaseClass(ctx.subject.base)}
 
 
-class ${H.className(ctx)}(${H.enumBaseClass(ctx)}):
+class ${H.className(ctx)}(${enumBaseClass(ctx.subject.base)}):
 <% for (value <- ctx.subject.values) { %>
-    ${H.enumValueName(ctx, value)} = ${H.enumValueLiteral(value)}
+    ${H.enumValueName(ctx, value)} = ${enumValueLiteral(value)}
 <% } %>

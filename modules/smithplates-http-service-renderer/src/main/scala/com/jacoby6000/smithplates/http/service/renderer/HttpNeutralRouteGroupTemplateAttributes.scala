@@ -5,7 +5,6 @@ import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
-import com.jacoby6000.smithplates.http.HttpModelTypeNames
 import com.jacoby6000.smithplates.http.HttpSmithyTypeResolver
 import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
@@ -76,28 +75,13 @@ object HttpNeutralRouteGroupTemplateAttributes {
       ctx: RouteGroupView,
       operation: OperationModel[HttpOperationMeta]
   ): List[String] = {
-    val (structureNames, unionNames, enumNames) = internal.modelNameSets(ctx)
-    val feature                                 = operation.meta.feature
-    val variantTypes                            =
+    val knownModelNames       = internal.modelNameSet(ctx)
+    val feature               = operation.meta.feature
+    val variantTypes          =
       feature.responseVariants.map(_.variantTypeName).filterNot(_ == "__empty__")
-    val inputMemberModelTypes                   =
+    val inputMemberModelTypes =
       (feature.inputMembers ++ internal.bodyBindingMembers(feature))
-        .flatMap { member =>
-          val referenced =
-            HttpModelTypeNames.referencedModelTypeNames(
-              member.typeName,
-              structureNames,
-              unionNames,
-              enumNames
-            )
-          val direct     =
-            if (HttpSmithyTypeResolver.isStructureTypeName(member.typeName)) {
-              List(member.typeName)
-            } else {
-              Nil
-            }
-          referenced ++ direct
-        }
+        .flatMap(member => internal.referencedModelNames(member.typeName, knownModelNames))
     (internal.operationBodyModelNames(feature) ++ variantTypes ++ inputMemberModelTypes).distinct.sorted
   }
 
@@ -310,18 +294,21 @@ object HttpNeutralRouteGroupTemplateAttributes {
     def modelsPackageName(ctx: RouteGroupView): String =
       s"${packageName(ctx)}.models"
 
-    def modelNameSets(ctx: RouteGroupView): (Set[String], Set[String], Set[String]) =
-      (
-        ctx.usedTypes.collect { case structure: Model.Structure[?] =>
-          ctx.conventions.className(structure.id)
-        }.toSet,
-        ctx.usedTypes.collect { case union: Model.Union[?] =>
-          ctx.conventions.className(union.id)
-        }.toSet,
-        ctx.usedTypes.collect { case enumModel: Model.EnumModel[?] =>
-          ctx.conventions.className(enumModel.id)
-        }.toSet
-      )
+    def modelNameSet(ctx: RouteGroupView): Set[String] =
+      ctx.usedTypes.collect { case model: Model[?] =>
+        ctx.conventions.className(model.id)
+      }.toSet
+
+    def referencedModelNames(typeName: String, knownNames: Set[String]): List[String] =
+      if (typeName.startsWith("List[")) {
+        referencedModelNames(typeName.substring(5, typeName.length - 1), knownNames)
+      } else if (typeName.startsWith("Map[String, ")) {
+        referencedModelNames(typeName.substring(12, typeName.length - 1), knownNames)
+      } else if (knownNames.contains(typeName) || HttpSmithyTypeResolver.isStructureTypeName(typeName)) {
+        List(typeName)
+      } else {
+        Nil
+      }
 
     def isHeaderBinding(member: HttpOperationInputMemberMeta): Boolean =
       member.binding.isInstanceOf[HttpInputMemberBindingMeta.Header]

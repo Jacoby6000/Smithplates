@@ -6,7 +6,6 @@ import com.jacoby6000.smithplates.codegen.core.Model
 import com.jacoby6000.smithplates.codegen.core.ModelSet
 import com.jacoby6000.smithplates.codegen.core.NeutralType
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
-import com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral
 import com.jacoby6000.smithplates.codegen.core.TimestampFormat
 import com.jacoby6000.smithplates.codegen.core.TypeResolver
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
@@ -78,20 +77,8 @@ object HttpNeutralModelTemplateAttributes {
   def className[S](ctx: ModelView[S]): String =
     internal.subjectModel(ctx).map(model => ctx.conventions.className(model.id)).getOrElse("")
 
-  def enumBaseClass(ctx: EnumView): String =
-    ctx.subject.base match {
-      case IntegerT => "IntEnum"
-      case _        => "StrEnum"
-    }
-
   def enumValueName(ctx: EnumView, value: EnumValue): String =
     value.name
-
-  def enumValueLiteral(value: EnumValue): String =
-    value.value match {
-      case PrimitiveLiteral.StringValue(inner) => internal.pythonStringLiteral(inner)
-      case PrimitiveLiteral.IntValue(inner)    => inner.toString
-    }
 
   def unionVariantTypeName(ctx: UnionView, memberName: String): String =
     s"${className(ctx)}${memberName.capitalize}"
@@ -143,7 +130,7 @@ object HttpNeutralModelTemplateAttributes {
     ): Option[(String, String)] =
       value
         .filter(_ => !existingFieldNames.contains(name))
-        .map(inner => name -> pythonStringLiteral(inner))
+        .map(inner => name -> inner)
 
     def typeContainsDatetime[S](tpe: NeutralType, ctx: ModelView[S]): Boolean =
       tpe match {
@@ -188,15 +175,5 @@ object HttpNeutralModelTemplateAttributes {
         case model: Model[?] => Some(model.asInstanceOf[Model[HttpMeta]])
         case _               => None
       }
-
-    def pythonStringLiteral(value: String): String =
-      "\"" + value.flatMap {
-        case '\\' => "\\\\"
-        case '"'  => "\\\""
-        case '\n' => "\\n"
-        case '\r' => "\\r"
-        case '\t' => "\\t"
-        case ch   => ch.toString
-      } + "\""
   }
 }
