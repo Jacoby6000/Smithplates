@@ -43,11 +43,13 @@ Smithy model
 | HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` + `TypeRenderer` | — |
 | HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | Python-specific helpers (`pythonTupleOfPairs`) in SSP preamble |
 | HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | String-based `referencedModelNames` inlined (was `HttpModelTypeNames`) |
-| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload built from `SqlCodegenServiceContext` for fragment/includes compatibility; `SqlCodegenPythonImports`, `SqlCodegenSnakeCase`, `SqlCodegenUuidTypeNames` |
+| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload + `Template*View` types + `SqlCodegenHelperAttributes` + `SqlCodegenTemplateViews`; `SqlCodegenUuidTypeNames` (extraction only, no Python filtering) |
 
-Full removal of the legacy `ServiceTemplateView` payload requires migrating db SSP fragments off
-stringly type names and legacy import helpers onto `ctx.conventions` and
-`ctx.usedTypes` (#39).
+Full removal of the legacy `ServiceTemplateView` payload requires extending
+`SqlMeta` / `SqlOperationMeta` to carry all SQL-specific facts (column types,
+`@sqlJson`, `@sqlVarchar`, SQL queries, bind parameters, result fields),
+then migrating all 78 db SSP templates to neutral `ctx.subject` /
+`ctx.usedTypes` / `ctx.conventions` accessors (#39).
 
 ## Key packages
 
