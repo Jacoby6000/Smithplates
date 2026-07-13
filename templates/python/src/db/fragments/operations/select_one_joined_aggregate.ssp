@@ -1,26 +1,27 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
-<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            rows = list(await cursor.fetchall())
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            rows = list(await cursor.fetchall())
             if not rows:
                 return None
             row = rows[0]
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            ${nested.memberName}: list[${nested.shapeName}] = []
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>            ${nested.memberName}: list[${nested.shapeName}] = []
 <% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            for joined_row in rows:
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>            for joined_row in rows:
                 if joined_row[${nested.fields.head.columnIndex}] is not None:
                     ${nested.memberName}.append(
                         ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "joined_row")) %><% } %>
+<% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "joined_row")) %><% } %>
                         )
                     )
 <% } %>
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Singular) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
                 ),
 <% } else { %>                ${nested.memberName}=${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
                 ),
 <% } %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                ${nested.memberName}=${nested.memberName},
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>                ${nested.memberName}=${nested.memberName},
 <% } %>            )

@@ -1,124 +1,125 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
-#match (operation.sqlBodyKind)
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+#match (sqlAttrs.sqlBodyKind(operation))
 #case ("insertScalar")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, ${operation.returningColumnIndex})
+            return _read_str(row, ${sqlAttrs.returningColumnIndex(operation).get})
 #case ("insertStructureDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) %>
                 row = await cur.fetchone()
                 if row is None:
                     raise RuntimeError("INSERT RETURNING produced no row")
-                return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
+                return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "col")) %><% } %>
                 )
 <% } %>
 #case ("insertStructureIndex")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
             )
 #case ("booleanMutationExists")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
             return row is not None
 #case ("booleanMutationRowcount")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             return cur.rowcount > 0
 #case ("booleanStructureExists")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=row is not None,
+            return ${sqlAttrs.outputShapeName(operation)}(
+                ${sqlAttrs.booleanResultFieldName(operation)}=row is not None,
             )
 #case ("booleanStructureRowcount")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=cur.rowcount > 0,
+            return ${sqlAttrs.outputShapeName(operation)}(
+                ${sqlAttrs.booleanResultFieldName(operation)}=cur.rowcount > 0,
             )
-#case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${operation.outputShapeName})")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+#case ("selectOneClassRow")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> s"class_row(${sqlAttrs.outputShapeName(operation)})")) { %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) %>
                 return await cur.fetchone()
 <% } %>
 #case ("selectOneDict")<% layout("fragments/sql/postgres_cursor_wrapper", Map("rowFactoryExpr" -> "dict_row")) { %>
-<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation)) %>
+<% render("fragments/sql/postgres_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) %>
                 row = await cur.fetchone()
                 if row is None:
                     return None
-                return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col")) %><% } %>
+                return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "col")) %><% } %>
                 )
 <% } %>
 #case ("selectOneIndex")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
             )
 #case ("selectOneJoinedFlat")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             row = await cur.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Singular) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
                 ),
 <% } else { %>                ${nested.memberName}=${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
                 ),
 <% } %><% } %>            )
 #case ("selectOneJoinedAggregate")            cur = await self._connection.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )
             rows = await cur.fetchall()
             if not rows:
                 return None
             row = rows[0]
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            ${nested.memberName}: list[${nested.shapeName}] = []
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>            ${nested.memberName}: list[${nested.shapeName}] = []
 <% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>            for joined_row in rows:
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>            for joined_row in rows:
                 if joined_row[${nested.fields.head.columnIndex}] is not None:
                     ${nested.memberName}.append(
                         ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "joined_row")) %><% } %>
+<% for (resultField <- nested.fields) { %>                            <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "joined_row")) %><% } %>
                         )
                     )
 <% } %>
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if !nested.isCollection) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Singular) { %><% if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
                 ),
 <% } else { %>                ${nested.memberName}=${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index", "row")) %><% } %>
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index", "row")) %><% } %>
                 ),
 <% } %><% } %>
-<% for (nested <- operation.selectOneNestedBindings if nested.isCollection) { %>                ${nested.memberName}=${nested.memberName},
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation) if nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>                ${nested.memberName}=${nested.memberName},
 <% } %>            )
 #end

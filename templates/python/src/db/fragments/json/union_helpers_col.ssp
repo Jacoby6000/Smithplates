@@ -1,10 +1,10 @@
-<%@ val union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView %>
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val union: com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%@ val dialectKey: String %>
-def _read_${union.name}_col(row: dict[str, object], column: str) -> ${union.name}:
+def _read_${union.id.name}_col(row: dict[str, object], column: str) -> ${union.id.name}:
 #match (dialectKey)
 #case ("sqlite")    data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
-    return _map_to_${union.name}(data)
+    return _map_to_${union.id.name}(data)
 #case ("postgres")<% include("fragments/json/row_data_postgres_col") +%>
-    return _map_to_${union.name}(data)
+    return _map_to_${union.id.name}(data)
 #end

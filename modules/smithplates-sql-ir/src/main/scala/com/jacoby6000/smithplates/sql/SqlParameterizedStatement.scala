@@ -1,4 +1,4 @@
-package com.jacoby6000.smithplates.sql.service.query.renderer
+package com.jacoby6000.smithplates.sql
 
 /** SQL with bind parameters implied between consecutive segments. */
 final case class SqlParameterizedStatement(segments: List[String]) {

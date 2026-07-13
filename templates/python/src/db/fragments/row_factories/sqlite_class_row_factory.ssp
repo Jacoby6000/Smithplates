@@ -1,4 +1,5 @@
-<%@ val factory: com.jacoby6000.smithplates.sql.service.renderer.TemplateClassRowFactoryView %>
-def ${rowFactoryName(factory.name)}(cursor: object, row: tuple[object, ...] | sqlite3.Row) -> ${factory.name}:
+<%@ val factory: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ClassRowFactorySpec %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+def ${rowFactoryName(factory.name)}(cursor: object, row: ${rowTypeName(sqlAttrs.dialectKey(ctx))}) -> ${factory.name}:
     return ${factory.name}(
-<% for (resultField <- factory.resultFields) { %>        <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>    )
+<% for (resultField <- factory.resultFields) { %>        <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>    )

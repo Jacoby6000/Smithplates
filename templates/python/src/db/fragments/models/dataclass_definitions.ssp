@@ -1,10 +1,11 @@
-<%@ val models: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] %>
+<%@ val models: List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <% for (model <- models) { %>
 @dataclass
-class ${model.name}:
-<% if (model.hasMembers) { %>
-<% render("fragments/models/member_lines", Map("members" -> model.members)) +%><% } %>
-<% if (!model.hasMembers) { %>
+class ${model.id.name}:
+<% if (model.fields.nonEmpty) { %>
+<% render("fragments/models/member_lines", Map("members" -> model.fields, "ctx" -> ctx)) +%><% } %>
+<% if (model.fields.isEmpty) { %>
     pass
 <% } %>
 

@@ -7,7 +7,6 @@ import com.jacoby6000.smithplates.sql.service.SqlOperation
 import com.jacoby6000.smithplates.sql.service.SqlQueries
 import com.jacoby6000.smithplates.sql.service.SqlQueryColumn
 import com.jacoby6000.smithplates.sql.service.codegen.ResolvedSqlOperationQuery
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.shapes.ShapeId
 

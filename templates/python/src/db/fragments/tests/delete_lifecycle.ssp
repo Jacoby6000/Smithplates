@@ -1,8 +1,8 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val test: com.jacoby6000.smithplates.sql.service.core.SqlIntegrationTestContext = sqlAttrs.integrationTest(ctx).get %>
 
-    deleted = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.deleteOperation.name)}(${test.deleteOperation.callArguments})
-    assert deleted${test.deleteOperation.outputValueAccessor} is True
+    deleted = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.deleteOperation.get.name)}(${test.deleteOperation.get.callArguments})
+    assert deleted${test.deleteOperation.get.outputValueAccessor} is True
 
-    missing = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    missing = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert missing is None

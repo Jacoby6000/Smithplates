@@ -1,13 +1,13 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val test: com.jacoby6000.smithplates.sql.service.core.SqlIntegrationTestContext = sqlAttrs.integrationTest(ctx).get %>
 
-    updated = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.updateOperation.name)}(${test.updateOperation.callArguments})
-    assert updated${test.updateOperation.outputValueAccessor} is True
+    updated = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.updateOperation.get.name)}(${test.updateOperation.get.callArguments})
+    assert updated${test.updateOperation.get.outputValueAccessor} is True
 
-    fetched_after_update = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    fetched_after_update = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched_after_update, ${test.selectOneOperation.outputShapeName})
-<% if (test.selectOneOperation.hasUpdatedResultAssertions) { %>
+<% if (test.selectOneOperation.updatedResultAssertions.nonEmpty) { %>
 <% for (assertion <- test.selectOneOperation.updatedResultAssertions) { %>
-    ${assertion.line}
+    ${assertion}
 <% } %>
 <% } %>

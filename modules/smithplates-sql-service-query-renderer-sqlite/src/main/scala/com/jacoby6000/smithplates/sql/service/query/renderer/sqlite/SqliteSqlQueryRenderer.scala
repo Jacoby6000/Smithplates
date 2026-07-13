@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.sql.service.query.renderer.sqlite
 
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.common.DialectSqlQueryRenderer
 
 object SqliteSqlQueryRenderer {

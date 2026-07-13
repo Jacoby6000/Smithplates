@@ -1,47 +1,46 @@
-<%@ val envelope: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceEnvelope %>
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val test: com.jacoby6000.smithplates.sql.service.core.SqlIntegrationTestContext = sqlAttrs.integrationTest(ctx).get %>
 
 @pytest.mark.integration
 @pytest.mark.sqlite
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(ctx.serviceModuleName)}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    connection = ${serviceFixtureName(ctx.serviceModuleName)}._connection
+async def test_derived_sql_methods_transaction_commit(${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}: ${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}) -> None:
+    connection = ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}._connection
     await connection.execute("BEGIN")
     try:
-        entity_id_result = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+        entity_id_result = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
         entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
         assert isinstance(entity_id, str)
         assert entity_id
 
-        fetched = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments}, transaction=connection)
+        fetched = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments}, transaction=connection)
         assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
 <% for (assertion <- test.transactionCommitInTxAssertions) { %>
-        ${assertion.line}
+        ${assertion}
 <% } %>
         await connection.commit()
     except BaseException:
         await connection.rollback()
         raise
 
-    fetched_after_commit = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    fetched_after_commit = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched_after_commit, ${test.selectOneOperation.outputShapeName})
 <% for (assertion <- test.transactionCommitAfterAssertions) { %>
-    ${assertion.line}
+    ${assertion}
 <% } %>
 
 
 @pytest.mark.integration
 @pytest.mark.sqlite
 @pytest.mark.asyncio
-async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(ctx.serviceModuleName)}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    connection = ${serviceFixtureName(ctx.serviceModuleName)}._connection
+async def test_derived_sql_methods_transaction_rollback(${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}: ${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}) -> None:
+    connection = ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}._connection
     await connection.execute("BEGIN")
-    entity_id_result = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
+    entity_id_result = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments}, transaction=connection)
     entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
     await connection.rollback()
 
-    missing = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    missing = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert missing is None

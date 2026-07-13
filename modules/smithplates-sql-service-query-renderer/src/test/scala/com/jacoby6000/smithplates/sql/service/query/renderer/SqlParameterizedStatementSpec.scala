@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.query.renderer
 
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import munit.FunSuite
 

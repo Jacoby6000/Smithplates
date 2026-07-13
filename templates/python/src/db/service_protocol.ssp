@@ -1,27 +1,26 @@
-<%@ val envelope: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceEnvelope %>
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 from __future__ import annotations
 
-<% if (ctx.operationResultModels.nonEmpty) { %>from dataclasses import dataclass
+<% if (sqlAttrs.operationResultModels(ctx).nonEmpty) { %>from dataclasses import dataclass
 <% } %>from typing import Protocol, TypeVar
 
 <% if (protocolTableModelImportBlock(ctx) != "") { %>${protocolTableModelImportBlock(ctx)}
-<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (ctx.operationResultModels.nonEmpty) { %>
+<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (sqlAttrs.operationResultModels(ctx).nonEmpty) { %>
 
 
-<% render("fragments/models/dataclass_definitions", Map("models" -> ctx.operationResultModels)) %><% } else if (protocolTableModelImportBlock(ctx) != "") { %>
+<% render("fragments/models/dataclass_definitions", Map("models" -> sqlAttrs.operationResultModels(ctx), "ctx" -> ctx)) %><% } else if (protocolTableModelImportBlock(ctx) != "") { %>
 
 <% } %>
 T = TypeVar("T", contravariant=True)
 
 
-class ${serviceProtocolName(ctx.serviceName)}(Protocol[T]):
-<% for (operation <- ctx.operations) { %>    async def ${operationMethodName(operation.name)}(
+class ${serviceProtocolName(sqlAttrs.serviceName(ctx))}(Protocol[T]):
+<% for (operation <- sqlAttrs.operations(ctx)) { %>    async def ${operationMethodName(operation.id.name)}(
         self,
-<% for (parameter <- operation.parameters) { %>
+<% for (parameter <- sqlAttrs.parameters(operation)) { %>
         ${parameter.name}: <% render("fragments/types/parameter_annotation", Map("typeName" -> parameter.typeName, "optional" -> parameter.optional)) %>,
 <% } %>
 <% include("fragments/types/transaction_parameter_protocol") %>
-    ) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
+    ) -> <% render("fragments/types/response_type", Map("operation" -> operation, "ctx" -> ctx)) +%>:
         ...
 <% } %>

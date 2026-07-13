@@ -1,11 +1,11 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<% render("fragments/helpers/table_model_imports", Map("ctx" -> ctx)) %><% if (ctx.operationResultModels.nonEmpty) { %>
-from ${qualifiedModule(ctx.packageName, protocolModulePath(ctx.serviceModuleName))} import (
-<% for (model <- ctx.operationResultModels) { %>
-    ${model.name},
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<% render("fragments/helpers/table_model_imports", Map("ctx" -> ctx)) %><% if (sqlAttrs.operationResultModels(ctx).nonEmpty) { %>
+from ${qualifiedModule(sqlAttrs.packageName(ctx), protocolModulePath(sqlAttrs.serviceModuleName(ctx)))} import (
+<% for (model <- sqlAttrs.operationResultModels(ctx)) { %>
+    ${model.id.name},
 <% } %>
-    ${serviceProtocolName(ctx.serviceName)},
+    ${serviceProtocolName(sqlAttrs.serviceName(ctx))},
 )
 <% } else { %>
-from ${qualifiedModule(ctx.packageName, protocolModulePath(ctx.serviceModuleName))} import ${serviceProtocolName(ctx.serviceName)}
+from ${qualifiedModule(sqlAttrs.packageName(ctx), protocolModulePath(sqlAttrs.serviceModuleName(ctx)))} import ${serviceProtocolName(sqlAttrs.serviceName(ctx))}
 <% } %>

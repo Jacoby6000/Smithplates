@@ -1,12 +1,12 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.SqlTestModelLoader
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer

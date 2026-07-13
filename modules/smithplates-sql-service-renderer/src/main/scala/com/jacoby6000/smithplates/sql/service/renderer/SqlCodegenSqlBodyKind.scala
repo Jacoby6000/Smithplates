@@ -1,5 +1,7 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.sql.service.core.SqlOperationSqlBinding
+
 /** Resolved operation-body dispatch key for SSP {@code #match} on a single string attribute. */
 object SqlCodegenSqlBodyKind {
   val InsertScalar: String             = "insertScalar"
@@ -16,37 +18,67 @@ object SqlCodegenSqlBodyKind {
   val SelectOneJoinedFlat: String      = "selectOneJoinedFlat"
   val SelectOneJoinedAggregate: String = "selectOneJoinedAggregate"
 
+  def resolve(sql: SqlOperationSqlBinding): Option[String] =
+    resolveImpl(
+      sql.queryKind,
+      sql.outputKind,
+      sql.executionMode,
+      sql.selectOneOutput.isDefined,
+      sql.selectOneOutput.exists(_.hasCollectionJoin),
+      SqlCodegenSqlBindingMetadata.canUseClassRow(sql),
+      SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)
+    )
+
   def resolve(sql: SqlCodegenSqlBinding): Option[String] =
-    if (sql.queryKind == "insert" && sql.outputKind == "scalar") {
+    resolveImpl(
+      sql.queryKind,
+      sql.outputKind,
+      sql.executionMode,
+      sql.selectOneOutput.isDefined,
+      sql.selectOneOutput.exists(_.hasCollectionJoin),
+      SqlCodegenSqlBindingMetadata.canUseClassRow(sql),
+      SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)
+    )
+
+  private def resolveImpl(
+      queryKind: String,
+      outputKind: String,
+      executionMode: String,
+      hasSelectOneOutput: Boolean,
+      hasCollectionJoin: Boolean,
+      canClassRow: Boolean,
+      usesDictRow: Boolean
+  ): Option[String] =
+    if (queryKind == "insert" && outputKind == "scalar") {
       Some(InsertScalar)
-    } else if (sql.queryKind == "insert" && sql.outputKind == "structure") {
-      if (SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)) {
+    } else if (queryKind == "insert" && outputKind == "structure") {
+      if (usesDictRow) {
         Some(InsertStructureDict)
       } else {
         Some(InsertStructureIndex)
       }
-    } else if (sql.outputKind == "boolean") {
-      if (sql.executionMode == "rowcount") {
+    } else if (outputKind == "boolean") {
+      if (executionMode == "rowcount") {
         Some(BooleanMutationRowcount)
       } else {
         Some(BooleanMutationExists)
       }
-    } else if (sql.outputKind == "booleanStructure") {
-      if (sql.executionMode == "rowcount") {
+    } else if (outputKind == "booleanStructure") {
+      if (executionMode == "rowcount") {
         Some(BooleanStructureRowcount)
       } else {
         Some(BooleanStructureExists)
       }
-    } else if (sql.queryKind == "selectOne" && sql.selectOneOutput.isDefined) {
-      if (sql.selectOneOutput.exists(_.hasCollectionJoin)) {
+    } else if (queryKind == "selectOne" && hasSelectOneOutput) {
+      if (hasCollectionJoin) {
         Some(SelectOneJoinedAggregate)
       } else {
         Some(SelectOneJoinedFlat)
       }
-    } else if (sql.queryKind == "selectOne") {
-      if (SqlCodegenSqlBindingMetadata.canUseClassRow(sql)) {
+    } else if (queryKind == "selectOne") {
+      if (canClassRow) {
         Some(SelectOneClassRow)
-      } else if (SqlCodegenSqlBindingMetadata.usesDictRowFactory(sql)) {
+      } else if (usesDictRow) {
         Some(SelectOneDict)
       } else {
         Some(SelectOneIndex)

@@ -1,9 +1,9 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-from ${qualifiedModule(ctx.packageName, modelsModulePath(ctx.serviceModuleName))} import (
-<% for (model <- ctx.models) { %>
-    ${model.name},
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+from ${qualifiedModule(sqlAttrs.packageName(ctx), modelsModulePath(sqlAttrs.serviceModuleName(ctx)))} import (
+<% for (model <- sqlAttrs.models(ctx)) { %>
+    ${model.id.name},
 <% } %>
-<% for (union <- ctx.unions) { %>
-    ${union.name},
+<% for (union <- sqlAttrs.unions(ctx)) { %>
+    ${union.id.name},
 <% } %>
 )

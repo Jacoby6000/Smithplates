@@ -1,5 +1,6 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
             cursor = await conn.execute(
-<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> operation.sqlStatement)) %>,
-                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> operation.bindParameters)) +%>,
+<% render("fragments/sql/sql_triple_quoted_statement", Map("sqlStatement" -> sqlAttrs.sqlStatement(operation))) %>,
+                <% render("fragments/sql/bind_tuple", Map("bindParameters" -> sqlAttrs.bindParameters(operation), "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>,
             )

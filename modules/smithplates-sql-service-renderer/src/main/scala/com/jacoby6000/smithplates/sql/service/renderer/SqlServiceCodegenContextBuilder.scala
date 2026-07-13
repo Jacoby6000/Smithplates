@@ -10,7 +10,6 @@ import com.jacoby6000.smithplates.sql.service.SqlQueryExtractor
 import com.jacoby6000.smithplates.sql.service.SqlService
 import com.jacoby6000.smithplates.sql.service.codegen.ResolvedSqlOperationQuery
 import com.jacoby6000.smithplates.sql.service.codegen.SqlOperationQueryResolver
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 

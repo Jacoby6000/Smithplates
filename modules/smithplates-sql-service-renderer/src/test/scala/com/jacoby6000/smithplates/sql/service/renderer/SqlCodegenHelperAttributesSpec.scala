@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
 
@@ -39,129 +40,67 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
       |}
       |""".stripMargin
 
-  test("documentUsedAsJson - true when Document column is bound or read") {
+  private def buildServiceView(dialectKey: String): SqlNeutralServiceTemplateAttributes.ServiceView = {
     val model      = SqlTestModelBuilder.assemble(documentRecordSmithy)
     val extraction = SqlModelExtractor.extractOrThrow(model)
-    val view       =
-      SqlCodegenTemplateViews.buildServiceView(
-        SqlServiceCodegenContextBuilder
-          .build(
-            model = model,
-            schema = extraction.schema,
-            queries = extraction.serviceIr.queries,
-            service = extraction.serviceIr.services.head,
-            queryRenderer =
-              Some(SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests.queryRenderers("sqlite")),
-            bindPlaceholderStyle = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
-              .queryRenderers("sqlite")
-              .codegenBindPlaceholder,
-            settings = SqlServiceCodegenTemplateBackend.pythonSqlite.settingsForTests
-          )
-          .toEither
-          .getOrElse(fail("expected sqlite context build to succeed"))
-      )
+    val backend    =
+      dialectKey match {
+        case "sqlite"   => SqlServiceCodegenTemplateBackend.pythonSqlite
+        case "postgres" => SqlServiceCodegenTemplateBackend.pythonPostgres
+        case other      => fail(s"unknown dialect: $other")
+      }
+    val context    =
+      SqlServiceCodegenContextBuilder
+        .build(
+          model = model,
+          schema = extraction.schema,
+          queries = extraction.serviceIr.queries,
+          service = extraction.serviceIr.services.head,
+          queryRenderer = Some(backend.settingsForTests.queryRenderers(dialectKey)),
+          bindPlaceholderStyle = backend.settingsForTests
+            .queryRenderers(dialectKey)
+            .codegenBindPlaceholder,
+          settings = backend.settingsForTests
+        )
+        .toEither
+        .getOrElse(fail("expected context build to succeed"))
 
-    assert(SqlCodegenHelperAttributes.documentUsedAsJson(view))
-    assert(SqlCodegenHelperAttributes.documentUsedAsJsonCol(view))
-    assertEquals(SqlCodegenHelperAttributes.modelsUsedAsJson(view), Nil)
+    val (_, services)                                             = com.jacoby6000.smithplates.sql.service.core.SqlCoreModelExtractor
+      .extract(model)
+      .toEither
+      .getOrElse(fail("expected core extraction to succeed"))
+    val serviceModel                                              = services.head
+    val baseView: SqlNeutralServiceTemplateAttributes.ServiceView = TemplateView(
+      subject = serviceModel,
+      usedTypes = Nil,
+      conventions = SspFragmentsSpec.internal.minimalServiceView.conventions,
+      typeRenderer = SspFragmentsSpec.internal.minimalServiceView.typeRenderer
+    )
+    SqlServiceCodegenRenderer.internal.enrichView(baseView, context)
+  }
+
+  test("documentUsedAsJson - true when Document column is bound or read") {
+    val view = buildServiceView("sqlite")
+
+    assert(SqlNeutralServiceTemplateAttributes.documentUsedAsJson(view))
+    assert(SqlNeutralServiceTemplateAttributes.documentUsedAsJsonCol(view))
   }
 
   test("documentUsedAsJson - false when no Document JSON columns are used") {
-    val view =
-      ServiceTemplateView(
-        serviceShapeId = "example#WidgetRepository",
-        serviceName = "WidgetRepository",
-        serviceModuleName = "widget_repository",
-        dialectKey = "sqlite",
-        packageName = "generated.example",
-        models = Nil,
-        operationResultModels = Nil,
-        unions = Nil,
-        operations = Nil,
-        usedJsonTypeNames = Set("PostalAddress"),
-        usedJsonTypeNamesCol = Set.empty,
-        classRowFactories = Nil,
-        integrationTest = None,
-        migration = None,
-        uuidTypeNames = Nil,
-        enumTypeNames = Nil
-      )
+    val view = SspFragmentsSpec.internal.minimalServiceView
 
-    assert(!SqlCodegenHelperAttributes.documentUsedAsJson(view))
-    assert(!SqlCodegenHelperAttributes.documentUsedAsJsonCol(view))
+    assert(!SqlNeutralServiceTemplateAttributes.documentUsedAsJson(view))
+    assert(!SqlNeutralServiceTemplateAttributes.documentUsedAsJsonCol(view))
   }
 
   test("row reader helpers - emit Document JSON bind and read helpers for sqlite and postgres") {
-    val view =
-      ServiceTemplateView(
-        serviceShapeId = "example#RecordRepository",
-        serviceName = "RecordRepository",
-        serviceModuleName = "record_repository",
-        dialectKey = "sqlite",
-        packageName = "generated.example",
-        models = Nil,
-        operationResultModels = Nil,
-        unions = Nil,
-        operations = List(
-          TemplateOperationView(
-            name = "GetRecord",
-            hasSql = true,
-            parameters = Nil,
-            hasOutput = true,
-            outputShapeName = "Record",
-            outputTypeName = "Record",
-            errors = Nil,
-            isSelectOne = true,
-            sqlBodyKind = SqlCodegenSqlBodyKind.SelectOneDict,
-            sqlStatement = "SELECT id, payload FROM records WHERE id = ?",
-            bindParameters = Nil,
-            returningColumnIndex = null,
-            resultFields = List(
-              TemplateResultFieldView(
-                fieldName = "id",
-                columnNameLiteral = "\"id\"",
-                columnIndex = 0,
-                typeName = "String",
-                readTypeName = "String",
-                optional = false,
-                isJson = false,
-                timestampFormat = "",
-                isEnum = false,
-                last = false
-              ),
-              TemplateResultFieldView(
-                fieldName = "payload",
-                columnNameLiteral = "\"payload\"",
-                columnIndex = 1,
-                typeName = "Document",
-                readTypeName = "Document",
-                optional = false,
-                isJson = true,
-                timestampFormat = "",
-                isEnum = false,
-                last = true
-              )
-            ),
-            booleanResultFieldName = "",
-            selectOneNestedBindings = Nil
-          )
-        ),
-        usedJsonTypeNames = Set("Document"),
-        usedJsonTypeNamesCol = Set("Document"),
-        classRowFactories = Nil,
-        integrationTest = None,
-        migration = None,
-        uuidTypeNames = Nil,
-        enumTypeNames = Nil
-      )
-
     List("sqlite", "postgres").foreach { dialectKey =>
-      val dialectView = view.copy(dialectKey = dialectKey)
-      val output      =
+      val view   = buildServiceView(dialectKey)
+      val output =
         ScalateSspTemplateEngine.renderClasspathPartial(
           SspFragmentsSpec.internal.templateRoot,
           "fragments/helpers/row_reader_helpers",
-          Map("ctx" -> dialectView)
+          Map("ctx" -> view)
         )
 
       assert(output.contains("def _json_bind_Document"), s"$dialectKey missing bind helper: $output")

@@ -1,14 +1,15 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
-<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
-<% for (nested <- operation.selectOneNestedBindings) { %><% if (nested.isCollection) { %>                ${nested.memberName}=[],
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
+<% for (nested <- sqlAttrs.selectOneNestedBindings(operation)) { %><% if (nested.cardinality == com.jacoby6000.smithplates.sql.service.SqlSelectOneNestedCardinality.Collection) { %>                ${nested.memberName}=[],
 <% } else if (nested.optional) { %>                ${nested.memberName}=None if row[${nested.fields.head.columnIndex}] is None else ${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
                 ),
 <% } else { %>                ${nested.memberName}=${nested.shapeName}(
-<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+<% for (resultField <- nested.fields) { %>                    <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
                 ),
 <% } %><% } %>            )

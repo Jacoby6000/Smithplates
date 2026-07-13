@@ -1,10 +1,10 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%
-def jsonModels: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
-  (modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)).distinctBy(_.name).sortBy(_.name)
+def jsonModels: List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  (modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)).distinctBy(_.id.name).sortBy(_.id.name)
 
-def jsonUnions: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
-  (unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)).distinctBy(_.name).sortBy(_.name)
+def jsonUnions: List[com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  (unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)).distinctBy(_.id.name).sortBy(_.id.name)
 
 def memberValueExpr(memberName: String): String =
   "value." + memberName
@@ -23,39 +23,39 @@ def _dump_json_timestamp(value: datetime) -> str:
 <% for (model <- jsonModels) { %>
 
 
-def _map_to_${model.name}(data: dict[str, object]) -> ${model.name}:
-    return ${model.name}(
-<% for (member <- model.members) { %>
-        ${member.name}=${mapValueExpression(member.typeName, jsonFieldAccess(member.name), ctx)},
+def _map_to_${model.id.name}(data: dict[str, object]) -> ${model.id.name}:
+    return ${model.id.name}(
+<% for (member <- model.fields) { %>
+        ${member.name}=${mapValueExpression(sqlAttrs.memberTypeName(ctx, member), jsonFieldAccess(member.name), ctx)},
 <% } %>    )
 
 
-def _dump_${model.name}(value: ${model.name}) -> dict[str, object]:
+def _dump_${model.id.name}(value: ${model.id.name}) -> dict[str, object]:
     return {
-<% for (member <- model.members) { %>
-        "${member.name}": ${dumpValueExpression(member.typeName, memberValueExpr(member.name), ctx)},
+<% for (member <- model.fields) { %>
+        "${member.name}": ${dumpValueExpression(sqlAttrs.memberTypeName(ctx, member), memberValueExpr(member.name), ctx)},
 <% } %>    }
 <% } %>
 <% for (union <- jsonUnions) { %>
 
 
-def _map_to_${union.name}(data: dict[str, object]) -> ${union.name}:
-    present = [key for key in (${unionDiscriminatorKeys(union)}) if key in data]
+def _map_to_${union.id.name}(data: dict[str, object]) -> ${union.id.name}:
+    present = [key for key in (${unionDiscriminatorKeys(union.members)}) if key in data]
     if len(present) != 1:
-        raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+        raise ValueError(f"unknown ${union.id.name} discriminator: {sorted(data.keys())}")
 <% for (member <- union.members) { %>
     if "${member.name}" in data:
-        return ${unionVariantTypeName(union.name, member.name)}(
-            ${member.name}=${mapValueExpression(member.typeName, jsonFieldAccess(member.name), ctx)},
+        return ${unionVariantTypeName(union.id.name, member.name)}(
+            ${member.name}=${mapValueExpression(sqlAttrs.renderType(ctx, member.tpe), jsonFieldAccess(member.name), ctx)},
         )
 <% } %>
-    raise ValueError(f"unknown ${union.name} discriminator: {sorted(data.keys())}")
+    raise ValueError(f"unknown ${union.id.name} discriminator: {sorted(data.keys())}")
 
 
-def _dump_${union.name}(value: ${union.name}) -> dict[str, object]:
+def _dump_${union.id.name}(value: ${union.id.name}) -> dict[str, object]:
 <% for (member <- union.members) { %>
-    if isinstance(value, ${unionVariantTypeName(union.name, member.name)}):
-        return {"${member.name}": ${dumpValueExpression(member.typeName, memberValueExpr(member.name), ctx)}}
+    if isinstance(value, ${unionVariantTypeName(union.id.name, member.name)}):
+        return {"${member.name}": ${dumpValueExpression(sqlAttrs.renderType(ctx, member.tpe), memberValueExpr(member.name), ctx)}}
 <% } %>
-    raise TypeError(f"unsupported ${union.name} variant: {type(value)!r}")
+    raise TypeError(f"unsupported ${union.id.name} variant: {type(value)!r}")
 <% } %>

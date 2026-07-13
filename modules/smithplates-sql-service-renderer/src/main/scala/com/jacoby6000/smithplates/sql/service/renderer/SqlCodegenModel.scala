@@ -2,8 +2,6 @@ package com.jacoby6000.smithplates.sql.service.renderer
 
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class SqlCodegenParameter(

@@ -1,4 +1,6 @@
 <%
+val sqlAttrs = com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes
+
 def unionVariantTypeName(unionName: String, memberName: String): String =
   s"$unionName${memberName.capitalize}"
 
@@ -76,22 +78,28 @@ def transactionTypeName(dialectKey: String): String =
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
 
-def unionDiscriminatorKeys(union: com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView): String =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionDiscriminatorKeys(union)
+def timestampFormatName(format: Option[com.jacoby6000.smithplates.sql.model.SqlTimestampFormat]): String =
+  format.map {
+    case com.jacoby6000.smithplates.sql.model.SqlTimestampFormat.DateTime     => "DateTime"
+    case com.jacoby6000.smithplates.sql.model.SqlTimestampFormat.EpochSeconds => "EpochSeconds"
+  }.getOrElse("")
 
-def enumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.enumTypeNames(ctx)
+def unionDiscriminatorKeys(members: List[com.jacoby6000.smithplates.codegen.core.Variant]): String =
+  sqlAttrs.unionDiscriminatorKeys(members)
 
-def structureTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.structureTypeNames(ctx)
+def enumTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
+  sqlAttrs.enumTypeNames(ctx)
 
-def unionTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionTypeNames(ctx)
+def structureTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
+  sqlAttrs.structureTypeNames(ctx)
+
+def unionTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
+  sqlAttrs.unionTypeNames(ctx)
 
 def mapValueExpression(
     typeName: String,
     valueExpr: String,
-    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+    ctx: sqlAttrs.ServiceView
 ): String = {
   if (typeName.startsWith("List[")) {
     val inner = typeName.substring(5, typeName.length - 1)
@@ -101,14 +109,14 @@ def mapValueExpression(
     s"{str(key): ${mapValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in cast(dict[str, object], $valueExpr).items()}"
   } else {
     typeName match {
-      case "String"                          => s"str($valueExpr)"
-      case "Integer" | "Long" | "BigInteger" => s"int($valueExpr)"
-      case "Float" | "Double"                => s"float($valueExpr)"
-      case "Boolean"                         => s"bool($valueExpr)"
-      case "BigDecimal"                      => s"Decimal(str($valueExpr))"
-      case "Blob"                            => s"bytes($valueExpr)"
-      case "Timestamp"                       => s"_map_json_timestamp($valueExpr)"
-      case "Document"                        => valueExpr
+      case "str"                             => s"str($valueExpr)"
+      case "int"                             => s"int($valueExpr)"
+      case "float"                           => s"float($valueExpr)"
+      case "bool"                            => s"bool($valueExpr)"
+      case "Decimal"                         => s"Decimal(str($valueExpr))"
+      case "bytes"                           => s"bytes($valueExpr)"
+      case "datetime"                        => s"_map_json_timestamp($valueExpr)"
+      case "object"                          => valueExpr
       case other if structureTypeNames(ctx).contains(other) =>
         s"_map_to_$other(cast(dict[str, object], $valueExpr))"
       case other if unionTypeNames(ctx).contains(other) =>
@@ -124,7 +132,7 @@ def mapValueExpression(
 def dumpValueExpression(
     typeName: String,
     valueExpr: String,
-    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+    ctx: sqlAttrs.ServiceView
 ): String = {
   if (typeName.startsWith("List[")) {
     val inner = typeName.substring(5, typeName.length - 1)
@@ -134,8 +142,8 @@ def dumpValueExpression(
     s"{key: ${dumpValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in $valueExpr.items()}"
   } else {
     typeName match {
-      case "Timestamp"                       => s"_dump_json_timestamp($valueExpr)"
-      case "Document"                        => valueExpr
+      case "datetime"                        => s"_dump_json_timestamp($valueExpr)"
+      case "object"                          => valueExpr
       case other if structureTypeNames(ctx).contains(other) =>
         s"_dump_$other($valueExpr)"
       case other if unionTypeNames(ctx).contains(other) =>
@@ -147,41 +155,42 @@ def dumpValueExpression(
   }
 }
 
-def jsonMappingUsesTimestamp(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.jsonMappingUsesTimestamp(ctx)
+def jsonMappingUsesTimestamp(ctx: sqlAttrs.ServiceView): Boolean =
+  sqlAttrs.jsonMappingUsesTimestamp(ctx)
 
 def jsonFieldAccess(memberName: String): String =
   "data[\"" + memberName + "\"]"
 
-def helperPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[String] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.helperPartialPaths(ctx)
+def helperPartialPaths(ctx: sqlAttrs.ServiceView): List[String] =
+  sqlAttrs.helperPartialPaths(ctx)
 
-def helperColPartialPaths(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[String] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.helperColPartialPaths(ctx)
+def helperColPartialPaths(ctx: sqlAttrs.ServiceView): List[String] =
+  sqlAttrs.helperColPartialPaths(ctx)
 
-def unionsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionsUsedAsJson(ctx)
+def unionsUsedAsJson(ctx: sqlAttrs.ServiceView): List[com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  sqlAttrs.unionsUsedAsJson(ctx)
 
-def modelsUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.modelsUsedAsJson(ctx)
+def modelsUsedAsJson(ctx: sqlAttrs.ServiceView): List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  sqlAttrs.modelsUsedAsJson(ctx)
 
-def unionsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateUnionView] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.unionsUsedAsJsonCol(ctx)
+def unionsUsedAsJsonCol(ctx: sqlAttrs.ServiceView): List[com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  sqlAttrs.unionsUsedAsJsonCol(ctx)
 
-def modelsUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): List[com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView] =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.modelsUsedAsJsonCol(ctx)
+def modelsUsedAsJsonCol(ctx: sqlAttrs.ServiceView): List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
+  sqlAttrs.modelsUsedAsJsonCol(ctx)
 
-def documentUsedAsJson(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.documentUsedAsJson(ctx)
+def documentUsedAsJson(ctx: sqlAttrs.ServiceView): Boolean =
+  sqlAttrs.documentUsedAsJson(ctx)
 
-def documentUsedAsJsonCol(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Boolean =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.documentUsedAsJsonCol(ctx)
+def documentUsedAsJsonCol(ctx: sqlAttrs.ServiceView): Boolean =
+  sqlAttrs.documentUsedAsJsonCol(ctx)
 
-def importRequirements(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements =
-  com.jacoby6000.smithplates.sql.service.renderer.SqlCodegenHelperAttributes.importRequirements(ctx)
+def importRequirements(ctx: sqlAttrs.ServiceView): com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements =
+  sqlAttrs.importRequirements(ctx)
 
 def resultFieldAssignmentBindings(
-    resultField: com.jacoby6000.smithplates.sql.service.renderer.TemplateResultFieldView,
+    ctx: sqlAttrs.ServiceView,
+    resultField: com.jacoby6000.smithplates.sql.service.core.SqlOperationResultField,
     readMode: String,
     rowVar: String = "row"
 ): Map[String, Any] =
@@ -191,16 +200,16 @@ def resultFieldAssignmentBindings(
     "readTypeName"      -> resultField.readTypeName,
     "optional"          -> resultField.optional,
     "isJson"            -> resultField.isJson,
-    "isEnum"            -> resultField.isEnum,
+    "isEnum"            -> sqlAttrs.enumTypeNames(ctx).contains(resultField.typeName),
     "readMode"          -> readMode,
     "columnIndex"       -> resultField.columnIndex,
-    "columnNameLiteral" -> resultField.columnNameLiteral,
+    "columnNameLiteral" -> s"\"${resultField.columnName}\"",
     "rowVar"            -> rowVar,
-    "timestampFormat"   -> resultField.timestampFormat
+    "timestampFormat"   -> timestampFormatName(resultField.timestampFormat)
   )
 
-def configuredMigrationsDirectory(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String =
-  ctx.migration.map(_.migrationsDirectory).getOrElse(s"db/migrations/${ctx.dialectKey}")
+def configuredMigrationsDirectory(ctx: sqlAttrs.ServiceView): String =
+  sqlAttrs.migration(ctx).map(_.migrationsDirectory).getOrElse(s"db/migrations/${sqlAttrs.dialectKey(ctx)}")
 
 def migrationsDirectoryFromTestFile(serviceShapeId: String, migrationsDirectory: String): String = {
   val namespace = serviceShapeId.takeWhile(_ != '#')
@@ -231,20 +240,20 @@ def referencedTypeNames(typeName: String): List[String] = {
   }
 }
 
-def enumImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+def enumImportBlock(ctx: sqlAttrs.ServiceView): String = {
   val enumNames = referencedEnumTypeNames(ctx).toList.sorted
   if (enumNames.isEmpty) {
     ""
   } else {
     enumNames
       .map(enumName =>
-        s"from ${qualifiedModule(ctx.packageName, snakeCase(enumName))} import $enumName")
+        s"from ${qualifiedModule(sqlAttrs.packageName(ctx), snakeCase(enumName))} import $enumName")
       .mkString("\n", "\n", "\n")
   }
 }
 
-def referencedEnumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] = {
-  val enumNames = ctx.enumTypeNames.toSet
+def referencedEnumTypeNames(ctx: sqlAttrs.ServiceView): Set[String] = {
+  val enumNames = sqlAttrs.enumTypeNames(ctx)
   val referenced = scala.collection.mutable.LinkedHashSet.empty[String]
 
   def reference(typeName: String): Unit =
@@ -254,14 +263,14 @@ def referencedEnumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer
       }
     }
 
-  ctx.models.flatMap(_.members).foreach(member => reference(member.typeName))
-  ctx.unions.flatMap(_.members).foreach(member => reference(member.typeName))
-  ctx.operations.foreach { operation =>
-    operation.parameters.foreach(parameter => reference(parameter.typeName))
-    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
-    operation.bindParameters.foreach(bind => reference(bind.typeName))
-    operation.resultFields.foreach(field => reference(field.typeName))
-    operation.selectOneNestedBindings.foreach { nested =>
+  sqlAttrs.models(ctx).flatMap(_.fields).foreach(member => reference(sqlAttrs.memberTypeName(ctx, member)))
+  sqlAttrs.unions(ctx).flatMap(_.members).foreach(member => reference(sqlAttrs.renderType(ctx, member.tpe)))
+  sqlAttrs.operations(ctx).foreach { operation =>
+    sqlAttrs.parameters(operation).foreach(parameter => reference(parameter.typeName))
+    if (sqlAttrs.outputTypeName(operation).nonEmpty) reference(sqlAttrs.outputTypeName(operation))
+    sqlAttrs.bindParameters(operation).foreach(bind => reference(bind.typeName))
+    sqlAttrs.resultFields(operation).foreach(field => reference(field.typeName))
+    sqlAttrs.selectOneNestedBindings(operation).foreach { nested =>
       reference(nested.shapeName)
       nested.fields.foreach(field => reference(field.typeName))
     }
@@ -270,9 +279,9 @@ def referencedEnumTypeNames(ctx: com.jacoby6000.smithplates.sql.service.renderer
   referenced.toSet
 }
 
-def protocolReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): (List[String], List[String]) = {
-  val tableModelNames = ctx.models.map(_.name).toSet
-  val unionNames      = ctx.unions.map(_.name).toSet
+def protocolReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[String]) = {
+  val tableModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet
+  val unionNames      = sqlAttrs.unions(ctx).map(_.id.name).toSet
   val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
   val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
 
@@ -286,19 +295,19 @@ def protocolReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer
       }
     }
 
-  ctx.operations.foreach { operation =>
-    operation.parameters.foreach(parameter => reference(parameter.typeName))
-    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
+  sqlAttrs.operations(ctx).foreach { operation =>
+    sqlAttrs.parameters(operation).foreach(parameter => reference(parameter.typeName))
+    if (sqlAttrs.outputTypeName(operation).nonEmpty) reference(sqlAttrs.outputTypeName(operation))
   }
 
-  ctx.operationResultModels.flatMap(_.members).foreach(member => reference(member.typeName))
+  sqlAttrs.operationResultModels(ctx).flatMap(_.fields).foreach(member => reference(sqlAttrs.memberTypeName(ctx, member)))
 
   (referencedTable.toList.sorted, referencedUnion.toList.sorted)
 }
 
-def serviceReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): (List[String], List[String]) = {
-  val tableModelNames = ctx.models.map(_.name).toSet
-  val unionNames      = ctx.unions.map(_.name).toSet
+def serviceReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[String]) = {
+  val tableModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet
+  val unionNames      = sqlAttrs.unions(ctx).map(_.id.name).toSet
   val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
   val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
 
@@ -309,25 +318,23 @@ def serviceReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.
       }
       if (unionNames.contains(candidate)) {
         referencedUnion += candidate
-        ctx.unions.find(_.name == candidate).foreach { union =>
+        sqlAttrs.unions(ctx).find(_.id.name == candidate).foreach { union =>
           union.members.foreach { member =>
-            referencedTable += unionVariantTypeName(union.name, member.name)
+            referencedTable += unionVariantTypeName(union.id.name, member.name)
           }
         }
       }
     }
 
-  ctx.operations.filter(_.hasSql).foreach { operation =>
-    operation.parameters.foreach(parameter => reference(parameter.typeName))
-    if (operation.outputTypeName.nonEmpty) reference(operation.outputTypeName)
-    operation.bindParameters.foreach { bindParameter =>
+  sqlAttrs.operations(ctx).filter(op => sqlAttrs.hasSql(op)).foreach { operation =>
+    sqlAttrs.parameters(operation).foreach(parameter => reference(parameter.typeName))
+    if (sqlAttrs.outputTypeName(operation).nonEmpty) reference(sqlAttrs.outputTypeName(operation))
+    sqlAttrs.bindParameters(operation).foreach { bindParameter =>
       reference(bindParameter.typeName)
-      if (bindParameter.jsonTypeName.nonEmpty) {
-        reference(bindParameter.jsonTypeName)
-      }
+      bindParameter.jsonTypeName.foreach(name => reference(name))
     }
-    operation.resultFields.foreach(resultField => reference(resultField.typeName))
-    operation.selectOneNestedBindings.foreach { nested =>
+    sqlAttrs.resultFields(operation).foreach(resultField => reference(resultField.typeName))
+    sqlAttrs.selectOneNestedBindings(operation).foreach { nested =>
       reference(nested.shapeName)
       nested.fields.foreach(field => reference(field.typeName))
     }
@@ -336,36 +343,36 @@ def serviceReferencedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.
   (referencedTable.toList.sorted, referencedUnion.toList.sorted)
 }
 
-def protocolTableModelImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+def protocolTableModelImportBlock(ctx: sqlAttrs.ServiceView): String = {
   val (tableModels, unions) = protocolReferencedNames(ctx)
   val names = (tableModels ++ unions).sorted
   if (names.isEmpty) {
     ""
   } else {
     val body = names.map(name => s"    $name,").mkString("\n", "\n", "\n")
-    s"from ${qualifiedModule(ctx.packageName, s"models/${ctx.serviceModuleName}_models")} import ($body)"
+    s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"models/${sqlAttrs.serviceModuleName(ctx)}_models")} import ($body)"
   }
 }
 
-def serviceLocalImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): String = {
+def serviceLocalImportBlock(ctx: sqlAttrs.ServiceView): String = {
   val (tableModels, unions) = serviceReferencedNames(ctx)
-  val operationResultNames = ctx.operationResultModels.map(_.name).toSet
-  val derivedResultNames = ctx.operations.filter(_.hasSql).map(_.outputTypeName).filter(_.nonEmpty).filter(derivedNames(ctx).contains).distinct.sorted.toList
+  val operationResultNames = sqlAttrs.operationResultModels(ctx).map(_.id.name).toSet
+  val derivedResultNames = sqlAttrs.operations(ctx).filter(op => sqlAttrs.hasSql(op)).map(op => sqlAttrs.outputTypeName(op)).filter(_.nonEmpty).filter(derivedNames(ctx).contains).distinct.sorted.toList
 
   val blocks = List.newBuilder[String]
 
   val modelNames = (tableModels ++ unions).sorted
   if (modelNames.nonEmpty) {
     val body = modelNames.map(name => s"    $name,").mkString("\n", "\n", "\n")
-    blocks += s"from ${qualifiedModule(ctx.packageName, s"models/${ctx.serviceModuleName}_models")} import ($body)"
+    blocks += s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"models/${sqlAttrs.serviceModuleName(ctx)}_models")} import ($body)"
   }
 
-  val protocolName = serviceProtocolName(ctx.serviceName)
+  val protocolName = serviceProtocolName(sqlAttrs.serviceName(ctx))
   if (derivedResultNames.isEmpty) {
-    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.serviceModuleName}_protocol")} import $protocolName"
+    blocks += s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"${sqlAttrs.serviceModuleName(ctx)}_protocol")} import $protocolName"
   } else {
     val body = (derivedResultNames.map(name => s"    $name,") :+ s"    $protocolName,").mkString("\n", "\n", "\n")
-    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.serviceModuleName}_protocol")} import ($body)"
+    blocks += s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"${sqlAttrs.serviceModuleName(ctx)}_protocol")} import ($body)"
   }
 
   val enumBlock = enumImportBlock(ctx)
@@ -373,15 +380,15 @@ def serviceLocalImportBlock(ctx: com.jacoby6000.smithplates.sql.service.renderer
     blocks += enumBlock.stripSuffix("\n")
   }
 
-  if (ctx.operations.exists(_.hasSql)) {
-    blocks += s"from ${qualifiedModule(ctx.packageName, s"${ctx.dialectKey}/${transactionRunModuleName(ctx.dialectKey)}")} import run"
+  if (sqlAttrs.operations(ctx).exists(op => sqlAttrs.hasSql(op))) {
+    blocks += s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"${sqlAttrs.dialectKey(ctx)}/${transactionRunModuleName(sqlAttrs.dialectKey(ctx))}")} import run"
   }
 
   blocks.result().sortBy(_.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')).mkString("\n")
 }
 
-def derivedNames(ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView): Set[String] =
-  ctx.operationResultModels.map(_.name).toSet
+def derivedNames(ctx: sqlAttrs.ServiceView): Set[String] =
+  sqlAttrs.operationResultModels(ctx).map(_.id.name).toSet
 
 def extractImportModuleName(block: String): String =
   block.linesIterator.next().stripPrefix("from ").takeWhile(_ != ' ')
@@ -408,13 +415,13 @@ def importBlocks(importText: String): List[String] =
   }
 
 def integrationTestLocalImportBlock(
-    test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView,
-    ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView
+    test: com.jacoby6000.smithplates.sql.service.core.SqlIntegrationTestContext,
+    ctx: sqlAttrs.ServiceView
 ): String = {
-  val implementationModule = s"${ctx.serviceModuleName}${implementationModuleSuffix(ctx.dialectKey)}"
-  val implementationClass  = implementationClassName(ctx.serviceName, ctx.dialectKey)
+  val implementationModule = s"${sqlAttrs.serviceModuleName(ctx)}${implementationModuleSuffix(sqlAttrs.dialectKey(ctx))}"
+  val implementationClass  = implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))
   val implementationBlock  =
-    s"from ${qualifiedModule(ctx.packageName, s"${ctx.dialectKey}/$implementationModule")} import $implementationClass"
+    s"from ${qualifiedModule(sqlAttrs.packageName(ctx), s"${sqlAttrs.dialectKey(ctx)}/$implementationModule")} import $implementationClass"
   val blocks               = importBlocks(test.testImports) :+ implementationBlock
   blocks
     .groupBy(extractImportModuleName)
