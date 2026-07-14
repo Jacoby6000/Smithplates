@@ -82,7 +82,8 @@ final case class HttpResponseVariantMeta(
     statusCode: Int,
     mediaType: Option[String] = None,
     headerBindings: List[(String, String)] = Nil,
-    staticHeaders: List[(String, String)] = Nil
+    staticHeaders: List[(String, String)] = Nil,
+    modelShapeId: Option[ModelId] = None
 )
 
 /** Operation-level HTTP feature metadata. */

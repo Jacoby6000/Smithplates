@@ -21,29 +21,44 @@ object SqlCodegenIntegrationTestBuilder {
       return None
     }
 
-    val enumSamples        = internal.enumSampleLiterals(context, schema)
+    val enumSamples = internal.enumSampleLiterals(context, schema)
+
+    val operationsByTable = sqlOperations.flatMap(op => op.sql.map(sql => (sql.tableName, op))).groupBy(_._1).view.mapValues(_.map(_._2).toList).toMap
+
+    val tableWithMostLifecycleOps = operationsByTable.toList
+      .filter { case (_, ops) =>
+        ops.exists(_.sql.exists(_.queryKind == "insert")) &&
+        ops.exists(_.sql.exists(_.queryKind == "selectOne"))
+      }
+      .maxByOption { case (_, ops) =>
+        ops.count(op => op.sql.exists(sql => sql.queryKind == "insert" || sql.queryKind == "selectOne" || sql.queryKind == "update" || sql.queryKind == "delete"))
+      }
+
+    val lifecycleOps = tableWithMostLifecycleOps.map(_._2).getOrElse(sqlOperations)
+
+    val lifecycleInsertOp = lifecycleOps.find(_.sql.exists(_.queryKind == "insert"))
+    val lifecycleUpdateOp  = lifecycleOps.find(_.sql.exists(_.queryKind == "update"))
+
     val insertOperation    =
-      sqlOperations
-        .find(_.sql.exists(_.queryKind == "insert"))
+      lifecycleInsertOp
         .flatMap(internal.buildInsertOperation(context, _, enumSamples))
     val selectOneOperation =
-      sqlOperations
+      lifecycleOps
         .find(_.sql.exists(_.queryKind == "selectOne"))
-        .flatMap(internal.buildSelectOneOperation(context, _, enumSamples))
+        .flatMap(internal.buildSelectOneOperation(context, _, enumSamples, lifecycleInsertOp, lifecycleUpdateOp))
     val updateOperation    =
-      sqlOperations
-        .find(_.sql.exists(_.queryKind == "update"))
+      lifecycleUpdateOp
         .flatMap(internal.buildUpdateOperation(context, _, enumSamples))
     val deleteOperation    =
-      sqlOperations.find(_.sql.exists(_.queryKind == "delete")).flatMap(internal.buildDeleteOperation)
+      lifecycleOps.find(_.sql.exists(_.queryKind == "delete")).flatMap(internal.buildDeleteOperation)
 
     (insertOperation, selectOneOperation) match {
       case (Some(insert), Some(selectOne)) =>
         val testImports     = internal.collectTestImports(context, insert, selectOne, updateOperation)
         val insertTableName =
-          sqlOperations
+          insertOperation.flatMap(_ => lifecycleOps
             .find(_.sql.exists(_.queryKind == "insert"))
-            .flatMap(_.sql.map(_.tableName))
+            .flatMap(_.sql.map(_.tableName)))
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = internal.schemaDdl(schema, sqlOperations, queries, context.dialectKey, schemaDdlRenderers),
@@ -255,16 +270,18 @@ object SqlCodegenIntegrationTestBuilder {
     def buildSelectOneOperation(
         context: SqlCodegenServiceContext,
         operation: SqlCodegenOperation,
-        enumSamples: Map[String, String]
+        enumSamples: Map[String, String],
+        insertOperation: Option[SqlCodegenOperation] = None,
+        updateOperation: Option[SqlCodegenOperation] = None
     ): Option[SqlCodegenIntegrationTestOperation] = {
       val insertParameters       =
-        context.operations
-          .find(_.sql.exists(_.queryKind == "insert"))
+        insertOperation
+          .orElse(context.operations.find(_.sql.exists(_.queryKind == "insert")))
           .map(_.parameters)
           .getOrElse(Nil)
       val updatedParameterSource =
-        context.operations
-          .find(_.sql.exists(_.queryKind == "update"))
+        updateOperation
+          .orElse(context.operations.find(_.sql.exists(_.queryKind == "update")))
           .map(_.parameters.filterNot(_.name == "id"))
           .filter(_.nonEmpty)
           .getOrElse(insertParameters)

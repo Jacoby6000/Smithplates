@@ -111,7 +111,12 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                     statusCode = variant.statusCode,
                     mediaType = variant.mediaType,
                     headerBindings = variant.headerBindings,
-                    staticHeaders = variant.staticHeaders
+                    staticHeaders = variant.staticHeaders,
+                    modelShapeId = if (variant.modelShapeId == HttpStructureExtractor.internal.UnitShapeId) {
+                      None
+                    } else {
+                      Some(ModelIds.fromShapeId(variant.modelShapeId))
+                    }
                   )
                 }
               )
@@ -168,7 +173,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
               )
             },
             modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds),
-            emittedModelIds = internal.emittedModelIds(httpService)
+            emittedModelIds = internal.emittedModelIds(httpService, extraStructureIds)
           )
         ),
         operations = operations
@@ -460,12 +465,13 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           extraShapeIds.map(shapeId => shapeId.getName -> shapeId.getNamespace)
       ).toMap
 
-    def emittedModelIds(httpService: HttpService): Set[ModelId] =
+    def emittedModelIds(httpService: HttpService, extraShapeIds: List[ShapeId] = Nil): Set[ModelId] =
       (
         httpService.structures.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
           httpService.unions.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
           httpService.stringEnums.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
-          httpService.intEnums.map(shape => ModelIds.fromShapeId(shape.shapeId))
+          httpService.intEnums.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          extraShapeIds.map(shapeId => ModelIds.fromShapeId(shapeId))
       ).toSet
 
     def httpErrorToCodegenError(

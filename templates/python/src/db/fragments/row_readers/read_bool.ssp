@@ -1,3 +1,6 @@
 <%@ val dialectKey: String %>
 def _read_bool(row: ${rowTypeName(dialectKey)}, index: int) -> bool:
-    return cast(bool, row[index])
+    value = row[index]
+    if isinstance(value, bool):
+        return value
+    return bool(value)
