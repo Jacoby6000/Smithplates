@@ -12,7 +12,8 @@ final case class TemplateView[Subject, M](
     subject: Subject,
     usedTypes: List[Model[M]],
     conventions: Conventions,
-    typeRenderer: TypeRenderer = UnconfiguredTypeRenderer
+    typeRenderer: TypeRenderer = UnconfiguredTypeRenderer,
+    commentPrefix: String = "#"
 )
 
 trait TemplateRenderer {

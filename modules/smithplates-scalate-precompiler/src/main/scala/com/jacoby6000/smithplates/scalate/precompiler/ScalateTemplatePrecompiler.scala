@@ -9,7 +9,7 @@ import java.nio.file.Files
 /** A bundled SSP template root to precompile.
   *
   * @param templateRoot
-  *   the classpath template root (for example `python/src/db`) used to configure the engine and to derive the
+  *   the classpath template root (for example `<language>/src/db`) used to configure the engine and to derive the
   *   root-prefixed URI form
   * @param sourceDirectory
   *   the directory whose tree enumerates the `.ssp` templates belonging to `templateRoot`
@@ -52,7 +52,7 @@ object ScalateTemplatePrecompiler {
     *   - the root-relative form (top-level templates loaded via `renderClasspathTemplate` and partials loaded via
     *     `renderClasspathPartial`), for example `model/models.ssp`
     *   - the root-prefixed form (`render`/`include` targets resolved through the resource loader), for example
-    *     `python/src/db/model/models.ssp`
+    *     `<language>/src/db/model/models.ssp`
     *
     * @param engineFactory
     *   builds a template engine for a given template root, configured identically to the runtime engine (same preamble

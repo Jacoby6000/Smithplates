@@ -2,9 +2,15 @@ package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.codegen.core.Model
 import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.ModelSet
+import com.jacoby6000.smithplates.codegen.core.NeutralType
+import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.codegen.core.OperationModel
+import com.jacoby6000.smithplates.codegen.core.TimestampFormat
+import com.jacoby6000.smithplates.codegen.core.TypeResolver
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.codegen.core.strategy.RenderContext
 import com.jacoby6000.smithplates.http.HttpSmithyTypeResolver
 import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
@@ -50,7 +56,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
       }
       .getOrElse {
         val moduleBase =
-          ctx.conventions.fileName(ModelId("", typeName)).stripSuffix(".py")
+          ctx.conventions.fileStem(ModelId("", typeName))
         s"${packageName(ctx)}.$moduleBase"
       }
 
@@ -69,7 +75,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
   def routeGroupNeedsDatetimeImport(ctx: RouteGroupView): Boolean =
     operations(ctx).exists(operation =>
       operation.meta.feature.inputMembers.exists(member =>
-        internal.httpMemberPythonType(member.typeName, member.timestampFormat) == "datetime"))
+        internal.typeContainsDatetime(internal.toNeutralType(member.typeName, member.timestampFormat))))
 
   def operationImportedModelNames(
       ctx: RouteGroupView,
@@ -85,51 +91,15 @@ object HttpNeutralRouteGroupTemplateAttributes {
     (internal.operationBodyModelNames(feature) ++ variantTypes ++ inputMemberModelTypes).distinct.sorted
   }
 
-  def fastapiParameterBinding(
-      ctx: RouteGroupView,
-      member: HttpOperationInputMemberMeta
-  ): String =
-    member.binding match {
-      case HttpInputMemberBindingMeta.PathLabel          =>
-        val pathAlias =
-          if (routeParameterName(ctx, member.name) == member.name) {
-            ""
-          } else {
-            s""", alias="${member.name}""""
-          }
-        if (member.required) {
-          s"Path(...$pathAlias)"
-        } else {
-          s"Path(None$pathAlias)"
-        }
-      case HttpInputMemberBindingMeta.Query(queryName)   =>
-        if (member.required) {
-          s"""Query(..., alias="$queryName")"""
-        } else {
-          s"""Query(None, alias="$queryName")"""
-        }
-      case HttpInputMemberBindingMeta.Header(headerName) =>
-        if (member.required) {
-          s"""Header(..., alias="$headerName")"""
-        } else {
-          s"""Header(None, alias="$headerName")"""
-        }
-      case HttpInputMemberBindingMeta.Payload            =>
-        if (member.required) {
-          "Body(...)"
-        } else {
-          "Body(None)"
-        }
-    }
-
   def httpMemberTypeAnnotation(
+      ctx: RouteGroupView,
       member: HttpOperationInputMemberMeta,
       required: Boolean
   ): String =
     if (required) {
-      internal.httpMemberPythonType(member.typeName, member.timestampFormat)
+      internal.renderMemberType(ctx, member)
     } else {
-      s"${internal.httpMemberPythonType(member.typeName, member.timestampFormat)} | None"
+      s"${internal.renderMemberType(ctx, member)} | None"
     }
 
   def isRouteParameter(member: HttpOperationInputMemberMeta): Boolean =
@@ -193,14 +163,14 @@ object HttpNeutralRouteGroupTemplateAttributes {
     val feature     = operation.meta.feature
     val routeParams =
       feature.inputMembers.filter(isRouteParameter).map { member =>
-        s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
+        s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(ctx, member, member.required)}"
       }
     val bodyParams  = feature.bodyBinding match {
       case HttpOperationBodyBindingMeta.Document(inputShapeName) =>
         List(s"${routeParameterName(ctx, inputShapeName)}: $inputShapeName")
       case HttpOperationBodyBindingMeta.Members(members)         =>
         members.map { member =>
-          s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(member, member.required)}"
+          s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(ctx, member, member.required)}"
         }
       case HttpOperationBodyBindingMeta.None                     =>
         Nil
@@ -250,13 +220,6 @@ object HttpNeutralRouteGroupTemplateAttributes {
       ("        headers: dict[str, str] = {}" +: assignmentLines).mkString("\n")
     }
   }
-
-  def bodyParameterBinding(required: Boolean): String =
-    if (required) {
-      "Body(...)"
-    } else {
-      "Body(None)"
-    }
 
   def clientRequestJsonArgument(
       ctx: RouteGroupView,
@@ -365,31 +328,52 @@ object HttpNeutralRouteGroupTemplateAttributes {
       routeArgs ++ bodyArgs
     }
 
-    def httpMemberPythonType(typeName: String, timestampFormat: Option[HttpTimestampFormat]): String =
-      if (typeName == "Timestamp") {
-        timestampFormat match {
-          case Some(HttpTimestampFormat.EpochSeconds) => "float"
-          case Some(HttpTimestampFormat.HttpDate)     => "str"
-          case _                                      => "datetime"
-        }
-      } else if (typeName.startsWith("List[")) {
+    def renderMemberType(ctx: RouteGroupView, member: HttpOperationInputMemberMeta): String =
+      if (member.typeName == "Unit") {
+        "None"
+      } else {
+        val tpe = toNeutralType(member.typeName, member.timestampFormat)
+        ctx.typeRenderer.render(tpe, RenderContext(typeResolver(ctx), ctx.conventions))
+      }
+
+    def typeResolver(ctx: RouteGroupView): TypeResolver[HttpMeta] =
+      TypeResolver.fromModelSet(ModelSet(ctx.usedTypes))
+
+    def toNeutralType(typeName: String, timestampFormat: Option[HttpTimestampFormat]): NeutralType =
+      if (typeName.startsWith("List[")) {
         val inner = typeName.substring(5, typeName.length - 1)
-        s"list[${httpMemberPythonType(inner, None)}]"
+        ListT(toNeutralType(inner, None))
       } else if (typeName.startsWith("Map[String, ")) {
         val inner = typeName.substring(12, typeName.length - 1)
-        s"dict[str, ${httpMemberPythonType(inner, None)}]"
+        MapT(StringT, toNeutralType(inner, None))
       } else {
         typeName match {
-          case "String"                          => "str"
-          case "Integer" | "Long" | "BigInteger" => "int"
-          case "Float" | "Double"                => "float"
-          case "BigDecimal"                      => "Decimal"
-          case "Boolean"                         => "bool"
-          case "Blob"                            => "bytes"
-          case "Document"                        => "object"
-          case "Unit"                            => "None"
-          case other                             => other
+          case "String"     => StringT
+          case "Integer"    => IntegerT
+          case "Long"       => LongT
+          case "BigInteger" => BigIntegerT
+          case "Float"      => FloatT
+          case "Double"     => DoubleT
+          case "BigDecimal" => BigDecimalT
+          case "Boolean"    => BooleanT
+          case "Blob"       => BytesT
+          case "Document"   => DocumentT
+          case "Timestamp"  =>
+            TimestampT(timestampFormat match {
+              case Some(HttpTimestampFormat.EpochSeconds) => TimestampFormat.EpochSeconds
+              case _                                      => TimestampFormat.DateTime
+            })
+          case other        => ModelRef(ModelId("", other))
         }
+      }
+
+    def typeContainsDatetime(tpe: NeutralType): Boolean =
+      tpe match {
+        case TimestampT(TimestampFormat.DateTime) => true
+        case OptionalT(inner)                     => typeContainsDatetime(inner)
+        case ListT(element)                       => typeContainsDatetime(element)
+        case MapT(key, value)                     => typeContainsDatetime(key) || typeContainsDatetime(value)
+        case _                                    => false
       }
   }
 }

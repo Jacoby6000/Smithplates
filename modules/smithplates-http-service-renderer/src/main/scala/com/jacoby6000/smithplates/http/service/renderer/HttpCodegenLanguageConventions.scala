@@ -11,7 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfi
 
 object HttpCodegenLanguageConventions {
   def loadBaseConfig(settings: HttpServiceCodegenSettings): CodegenValidated[LanguageBaseConfig] = {
-    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("python")
+    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("")
     Option(getClass.getClassLoader.getResourceAsStream(s"$languageId/base_config.json")) match {
       case Some(stream) =>
         try {
@@ -34,7 +34,8 @@ object HttpCodegenLanguageConventions {
           applyServicePackageOverride(baseConfig.conventions(settings.rootNamespace), settings.packageNameOverride),
           settings.modelsPackageNameOverride
         ),
-        typeRenderer = baseConfig.typeRenderer
+        typeRenderer = baseConfig.typeRenderer,
+        commentPrefix = baseConfig.commentPrefix
       )
     }
 
@@ -51,6 +52,9 @@ object HttpCodegenLanguageConventions {
 
           def fileName(id: ModelId): String =
             delegate.fileName(id)
+
+          def fileStem(id: ModelId): String =
+            delegate.fileStem(id)
 
           def memberName(smithyName: String): String =
             delegate.memberName(smithyName)
@@ -82,13 +86,14 @@ object HttpCodegenLanguageConventions {
           def className(id: ModelId): String =
             delegate.className(id)
 
-          def modulePath(id: ModelId): String = {
-            val moduleName = delegate.fileName(id).stripSuffix(".py")
-            s"$modelsPackageName.$moduleName"
-          }
+          def modulePath(id: ModelId): String =
+            s"$modelsPackageName.${delegate.fileStem(id)}"
 
           def fileName(id: ModelId): String =
             delegate.fileName(id)
+
+          def fileStem(id: ModelId): String =
+            delegate.fileStem(id)
 
           def memberName(smithyName: String): String =
             delegate.memberName(smithyName)

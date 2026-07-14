@@ -1,32 +1,8 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
 object ScalateTemplateHelpers {
-  def generatedFileHeader(serviceShapeId: String, language: String): String =
-    language match {
-      case "python" =>
-        s"# Generated from $serviceShapeId by ${internal.generatorName}. Do not edit by hand."
-      case other    =>
-        throw new IllegalArgumentException(s"unsupported codegen language for generated file header: $other")
-    }
-
-  def languageFromTemplateRoot(templateRoot: String): String = {
-    val normalized =
-      templateRoot.stripPrefix("classpath:").stripPrefix("/").stripSuffix("/")
-    if (normalized.isEmpty) {
-      "python"
-    } else {
-      normalized.split("/").toList match {
-        case "python" :: "src" :: _              =>
-          "python"
-        case "templates" :: language :: _        =>
-          language
-        case "custom-templates" :: language :: _ =>
-          language
-        case _                                   =>
-          throw new IllegalArgumentException(s"cannot infer codegen language from template root: $templateRoot")
-      }
-    }
-  }
+  def generatedFileHeader(serviceShapeId: String, commentPrefix: String): String =
+    s"$commentPrefix Generated from $serviceShapeId by ${internal.generatorName}. Do not edit by hand."
 
   /** Mustache-style truthiness for SSP conditionals over template attribute values. */
   def isTruthy(value: Any): Boolean =

@@ -38,13 +38,15 @@ object HttpLanguageTargetTemplateValidator {
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.server", target.templateDirectory)
       .andThen(_ =>
-        internal.loadedArtifacts(
-          HttpServiceCodegenApiArtifacts.frameworkArtifacts(
-            serverTemplateDirectory = serverTemplateDirectory,
-            modelsTemplateDirectory = defaultModelsTemplateDirectory(languageId),
-            frameworkKeys = List(target.webFramework),
-            emitModels = true
-          )))
+        HttpLanguageTarget.internal
+          .resolveFrameworkKey(languageId, "http.server.webFramework", serverTemplateDirectory, target.webFramework)
+          .andThen(frameworkKey =>
+            internal.loadedArtifacts(HttpServiceCodegenApiArtifacts.frameworkArtifacts(
+              serverTemplateDirectory = serverTemplateDirectory,
+              modelsTemplateDirectory = defaultModelsTemplateDirectory(languageId),
+              frameworkKeys = if (frameworkKey.isEmpty) Nil else List(frameworkKey),
+              emitModels = true
+            ))))
       .andThen(artifacts =>
         internal.validateRequiredArtifactsExist(
           languageId = languageId,
@@ -62,15 +64,21 @@ object HttpLanguageTargetTemplateValidator {
     PluginConstants
       .requireTemplateDirectoryForLanguage(languageId, "http.client", target.templateDirectory)
       .andThen(_ =>
-        internal.loadedArtifacts(
-          (
-            HttpClientCodegenApiArtifacts.libraryArtifacts(clientTemplateDirectory, List(target.httpLibrary)),
-            if (emitModels) {
-              HttpServiceCodegenApiArtifacts.modelArtifacts(defaultModelsTemplateDirectory(languageId))
-            } else {
-              List.empty[CodegenOutput].validNel
-            }
-          ).mapN(_ ++ _)))
+        HttpLanguageTarget.internal
+          .resolveFrameworkKey(languageId, "http.client.httpLibrary", clientTemplateDirectory, target.httpLibrary)
+          .andThen(libraryKey =>
+            internal.loadedArtifacts(
+              (
+                HttpClientCodegenApiArtifacts.libraryArtifacts(
+                  clientTemplateDirectory,
+                  if (libraryKey.isEmpty) Nil else List(libraryKey)
+                ),
+                if (emitModels) {
+                  HttpServiceCodegenApiArtifacts.modelArtifacts(defaultModelsTemplateDirectory(languageId))
+                } else {
+                  List.empty[CodegenOutput].validNel
+                }
+              ).mapN(_ ++ _))))
       .andThen(artifacts =>
         internal.validateRequiredArtifactsExist(
           languageId = languageId,

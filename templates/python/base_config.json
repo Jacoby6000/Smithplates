@@ -1,4 +1,5 @@
 {
+  "commentPrefix": "#",
   "namingStrategy": {
     "fileNames": { "style": "snake_case", "suffix": ".py" },
     "packageSeparator": ".",

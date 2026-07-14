@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
 import software.amazon.smithy.model.shapes.ShapeId
@@ -90,6 +91,7 @@ final case class SqlCodegenServiceContext(
     intEnums: List[SqlIntEnum] = Nil,
     operations: List[SqlCodegenOperation],
     uuidTypeNames: Set[String] = Set.empty,
+    conventions: Conventions,
     integrationTest: Option[SqlCodegenIntegrationTestContext] = None,
     migration: Option[SqlCodegenMigrationContext] = None
 )

@@ -18,13 +18,13 @@ class ${R.protocolClassName(R.tag(ctx))}(Protocol):
     async def ${R.operationMethodName(ctx, operation.id.name)}(
         self,
 <% for (member <- operation.meta.feature.inputMembers.filter(R.isRouteParameter)) { %>
-        ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(member, member.required)},
+        ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)},
 <% } %>
 <% R.documentBodyInputShape(operation).foreach { inputShape => %>
         ${R.memberName(ctx, inputShape)}: ${inputShape},
 <% } %>
 <% for (member <- R.bodyBindingMembers(operation)) { %>
-        ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(member, member.required)},
+        ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)},
 <% } %>
     ) -> ${R.operationProtocolReturnType(operation)}:
         ${operation.meta.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}

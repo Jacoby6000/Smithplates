@@ -523,7 +523,8 @@ object CodegenPlanner {
                            subject = item.subject,
                            usedTypes = usedTypes,
                            conventions = settings.conventions,
-                           typeRenderer = settings.typeRenderer
+                           typeRenderer = settings.typeRenderer,
+                           commentPrefix = settings.commentPrefix
                          )
             content   <- templateRenderer.render(item.templatePath.getOrElse(""), view).toCodegenEither
           } yield content

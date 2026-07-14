@@ -113,7 +113,7 @@ object HttpNeutralServiceTemplateAttributes {
       .map(ref => ctx.conventions.modulePath(ref.id))
       .getOrElse {
         val moduleBase =
-          ctx.conventions.fileName(ModelId("", typeName)).stripSuffix(".py")
+          ctx.conventions.fileStem(ModelId("", typeName))
         s"${internal.modelsPackageName(ctx)}.$moduleBase"
       }
 

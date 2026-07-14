@@ -21,7 +21,8 @@ final case class CodegenSettings(
     testOutputDirectory: String,
     conventions: Conventions,
     typeRenderer: TypeRenderer = UnconfiguredTypeRenderer,
-    staticResourceLoader: StaticResourceLoader = StaticResourceLoader.fromMap(Map.empty)
+    staticResourceLoader: StaticResourceLoader = StaticResourceLoader.fromMap(Map.empty),
+    commentPrefix: String = "#"
 ) {
   def outputBaseDirectory(kind: ArtifactKind): String =
     kind match {

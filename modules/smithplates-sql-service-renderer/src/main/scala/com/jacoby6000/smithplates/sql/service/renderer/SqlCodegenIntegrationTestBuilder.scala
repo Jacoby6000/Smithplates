@@ -82,12 +82,6 @@ object SqlCodegenIntegrationTestBuilder {
       s"$packageName.$suffix"
     }
 
-    def toSnakeCase(value: String): String =
-      value
-        .replaceAll("([a-z0-9])([A-Z])", "$1_$2")
-        .replaceAll("([A-Z]+)([A-Z][a-z])", "$1_$2")
-        .toLowerCase
-
     def schemaDdl(
         schema: SqlSchema,
         sqlOperations: List[SqlCodegenOperation],
@@ -590,7 +584,7 @@ object SqlCodegenIntegrationTestBuilder {
       }
       enumImportNames.toList.sorted.foreach { enumName =>
         importBlocks +=
-          s"from ${qualifiedModule(context.packageName, toSnakeCase(enumName))} import $enumName"
+          s"from ${qualifiedModule(context.packageName, context.conventions.memberName(enumName))} import $enumName"
       }
 
       val blocks = importBlocks.result()

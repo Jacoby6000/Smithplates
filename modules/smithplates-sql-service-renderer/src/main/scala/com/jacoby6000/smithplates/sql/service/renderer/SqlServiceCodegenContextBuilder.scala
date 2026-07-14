@@ -24,9 +24,11 @@ object SqlServiceCodegenContextBuilder {
       settings: SqlServiceCodegenSettings
   ): SqlValidated[SqlCodegenServiceContext] =
     SqlCodegenLanguageConventions
-      .serviceModuleName(settings, service.shapeId.getName)
+      .loadBaseConfig(settings)
       .leftMap(_.map(error => InvalidPluginConfig(error.message)))
-      .andThen { moduleName =>
+      .andThen { baseConfig =>
+        val conventions  = baseConfig.conventions(settings.rootNamespace)
+        val moduleName   = conventions.memberName(service.shapeId.getName)
         val rootShapeIds =
           service.operations
             .flatMap { operation =>
@@ -79,7 +81,8 @@ object SqlServiceCodegenContextBuilder {
                   stringEnums = stringEnums,
                   intEnums = intEnums,
                   operations = resolvedOperations,
-                  uuidTypeNames = uuidTypeNames
+                  uuidTypeNames = uuidTypeNames,
+                  conventions = conventions
                 )
 
               val migrationDirectory =

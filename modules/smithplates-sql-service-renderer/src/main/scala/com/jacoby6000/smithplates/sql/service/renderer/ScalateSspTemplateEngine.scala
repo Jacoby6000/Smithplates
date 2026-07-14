@@ -116,7 +116,6 @@ object ScalateSspTemplateEngine {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val compiledTemplateCache: ConcurrentHashMap[String, Template] = new ConcurrentHashMap[String, Template]()
-    val CommonPreambleClasspath: String                            = "python/src/common/fragments/preamble.ssp"
     val baseContextBindingPreamble: String                         =
       """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithplates.sql.service.renderer.ScalateTemplateHelpers.isTruthy(value) %>
 """
@@ -126,6 +125,7 @@ object ScalateSspTemplateEngine {
         templateRoot: String,
         renderedBody: String
     ): String = {
+      val _           = templateRoot
       val trimmedBody = renderedBody.stripTrailing()
       if (trimmedBody.isEmpty) {
         trimmedBody
@@ -133,7 +133,7 @@ object ScalateSspTemplateEngine {
         val header =
           ScalateTemplateHelpers.generatedFileHeader(
             SqlNeutralServiceTemplateAttributes.serviceMeta(view).serviceShapeId,
-            ScalateTemplateHelpers.languageFromTemplateRoot(templateRoot)
+            view.commentPrefix
           )
         s"$header\n$trimmedBody\n"
       }
@@ -174,8 +174,13 @@ object ScalateSspTemplateEngine {
     def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
       val _ = templateRoot
       baseContextBindingPreamble +
-        readOptionalClasspathTemplate(CommonPreambleClasspath).getOrElse("") +
+        readOptionalClasspathTemplate(commonPreambleClasspath(normalizedTemplateRoot)).getOrElse("") +
         readOptionalClasspathTemplate(namingPreambleClasspath(normalizedTemplateRoot)).getOrElse("")
+    }
+
+    def commonPreambleClasspath(templateRoot: String): String = {
+      val languageId = templateRoot.stripPrefix("/").stripSuffix("/").split("/").headOption.getOrElse("")
+      s"$languageId/src/common/fragments/preamble.ssp"
     }
 
     def namingPreambleClasspath(templateRoot: String): String = {
@@ -198,10 +203,10 @@ object ScalateSspTemplateEngine {
       val normalized = ScalateTemplatePaths.normalizeTemplateRoot(templateClasspath)
       val segments   = normalized.split("/").toList
       segments match {
-        case "python" :: "src" :: feature :: _             =>
-          s"python/src/$feature"
         case "templates" :: language :: "src" :: "db" :: _ =>
           s"templates/$language/src/db"
+        case language :: "src" :: feature :: _             =>
+          s"$language/src/$feature"
         case _ if segments.length >= 2                     =>
           segments.take(2).mkString("/")
         case _                                             =>

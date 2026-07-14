@@ -33,7 +33,7 @@ object SqlOperationBindingBuilder {
         internal.parametersForColumns(selectOneQuery.whereColumns)
       case ResolvedSqlOperationQuery.Select(_)                 =>
         InvalidPluginConfig(
-          s"@sqlDeriveSelect on ${operation.shapeId.toString} is not supported for aiosqlite implementation generation"
+          s"@sqlDeriveSelect on ${operation.shapeId.toString} is not supported for select queries"
         ).invalidNel
     }
 
@@ -47,7 +47,7 @@ object SqlOperationBindingBuilder {
       query match {
         case ResolvedSqlOperationQuery.Select(_) =>
           InvalidPluginConfig(
-            s"sql-service-codegen does not yet generate aiosqlite implementations for @sqlDeriveSelect on ${operation.shapeId.toString}"
+            s"sql-service-codegen does not yet generate ${queryRenderer.key} implementations for @sqlDeriveSelect on ${operation.shapeId.toString}"
           ).invalidNel
         case other                               =>
           val statement: SqlParameterizedStatement =

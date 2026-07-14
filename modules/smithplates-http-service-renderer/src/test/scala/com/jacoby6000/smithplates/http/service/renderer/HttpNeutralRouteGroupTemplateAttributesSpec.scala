@@ -78,30 +78,6 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
       errors = Nil
     )
 
-  test("fastapiParameterBinding covers path, query, header, and payload bindings") {
-    val pathRequired  =
-      HttpOperationInputMemberMeta("widgetId", "String", None, required = true, HttpInputMemberBindingMeta.PathLabel)
-    val pathOptional  =
-      HttpOperationInputMemberMeta("region", "String", None, required = false, HttpInputMemberBindingMeta.PathLabel)
-    val queryMember   =
-      HttpOperationInputMemberMeta("status", "String", None, required = false, HttpInputMemberBindingMeta.Query("q"))
-    val headerMember  =
-      HttpOperationInputMemberMeta(
-        "traceId",
-        "String",
-        None,
-        required = true,
-        HttpInputMemberBindingMeta.Header("X-Trace"))
-    val payloadMember =
-      HttpOperationInputMemberMeta("body", "String", None, required = true, HttpInputMemberBindingMeta.Payload)
-
-    assertEquals(R.fastapiParameterBinding(routeGroupView(Nil), pathRequired), """Path(..., alias="widgetId")""")
-    assertEquals(R.fastapiParameterBinding(routeGroupView(Nil), pathOptional), "Path(None)")
-    assertEquals(R.fastapiParameterBinding(routeGroupView(Nil), queryMember), """Query(None, alias="q")""")
-    assertEquals(R.fastapiParameterBinding(routeGroupView(Nil), headerMember), """Header(..., alias="X-Trace")""")
-    assertEquals(R.fastapiParameterBinding(routeGroupView(Nil), payloadMember), "Body(...)")
-  }
-
   test("routeGroupNeedsDatetimeImport is true only for DateTime timestamp members") {
     val withDatetime =
       operation(

@@ -6,7 +6,7 @@ import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArt
 import munit.FunSuite
 
 class SmithplatesHttpSettingsSpec extends FunSuite {
-  test("parses language-first HTTP server target with default fastapi web framework") {
+  test("parses language-first HTTP server target with web framework resolved from bundled deck") {
     SmithplatesSettings
       .parseJson("""
         {
@@ -28,7 +28,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         assertEquals(languageTarget.sourceOutputDir, "src/generated")
         assertEquals(languageTarget.testOutputDir, "tests")
         val target         = languageTarget.target
-        assertEquals(target.server.map(_.webFramework), Some("fastapi"))
+        assertEquals(target.server.map(_.webFramework), Some(None))
         assertEquals(target.client, None)
         val server         = target.server.getOrElse(fail("expected server target"))
         assertEquals(server.packageName, Some("generated.rendering_pipeline_api"))
@@ -37,7 +37,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
     }
   }
 
-  test("parses language-first HTTP client target with default httpx library") {
+  test("parses language-first HTTP client target with http library resolved from bundled deck") {
     SmithplatesSettings
       .parseJson("""
         {
@@ -59,7 +59,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         assertEquals(languageTarget.testOutputDir, "tests")
         val target         = languageTarget.target
         assertEquals(target.server, None)
-        assertEquals(target.client.map(_.httpLibrary), Some("httpx"))
+        assertEquals(target.client.map(_.httpLibrary), Some(None))
         val client         = target.client.getOrElse(fail("expected client target"))
         assertEquals(client.packageName, Some("generated.warehouse_api_client"))
       case Validated.Invalid(errors) =>
@@ -154,8 +154,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .swap
         .toOption
         .getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("webFramework")))
     assert(errors.exists(_.message.contains("flask")))
+    assert(errors.exists(_.message.contains("unknown deck variant")))
   }
 
   test("rejects unsupported HTTP client library") {
@@ -177,8 +177,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .swap
         .toOption
         .getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("httpLibrary")))
     assert(errors.exists(_.message.contains("aiohttp")))
+    assert(errors.exists(_.message.contains("unknown deck variant")))
   }
 
   test("rejects unknown key under http.server") {

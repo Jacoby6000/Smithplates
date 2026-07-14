@@ -66,9 +66,6 @@ final case class SmithplatesHttpSettings(
 }
 
 object SmithplatesHttpSettings {
-  val SupportedWebFrameworks: Set[String] = Set("fastapi")
-  val SupportedHttpLibraries: Set[String] = Set("httpx")
-
   final private[plugin] case class SharedHttpCodegenContext(
       routeGroupTags: List[String],
       rootNamespace: Option[String],
@@ -114,32 +111,18 @@ object SmithplatesHttpSettings {
           case None         => ().validNel
           case Some(server) =>
             (
-              PluginConstants
-                .validateSupportedValue(
-                  languageId,
-                  "http.server.webFramework",
-                  server.webFramework,
-                  SupportedWebFrameworks
-                ),
               HttpLanguageTargetTemplateValidator.validateServer(languageId, server),
               ConsumerCodegenOutputValidator.validateHttpServerAdditionalDeck(
                 languageId = languageId,
                 target = server,
                 enableExternalTemplates = enableExternalTemplates
               )
-            ).mapN((_, _, _) => ())
+            ).mapN((_, _) => ())
         },
         target.client match {
           case None         => ().validNel
           case Some(client) =>
             (
-              PluginConstants
-                .validateSupportedValue(
-                  languageId,
-                  "http.client.httpLibrary",
-                  client.httpLibrary,
-                  SupportedHttpLibraries
-                ),
               HttpLanguageTargetTemplateValidator.validateClient(
                 languageId,
                 client,
@@ -151,7 +134,7 @@ object SmithplatesHttpSettings {
                 emitModels = target.server.isEmpty,
                 enableExternalTemplates = enableExternalTemplates
               )
-            ).mapN((_, _, _) => ())
+            ).mapN((_, _) => ())
         }
       ).mapN((_, _) => ())
   }
