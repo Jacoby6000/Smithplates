@@ -12,14 +12,14 @@ from pydantic import Field  # noqa: F401
 class AssetsApiServiceProtocol(Protocol):
     async def get_asset(
         self,
-        id: str,
+        id_: str,
     ) -> AssetOutput: ...
     async def get_asset_content(
         self,
-        id: str,
+        id_: str,
     ) -> Redirect | GetAssetContent404: ...
     async def update_asset_state(
         self,
-        id: str,
+        id_: str,
         body: AssetStatePatch,
     ) -> AssetOutput | UpdateAssetState409: ...

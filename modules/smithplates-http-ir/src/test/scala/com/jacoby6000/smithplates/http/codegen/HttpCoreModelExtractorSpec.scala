@@ -45,10 +45,10 @@ class HttpCoreModelExtractorSpec extends FunSuite {
 
           val operation = services.head.operations.head
           assertEquals(operation.input, Some(ModelRef(input.id)))
-          assertEquals(
-            operation.meta.feature,
-            HttpOperationMeta(method = "GET", uriPattern = "/v1/widgets/{id}", successStatus = 200)
-          )
+          assertEquals(operation.meta.feature.method, "GET")
+          assertEquals(operation.meta.feature.uriPattern, "/v1/widgets/{id}")
+          assertEquals(operation.meta.feature.successStatus, 200)
+          assert(operation.meta.feature.responseVariants.nonEmpty)
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
@@ -249,6 +249,14 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           assertEquals(
             getWidget.errors.map(_.id.name),
             List("GetWidget404")
+          )
+          assert(
+            getWidget.meta.feature.responseVariants.exists(variant =>
+              variant.variantTypeName == "WidgetOutput" && variant.statusCode == 200)
+          )
+          assert(
+            getWidget.meta.feature.responseVariants.exists(variant =>
+              variant.variantTypeName == "GetWidget404" && variant.statusCode == 404)
           )
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
@@ -451,6 +459,8 @@ class HttpCoreModelExtractorSpec extends FunSuite {
           }
           assertEquals(searchInput.meta.feature, HttpMeta.HttpRequestMeta())
           assertEquals(searchInput.fields.head.tpe, ModelRef(requestId.id))
+          assertEquals(services.head.meta.feature.modelNamespaces.get("SearchInput"), Some("example"))
+          assertEquals(services.head.meta.feature.emittedModelIds, Set.empty)
 
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
@@ -1005,6 +1015,13 @@ class HttpCoreModelExtractorSpec extends FunSuite {
         errors => fail(errors.toList.map(_.message).mkString("; ")),
         { case (modelSet, services) =>
           assertions(legacyService, modelSet)
+          val serviceMeta = services.head.meta.feature
+          assertEquals(serviceMeta.version, legacyService.version)
+          assertEquals(serviceMeta.title, legacyService.title)
+          assertEquals(
+            serviceMeta.serviceErrors.map(error => (error.name, error.statusCode)),
+            legacyService.serviceErrors.map(error => (error.name, error.statusCode))
+          )
           ModelSetClosureAssertions.assertAllModelRefsResolved(modelSet, services)
         }
       )

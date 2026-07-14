@@ -17,14 +17,8 @@ object PluginTemplatePaths {
   }
 
   def defaultSqlTemplateDirectory(languageId: String): String =
-    languageId match {
-      case "python" => "classpath:python/src/db"
-      case other    => s"classpath:templates/$other/src/db"
-    }
+    s"classpath:$languageId/src/db"
 
   def defaultHttpTemplateDirectory(languageId: String, relativePath: String): String =
-    languageId match {
-      case "python" => s"classpath:$languageId/src/$relativePath"
-      case other    => s"classpath:templates/$other/src/$relativePath"
-    }
+    s"classpath:$languageId/src/$relativePath"
 }

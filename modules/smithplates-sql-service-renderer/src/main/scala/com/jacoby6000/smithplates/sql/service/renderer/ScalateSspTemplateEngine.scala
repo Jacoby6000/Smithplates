@@ -26,7 +26,7 @@ object ScalateSspTemplateEngine {
 
   def renderClasspathTemplate(
       templateClasspath: String,
-      view: ServiceTemplateView,
+      view: SqlNeutralServiceTemplateAttributes.ServiceView,
       templateRoot: Option[String] = None
   ): String = {
     val normalizedTemplatePath = ScalateTemplatePaths.normalizeClasspathUri(templateClasspath)
@@ -43,15 +43,23 @@ object ScalateSspTemplateEngine {
     )
     val renderedBody           =
       ScalateTemplatePaths.normalizeRenderedOutput(
-        engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
+        engine.layout(
+          templateUri,
+          template,
+          internal.toObjectMap(Map("ctx" -> view))
+        )
       )
-    internal.prependGeneratedFileHeader(view, resolvedTemplateRoot, renderedBody)
+    internal.prependGeneratedFileHeader(
+      view,
+      resolvedTemplateRoot,
+      renderedBody
+    )
   }
 
   def renderFilesystemTemplate(
       filesystemTemplatePath: String,
       bundledTemplateRoot: String,
-      view: ServiceTemplateView
+      view: SqlNeutralServiceTemplateAttributes.ServiceView
   ): String = {
     val normalizedBundledRoot = ScalateTemplatePaths.normalizeTemplateRoot(bundledTemplateRoot)
     val filesystemTemplate    = Paths.get(filesystemTemplatePath)
@@ -66,9 +74,17 @@ object ScalateSspTemplateEngine {
     )
     val renderedBody          =
       ScalateTemplatePaths.normalizeRenderedOutput(
-        engine.layout(templateUri, template, internal.toObjectMap(Map("ctx" -> view)))
+        engine.layout(
+          templateUri,
+          template,
+          internal.toObjectMap(Map("ctx" -> view))
+        )
       )
-    internal.prependGeneratedFileHeader(view, normalizedBundledRoot, renderedBody)
+    internal.prependGeneratedFileHeader(
+      view,
+      normalizedBundledRoot,
+      renderedBody
+    )
   }
 
   def renderClasspathPartial(
@@ -100,24 +116,24 @@ object ScalateSspTemplateEngine {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val compiledTemplateCache: ConcurrentHashMap[String, Template] = new ConcurrentHashMap[String, Template]()
-    val CommonPreambleClasspath: String                            = "python/src/common/fragments/preamble.ssp"
     val baseContextBindingPreamble: String                         =
       """<% def isTruthy(value: Any): Boolean = com.jacoby6000.smithplates.sql.service.renderer.ScalateTemplateHelpers.isTruthy(value) %>
 """
 
     def prependGeneratedFileHeader(
-        view: ServiceTemplateView,
+        view: SqlNeutralServiceTemplateAttributes.ServiceView,
         templateRoot: String,
         renderedBody: String
     ): String = {
+      val _           = templateRoot
       val trimmedBody = renderedBody.stripTrailing()
       if (trimmedBody.isEmpty) {
         trimmedBody
       } else {
         val header =
           ScalateTemplateHelpers.generatedFileHeader(
-            view.serviceShapeId,
-            ScalateTemplateHelpers.languageFromTemplateRoot(templateRoot)
+            SqlNeutralServiceTemplateAttributes.serviceMeta(view).serviceShapeId,
+            view.commentPrefix
           )
         s"$header\n$trimmedBody\n"
       }
@@ -158,8 +174,13 @@ object ScalateSspTemplateEngine {
     def contextBindingPreamble(normalizedTemplateRoot: String, templateRoot: Option[String]): String = {
       val _ = templateRoot
       baseContextBindingPreamble +
-        readOptionalClasspathTemplate(CommonPreambleClasspath).getOrElse("") +
+        readOptionalClasspathTemplate(commonPreambleClasspath(normalizedTemplateRoot)).getOrElse("") +
         readOptionalClasspathTemplate(namingPreambleClasspath(normalizedTemplateRoot)).getOrElse("")
+    }
+
+    def commonPreambleClasspath(templateRoot: String): String = {
+      val languageId = templateRoot.stripPrefix("/").stripSuffix("/").split("/").headOption.getOrElse("")
+      s"$languageId/src/common/fragments/preamble.ssp"
     }
 
     def namingPreambleClasspath(templateRoot: String): String = {
@@ -182,10 +203,10 @@ object ScalateSspTemplateEngine {
       val normalized = ScalateTemplatePaths.normalizeTemplateRoot(templateClasspath)
       val segments   = normalized.split("/").toList
       segments match {
-        case "python" :: "src" :: feature :: _             =>
-          s"python/src/$feature"
         case "templates" :: language :: "src" :: "db" :: _ =>
           s"templates/$language/src/db"
+        case language :: "src" :: feature :: _             =>
+          s"$language/src/$feature"
         case _ if segments.length >= 2                     =>
           segments.take(2).mkString("/")
         case _                                             =>
@@ -207,23 +228,14 @@ object ScalateSspTemplateEngine {
     def toObjectMap(attributes: Map[String, Any]): Map[String, Object] =
       attributes.map { case (key, value) =>
         key -> (value match {
-          case view: ServiceTemplateView                => view.asInstanceOf[Object]
-          case operation: TemplateOperationView         => operation.asInstanceOf[Object]
-          case parameter: TemplateParameterView         => parameter.asInstanceOf[Object]
-          case member: TemplateMemberView               => member.asInstanceOf[Object]
-          case resultField: TemplateResultFieldView     => resultField.asInstanceOf[Object]
-          case bindParameter: TemplateBindParameterView => bindParameter.asInstanceOf[Object]
-          case factory: TemplateClassRowFactoryView     => factory.asInstanceOf[Object]
-          case integrationTest: IntegrationTestView     => integrationTest.asInstanceOf[Object]
-          case requirements: ImportRequirements         => requirements.asInstanceOf[Object]
-          case nested: Map[?, ?] @unchecked             =>
+          case nested: Map[?, ?] @unchecked =>
             nested
               .asInstanceOf[Map[String, Any]]
               .map { case (nestedKey, nestedValue) => nestedKey -> nestedValue.asInstanceOf[Object] }
               .asInstanceOf[Object]
-          case items: List[?] @unchecked                =>
+          case items: List[?] @unchecked    =>
             items.map(_.asInstanceOf[Object]).asInstanceOf[Object]
-          case other                                    =>
+          case other                        =>
             other.asInstanceOf[Object]
         })
       }

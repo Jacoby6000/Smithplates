@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.codegen
 
-/** Derives namespace-aware Python packages and output path prefixes for generated artifacts. */
+/** Derives namespace-aware packages and output path prefixes for generated artifacts. */
 object CodegenPackageNames {
   def packageName(rootNamespace: Option[String], smithyNamespace: String): String = {
     val segments =

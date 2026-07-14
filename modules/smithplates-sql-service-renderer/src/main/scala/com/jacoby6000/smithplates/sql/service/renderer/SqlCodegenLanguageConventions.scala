@@ -9,7 +9,7 @@ import com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfi
 
 object SqlCodegenLanguageConventions {
   def loadBaseConfig(settings: SqlServiceCodegenSettings): CodegenValidated[LanguageBaseConfig] = {
-    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("python")
+    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("")
     Option(getClass.getClassLoader.getResourceAsStream(s"$languageId/base_config.json")) match {
       case Some(stream) =>
         try {
@@ -33,7 +33,9 @@ object SqlCodegenLanguageConventions {
       CodegenSettings(
         sourceOutputDirectory = settings.sourceOutputDirectory.map(normalizeDirectory).getOrElse(""),
         testOutputDirectory = settings.testOutputDirectory.map(normalizeDirectory).getOrElse(""),
-        conventions = baseConfig.conventions(settings.rootNamespace)
+        conventions = baseConfig.conventions(settings.rootNamespace),
+        typeRenderer = baseConfig.typeRenderer,
+        commentPrefix = baseConfig.commentPrefix
       )
     }
 

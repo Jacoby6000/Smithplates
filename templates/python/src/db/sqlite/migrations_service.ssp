@@ -1,5 +1,5 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val migration: com.jacoby6000.smithplates.sql.service.renderer.MigrationView = ctx.migration.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val migration: com.jacoby6000.smithplates.sql.service.core.SqlMigrationContext = sqlAttrs.migration(ctx).get %>
 # Generated sqlite migration service for sql-service-codegen. Do not edit by hand.
 from __future__ import annotations
 

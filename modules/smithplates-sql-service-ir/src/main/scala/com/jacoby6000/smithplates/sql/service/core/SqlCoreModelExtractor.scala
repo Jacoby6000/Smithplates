@@ -109,7 +109,15 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
             meta = OperationMeta(
               documentation = None,
               tags = Nil,
-              feature = SqlOperationMeta()
+              feature = SqlOperationMeta(
+                name = operation.shapeId.getName,
+                hasSql = false,
+                parameters = Nil,
+                hasOutput = false,
+                outputShapeName = "",
+                outputTypeName = "",
+                errors = Nil
+              )
             ),
             input = internal.operationInputRef(operation),
             output = internal.operationOutputRef(operation),
@@ -124,7 +132,16 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         meta = ServiceMeta(
           documentation = None,
           tags = Nil,
-          feature = SqlServiceMeta()
+          feature = SqlServiceMeta(
+            serviceName = sqlService.shapeId.getName,
+            serviceShapeId = sqlService.shapeId.toString,
+            moduleName = "",
+            namespace = sqlService.shapeId.getNamespace,
+            packageName = "",
+            dialectKey = "",
+            bindPlaceholderStyle = SqlBindPlaceholder("?"),
+            hasSqlOperations = sqlService.operations.nonEmpty
+          )
         ),
         operations = operations
       )

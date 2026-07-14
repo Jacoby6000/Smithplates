@@ -1,29 +1,29 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%@ val imports: com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements = importRequirements(ctx) %>
 from __future__ import annotations
 
 <% render("fragments/helpers/imports_sqlite", Map("ctx" -> ctx)) +%>from typing import <% if (imports.needsCastImport) { %>cast, <% } %>override
 
 import aiosqlite
-<% if (ctx.serviceLocalImportBlock != "") { %>
-${ctx.serviceLocalImportBlock}<% } %>
+<% if (serviceLocalImportBlock(ctx) != "") { %>
+${serviceLocalImportBlock(ctx)}<% } %>
 
 
-class ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(${serviceProtocolName(ctx.serviceName)}[${transactionTypeName(ctx.dialectKey)}]):
+class ${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}(${serviceProtocolName(sqlAttrs.serviceName(ctx))}[${transactionTypeName(sqlAttrs.dialectKey(ctx))}]):
     def __init__(self, connection: aiosqlite.Connection) -> None:
         super().__init__()
         self._connection = connection
 
-<% for (operation <- ctx.operations) { %><% if (operation.hasSql) { %>
+<% for (operation <- sqlAttrs.operations(ctx)) { %><% if (sqlAttrs.hasSql(operation)) { %>
     @override
-    async def ${operationMethodName(operation.name)}(
+    async def ${operationMethodName(operation.id.name)}(
         self,
-<% for (parameter <- operation.parameters) { %>
+<% for (parameter <- sqlAttrs.parameters(operation)) { %>
         ${parameter.name}: <% render("fragments/types/parameter_annotation", Map("typeName" -> parameter.typeName, "optional" -> parameter.optional)) %>,
 <% } %>
-<% render("fragments/types/transaction_parameter_impl", Map("dialectKey" -> ctx.dialectKey)) %><%= "\n" %>    ) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
-        async def execute(conn: aiosqlite.Connection) -> <% render("fragments/types/response_type", Map("operation" -> operation)) +%>:
-<% render("fragments/operations/sqlite_operation_body", Map("operation" -> operation)) +%>        return await run(self._connection, transaction, execute)
+<% render("fragments/types/transaction_parameter_impl", Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) %><%= "\n" %>    ) -> <% render("fragments/types/response_type", Map("operation" -> operation, "ctx" -> ctx)) +%>:
+        async def execute(conn: aiosqlite.Connection) -> <% render("fragments/types/response_type", Map("operation" -> operation, "ctx" -> ctx)) +%>:
+<% render("fragments/operations/sqlite_operation_body", Map("operation" -> operation, "ctx" -> ctx)) +%>        return await run(self._connection, transaction, execute)
 <% } %><% } %>
 
 <% include("fragments/helpers/row_reader_helpers") +%>

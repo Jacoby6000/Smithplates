@@ -1,5 +1,16 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.Field
+import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.NeutralType
+import com.jacoby6000.smithplates.codegen.core.OperationModel
+import com.jacoby6000.smithplates.codegen.core.ServiceMeta
+import com.jacoby6000.smithplates.codegen.core.ServiceModel
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfigLoader
+import com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta
+import com.jacoby6000.smithplates.sql.service.core.SqlServiceMeta
+
 class SspFragmentsSpec extends munit.FunSuite {
   test("top-level template render prepends generated file header") {
     val output =
@@ -45,29 +56,7 @@ class SspFragmentsSpec extends munit.FunSuite {
       ScalateSspTemplateEngine.renderClasspathPartial(
         SspFragmentsSpec.internal.templateRoot,
         "fragments/helpers/imports_postgres",
-        Map(
-          "ctx" -> ServiceTemplateView(
-            serviceShapeId = "example#Service",
-            serviceName = "ExampleService",
-            serviceModuleName = "example_service",
-            dialectKey = "postgres",
-            packageName = "generated.example",
-            models = Nil,
-            operationResultModels = Nil,
-            unions = Nil,
-            operations = Nil,
-            usedJsonTypeNames = Set.empty,
-            usedJsonTypeNamesCol = Set.empty,
-            classRowFactories = Nil,
-            protocolTableModelImportBlock = "",
-            enumImportBlock = "",
-            serviceLocalImportBlock = "",
-            integrationTest = None,
-            migration = None,
-            uuidTypeNames = Nil,
-            enumTypeNames = Nil
-          )
-        )
+        Map("ctx" -> SspFragmentsSpec.internal.minimalServiceView)
       )
 
     assertEquals(output, "")
@@ -80,19 +69,10 @@ class SspFragmentsSpec extends munit.FunSuite {
         "fragments/models/member_lines",
         Map(
           "members" -> List(
-            TemplateMemberView(
-              name = "street",
-              typeName = "String",
-              optional = false,
-              last = false
-            ),
-            TemplateMemberView(
-              name = "city",
-              typeName = "String",
-              optional = false,
-              last = true
-            )
-          )
+            Field(name = "street", tpe = NeutralType.StringT),
+            Field(name = "city", tpe = NeutralType.StringT)
+          ),
+          "ctx"     -> SspFragmentsSpec.internal.minimalServiceView
         )
       )
 
@@ -108,28 +88,39 @@ object SspFragmentsSpec {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    val templateRoot                            = "python/src/db"
-    def minimalServiceView: ServiceTemplateView =
-      ServiceTemplateView(
-        serviceShapeId = "example#WidgetRepository",
+    val templateRoot = "python/src/db"
+
+    def minimalServiceView: SqlNeutralServiceTemplateAttributes.ServiceView = {
+      val serviceMeta      = SqlServiceMeta(
         serviceName = "WidgetRepository",
-        serviceModuleName = "widget_repository",
-        dialectKey = "sqlite",
+        serviceShapeId = "example#WidgetRepository",
+        moduleName = "widget_repository",
+        namespace = "example",
         packageName = "generated.example",
-        models = Nil,
-        operationResultModels = Nil,
-        unions = Nil,
-        operations = Nil,
-        usedJsonTypeNames = Set.empty,
-        usedJsonTypeNamesCol = Set.empty,
-        classRowFactories = Nil,
-        protocolTableModelImportBlock = "",
-        enumImportBlock = "",
-        serviceLocalImportBlock = "",
+        dialectKey = "sqlite",
+        bindPlaceholderStyle = com.jacoby6000.smithplates.sql.SqlBindPlaceholder("?"),
+        hasSqlOperations = false,
+        uuidTypeNames = Set.empty,
+        enumTypeNames = Set.empty,
         integrationTest = None,
-        migration = None,
-        uuidTypeNames = Nil,
-        enumTypeNames = Nil
+        migration = None
       )
+      val service          = ServiceModel(
+        id = ModelId("example", "WidgetRepository"),
+        meta = ServiceMeta(documentation = None, tags = Nil, feature = serviceMeta),
+        operations = List.empty[OperationModel[SqlOperationMeta]]
+      )
+      val baseConfigStream = getClass.getClassLoader.getResourceAsStream("python/base_config.json")
+      val baseConfigText   =
+        try scala.io.Source.fromInputStream(baseConfigStream, "UTF-8").mkString
+        finally baseConfigStream.close()
+      val baseConfig       = LanguageBaseConfigLoader.loadJson(baseConfigText).toOption.get
+      TemplateView(
+        subject = service,
+        usedTypes = Nil,
+        conventions = baseConfig.conventions(None),
+        typeRenderer = baseConfig.typeRenderer
+      )
+    }
   }
 }

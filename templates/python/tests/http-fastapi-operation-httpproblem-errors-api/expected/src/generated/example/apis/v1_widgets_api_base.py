@@ -12,10 +12,10 @@ from pydantic import Field  # noqa: F401
 class V1WidgetsApiServiceProtocol(Protocol):
     async def delete_widget(
         self,
-        id: str,
+        id_: str,
     ) -> DeleteWidget404 | None: ...
     async def mutate_widget(
         self,
-        id: str,
+        id_: str,
         body: WidgetPatch,
     ) -> WidgetOutput | MutateWidget404 | MutateWidget409: ...

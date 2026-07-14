@@ -1,19 +1,20 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%
-def responseType(operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView): String = {
-  if (operation.isSelectOne) {
-    if (operation.hasOutput) {
-      s"${pythonTypeName(operation.outputTypeName)} | None"
+def responseType(operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta]): String = {
+  if (sqlAttrs.isSelectOne(operation)) {
+    if (sqlAttrs.hasOutput(operation)) {
+      s"${pythonTypeName(sqlAttrs.outputTypeName(operation))} | None"
     } else {
       "None"
     }
   } else {
     val responseTypes = scala.collection.mutable.ListBuffer.empty[String]
-    if (operation.hasOutput) {
-      responseTypes += pythonTypeName(operation.outputTypeName)
+    if (sqlAttrs.hasOutput(operation)) {
+      responseTypes += pythonTypeName(sqlAttrs.outputTypeName(operation))
     }
-    operation.errors.foreach { error =>
-      responseTypes += error.name
+    sqlAttrs.errorNames(operation).foreach { error =>
+      responseTypes += error
     }
     responseTypes.toList match {
       case Nil           => "None"

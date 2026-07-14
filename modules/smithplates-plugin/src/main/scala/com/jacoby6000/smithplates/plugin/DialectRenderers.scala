@@ -1,11 +1,11 @@
 package com.jacoby6000.smithplates.plugin
 
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlSchemaDdlRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.common.SqlShared
 import com.jacoby6000.smithplates.sql.ddl.renderer.postgres.PostgresRenderer
 import com.jacoby6000.smithplates.sql.ddl.renderer.sqlite.SqliteRenderer
 import com.jacoby6000.smithplates.sql.model.SqlSchema
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.postgres.PostgresSqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.sqlite.SqliteSqlQueryRenderer

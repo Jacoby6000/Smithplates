@@ -40,7 +40,10 @@ final case class ConfigurableTypeRenderer(config: TypeSyntaxConfig) extends Type
         case TimestampT(_)                            =>
           timestamp(config, "dateTime")
         case ref: ModelRef                            =>
-          substitute(config.modelRef, "name" -> ref.id.name)
+          ctx.typeResolver.underlying(ref) match {
+            case resolved: ModelRef => ctx.conventions.className(resolved.id)
+            case other              => renderInner(other, ctx, config)
+          }
       }
 
     def substitute(template: String, placeholders: (String, String)*): String =

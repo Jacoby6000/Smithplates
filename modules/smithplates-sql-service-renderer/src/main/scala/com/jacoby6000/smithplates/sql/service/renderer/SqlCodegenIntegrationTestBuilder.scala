@@ -56,14 +56,7 @@ object SqlCodegenIntegrationTestBuilder {
             transactionCommitAfterAssertions =
               internal.remapAssertionTarget(selectOne.resultAssertions, "fetched", "fetched_after_commit"),
             extraImports = internal.collectExtraImports(insert, selectOne, updateOperation),
-            testImports = testImports,
-            localImportBlock = SqlCodegenPythonImports.integrationTestLocalImportBlock(
-              context.packageName,
-              context.moduleName,
-              context.name,
-              context.dialectKey,
-              testImports
-            )
+            testImports = testImports
           )
         )
       case _                               =>
@@ -83,6 +76,11 @@ object SqlCodegenIntegrationTestBuilder {
         valueSeeds: Map[String, String],
         variant: SampleVariant
     )
+
+    def qualifiedModule(packageName: String, relativeModulePath: String): String = {
+      val suffix = relativeModulePath.stripPrefix("/").replace('/', '.')
+      s"$packageName.$suffix"
+    }
 
     def schemaDdl(
         schema: SqlSchema,
@@ -382,7 +380,7 @@ object SqlCodegenIntegrationTestBuilder {
       }
 
     def unionVariantTypeName(unionName: String, memberName: String): String =
-      SqlCodegenPythonImports.internal.unionVariantTypeName(unionName, memberName)
+      s"$unionName${memberName.capitalize}"
 
     def unionVariantSampleExpression(
         context: SqlCodegenServiceContext,
@@ -530,7 +528,8 @@ object SqlCodegenIntegrationTestBuilder {
           .map(_.name)
           .toSet
       val unionNames           = context.unions.map(_.name).toSet
-      val enumNames            = SqlCodegenPythonImports.enumTypeNameSet(context)
+      val enumNames            =
+        (context.stringEnums.map(_.name) ++ context.intEnums.map(_.name)).toSet
       val assertionText        =
         (selectOneOperation.resultAssertions ++ selectOneOperation.updatedResultAssertions).mkString("\n")
 
@@ -574,18 +573,18 @@ object SqlCodegenIntegrationTestBuilder {
 
       val importBlocks = List.newBuilder[String]
       if (modelImportNames.nonEmpty) {
-        importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"models/${serviceModuleBase}_models")} import ("
+        importBlocks += s"from ${qualifiedModule(context.packageName, s"models/${serviceModuleBase}_models")} import ("
         importBlocks ++= modelImportNames.toList.sorted.map(name => s"    $name,")
         importBlocks += ")"
       }
       if (protocolImportNames.nonEmpty) {
-        importBlocks += s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, s"${serviceModuleBase}_protocol")} import ("
+        importBlocks += s"from ${qualifiedModule(context.packageName, s"${serviceModuleBase}_protocol")} import ("
         importBlocks ++= protocolImportNames.toList.sorted.map(name => s"    $name,")
         importBlocks += ")"
       }
       enumImportNames.toList.sorted.foreach { enumName =>
         importBlocks +=
-          s"from ${SqlCodegenPythonImports.qualifiedModule(context.packageName, SqlCodegenSnakeCase.toSnakeCase(enumName))} import $enumName"
+          s"from ${qualifiedModule(context.packageName, context.conventions.memberName(enumName))} import $enumName"
       }
 
       val blocks = importBlocks.result()

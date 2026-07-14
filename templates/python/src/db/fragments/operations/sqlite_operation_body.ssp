@@ -1,46 +1,47 @@
-<%@ val operation: com.jacoby6000.smithplates.sql.service.renderer.TemplateOperationView %>
-#match (operation.sqlBodyKind)
-#case ("insertScalar")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+<%@ val operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+#match (sqlAttrs.sqlBodyKind(operation))
+#case ("insertScalar")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return _read_str(row, ${operation.returningColumnIndex})
-#case ("insertStructureDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+            return _read_str(row, ${sqlAttrs.returningColumnIndex(operation).get})
+#case ("insertStructureDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col", "named_row")) %><% } %>
+            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "col", "named_row")) %><% } %>
             )
-#case ("insertStructureIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+#case ("insertStructureIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 raise RuntimeError("INSERT RETURNING produced no row")
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
             )
-#case ("booleanMutationRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            return cursor.rowcount > 0
-#case ("booleanMutationExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+#case ("booleanMutationRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            return cursor.rowcount > 0
+#case ("booleanMutationExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             return row is not None
-#case ("booleanStructureRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=cursor.rowcount > 0,
+#case ("booleanStructureRowcount")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            return ${sqlAttrs.outputShapeName(operation)}(
+                ${sqlAttrs.booleanResultFieldName(operation)}=cursor.rowcount > 0,
             )
-#case ("booleanStructureExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
-            return ${operation.outputShapeName}(
-                ${operation.booleanResultFieldName}=row is not None,
+#case ("booleanStructureExists")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
+            return ${sqlAttrs.outputShapeName(operation)}(
+                ${sqlAttrs.booleanResultFieldName(operation)}=row is not None,
             )
-#case ("selectOneClassRow")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+#case ("selectOneClassRow")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            return ${rowFactoryName(operation.outputShapeName)}(cursor, row)
-#case ("selectOneDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+            return ${rowFactoryName(sqlAttrs.outputShapeName(operation))}(cursor, row)
+#case ("selectOneDict")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "col", "named_row")) %><% } %>
+            <% include("fragments/sql/sqlite_named_row_mapper") +%>            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "col", "named_row")) %><% } %>
             )
-#case ("selectOneIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation)) +%>            row = await cursor.fetchone()
+#case ("selectOneIndex")<% render("fragments/sql/sqlite_cursor_execute", Map("operation" -> operation, "ctx" -> ctx)) +%>            row = await cursor.fetchone()
             if row is None:
                 return None
-            return ${operation.outputShapeName}(
-<% for (resultField <- operation.resultFields) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(resultField, "index")) %><% } %>
+            return ${sqlAttrs.outputShapeName(operation)}(
+<% for (resultField <- sqlAttrs.resultFields(operation)) { %>                <% render("fragments/sql/result_field_assignment", resultFieldAssignmentBindings(ctx, resultField, "index")) %><% } %>
             )
 #case ("selectOneJoinedFlat")<% include("fragments/operations/select_one_joined_flat") %>
 #case ("selectOneJoinedAggregate")<% include("fragments/operations/select_one_joined_aggregate") %>

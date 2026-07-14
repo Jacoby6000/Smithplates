@@ -1,27 +1,27 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val test: com.jacoby6000.smithplates.sql.service.renderer.IntegrationTestView = ctx.integrationTest.get %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val test: com.jacoby6000.smithplates.sql.service.core.SqlIntegrationTestContext = sqlAttrs.integrationTest(ctx).get %>
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from pathlib import Path
-<% if (test.extraImports != "") { %>${test.extraImports}<% } %>
+<% if (test.extraImports.nonEmpty) { %>${test.extraImports.mkString("\n")}<% } %>
 
 import psycopg
 import pytest
 import pytest_asyncio
 from testcontainers.postgres import PostgresContainer
-<% if (test.localImportBlock != "") { %>
-${test.localImportBlock}
+<% if (integrationTestLocalImportBlock(test, ctx) != "") { %>
+${integrationTestLocalImportBlock(test, ctx)}
 <% } %>
-from ${qualifiedModule(ctx.packageName, migrationServiceModulePath(ctx.dialectKey))} import ${migrationServiceClassName(ctx.dialectKey)}
+from ${qualifiedModule(sqlAttrs.packageName(ctx), migrationServiceModulePath(sqlAttrs.dialectKey(ctx)))} import ${migrationServiceClassName(sqlAttrs.dialectKey(ctx))}
 
-MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(ctx.serviceShapeId, configuredMigrationsDirectory(ctx))}
+MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(sqlAttrs.serviceShapeId(ctx), configuredMigrationsDirectory(ctx))}
 
 
 @pytest_asyncio.fixture
-async def ${serviceFixtureName(ctx.serviceModuleName)}(
+async def ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}(
     postgres_container: PostgresContainer,
-) -> AsyncIterator[${implementationClassName(ctx.serviceName, ctx.dialectKey)}]:
+) -> AsyncIterator[${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}]:
     connection = await psycopg.AsyncConnection.connect(
         host=postgres_container.get_container_host_ip(),
         port=int(postgres_container.get_exposed_port(5432)),
@@ -36,7 +36,7 @@ async def ${serviceFixtureName(ctx.serviceModuleName)}(
 <% } %>
     await connection.commit()
     try:
-        yield ${implementationClassName(ctx.serviceName, ctx.dialectKey)}(connection)
+        yield ${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}(connection)
     finally:
         await connection.close()
 
@@ -44,23 +44,23 @@ async def ${serviceFixtureName(ctx.serviceModuleName)}(
 @pytest.mark.integration
 @pytest.mark.postgres
 @pytest.mark.asyncio
-async def test_derived_sql_methods_lifecycle(${serviceFixtureName(ctx.serviceModuleName)}: ${implementationClassName(ctx.serviceName, ctx.dialectKey)}) -> None:
-    entity_id_result = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
+async def test_derived_sql_methods_lifecycle(${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}: ${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}) -> None:
+    entity_id_result = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.insertOperation.name)}(${test.insertOperation.callArguments})
     entity_id = entity_id_result${test.insertOperation.outputValueAccessor}
     assert isinstance(entity_id, str)
     assert entity_id
 
-    fetched = await ${serviceFixtureName(ctx.serviceModuleName)}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
+    fetched = await ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}.${operationMethodName(test.selectOneOperation.name)}(${test.selectOneOperation.callArguments})
     assert isinstance(fetched, ${test.selectOneOperation.outputShapeName})
-<% if (test.selectOneOperation.hasResultAssertions) { %>
+<% if (test.selectOneOperation.resultAssertions.nonEmpty) { %>
 <% for (assertion <- test.selectOneOperation.resultAssertions) { %>
-    ${assertion.line}
+    ${assertion}
 <% } %>
 <% } %>
-<% if (test.hasUpdateOperation) { %>
+<% if (test.updateOperation.isDefined) { %>
 <% include("fragments/tests/update_lifecycle") %>
 <% } %>
-<% if (test.hasDeleteOperation) { %>
+<% if (test.deleteOperation.isDefined) { %>
 <% include("fragments/tests/delete_lifecycle") %>
 <% } %>
 <% include("postgres/tests/transaction_tests") %>

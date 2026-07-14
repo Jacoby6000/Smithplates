@@ -1,9 +1,17 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.OperationModel
+import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
+import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
+import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
+import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.SqlTestModelBuilder
 import com.jacoby6000.smithplates.sql.service.SqlModelExtractor
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
+import com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta
 
 class SqlServiceCodegenRendererSpec extends munit.FunSuite {
   test("@sqlJson - derives insert and update columns for struct and union members") {
@@ -211,25 +219,31 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/tests/service_derived_sql_integration_tests.ssp",
-        sharedContext.copy(integrationTest = None)
+        SqlServiceCodegenRendererSpec.internal.viewFromContext(
+          sharedContext.copy(integrationTest = None)
+        )
       )
     )
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "postgres/stubs/testcontainers/postgres.pyi",
-        sharedContext.copy(integrationTest = None)
+        SqlServiceCodegenRendererSpec.internal.viewFromContext(
+          sharedContext.copy(integrationTest = None)
+        )
       )
     )
     assert(
       SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/migrations_service.ssp",
-        sharedContext.copy(migration = None)
+        SqlServiceCodegenRendererSpec.internal.viewFromContext(
+          sharedContext.copy(migration = None)
+        )
       )
     )
     assert(
       !SqlServiceCodegenRenderer.internal.shouldSkip(
         "sqlite/service_aiosqlite.ssp",
-        sharedContext
+        SqlServiceCodegenRendererSpec.internal.viewFromContext(sharedContext)
       )
     )
   }
@@ -378,5 +392,41 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
         artifact.relativePath.startsWith("tests/generated/") &&
           artifact.relativePath.contains("test_widget_repository_derived_sql.py"))
     )
+  }
+}
+
+object SqlServiceCodegenRendererSpec {
+
+  /** Internal implementation surface — not part of the stable API; subject to change without notice. */
+  object internal {
+    def viewFromContext(
+        context: SqlCodegenServiceContext
+    ): SqlNeutralServiceTemplateAttributes.ServiceView = {
+      val (serviceMeta, _) = SqlNeutralServiceTemplateAttributes.enrichment(context)
+      val namingStrategy   = NamingStrategy(
+        fileNames = NamingConvention.Unchanged,
+        packageSeparator = ".",
+        classNames = NamingConvention.Unchanged,
+        packageNames = NamingConvention.Unchanged,
+        valueNames = NamingConvention.Unchanged,
+        constantNames = NamingConvention.Unchanged,
+        functionNames = NamingConvention.Unchanged
+      )
+      val service          = ServiceModel(
+        id = ModelId("smithy", context.name),
+        meta = com.jacoby6000.smithplates.codegen.core.ServiceMeta(
+          documentation = None,
+          tags = Nil,
+          feature = serviceMeta
+        ),
+        operations = List.empty[OperationModel[SqlOperationMeta]]
+      )
+      TemplateView(
+        subject = service,
+        usedTypes = Nil,
+        conventions = Conventions.fromStrategy(namingStrategy),
+        typeRenderer = com.jacoby6000.smithplates.codegen.core.strategy.UnconfiguredTypeRenderer
+      )
+    }
   }
 }

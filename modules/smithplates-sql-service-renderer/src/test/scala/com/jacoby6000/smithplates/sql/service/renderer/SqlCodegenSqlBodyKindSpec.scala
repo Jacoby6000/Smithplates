@@ -1,6 +1,6 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
+import com.jacoby6000.smithplates.sql.SqlParameterizedStatement
 
 class SqlCodegenSqlBodyKindSpec extends munit.FunSuite {
   test("resolve - insert scalar") {

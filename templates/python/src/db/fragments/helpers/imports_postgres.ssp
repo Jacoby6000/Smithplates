@@ -1,4 +1,4 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%@ val imports: com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements = importRequirements(ctx) %>
 <% if (imports.needsJsonImport) { %>import json
 <% } %><% if (imports.needsUuidImport) { %>import uuid

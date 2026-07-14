@@ -82,32 +82,36 @@ object ConsumerCodegenOutputValidator {
           HttpLanguageTargetTemplateValidator.resolveServerTemplateDirectory(target, languageId)
         val modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
         val configPath              = s"smithplates.$languageId.http.server.additionalTemplatesDirectory"
-        val enabledKeys             = List(target.webFramework)
         validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
-          (
-            internal.httpServerBundledDeck(serverTemplateDirectory, modelsTemplateDirectory),
-            HttpServiceCodegenApiArtifacts.frameworkArtifacts(
-              serverTemplateDirectory = serverTemplateDirectory,
-              modelsTemplateDirectory = modelsTemplateDirectory,
-              frameworkKeys = enabledKeys,
-              emitModels = true
-            ),
-            ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
-          ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
-            validateAdditionalDeck(
-              configPath = configPath,
-              additionalOutputs = additionalOutputs,
-              bundledIds = bundledDeckIds(bundledDeck),
-              enableExternalTemplates = enableExternalTemplates,
-              templateExists = internal.httpTemplateExists
-            ).andThen(_ =>
-              HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
-                languageId = languageId,
-                defaultTemplateDirectory = serverTemplateDirectory,
-                artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
-              ))
-          }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
-            .andThen(identity))
+          HttpLanguageTarget.internal
+            .resolveFrameworkKey(languageId, "http.server.webFramework", serverTemplateDirectory, target.webFramework)
+            .andThen { frameworkKey =>
+              val enabledKeys = if (frameworkKey.isEmpty) Nil else List(frameworkKey)
+              (
+                internal.httpServerBundledDeck(serverTemplateDirectory, modelsTemplateDirectory),
+                HttpServiceCodegenApiArtifacts.frameworkArtifacts(
+                  serverTemplateDirectory = serverTemplateDirectory,
+                  modelsTemplateDirectory = modelsTemplateDirectory,
+                  frameworkKeys = enabledKeys,
+                  emitModels = true
+                ),
+                ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
+              ).mapN { (bundledDeck, bundledOutputs, additionalOutputs) =>
+                validateAdditionalDeck(
+                  configPath = configPath,
+                  additionalOutputs = additionalOutputs,
+                  bundledIds = bundledDeckIds(bundledDeck),
+                  enableExternalTemplates = enableExternalTemplates,
+                  templateExists = internal.httpTemplateExists
+                ).andThen(_ =>
+                  HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
+                    languageId = languageId,
+                    defaultTemplateDirectory = serverTemplateDirectory,
+                    artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
+                  ))
+              }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+                .andThen(identity)
+            })
     }
 
   def validateHttpClientAdditionalDeck(
@@ -123,36 +127,40 @@ object ConsumerCodegenOutputValidator {
           HttpLanguageTargetTemplateValidator.resolveClientTemplateDirectory(target, languageId)
         val modelsTemplateDirectory = HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
         val configPath              = s"smithplates.$languageId.http.client.additionalTemplatesDirectory"
-        val enabledKeys             = List(target.httpLibrary)
         validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
-          (
-            internal.httpClientBundledDeck(clientTemplateDirectory, modelsTemplateDirectory, emitModels),
-            com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts.libraryArtifacts(
-              clientTemplateDirectory,
-              enabledKeys
-            ),
-            if (emitModels) {
-              HttpServiceCodegenApiArtifacts.modelArtifacts(modelsTemplateDirectory)
-            } else {
-              List.empty[CodegenOutput].validNel
-            },
-            ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
-          ).mapN { (bundledDeck, clientArtifacts, modelArtifacts, additionalOutputs) =>
-            val bundledOutputs = clientArtifacts ++ modelArtifacts
-            validateAdditionalDeck(
-              configPath = configPath,
-              additionalOutputs = additionalOutputs,
-              bundledIds = bundledDeckIds(bundledDeck),
-              enableExternalTemplates = enableExternalTemplates,
-              templateExists = internal.httpTemplateExists
-            ).andThen(_ =>
-              HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
-                languageId = languageId,
-                defaultTemplateDirectory = clientTemplateDirectory,
-                artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
-              ))
-          }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
-            .andThen(identity))
+          HttpLanguageTarget.internal
+            .resolveFrameworkKey(languageId, "http.client.httpLibrary", clientTemplateDirectory, target.httpLibrary)
+            .andThen { libraryKey =>
+              val enabledKeys = if (libraryKey.isEmpty) Nil else List(libraryKey)
+              (
+                internal.httpClientBundledDeck(clientTemplateDirectory, modelsTemplateDirectory, emitModels),
+                com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts.libraryArtifacts(
+                  clientTemplateDirectory,
+                  enabledKeys
+                ),
+                if (emitModels) {
+                  HttpServiceCodegenApiArtifacts.modelArtifacts(modelsTemplateDirectory)
+                } else {
+                  List.empty[CodegenOutput].validNel
+                },
+                ConsumerCodegenOutputs.additionalOutputs(additionalDir, enabledKeys, getClass.getClassLoader)
+              ).mapN { (bundledDeck, clientArtifacts, modelArtifacts, additionalOutputs) =>
+                val bundledOutputs = clientArtifacts ++ modelArtifacts
+                validateAdditionalDeck(
+                  configPath = configPath,
+                  additionalOutputs = additionalOutputs,
+                  bundledIds = bundledDeckIds(bundledDeck),
+                  enableExternalTemplates = enableExternalTemplates,
+                  templateExists = internal.httpTemplateExists
+                ).andThen(_ =>
+                  HttpLanguageTargetTemplateValidator.internal.validateRequiredArtifactsExist(
+                    languageId = languageId,
+                    defaultTemplateDirectory = clientTemplateDirectory,
+                    artifacts = ConsumerCodegenOutputs.compose(bundledOutputs, additionalOutputs)
+                  ))
+              }.leftMap(_.map(error => InvalidPluginConfig(error.message)))
+                .andThen(identity)
+            })
     }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */

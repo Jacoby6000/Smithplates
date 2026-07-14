@@ -5,8 +5,15 @@ import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidationError
+import com.jacoby6000.smithplates.codegen.core.Field
+import com.jacoby6000.smithplates.codegen.core.Model
+import com.jacoby6000.smithplates.codegen.core.ModelId
+import com.jacoby6000.smithplates.codegen.core.ModelMeta
+import com.jacoby6000.smithplates.codegen.core.NeutralType
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
+import com.jacoby6000.smithplates.codegen.core.TimestampFormat
+import com.jacoby6000.smithplates.codegen.core.Variant
 import com.jacoby6000.smithplates.codegen.core.planning.ArtifactKind
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
@@ -15,19 +22,23 @@ import com.jacoby6000.smithplates.codegen.core.planning.CodegenTemplatePaths
 import com.jacoby6000.smithplates.codegen.core.planning.ResolvedArtifact
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateRenderer
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import com.jacoby6000.smithplates.sql.model.SqlIntEnum
 import com.jacoby6000.smithplates.sql.model.SqlSchema
 import com.jacoby6000.smithplates.sql.model.SqlStringEnum
+import com.jacoby6000.smithplates.sql.model.SqlStructure
+import com.jacoby6000.smithplates.sql.model.SqlStructureMember
+import com.jacoby6000.smithplates.sql.model.SqlUnion
 import com.jacoby6000.smithplates.sql.service.SqlServiceIr
 import com.jacoby6000.smithplates.sql.service.core.SqlCoreModelExtractor
 import com.jacoby6000.smithplates.sql.service.core.SqlMeta
 import com.jacoby6000.smithplates.sql.service.core.SqlOperationMeta
 import com.jacoby6000.smithplates.sql.service.core.SqlServiceMeta
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
-import software.amazon.smithy.model.Model
+import software.amazon.smithy.model.Model as SmithyModel
+import software.amazon.smithy.model.shapes.ShapeId
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.Files
@@ -53,7 +64,7 @@ object SqlServiceCodegenSettings {
 
 object SqlServiceCodegenRenderer {
   def render(
-      model: Model,
+      model: SmithyModel,
       schema: SqlSchema,
       serviceIr: SqlServiceIr,
       settings: SqlServiceCodegenSettings
@@ -115,7 +126,7 @@ object SqlServiceCodegenRenderer {
     val SkipArtifactContent: String = "__SMITHPLATES_SKIP_SQL_ARTIFACT__"
 
     final case class SqlPlannerTemplateRenderer(
-        model: Model,
+        model: SmithyModel,
         schema: SqlSchema,
         serviceIr: SqlServiceIr,
         settings: SqlServiceCodegenSettings
@@ -129,7 +140,11 @@ object SqlServiceCodegenRenderer {
               case Validated.Invalid(errors) =>
                 TemplateRenderFailed(templatePath, errors.map(_.message).toList.mkString("; ")).invalidNel
               case Validated.Valid(context)  =>
-                renderSqlTemplate(settings, templatePath, context)
+                val enrichedView = internal.enrichView(
+                  view.asInstanceOf[SqlNeutralServiceTemplateAttributes.ServiceView],
+                  context
+                )
+                renderSqlTemplate(settings, templatePath, enrichedView)
             }
           case unsupported                 =>
             TemplateRenderFailed(
@@ -139,12 +154,81 @@ object SqlServiceCodegenRenderer {
         }
     }
 
+    def enrichView(
+        view: SqlNeutralServiceTemplateAttributes.ServiceView,
+        context: SqlCodegenServiceContext
+    ): SqlNeutralServiceTemplateAttributes.ServiceView =
+      SqlNeutralServiceTemplateAttributes.enrichment(context) match {
+        case (serviceMeta, opMetas) =>
+          val enrichedOperations = view.subject.operations.map { op =>
+            op.copy(meta = op.meta.copy(feature = opMetas.getOrElse(op.id.name, op.meta.feature)))
+          }
+          val existingIds        = view.usedTypes.map(_.id).toSet
+          val extraStructures    = context.models
+            .filter(s => !existingIds.contains(ModelId(s.namespace, s.name)))
+            .map(internal.toNeutralStructure)
+          val extraUnions        = context.unions
+            .filter(u => !existingIds.contains(ModelId(u.namespace, u.name)))
+            .map(internal.toNeutralUnion)
+          val enrichedUsedTypes  = view.usedTypes ++ extraStructures ++ extraUnions
+          val enrichedService    = view.subject.copy(
+            meta = view.subject.meta.copy(feature = serviceMeta),
+            operations = enrichedOperations
+          )
+          view.copy(subject = enrichedService, usedTypes = enrichedUsedTypes)
+      }
+
+    def toNeutralStructure(structure: SqlStructure): Model.Structure[SqlMeta] =
+      Model.Structure(
+        id = ModelId(structure.namespace, structure.name),
+        meta = ModelMeta(None, Nil, SqlMeta.SqlNestedField),
+        fields = structure.members.map(member => Field(member.name, internal.toNeutralType(member)))
+      )
+
+    def toNeutralUnion(union: SqlUnion): Model.Union[SqlMeta] =
+      Model.Union(
+        id = ModelId(union.namespace, union.name),
+        meta = ModelMeta(None, Nil, SqlMeta.SqlNestedField),
+        members = union.members.map(member =>
+          Variant(member.name, internal.toNeutralType(member.typeName, None, optional = false)))
+      )
+
+    def toNeutralType(member: SqlStructureMember): NeutralType =
+      internal.toNeutralType(member.typeName, member.structureShapeId, member.optional)
+
+    def toNeutralType(typeName: String, structureShapeId: Option[ShapeId], optional: Boolean): NeutralType = {
+      val base = structureShapeId match {
+        case Some(shapeId) =>
+          NeutralType.ModelRef(ModelId(shapeId.getNamespace(), shapeId.getName()))
+        case None          =>
+          typeName match {
+            case "String"                           => NeutralType.StringT
+            case "Integer"                          => NeutralType.IntegerT
+            case "Long"                             => NeutralType.LongT
+            case "BigInteger"                       => NeutralType.BigIntegerT
+            case "Float"                            => NeutralType.FloatT
+            case "Double"                           => NeutralType.DoubleT
+            case "BigDecimal"                       => NeutralType.BigDecimalT
+            case "Boolean"                          => NeutralType.BooleanT
+            case "Blob"                             => NeutralType.BytesT
+            case "Timestamp"                        => NeutralType.TimestampT(TimestampFormat.DateTime)
+            case "Document"                         => NeutralType.DocumentT
+            case other if other.startsWith("List[") =>
+              val inner = other.substring(5, other.length - 1)
+              NeutralType.ListT(internal.toNeutralType(inner, None, optional = false))
+            case other                              =>
+              NeutralType.ModelRef(ModelId("", other))
+          }
+      }
+      if (optional) NeutralType.optional(base) else base
+    }
+
     def renderSqlTemplate(
         settings: SqlServiceCodegenSettings,
         templatePath: String,
-        context: SqlCodegenServiceContext
+        view: SqlNeutralServiceTemplateAttributes.ServiceView
     ): CodegenValidated[String] =
-      if (shouldSkip(templatePath, context)) {
+      if (shouldSkip(templatePath, view)) {
         CodegenValidated.valid(SkipArtifactContent)
       } else {
         try {
@@ -161,7 +245,6 @@ object SqlServiceCodegenRenderer {
                 ScalateSspTemplateEngine.readClasspathResource(resolvedTemplatePath)
               }
             } else if (CodegenTemplatePaths.isFileQualified(templatePath)) {
-              val view = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderFilesystemTemplate(
                 CodegenTemplatePaths.filePath(resolvedTemplatePath),
                 bundledTemplateRoot,
@@ -177,7 +260,6 @@ object SqlServiceCodegenRenderer {
                 } else {
                   bundledTemplateRoot
                 }
-              val view         = SqlCodegenTemplateAttributes.forService(context)
               ScalateSspTemplateEngine.renderClasspathTemplate(resolvedTemplatePath, view, Some(templateRoot))
             }
           CodegenValidated.valid(content)
@@ -189,16 +271,18 @@ object SqlServiceCodegenRenderer {
         }
       }
 
-    def shouldSkip(templatePath: String, context: SqlCodegenServiceContext): Boolean =
+    def shouldSkip(templatePath: String, view: SqlNeutralServiceTemplateAttributes.ServiceView): Boolean = {
+      val meta = SqlNeutralServiceTemplateAttributes.serviceMeta(view)
       ((templatePath.contains("service_derived_sql_integration_tests") ||
-        templatePath.contains("stubs/testcontainers")) && context.integrationTest.isEmpty) ||
-        (templatePath.contains("migrations_service") && context.migration.isEmpty)
+        templatePath.contains("stubs/testcontainers")) && meta.integrationTest.isEmpty) ||
+      (templatePath.contains("migrations_service") && meta.migration.isEmpty)
+    }
 
     def sqlCodegenSettings(settings: SqlServiceCodegenSettings): SqlValidated[CodegenSettings] =
       toSqlValidated(SqlCodegenLanguageConventions.codegenSettings(settings))
 
     def contextForService(
-        model: Model,
+        model: SmithyModel,
         schema: SqlSchema,
         serviceIr: SqlServiceIr,
         service: ServiceModel[SqlServiceMeta, SqlOperationMeta],
@@ -296,7 +380,8 @@ object SqlServiceCodegenRenderer {
         context: SqlCodegenServiceContext,
         enumName: String
     ): String = {
-      val relativeOutputFile = s"${context.namespace.replace('.', '/')}/${SqlCodegenSnakeCase.toSnakeCase(enumName)}.py"
+      val relativeOutputFile =
+        s"${context.namespace.replace('.', '/')}/${context.conventions.fileName(ModelId(context.namespace, enumName))}"
       settings.sourceOutputDirectory match {
         case Some(sourceOutputDirectory) =>
           s"${normalizeDirectory(sourceOutputDirectory)}/$relativeOutputFile"

@@ -101,7 +101,19 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
               feature = HttpOperationMeta(
                 method = operation.method,
                 uriPattern = operation.uri,
-                successStatus = operation.successStatusCode
+                successStatus = operation.successStatusCode,
+                documentation = operation.documentation,
+                inputMembers = operation.inputMembers.map(internal.toInputMemberMeta),
+                bodyBinding = internal.toBodyBindingMeta(operation.bodyBinding),
+                responseVariants = operation.responseBinding.allVariants.map { variant =>
+                  HttpResponseVariantMeta(
+                    variantTypeName = variant.variantTypeName,
+                    statusCode = variant.statusCode,
+                    mediaType = variant.mediaType,
+                    headerBindings = variant.headerBindings,
+                    staticHeaders = variant.staticHeaders
+                  )
+                }
               )
             ),
             input = if (operation.inputShape == HttpStructureExtractor.internal.UnitShapeId) {
@@ -116,21 +128,52 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           )
         }
 
-      val service = ServiceModel(
-        id = serviceId,
-        meta = ServiceMeta(
-          documentation = httpService.documentation,
-          tags = Nil,
-          feature = HttpServiceMeta()
-        ),
-        operations = operations
-      )
-
       val httpOperations         = httpService.routeGroups.flatMap(_.operations)
       val serviceErrorShapeIds   = httpService.serviceErrors.map(_.shapeId).toSet
       val operationErrors        = httpOperations.flatMap(_.operationErrors)
       val operationErrorShapeIds = operationErrors.map(_.shapeId).toSet
       val errorStructureShapeIds = serviceErrorShapeIds ++ operationErrorShapeIds
+      val operationShapeIds      =
+        httpOperations
+          .flatMap { operation =>
+            List(operation.inputShape) ++ operation.outputShape.toList
+          }
+          .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
+          .distinct
+      val existingStructureIds   = httpService.structures.map(_.shapeId).toSet
+      val extraStructureIds      =
+        operationShapeIds
+          .filterNot(existingStructureIds.contains)
+          .filterNot(errorStructureShapeIds.contains)
+
+      val service = ServiceModel(
+        id = serviceId,
+        meta = ServiceMeta(
+          documentation = httpService.documentation,
+          tags = Nil,
+          feature = HttpServiceMeta(
+            title = httpService.title,
+            version = httpService.version,
+            serviceErrors = httpService.serviceErrors.map { error =>
+              HttpServiceErrorMeta(
+                id = ModelIds.fromShapeId(error.shapeId),
+                statusCode = error.statusCode,
+                error = error.problemBinding.map { binding =>
+                  HttpErrorMeta(
+                    problemType = Some(binding.problemType),
+                    title = Some(binding.title),
+                    defaultDetail = binding.defaultDetail
+                  )
+                }
+              )
+            },
+            modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds),
+            emittedModelIds = internal.emittedModelIds(httpService)
+          )
+        ),
+        operations = operations
+      )
+
       val errorVariantsByShapeId =
         httpOperations
           .flatMap(_.responseBinding.errorVariants)
@@ -138,20 +181,6 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           .view
           .mapValues(_.head)
           .toMap
-
-      val operationShapeIds =
-        httpOperations
-          .flatMap { operation =>
-            List(operation.inputShape) ++ operation.outputShape.toList
-          }
-          .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
-          .distinct
-
-      val existingStructureIds = httpService.structures.map(_.shapeId).toSet
-      val extraStructureIds    =
-        operationShapeIds
-          .filterNot(existingStructureIds.contains)
-          .filterNot(errorStructureShapeIds.contains)
 
       val rootShapeIds =
         httpService.structures.map(_.shapeId) ++
@@ -394,6 +423,50 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           case HttpTimestampFormat.EpochSeconds => CoreTimestampFormat.EpochSeconds
           case HttpTimestampFormat.HttpDate     => CoreTimestampFormat.DateTime
         }
+
+    def toInputMemberMeta(member: HttpOperationInputMember): HttpOperationInputMemberMeta =
+      HttpOperationInputMemberMeta(
+        name = member.name,
+        typeName = member.typeName,
+        timestampFormat = member.timestampFormat,
+        required = member.required,
+        binding = toInputBindingMeta(member.binding)
+      )
+
+    def toBodyBindingMeta(binding: HttpOperationBodyBinding): HttpOperationBodyBindingMeta =
+      binding match {
+        case HttpOperationBodyBinding.None               => HttpOperationBodyBindingMeta.None
+        case document: HttpOperationBodyBinding.Document =>
+          HttpOperationBodyBindingMeta.Document(document.inputShape.getName)
+        case members: HttpOperationBodyBinding.Members   =>
+          HttpOperationBodyBindingMeta.Members(members.members.map(toInputMemberMeta))
+      }
+
+    def toInputBindingMeta(binding: HttpInputMemberBinding): HttpInputMemberBindingMeta =
+      binding match {
+        case HttpInputMemberBinding.PathLabel()        => HttpInputMemberBindingMeta.PathLabel
+        case HttpInputMemberBinding.Query(queryName)   => HttpInputMemberBindingMeta.Query(queryName)
+        case HttpInputMemberBinding.Header(headerName) => HttpInputMemberBindingMeta.Header(headerName)
+        case HttpInputMemberBinding.Payload()          => HttpInputMemberBindingMeta.Payload
+      }
+
+    def modelNamespaces(httpService: HttpService, extraShapeIds: List[ShapeId] = Nil): Map[String, String] =
+      (
+        httpService.structures.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.unions.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.stringEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.intEnums.map(shape => shape.name -> shape.shapeId.getNamespace) ++
+          httpService.serviceErrors.map(error => error.name -> error.shapeId.getNamespace) ++
+          extraShapeIds.map(shapeId => shapeId.getName -> shapeId.getNamespace)
+      ).toMap
+
+    def emittedModelIds(httpService: HttpService): Set[ModelId] =
+      (
+        httpService.structures.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.unions.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.stringEnums.map(shape => ModelIds.fromShapeId(shape.shapeId)) ++
+          httpService.intEnums.map(shape => ModelIds.fromShapeId(shape.shapeId))
+      ).toSet
 
     def httpErrorToCodegenError(
         serviceShape: ShapeId,

@@ -1,8 +1,8 @@
 package com.jacoby6000.smithplates.sql.service.query.renderer.common
 
+import com.jacoby6000.smithplates.sql.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.service.SqlQueries
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlRenderedQuery
 

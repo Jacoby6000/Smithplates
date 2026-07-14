@@ -1,29 +1,29 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<% for (classRowFactory <- ctx.classRowFactories) { %>
-<% render("fragments/row_factories/sqlite_class_row_factory", Map("factory" -> classRowFactory)) +%>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<% for (classRowFactory <- sqlAttrs.classRowFactories(ctx)) { %>
+<% render("fragments/row_factories/sqlite_class_row_factory", Map("factory" -> classRowFactory, "ctx" -> ctx)) +%>
 <% } %>
 <% render("fragments/type_mapping/json_type_mappers", Map("ctx" -> ctx)) +%>
 <% for (partial <- helperPartialPaths(ctx)) { %>
-<% render(partial, Map("dialectKey" -> ctx.dialectKey)) +%>
+<% render(partial, Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% for (union <- unionsUsedAsJson(ctx)) { %>
-<% render("fragments/json/union_helpers", Map("union" -> union, "ctx" -> ctx, "dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/union_helpers", Map("union" -> union, "ctx" -> ctx, "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% for (model <- modelsUsedAsJson(ctx)) { %>
-<% render("fragments/json/structure_helpers", Map("model" -> model, "ctx" -> ctx, "dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/structure_helpers", Map("model" -> model, "ctx" -> ctx, "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% if (documentUsedAsJson(ctx)) { %>
-<% render("fragments/json/document_helpers", Map("dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/document_helpers", Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% for (partial <- helperColPartialPaths(ctx)) { %>
-<% render(partial, Map("dialectKey" -> ctx.dialectKey)) +%>
+<% render(partial, Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% for (union <- unionsUsedAsJsonCol(ctx)) { %>
-<% render("fragments/json/union_helpers_col", Map("union" -> union, "ctx" -> ctx, "dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/union_helpers_col", Map("union" -> union, "ctx" -> ctx, "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% for (model <- modelsUsedAsJsonCol(ctx)) { %>
-<% render("fragments/json/structure_helpers_col", Map("model" -> model, "ctx" -> ctx, "dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/structure_helpers_col", Map("model" -> model, "ctx" -> ctx, "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>
 <% if (documentUsedAsJsonCol(ctx)) { %>
-<% render("fragments/json/document_helpers_col", Map("dialectKey" -> ctx.dialectKey)) +%>
+<% render("fragments/json/document_helpers_col", Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>

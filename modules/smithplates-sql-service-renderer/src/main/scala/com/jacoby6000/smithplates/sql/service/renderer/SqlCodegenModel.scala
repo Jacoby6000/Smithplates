@@ -1,9 +1,8 @@
 package com.jacoby6000.smithplates.sql.service.renderer
 
+import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.sql.*
 import com.jacoby6000.smithplates.sql.model.*
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlParameterizedStatement
 import software.amazon.smithy.model.shapes.ShapeId
 
 final case class SqlCodegenParameter(
@@ -92,6 +91,7 @@ final case class SqlCodegenServiceContext(
     intEnums: List[SqlIntEnum] = Nil,
     operations: List[SqlCodegenOperation],
     uuidTypeNames: Set[String] = Set.empty,
+    conventions: Conventions,
     integrationTest: Option[SqlCodegenIntegrationTestContext] = None,
     migration: Option[SqlCodegenMigrationContext] = None
 )
@@ -118,8 +118,7 @@ final case class SqlCodegenIntegrationTestContext(
     transactionCommitInTxAssertions: List[String],
     transactionCommitAfterAssertions: List[String],
     extraImports: List[String],
-    testImports: String,
-    localImportBlock: String
+    testImports: String
 )
 
 final case class SqlCodegenIntegrationTestOperation(

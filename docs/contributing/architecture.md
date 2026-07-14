@@ -105,10 +105,22 @@ Consumer configuration is documented in [Integration](../usage/integration.md): 
 
 Generated filesystem paths and default Python import packages are derived from Smithy shape namespaces via [`CodegenPackageNames`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/CodegenPackageNames.scala) and [`SmithyNamespaceMapping`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/SmithyNamespaceMapping.scala). Template roots (`classpath:python/src/db`, `classpath:python/src/http/server`, …) select which artifact families are rendered; output paths and import packages follow the Smithy namespace plus optional `rootNamespace`, not the template directory layout.
 
+### Language-neutral codegen (planner and strategies)
+
+After the #34 epic cutovers (#39 SQL, #40 HTTP, #41 consumer decks), bundled and consumer codegen output is declared in JSON **`outputs.json`** decks beside templates, decoded into [`CodegenOutput`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenOutput.scala) values, and expanded by [`CodegenPlanner`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenPlanner.scala):
+
+1. **Extraction** — `smithplates-smithy-neutral` lowers Smithy shapes to [`NeutralType`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/NeutralType.scala); feature modules (`HttpCoreModelExtractor`, `SqlCoreModelExtractor`) produce `ModelSet[Meta]` + `ServiceModel` lists validated by `SystemValidator`.
+2. **Planning** — `CodegenPlanner.plan` resolves `SmithyBinding` (service, operation groups, model kinds, once) into concrete output paths via [`PathTemplate`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/PathTemplate.scala), applies `overrides` from consumer decks, and fails on duplicate resolved paths before rendering.
+3. **Rendering** — each planned artifact invokes a `TemplateRenderer`. **HTTP** templates (models, service utilities, route groups) receive neutral [`TemplateView`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/TemplateView.scala) with `usedTypes` and [`Conventions`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/strategy/Conventions.scala) from a [`NamingStrategy`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/strategy/NamingStrategy.scala), via `HttpNeutralModelTemplateAttributes`, `HttpNeutralServiceTemplateAttributes`, and `HttpNeutralRouteGroupTemplateAttributes`. **SQL** service entry templates receive a `SqlNeutralServiceTemplateAttributes` envelope (`TemplateView` + legacy `ServiceTemplateView` for Scalate includes); fragment partials still use the legacy view shape.
+
+Deeper reference: [`.ai-doc-reference/codegen-core.md`](../../.ai-doc-reference/codegen-core.md).
+
 ## Module graph
 
 ```
 modules/smithplates-plugin (published)
+    ├── smithplates-codegen-core
+    ├── smithplates-smithy-neutral
     ├── smithplates-sql-ir
     ├── smithplates-sql-ddl-renderer-common
     ├── smithplates-sql-service-ir
@@ -130,6 +142,8 @@ modules/smithplates-testkit (library, unpublished)
 
 `smithplates-plugin` is the only artifact consumers reference by coordinate, but its entire transitive compile graph (every module listed above it) is **published** so Maven can resolve those dependencies — and so the renderer jars carrying precompiled SSP template classes reach consumers. The IR jars that publish Smithy trait IDL include `META-INF/smithy/manifest` files so Smithy CLI model discovery loads those resources from Maven dependencies. Only `smithplates-testkit` and the dialect IT modules stay unpublished (`unpublishedModuleSettings`); all others use `publishedModuleSettings`. `sbtn publishM2` publishes the full set.
 
+- **smithplates-codegen-core** — language-neutral models, planner, output decks, naming strategies, validation (`CodegenValidated`).
+- **smithplates-smithy-neutral** — shared Smithy → `NeutralType` lowering and `SmithyModelExtractor`.
 - **smithplates-sql-ir** — schema ADTs, table extraction; Smithy trait IDL and Java `TraitService` SPI.
 - **smithplates-sql-ddl-renderer-common** — shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`).
 - **smithplates-sql-service-ir** — query and service IR, extractors.

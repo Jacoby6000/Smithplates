@@ -27,10 +27,10 @@ router = APIRouter()
 )
 async def delete_widget(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
 ) -> None:
     return dispatch_api_response(
-        await services.v1_widgets_api.delete_widget(id=id),
+        await services.v1_widgets_api.delete_widget(id_=id_),
         OPERATION_HTTP_BINDINGS["delete_widget"],
     )
 
@@ -46,10 +46,10 @@ async def delete_widget(
 )
 async def mutate_widget(
     services: Annotated[ApiServices, Depends(get_api_services)],
-    id: str = Path(...),
+    id_: str = Path(..., alias="id"),
     body: WidgetPatch = Body(...),
 ) -> WidgetOutput:
     return dispatch_api_response(
-        await services.v1_widgets_api.mutate_widget(id=id, body=body),
+        await services.v1_widgets_api.mutate_widget(id_=id_, body=body),
         OPERATION_HTTP_BINDINGS["mutate_widget"],
     )

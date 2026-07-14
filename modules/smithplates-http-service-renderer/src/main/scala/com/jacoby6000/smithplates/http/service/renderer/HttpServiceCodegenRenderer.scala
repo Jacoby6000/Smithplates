@@ -5,7 +5,6 @@ import com.jacoby6000.smithplates.codegen.core.CodegenValidated
 import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
 import com.jacoby6000.smithplates.codegen.core.CodegenValidationError
 import com.jacoby6000.smithplates.codegen.core.Model as CodegenModel
-import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.ModelSet
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
@@ -18,8 +17,8 @@ import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.http.HttpValidated
 import com.jacoby6000.smithplates.http.codegen.HttpCoreModelExtractor
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
-import com.jacoby6000.smithplates.http.model.HttpService
-import com.jacoby6000.smithplates.http.model.HttpServiceIr
+import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.InvalidHttpService
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.ShapeId
@@ -27,7 +26,6 @@ import software.amazon.smithy.model.shapes.ShapeId
 object HttpServiceCodegenRenderer {
   def render(
       model: Model,
-      serviceIr: HttpServiceIr,
       settings: HttpServiceCodegenSettings
   ): HttpValidated[List[HttpCodegenArtifact]] =
     (
@@ -35,9 +33,9 @@ object HttpServiceCodegenRenderer {
       internal.toHttpValidated(HttpCodegenLanguageConventions.codegenSettings(settings))
     ).mapN((_, _)).andThen { case ((modelSet, services), codegenSettings) =>
       val emittableModels  =
-        internal.emittableModelSet(modelSet, serviceIr)
+        internal.emittableModelSet(modelSet, services)
       val templateRenderer =
-        internal.HttpPlannerTemplateRenderer(serviceIr, settings)
+        internal.HttpPlannerTemplateRenderer(settings)
       internal
         .toHttpValidated(
           CodegenPlanner.plan(
@@ -54,42 +52,18 @@ object HttpServiceCodegenRenderer {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    final case class HttpPlannerTemplateRenderer(
-        serviceIr: HttpServiceIr,
-        settings: HttpServiceCodegenSettings
-    ) extends TemplateRenderer {
+    final case class HttpPlannerTemplateRenderer(settings: HttpServiceCodegenSettings) extends TemplateRenderer {
       def render[S, M](templatePath: String, view: TemplateView[S, M]): CodegenValidated[String] =
         view.subject match {
-          case service: ServiceModel[?, ?]                                =>
-            legacyService(serviceIr, service.id) match {
-              case Some(httpService) =>
-                renderTemplate(settings, templatePath, viewForService(settings, httpService))
-              case None              =>
-                missingService(templatePath, service.id)
-            }
-          case group: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
-            legacyService(serviceIr, group.service.id) match {
-              case Some(httpService) =>
-                httpService.routeGroups.find(_.tag == group.tag) match {
-                  case Some(routeGroup) =>
-                    renderTemplate(
-                      settings,
-                      templatePath,
-                      viewForService(settings, httpService).copy(routeGroup = Some(routeGroup)))
-                  case None             =>
-                    TemplateRenderFailed(
-                      templatePath,
-                      s"HTTP route group '${group.tag}' not found for service ${group.service.id.namespace}#${group.service.id.name}"
-                    ).invalidNel
-                }
-              case None              =>
-                missingService(templatePath, group.service.id)
-            }
-          case _: CodegenModel[?]                                         =>
+          case _: ServiceModel[?, ?]                                  =>
             renderNeutralTemplate(settings, templatePath, view)
-          case ()                                                         =>
+          case _: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
             renderNeutralTemplate(settings, templatePath, view)
-          case unsupported                                                =>
+          case _: CodegenModel[?]                                     =>
+            renderNeutralTemplate(settings, templatePath, view)
+          case ()                                                     =>
+            renderNeutralTemplate(settings, templatePath, view)
+          case unsupported                                            =>
             TemplateRenderFailed(
               templatePath,
               s"unsupported HTTP template subject: ${unsupported.getClass.getName}"
@@ -97,32 +71,13 @@ object HttpServiceCodegenRenderer {
         }
     }
 
-    def emittableModelSet(modelSet: ModelSet[HttpMeta], serviceIr: HttpServiceIr): ModelSet[HttpMeta] = {
-      val emittedShapeIds =
-        serviceIr.services.flatMap { service =>
-          service.structures.map(_.shapeId) ++
-            service.unions.map(_.shapeId) ++
-            service.stringEnums.map(_.shapeId) ++
-            service.intEnums.map(_.shapeId)
-        }.toSet
-      ModelSet(modelSet.all.filter(model => emittedShapeIds.contains(shapeId(model.id))))
+    def emittableModelSet(
+        modelSet: ModelSet[HttpMeta],
+        services: List[ServiceModel[HttpServiceMeta, HttpOperationMeta]]
+    ): ModelSet[HttpMeta] = {
+      val emittedModelIds = services.flatMap(_.meta.feature.emittedModelIds).toSet
+      ModelSet(modelSet.all.filter(model => emittedModelIds.contains(model.id)))
     }
-
-    def viewForService(settings: HttpServiceCodegenSettings, service: HttpService): HttpCodegenTemplateView =
-      HttpCodegenTemplateView(
-        service = service,
-        packageName = HttpCodegenPackageNames.servicePackageName(settings, service),
-        modelsPackageName = HttpCodegenPackageNames.modelsPackageName(settings, service.shapeId.getNamespace),
-        httpProblemImportModule = HttpCodegenProblemBase.importModule(settings),
-        typePackageNames = HttpCodegenPackageNames.buildTypePackageNames(service, settings)
-      )
-
-    def renderTemplate(
-        settings: HttpServiceCodegenSettings,
-        templatePath: String,
-        view: HttpCodegenTemplateView
-    ): CodegenValidated[String] =
-      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
 
     def renderNeutralTemplate[S, M](
         settings: HttpServiceCodegenSettings,
@@ -228,17 +183,5 @@ object HttpServiceCodegenRenderer {
         ShapeId.from("smithplates.codegen.http#HttpCodegen"),
         error.message
       )
-
-    def legacyService(serviceIr: HttpServiceIr, id: ModelId): Option[HttpService] =
-      serviceIr.services.find(_.shapeId == shapeId(id))
-
-    def shapeId(id: ModelId): ShapeId =
-      ShapeId.from(s"${id.namespace}#${id.name}")
-
-    def missingService(templatePath: String, id: ModelId): CodegenValidated[String] =
-      TemplateRenderFailed(
-        templatePath,
-        s"HTTP service ${id.namespace}#${id.name} not found in legacy HTTP IR"
-      ).invalidNel
   }
 }

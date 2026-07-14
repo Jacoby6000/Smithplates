@@ -1,4 +1,6 @@
-<%@ val bindParameters: List[com.jacoby6000.smithplates.sql.service.renderer.TemplateBindParameterView] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val bindParameters: List[com.jacoby6000.smithplates.sql.service.core.SqlOperationBindParameter] %>
+<%@ val dialectKey: String %>
 <%
   val renderedParams = bindParameters.map { bindParameter =>
     capture {
@@ -9,9 +11,9 @@
           "typeName"        -> bindParameter.typeName,
           "optional"        -> bindParameter.optional,
           "isJson"          -> bindParameter.isJson,
-          "jsonTypeName"    -> bindParameter.jsonTypeName,
-          "timestampFormat" -> (if (bindParameter.timestampFormat.isEmpty) null else bindParameter.timestampFormat),
-          "dialectKey"      -> bindParameter.dialectKey
+          "jsonTypeName"    -> bindParameter.jsonTypeName.getOrElse(""),
+          "timestampFormat" -> (if (bindParameter.timestampFormat.isEmpty) null else timestampFormatName(bindParameter.timestampFormat)),
+          "dialectKey"      -> dialectKey
         )
       )
     }

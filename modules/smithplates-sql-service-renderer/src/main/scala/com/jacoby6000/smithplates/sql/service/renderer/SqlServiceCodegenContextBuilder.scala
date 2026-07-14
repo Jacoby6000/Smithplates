@@ -10,7 +10,6 @@ import com.jacoby6000.smithplates.sql.service.SqlQueryExtractor
 import com.jacoby6000.smithplates.sql.service.SqlService
 import com.jacoby6000.smithplates.sql.service.codegen.ResolvedSqlOperationQuery
 import com.jacoby6000.smithplates.sql.service.codegen.SqlOperationQueryResolver
-import com.jacoby6000.smithplates.sql.service.query.renderer.SqlBindPlaceholder
 import com.jacoby6000.smithplates.sql.service.query.renderer.SqlQueryRenderer
 import software.amazon.smithy.model.Model
 
@@ -25,9 +24,11 @@ object SqlServiceCodegenContextBuilder {
       settings: SqlServiceCodegenSettings
   ): SqlValidated[SqlCodegenServiceContext] =
     SqlCodegenLanguageConventions
-      .serviceModuleName(settings, service.shapeId.getName)
+      .loadBaseConfig(settings)
       .leftMap(_.map(error => InvalidPluginConfig(error.message)))
-      .andThen { moduleName =>
+      .andThen { baseConfig =>
+        val conventions  = baseConfig.conventions(settings.rootNamespace)
+        val moduleName   = conventions.memberName(service.shapeId.getName)
         val rootShapeIds =
           service.operations
             .flatMap { operation =>
@@ -80,7 +81,8 @@ object SqlServiceCodegenContextBuilder {
                   stringEnums = stringEnums,
                   intEnums = intEnums,
                   operations = resolvedOperations,
-                  uuidTypeNames = uuidTypeNames
+                  uuidTypeNames = uuidTypeNames,
+                  conventions = conventions
                 )
 
               val migrationDirectory =

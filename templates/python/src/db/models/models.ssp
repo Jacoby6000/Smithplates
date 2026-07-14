@@ -1,26 +1,26 @@
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
-<%@ val needsDatetimeImport: Boolean = ctx.models.exists(_.members.exists(_.typeName == "Timestamp")) || ctx.unions.exists(_.members.exists(_.typeName == "Timestamp")) %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val needsDatetimeImport: Boolean = sqlAttrs.models(ctx).exists(_.fields.exists(member => pythonTypeName(sqlAttrs.memberTypeName(ctx, member)) == "datetime")) || sqlAttrs.unions(ctx).exists(_.members.exists(member => pythonTypeName(sqlAttrs.renderType(ctx, member.tpe)) == "datetime")) %>
 from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
-<% } %><% if (ctx.enumImportBlock != "") { %>${ctx.enumImportBlock}<% } %><% if (ctx.uuidTypeNames.nonEmpty) { %>
-<% for (uuidTypeName <- ctx.uuidTypeNames) { %>
+<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (sqlAttrs.uuidTypeNames(ctx).exists(name => pythonTypeName(name) == name)) { %>
+<% for (uuidTypeName <- sqlAttrs.uuidTypeNames(ctx).filter(name => pythonTypeName(name) == name)) { %>
 ${uuidTypeName} = str
 <% } %>
-<% } %><% if (ctx.unions.nonEmpty) { %>
+<% } %><% if (sqlAttrs.unions(ctx).nonEmpty) { %>
 
 
-<% } else if (ctx.models.nonEmpty) { %>
+<% } else if (sqlAttrs.models(ctx).nonEmpty) { %>
 
 
-<% } %><% for (union <- ctx.unions) { %><% for (member <- union.members) { %>
+<% } %><% for (union <- sqlAttrs.unions(ctx)) { %><% for (member <- union.members) { %>
 @dataclass
 
-class ${unionVariantTypeName(union.name, member.name)}:
-    ${member.name}: <% render("fragments/types/type_name", Map("typeName" -> member.typeName)) +%>
+class ${unionVariantTypeName(union.id.name, member.name)}:
+    ${member.name}: <% render("fragments/types/type_name", Map("typeName" -> sqlAttrs.renderType(ctx, member.tpe))) +%>
 
-<% } %>${union.name} = ${unionTypeAlias(union.name, union.members.map(_.name))}
+<% } %>${union.id.name} = ${unionTypeAlias(union.id.name, union.members.map(_.name))}
 
 
-<% } %><% render("fragments/models/dataclass_definitions", Map("models" -> ctx.models)) %>
+<% } %><% render("fragments/models/dataclass_definitions", Map("models" -> sqlAttrs.models(ctx), "ctx" -> ctx)) %>

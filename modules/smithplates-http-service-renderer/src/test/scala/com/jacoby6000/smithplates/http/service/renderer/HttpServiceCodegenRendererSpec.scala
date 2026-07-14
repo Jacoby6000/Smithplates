@@ -1,7 +1,6 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import cats.data.Validated
-import com.jacoby6000.smithplates.http.HttpIrExtractor
 import com.jacoby6000.smithplates.http.HttpTestModelLoader
 import munit.FunSuite
 
@@ -42,8 +41,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val serviceIr = HttpIrExtractor.extractOrThrow(model)
-    val settings  =
+    val settings =
       HttpServiceCodegenSettings(
         templateDirectory = HttpServiceCodegenRendererSpec.internal.PythonServerTemplateDirectory,
         defaultFrameworkKey = "fastapi",
@@ -63,7 +61,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         modelTemplateDirectory = Some(HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory)
       )
 
-    HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
+    HttpServiceCodegenRenderer.render(model, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
         assert(paths.contains("src/generated/example/app_factory.py"))
@@ -111,8 +109,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
           |""".stripMargin
     )
 
-    val serviceIr = HttpIrExtractor.extractOrThrow(model)
-    val settings  =
+    val settings =
       HttpServiceCodegenSettings(
         templateDirectory = HttpServiceCodegenRendererSpec.internal.PythonClientTemplateDirectory,
         defaultFrameworkKey = "httpx",
@@ -133,7 +130,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         modelTemplateDirectory = Some(HttpServiceCodegenRendererSpec.internal.PythonModelsTemplateDirectory)
       )
 
-    HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
+    HttpServiceCodegenRenderer.render(model, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
         assert(paths.contains("src/generated/example/client/client_registry.py"))
@@ -367,8 +364,7 @@ object HttpServiceCodegenRendererSpec {
         model: software.amazon.smithy.model.Model,
         routeGroupTag: String = "v1_widgets"
     ): List[HttpCodegenArtifact] = {
-      val serviceIr = HttpIrExtractor.extractOrThrow(model)
-      val settings  =
+      val settings =
         HttpServiceCodegenSettings(
           templateDirectory = PythonServerTemplateDirectory,
           defaultFrameworkKey = "fastapi",
@@ -388,7 +384,7 @@ object HttpServiceCodegenRendererSpec {
           modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
         )
 
-      HttpServiceCodegenRenderer.render(model, serviceIr, settings) match {
+      HttpServiceCodegenRenderer.render(model, settings) match {
         case Validated.Valid(artifacts) => artifacts
         case Validated.Invalid(errors)  =>
           throw new IllegalStateException(errors.map(_.message).toList.mkString("; "))

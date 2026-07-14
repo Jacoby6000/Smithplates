@@ -19,15 +19,20 @@ DeliveryState = DeliveryStatePending | DeliveryStateDelivered
 
 
 @dataclass
-class PostalAddress:
-    street: str
-    city: str
-
-
-@dataclass
 class Shipment:
     id: str
     label: str
     destination: PostalAddress
     state: DeliveryState
     created_at: datetime
+
+
+@dataclass
+class ShipmentNotFound:
+    message: str
+
+
+@dataclass
+class PostalAddress:
+    street: str
+    city: str

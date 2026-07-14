@@ -1,14 +1,14 @@
-<%@ val model: com.jacoby6000.smithplates.sql.service.renderer.TemplateModelView %>
-<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.ServiceTemplateView %>
+<%@ val model: com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta] %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%@ val dialectKey: String %>
-def _json_bind_${model.name}(value: ${model.name}) -> str:
-    return json.dumps(_dump_${model.name}(value))
+def _json_bind_${model.id.name}(value: ${model.id.name}) -> str:
+    return json.dumps(_dump_${model.id.name}(value))
 
 
-def _read_${model.name}(row: ${rowTypeName(dialectKey)}, index: int) -> ${model.name}:
+def _read_${model.id.name}(row: ${rowTypeName(dialectKey)}, index: int) -> ${model.id.name}:
 #match (dialectKey)
 #case ("sqlite")    data = cast(dict[str, object], json.loads(_read_str(row, index)))
-    return _map_to_${model.name}(data)
+    return _map_to_${model.id.name}(data)
 #case ("postgres")<% include("fragments/json/row_data_postgres") +%>
-    return _map_to_${model.name}(data)
+    return _map_to_${model.id.name}(data)
 #end

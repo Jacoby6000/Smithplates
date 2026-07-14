@@ -162,7 +162,7 @@ object SmithplatesBuildPlugin {
         label: String,
         codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
     ): Unit =
-      HttpServiceCodegenRenderer.render(model, serviceIr, codegenSettings) match {
+      HttpServiceCodegenRenderer.render(model, codegenSettings) match {
         case Validated.Valid(artifacts) =>
           artifacts.foreach { artifact =>
             writeArtifact(context, label, artifact.relativePath, artifact.content)

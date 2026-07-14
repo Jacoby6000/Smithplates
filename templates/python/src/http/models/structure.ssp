@@ -25,7 +25,7 @@ class ${H.className(ctx)}(<% if (H.extendsProblem(ctx)) { %>${H.httpProblemClass
     pass
 <% } %>
 <% for ((fieldName, literal) <- H.problemDefaultFields(ctx)) { %>
-    ${fieldName}: str | None = Field(default=${literal})
+    ${fieldName}: str | None = Field(default=${pythonStringLiteral(literal)})
 <% } %>
 <% for (field <- fields) { %>
     ${H.fieldName(ctx, field)}: ${H.fieldType(ctx, field)} = Field(${H.fieldDefault(field)})

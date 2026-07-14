@@ -28,8 +28,7 @@ object SqlServiceCodegenDbArtifacts {
     }
 
   /** A deck template is rendered through Scalate when it is an `.ssp` template; any other bundled resource (e.g. a
-    * runtime `.py`/`.pyi` support file) is copied verbatim. `.ssp` is the Scalate template extension and is not
-    * language-specific.
+    * runtime support file) is copied verbatim. `.ssp` is the Scalate template extension and is not language-specific.
     */
   def isRenderedTemplate(templatePath: String): Boolean =
     templatePath.endsWith(".ssp")

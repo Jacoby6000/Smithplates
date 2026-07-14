@@ -11,7 +11,7 @@ import com.jacoby6000.smithplates.codegen.core.strategy.config.LanguageBaseConfi
 
 object HttpCodegenLanguageConventions {
   def loadBaseConfig(settings: HttpServiceCodegenSettings): CodegenValidated[LanguageBaseConfig] = {
-    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("python")
+    val languageId = settings.templateDirectory.stripPrefix("classpath:").split('/').headOption.getOrElse("")
     Option(getClass.getClassLoader.getResourceAsStream(s"$languageId/base_config.json")) match {
       case Some(stream) =>
         try {
@@ -30,9 +30,49 @@ object HttpCodegenLanguageConventions {
       CodegenSettings(
         sourceOutputDirectory = settings.sourceOutputDirectory.map(normalizeDirectory).getOrElse(""),
         testOutputDirectory = settings.testOutputDirectory.map(normalizeDirectory).getOrElse(""),
-        conventions =
-          httpConventions(baseConfig.conventions(settings.rootNamespace), settings.modelsPackageNameOverride)
+        conventions = httpConventions(
+          applyServicePackageOverride(baseConfig.conventions(settings.rootNamespace), settings.packageNameOverride),
+          settings.modelsPackageNameOverride
+        ),
+        typeRenderer = baseConfig.typeRenderer,
+        commentPrefix = baseConfig.commentPrefix
       )
+    }
+
+  def applyServicePackageOverride(delegate: Conventions, packageNameOverride: Option[String]): Conventions =
+    packageNameOverride match {
+      case None                 => delegate
+      case Some(servicePackage) =>
+        new Conventions {
+          def className(id: ModelId): String =
+            delegate.className(id)
+
+          def modulePath(id: ModelId): String =
+            delegate.modulePath(id)
+
+          def fileName(id: ModelId): String =
+            delegate.fileName(id)
+
+          def fileStem(id: ModelId): String =
+            delegate.fileStem(id)
+
+          def memberName(smithyName: String): String =
+            delegate.memberName(smithyName)
+
+          def functionName(smithyName: String): String =
+            delegate.functionName(smithyName)
+
+          def constantName(smithyName: String): String =
+            delegate.constantName(smithyName)
+
+          def packageName(smithyNamespace: String): String = {
+            val _ = smithyNamespace
+            servicePackage
+          }
+
+          def rootNamespaceDir: String =
+            delegate.rootNamespaceDir
+        }
     }
 
   def normalizeDirectory(directory: String): String =
@@ -46,13 +86,14 @@ object HttpCodegenLanguageConventions {
           def className(id: ModelId): String =
             delegate.className(id)
 
-          def modulePath(id: ModelId): String = {
-            val moduleName = delegate.fileName(id).stripSuffix(".py")
-            s"$modelsPackageName.$moduleName"
-          }
+          def modulePath(id: ModelId): String =
+            s"$modelsPackageName.${delegate.fileStem(id)}"
 
           def fileName(id: ModelId): String =
             delegate.fileName(id)
+
+          def fileStem(id: ModelId): String =
+            delegate.fileStem(id)
 
           def memberName(smithyName: String): String =
             delegate.memberName(smithyName)

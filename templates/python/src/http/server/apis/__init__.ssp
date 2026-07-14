@@ -1,2 +1,3 @@
-<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpCodegenTemplateView %>
-"""Generated HTTP route modules for ${ctx.service.shapeId.getName}."""
+<%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpNeutralServiceTemplateAttributes.ServiceView %>
+<% val H = com.jacoby6000.smithplates.http.service.renderer.HttpNeutralServiceTemplateAttributes %>
+"""Generated HTTP route modules for ${H.serviceName(ctx)}."""

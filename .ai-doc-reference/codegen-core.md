@@ -1,0 +1,86 @@
+# Codegen Core
+
+Read this when working on language-neutral codegen: the planner, output decks,
+`TemplateView`, naming strategies, or validation errors shared by SQL and HTTP
+renderers.
+
+## Role
+
+`smithplates-codegen-core` is the language-neutral foundation for the #34 epic.
+It owns:
+
+* **Domain ADTs** — `NeutralType`, `Model[A]`, `ModelSet[A]`, `ServiceModel`,
+  `OperationModel`, metadata wrappers (`ModelMeta`, `ServiceMeta`, `OperationMeta`)
+* **Type analysis** — `TypeResolver` (alias chasing), `TypeUsageAnalyzer`
+  (deterministic `usedTypes` for imports)
+* **Planning** — `CodegenOutput` decks, `CodegenPlanner`, `PathTemplate`,
+  `SmithyBinding`, `BindingFilter`, `BindingGroup`
+* **Rendering contract** — `TemplateView`, `TemplateRenderer`, `Conventions` /
+  `NamingStrategy`, `TypeRenderer` / `ConfigurableTypeRenderer`
+* **Validation** — `SystemValidator`, `CodegenValidationError` hierarchy
+  (`CodegenValidated` / `ValidatedNel`)
+
+No target-language syntax, no Smithy SDK types, and no dependency on SQL/HTTP
+renderer modules.
+
+## Data flow (current cutover state)
+
+```
+Smithy model
+  → smithplates-smithy-neutral (NeutralType lowering)
+  → feature IR adapters (#36): HttpCoreModelExtractor / SqlCoreModelExtractor
+  → ModelSet[Meta] + ServiceModel list
+  → plugin loads outputs.json deck (+ optional consumer additional deck)
+  → CodegenPlanner.plan(outputs, models, services, settings, templateRenderer)
+  → List[ResolvedArtifact]
+  → feature renderer writes Smithy build manifest
+```
+
+**Template renderers** still bridge SQL bindings to legacy SSP views:
+
+| Area | Neutral today | Legacy bridge |
+|------|---------------|---------------|
+| HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` + `TypeRenderer` | — |
+| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | Python-specific helpers (`pythonTupleOfPairs`) in SSP preamble |
+| HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | String-based `referencedModelNames` inlined (was `HttpModelTypeNames`) |
+| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload + `Template*View` types + `SqlCodegenHelperAttributes` + `SqlCodegenTemplateViews`; `SqlCodegenUuidTypeNames` (extraction only, no Python filtering) |
+
+Full removal of the legacy `ServiceTemplateView` payload requires extending
+`SqlMeta` / `SqlOperationMeta` to carry all SQL-specific facts (column types,
+`@sqlJson`, `@sqlVarchar`, SQL queries, bind parameters, result fields),
+then migrating all 78 db SSP templates to neutral `ctx.subject` /
+`ctx.usedTypes` / `ctx.conventions` accessors (#39).
+
+## Key packages
+
+| Package | Contents |
+|---------|----------|
+| `codegen.core` | `NeutralType`, models, `TypeResolver`, `TypeUsageAnalyzer`, `SystemValidator` |
+| `codegen.core.planning` | `CodegenPlanner`, `CodegenOutput`, `TemplateView`, `ResolvedArtifact`, `SmithyBinding` |
+| `codegen.core.planning.config` | `CodegenOutputDeck`, `CodegenOutputDeckLoader`, JSON decoders |
+| `codegen.core.strategy` | `NamingStrategy`, `Conventions`, `TypeRenderer`, `ConfigurableTypeRenderer`, `RenderContext` |
+| `codegen.core.strategy.config` | `TypeSyntaxConfig`, `LanguageBaseConfig`, `LanguageBaseConfigLoader` |
+
+## Output decks
+
+Bundled and consumer decks are JSON (`outputs.json`) decoded into
+`CodegenOutputDeck` — not hardcoded Scala artifact lists. See
+[`codegen-output-deck.md`](codegen-output-deck.md) and
+[`plugin-consumer-config.md`](plugin-consumer-config.md).
+
+`CodegenPlanner.internal.mergeOutputs` applies consumer `overrides` by id and
+rejects duplicate resolved paths at plan time (`DuplicateResolvedOutputPath`).
+
+## Validation surface
+
+`SystemValidator` runs after feature extraction. Plugin config validation
+(`ConsumerCodegenOutputValidator`, language-target template validators) runs
+before Smithy build codegen. Path placeholder expansion needs the loaded model,
+so duplicate **resolved** output paths are detected during `CodegenPlanner.plan`,
+not during `smithy-build.json` parsing.
+
+## Related modules
+
+* [`module-layout.md`](module-layout.md) — full `modules/` graph and precompilation
+* [`docs/contributing/architecture.md`](../docs/contributing/architecture.md) —
+  contributor-facing pipeline overview

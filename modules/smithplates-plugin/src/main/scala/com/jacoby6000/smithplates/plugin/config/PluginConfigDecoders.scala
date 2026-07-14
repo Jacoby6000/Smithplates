@@ -91,7 +91,7 @@ object PluginConfigDecoders {
     ) {
       def toDomain: HttpServerTarget =
         HttpServerTarget(
-          webFramework = webFramework.getOrElse("fastapi"),
+          webFramework = webFramework,
           templateDirectory = templateDirectory,
           additionalTemplatesDirectory = additionalTemplatesDirectory,
           packageName = packageName
@@ -106,7 +106,7 @@ object PluginConfigDecoders {
     ) {
       def toDomain: HttpClientTarget =
         HttpClientTarget(
-          httpLibrary = httpLibrary.getOrElse("httpx"),
+          httpLibrary = httpLibrary,
           templateDirectory = templateDirectory,
           additionalTemplatesDirectory = additionalTemplatesDirectory,
           packageName = packageName

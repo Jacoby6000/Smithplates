@@ -5,11 +5,15 @@ import com.jacoby6000.smithplates.codegen.core.CodegenValidated.*
 import com.jacoby6000.smithplates.codegen.core.Model
 import com.jacoby6000.smithplates.codegen.core.TemplateRenderFailed
 import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
+import com.jacoby6000.smithplates.codegen.core.strategy.TypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.UnconfiguredTypeRenderer
 
 final case class TemplateView[Subject, M](
     subject: Subject,
     usedTypes: List[Model[M]],
-    conventions: Conventions
+    conventions: Conventions,
+    typeRenderer: TypeRenderer = UnconfiguredTypeRenderer,
+    commentPrefix: String = "#"
 )
 
 trait TemplateRenderer {

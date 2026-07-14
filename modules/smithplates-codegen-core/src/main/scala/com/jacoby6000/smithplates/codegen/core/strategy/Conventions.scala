@@ -7,6 +7,7 @@ trait Conventions {
   def className(id: ModelId): String
   def modulePath(id: ModelId): String
   def fileName(id: ModelId): String
+  def fileStem(id: ModelId): String
   def memberName(smithyName: String): String
   def functionName(smithyName: String): String
   def constantName(smithyName: String): String
@@ -89,6 +90,9 @@ object Conventions {
 
     def fileName(id: ModelId): String =
       formatIdentifier(strategy, strategy.fileNames, id.name)
+
+    def fileStem(id: ModelId): String =
+      formatIdentifier(strategy, strategy.fileNames.copy(suffix = ""), id.name)
 
     def memberName(smithyName: String): String =
       formatIdentifier(strategy, strategy.valueNames, smithyName)

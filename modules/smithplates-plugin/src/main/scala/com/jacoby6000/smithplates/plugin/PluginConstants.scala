@@ -3,15 +3,32 @@ package com.jacoby6000.smithplates.plugin
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
-
 object PluginConstants {
-  val BundledLanguageIds: Set[String] = Set("python")
-
   val DefaultRootNamespace: String = "generated"
+
+  def bundledLanguageIds: Set[String] = {
+    val classLoader = getClass.getClassLoader
+    Option(classLoader.getResourceAsStream("META-INF/smithplates/bundled_languages.json")) match {
+      case Some(stream) =>
+        try
+          io.circe.parser
+            .parse(scala.io.Source.fromInputStream(stream, "UTF-8").mkString)
+            .flatMap(_.as[List[String]])
+            .getOrElse(Set.empty[String])
+            .map(_.toLowerCase)
+            .toSet
+        finally stream.close()
+      case None         =>
+        Set.empty[String]
+    }
+  }
+
+  def isBundledLanguage(languageId: String): Boolean =
+    bundledLanguageIds.contains(languageId.toLowerCase)
 
   def resolvedRootNamespace(languageId: String, explicitRootNamespace: Option[String]): Option[String] =
     explicitRootNamespace.orElse(
-      if (BundledLanguageIds.contains(languageId.toLowerCase)) {
+      if (bundledLanguageIds.contains(languageId.toLowerCase)) {
         Some(DefaultRootNamespace)
       } else {
         None
@@ -23,32 +40,15 @@ object PluginConstants {
       configPath: String,
       templateDirectory: Option[String]
   ): SqlValidated[Unit] =
-    if (!BundledLanguageIds.contains(languageId.toLowerCase) && templateDirectory.isEmpty) {
+    if (!bundledLanguageIds.contains(languageId.toLowerCase) && templateDirectory.isEmpty) {
       SqlValidated.invalid(
         InvalidPluginConfig(
           s"smithplates.$languageId.$configPath requires `templateDirectory` " +
             s"because bundled templates are not available for '$languageId'; " +
-            s"supported bundled languages: ${BundledLanguageIds.toList.sorted.mkString(", ")}"
+            s"supported bundled languages: ${bundledLanguageIds.toList.sorted.mkString(", ")}"
         )
       )
     } else {
       ().validNel
-    }
-
-  def validateSupportedValue(
-      languageId: String,
-      configPath: String,
-      value: String,
-      supported: Set[String]
-  ): SqlValidated[Unit] =
-    if (supported.contains(value)) {
-      ().validNel
-    } else {
-      SqlValidated.invalid(
-        InvalidPluginConfig(
-          s"smithplates.$languageId.$configPath '$value' is not supported; " +
-            s"supported values: ${supported.toList.sorted.mkString(", ")}"
-        )
-      )
     }
 }

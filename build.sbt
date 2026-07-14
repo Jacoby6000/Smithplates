@@ -222,6 +222,19 @@ def pythonLanguageBaseConfigResource: Seq[Def.Setting[_]] = Seq(
   }
 )
 
+/** Copy `templates/bundled_languages.json` onto the classpath root. */
+def bundledLanguagesManifestResource: Seq[Def.Setting[_]] = Seq(
+  Compile / resourceGenerators += Def.task {
+    val repoRoot     = (ThisBuild / baseDirectory).value
+    val resourceRoot = (Compile / resourceManaged).value
+    val source       = repoRoot / "templates" / "bundled_languages.json"
+    val target       = resourceRoot / "META-INF" / "smithplates" / "bundled_languages.json"
+    IO.createDirectories(Seq(target.getParentFile))
+    IO.copyFile(source, target, preserveLastModified = true)
+    Seq(target)
+  }
+)
+
 lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-core"))
   .settings(
     strictScala3Settings,
@@ -484,6 +497,7 @@ lazy val smithplatesPlugin = (project in file("modules/smithplates-plugin"))
     Compile / packageDoc / publishArtifact := true,
     Test / packageDoc / publishArtifact := false,
     publishM2Configuration := publishM2Configuration.value.withOverwrite(true),
+    bundledLanguagesManifestResource,
     Test / unmanagedResourceDirectories += (ThisBuild / baseDirectory).value / "templates",
     // The codegen golden suites render bundled templates through the renderer engines. Put each renderer's precompiled
     // template classes on the test classpath so those renders load precompiled classes instead of compiling templates

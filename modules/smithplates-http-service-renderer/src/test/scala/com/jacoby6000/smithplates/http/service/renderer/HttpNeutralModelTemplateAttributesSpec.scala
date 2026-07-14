@@ -1,18 +1,19 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
-import com.jacoby6000.smithplates.codegen.core.EnumValue
 import com.jacoby6000.smithplates.codegen.core.Field
 import com.jacoby6000.smithplates.codegen.core.Model
 import com.jacoby6000.smithplates.codegen.core.ModelId
 import com.jacoby6000.smithplates.codegen.core.ModelMeta
 import com.jacoby6000.smithplates.codegen.core.NeutralType
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
-import com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral
 import com.jacoby6000.smithplates.codegen.core.TimestampFormat
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.Conventions
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingConvention
 import com.jacoby6000.smithplates.codegen.core.strategy.NamingStrategy
+import com.jacoby6000.smithplates.codegen.core.strategy.TypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.config.ConfigurableTypeRenderer
+import com.jacoby6000.smithplates.codegen.core.strategy.config.TypeSyntaxConfig
 import com.jacoby6000.smithplates.http.codegen.HttpErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import munit.FunSuite
@@ -47,8 +48,36 @@ class HttpNeutralModelTemplateAttributesSpec extends FunSuite {
   private val uuid2     = Model.Alias(id("Uuid2"), meta, ModelRef(id("Uuid")))
   private val usedTypes = List(widget, itemId, uuid, uuid2)
 
+  private def pythonTypeRenderer: TypeRenderer =
+    ConfigurableTypeRenderer(
+      TypeSyntaxConfig(
+        primitives = Map(
+          "boolean"    -> "bool",
+          "integer"    -> "int",
+          "long"       -> "int",
+          "bigInteger" -> "int",
+          "float"      -> "float",
+          "double"     -> "float",
+          "bigDecimal" -> "Decimal",
+          "string"     -> "str",
+          "bytes"      -> "bytes",
+          "document"   -> "object"
+        ),
+        timestamp = Map("dateTime" -> "datetime", "epochSeconds" -> "float"),
+        optional = "{inner} | None",
+        list = "list[{element}]",
+        map = "dict[{key}, {value}]",
+        modelRef = "{name}"
+      )
+    )
+
   private def view[S](subject: S): TemplateView[S, HttpMeta] =
-    TemplateView(subject = subject, usedTypes = usedTypes, conventions = conventions)
+    TemplateView(
+      subject = subject,
+      usedTypes = usedTypes,
+      conventions = conventions,
+      typeRenderer = pythonTypeRenderer
+    )
 
   private def render(tpe: NeutralType): String =
     H.renderType(tpe, view(widget))
@@ -90,28 +119,6 @@ class HttpNeutralModelTemplateAttributesSpec extends FunSuite {
 
   test("renderType follows an alias chain to the underlying primitive") {
     assertEquals(render(ModelRef(id("Uuid2"))), "str")
-  }
-
-  test("enumBaseClass distinguishes int enums from string enums") {
-    val intEnum =
-      Model.EnumModel(id("Priority"), meta, IntegerT, List(EnumValue("HIGH", PrimitiveLiteral.IntValue(1))))
-    val strEnum =
-      Model.EnumModel(id("Status"), meta, StringT, List(EnumValue("OPEN", PrimitiveLiteral.StringValue("open"))))
-
-    assertEquals(H.enumBaseClass(view(intEnum)), "IntEnum")
-    assertEquals(H.enumBaseClass(view(strEnum)), "StrEnum")
-  }
-
-  test("enumValueLiteral renders int literals verbatim and quotes string literals") {
-    assertEquals(H.enumValueLiteral(EnumValue("HIGH", PrimitiveLiteral.IntValue(42))), "42")
-    assertEquals(H.enumValueLiteral(EnumValue("NEG", PrimitiveLiteral.IntValue(-1))), "-1")
-    assertEquals(H.enumValueLiteral(EnumValue("OPEN", PrimitiveLiteral.StringValue("open"))), "\"open\"")
-  }
-
-  test("enumValueLiteral escapes Python string metacharacters") {
-    val raw      = "a\"b\\c\nd\re\tf"
-    val expected = "\"a\\\"b\\\\c\\nd\\re\\tf\""
-    assertEquals(H.enumValueLiteral(EnumValue("ODD", PrimitiveLiteral.StringValue(raw))), expected)
   }
 
   test("isOptional and fieldDefault track OptionalT wrapping") {
@@ -173,9 +180,9 @@ class HttpNeutralModelTemplateAttributesSpec extends FunSuite {
     assertEquals(
       H.problemDefaultFields(view(structure)),
       List(
-        "type"   -> "\"https://example.com/errors/widget-not-found\"",
-        "title"  -> "\"Widget not found\"",
-        "detail" -> "\"The requested widget does not exist.\""
+        "type"   -> "https://example.com/errors/widget-not-found",
+        "title"  -> "Widget not found",
+        "detail" -> "The requested widget does not exist."
       )
     )
   }
