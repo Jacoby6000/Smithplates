@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "plugins": {
+    "smithplates": {
+      "typescript": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "test",
+        "http": {
+          "client": {
+            "httpLibrary": "fetch",
+            "packageName": "generated.warehouseApiClient"
+          }
+        }
+      }
+    }
+  }
+}

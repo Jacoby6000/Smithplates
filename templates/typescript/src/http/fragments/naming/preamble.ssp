@@ -1,0 +1,28 @@
+<%
+def tsTupleOfPairs(pairs: List[(String, String)]): String =
+  pairs match {
+    case Nil    => "[]"
+    case _      =>
+      pairs
+        .map { case (left, right) => s"[${tsStringLiteral(left)}, ${tsStringLiteral(right)}]" }
+        .mkString("[", ", ", "]")
+  }
+
+def tsEnumValueLiteral(value: com.jacoby6000.smithplates.codegen.core.EnumValue): String =
+  value.value match {
+    case com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral.StringValue(inner) => tsStringLiteral(inner)
+    case com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral.IntValue(inner)    => inner.toString
+  }
+
+def tsImportPath(packageName: String): String =
+  packageName.replace(".", "/")
+
+def tsMediaType(mediaType: Option[String]): String =
+  mediaType match {
+    case None     => "null"
+    case Some(mt) => tsStringLiteral(mt)
+  }
+
+def tsClientModuleName(tag: String): String =
+  tag + "Client"
+%>

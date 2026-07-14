@@ -1,0 +1,39 @@
+{
+  "shared": [
+    {
+      "id": "typescript.http.models.init",
+      "artifactKind": "src",
+      "template": "models/index.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/index.ts",
+      "binding": { "type": "service" }
+    },
+    {
+      "id": "typescript.http.models.http_problem",
+      "artifactKind": "src",
+      "template": "models/http_problem.ssp",
+      "outputPath": "smithplates/codegen/http/httpProblem.ts",
+      "binding": { "type": "once" }
+    },
+    {
+      "id": "typescript.http.models.structure",
+      "artifactKind": "src",
+      "template": "models/structure.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "structure" }], "groupBy": "none" }
+    },
+    {
+      "id": "typescript.http.models.union",
+      "artifactKind": "src",
+      "template": "models/union.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "union" }], "groupBy": "none" }
+    },
+    {
+      "id": "typescript.http.models.enum",
+      "artifactKind": "src",
+      "template": "models/enum.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/{{modelFileName}}",
+      "binding": { "type": "model", "filters": [{ "kind": "enum" }], "groupBy": "none" }
+    }
+  ]
+}

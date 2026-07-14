@@ -48,6 +48,7 @@ if [[ "$1" == "all" ]]; then
   fi
   render_example "${ROOT}/example/python"
   render_example "${ROOT}/example/openapi-reference-python"
+  render_example "${ROOT}/example/typescript"
 else
   for example_dir in "$@"; do
     if [[ "${example_dir}" != /* ]]; then

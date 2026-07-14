@@ -12,6 +12,7 @@ Targets (--target):
   python/db/postgres  db postgres dialect + shared db files
   examples            all example reference projects (regenerate, lint Smithplates-owned example code, test)
   examples/python     Python petstore reference (regenerate, ruff, mypy, pytest, HTTP tests)
+  examples/typescript TypeScript petstore reference (regenerate, tsc, tests)
 EOF
 }
 
@@ -27,6 +28,7 @@ smithystache_validate_normalize_target() {
     python/db/postgres) echo python/db/postgres ;;
     examples) echo examples ;;
     examples/python) echo examples/python ;;
+    examples/typescript) echo examples/typescript ;;
     *)
       echo "error: unknown validate target: ${target}" >&2
       smithystache_validate_target_usage
@@ -37,7 +39,7 @@ smithystache_validate_normalize_target() {
 
 smithystache_validate_target_is_examples() {
   case "${1:-all}" in
-    examples|examples/python) return 0 ;;
+    examples|examples/python|examples/typescript) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -51,7 +53,7 @@ smithystache_validate_target_is_python() {
 
 smithystache_validate_target_needs_postgres_docker() {
   case "${1:-all}" in
-    all|plugin|python|python/db|python/db/postgres|examples|examples/python) return 0 ;;
+    all|plugin|python|python/db|python/db/postgres|examples|examples/python|examples/typescript) return 0 ;;
     *) return 1 ;;
   esac
 }
@@ -60,6 +62,7 @@ smithystache_validate_example_project() {
   local target="$1"
   case "${target}" in
     examples/python) echo python ;;
+    examples/typescript) echo typescript ;;
     examples) echo all ;;
     *) echo "" ;;
   esac

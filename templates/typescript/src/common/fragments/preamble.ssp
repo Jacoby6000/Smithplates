@@ -1,0 +1,17 @@
+<%
+def tsStringLiteral(value: String): String =
+  "\"" +
+    value
+      .replace("\\", "\\\\")
+      .replace("\"", "\\\"")
+      .replace("\r\n", "\\n")
+      .replace("\n", "\\n")
+      .replace("\r", "\\n") +
+    "\""
+
+def tsOptionalStringLiteral(value: Option[String]): String =
+  value match {
+    case None        => "undefined"
+    case Some(text)  => tsStringLiteral(text)
+  }
+%>

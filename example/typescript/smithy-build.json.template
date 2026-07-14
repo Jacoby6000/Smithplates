@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "sources": [
+    "../petstore-smithy-spec/petstore"
+  ],
+  "maven": {
+    "repositories": [
+      {
+        "url": "${SMITHPLATES_LOCAL_MAVEN_REPOSITORY_URL}",
+        "id": "smithplates-local-maven"
+      }
+    ],
+    "dependencies": [
+      "com.jacoby6000:smithplates-plugin:${SMITHPLATES_VERSION}"
+    ]
+  },
+  "plugins": {
+    "smithplates": {
+      "typescript": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
+        "http": {
+          "rootNamespace": "generated",
+          "client": {
+            "httpLibrary": "fetch",
+            "packageName": "generated.petstoreClient"
+          }
+        }
+      }
+    }
+  }
+}

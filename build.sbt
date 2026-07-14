@@ -110,15 +110,15 @@ def publishedModuleSettings: Seq[Def.Setting[_]] = Seq(
   publishM2Configuration := publishM2Configuration.value.withOverwrite(true)
 )
 
-def pythonTemplateNamespace(feature: String): String =
-  s"python/src/$feature"
+def languageTemplateNamespace(languageId: String, feature: String): String =
+  s"$languageId/src/$feature"
 
 /** Package each template tree under its own classpath namespace (e.g. python/src/http). */
-def pythonNamespacedTemplateResources(features: String*): Seq[Def.Setting[_]] = Seq(
+def languageNamespacedTemplateResources(languageId: String, features: String*): Def.Setting[_] =
   Compile / resourceGenerators += Def.task {
     val repoRoot     = (ThisBuild / baseDirectory).value
     val resourceRoot = (Compile / resourceManaged).value
-    val templateSrc  = repoRoot / "templates" / "python" / "src"
+    val templateSrc  = repoRoot / "templates" / languageId / "src"
 
     features.flatMap { feature =>
       val sourceRoot = templateSrc / feature
@@ -127,14 +127,20 @@ def pythonNamespacedTemplateResources(features: String*): Seq[Def.Setting[_]] = 
         .get
         .map { source =>
           val relative = source.relativeTo(sourceRoot).get.getPath
-          val target   = resourceRoot / pythonTemplateNamespace(feature) / relative
+          val target   = resourceRoot / languageTemplateNamespace(languageId, feature) / relative
           IO.createDirectories(Seq(target.getParentFile))
           IO.copyFile(source, target, preserveLastModified = true)
           target
         }
     }
   }
-)
+
+def pythonTemplateNamespace(feature: String): String =
+  languageTemplateNamespace("python", feature)
+
+/** Package each template tree under its own classpath namespace (e.g. python/src/http). */
+def pythonNamespacedTemplateResources(features: String*): Seq[Def.Setting[_]] =
+  Seq(languageNamespacedTemplateResources("python", features: _*))
 
 val precompiledTemplateClasses = taskKey[Seq[(File, String)]](
   "Ahead-of-time compile bundled SSP templates into JVM classes packaged into the published renderer jar."
@@ -210,17 +216,21 @@ def dialectIntegrationTestModuleSettings: Seq[Def.Setting[_]] = Seq(
 )
 
 /** Copy `templates/python/base_config.json` onto the classpath as `python/base_config.json`. */
-def pythonLanguageBaseConfigResource: Seq[Def.Setting[_]] = Seq(
+def languageBaseConfigResource(languageId: String): Seq[Def.Setting[_]] = Seq(
   Compile / resourceGenerators += Def.task {
     val repoRoot     = (ThisBuild / baseDirectory).value
     val resourceRoot = (Compile / resourceManaged).value
-    val source       = repoRoot / "templates" / "python" / "base_config.json"
-    val target       = resourceRoot / "python" / "base_config.json"
+    val source       = repoRoot / "templates" / languageId / "base_config.json"
+    val target       = resourceRoot / languageId / "base_config.json"
     IO.createDirectories(Seq(target.getParentFile))
     IO.copyFile(source, target, preserveLastModified = true)
     Seq(target)
   }
 )
+
+/** Copy `templates/python/base_config.json` onto the classpath as `python/base_config.json`. */
+def pythonLanguageBaseConfigResource: Seq[Def.Setting[_]] =
+  languageBaseConfigResource("python")
 
 /** Copy `templates/bundled_languages.json` onto the classpath root. */
 def bundledLanguagesManifestResource: Seq[Def.Setting[_]] = Seq(
@@ -248,7 +258,8 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
       "org.scalameta" %% "munit"            % munitVersion           % Test,
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test
     ),
-    pythonLanguageBaseConfigResource
+    pythonLanguageBaseConfigResource,
+    languageBaseConfigResource("typescript")
   )
 
 lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
@@ -420,10 +431,18 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
     pythonNamespacedTemplateResources("common", "http"),
+    languageNamespacedTemplateResources("typescript", "common", "http"),
     pythonLanguageBaseConfigResource,
+    languageBaseConfigResource("typescript"),
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.http.service.renderer.HttpTemplatePrecompilerMain",
-      Seq("python/src/http/server", "python/src/http/client", "python/src/http/models")
+      Seq(
+        "python/src/http/server",
+        "python/src/http/client",
+        "python/src/http/models",
+        "typescript/src/http/client",
+        "typescript/src/http/models"
+      )
     ),
     Test / unmanagedResourceDirectories ++= Seq(
       (ThisBuild / baseDirectory).value / "templates"
