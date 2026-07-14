@@ -23,7 +23,12 @@ object SqlCodegenIntegrationTestBuilder {
 
     val enumSamples = internal.enumSampleLiterals(context, schema)
 
-    val operationsByTable = sqlOperations.flatMap(op => op.sql.map(sql => (sql.tableName, op))).groupBy(_._1).view.mapValues(_.map(_._2).toList).toMap
+    val operationsByTable = sqlOperations
+      .flatMap(op => op.sql.map(sql => (sql.tableName, op)))
+      .groupBy(_._1)
+      .view
+      .mapValues(_.map(_._2).toList)
+      .toMap
 
     val tableWithMostLifecycleOps = operationsByTable.toList
       .filter { case (_, ops) =>
@@ -31,13 +36,15 @@ object SqlCodegenIntegrationTestBuilder {
         ops.exists(_.sql.exists(_.queryKind == "selectOne"))
       }
       .maxByOption { case (_, ops) =>
-        ops.count(op => op.sql.exists(sql => sql.queryKind == "insert" || sql.queryKind == "selectOne" || sql.queryKind == "update" || sql.queryKind == "delete"))
+        ops.count(op =>
+          op.sql.exists(sql =>
+            sql.queryKind == "insert" || sql.queryKind == "selectOne" || sql.queryKind == "update" || sql.queryKind == "delete"))
       }
 
     val lifecycleOps = tableWithMostLifecycleOps.map(_._2).getOrElse(sqlOperations)
 
     val lifecycleInsertOp = lifecycleOps.find(_.sql.exists(_.queryKind == "insert"))
-    val lifecycleUpdateOp  = lifecycleOps.find(_.sql.exists(_.queryKind == "update"))
+    val lifecycleUpdateOp = lifecycleOps.find(_.sql.exists(_.queryKind == "update"))
 
     val insertOperation    =
       lifecycleInsertOp
@@ -56,9 +63,10 @@ object SqlCodegenIntegrationTestBuilder {
       case (Some(insert), Some(selectOne)) =>
         val testImports     = internal.collectTestImports(context, insert, selectOne, updateOperation)
         val insertTableName =
-          insertOperation.flatMap(_ => lifecycleOps
-            .find(_.sql.exists(_.queryKind == "insert"))
-            .flatMap(_.sql.map(_.tableName)))
+          insertOperation.flatMap(_ =>
+            lifecycleOps
+              .find(_.sql.exists(_.queryKind == "insert"))
+              .flatMap(_.sql.map(_.tableName)))
         Some(
           SqlCodegenIntegrationTestContext(
             schemaDdl = internal.schemaDdl(schema, sqlOperations, queries, context.dialectKey, schemaDdlRenderers),

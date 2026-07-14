@@ -310,28 +310,29 @@ object SqlNeutralServiceTemplateAttributes {
   def modelsUsedAsJsonCol(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
     models(ctx).filter(model => usedJsonTypeNamesCol(ctx).contains(model.id.name))
 
-  /** Transitive closure of structures reachable from `@sqlJson` columns: the structures directly used as JSON
-    * columns, plus every structure transitively referenced by their fields or by JSON-union members. These
-    * all need `_dump_` / `_map_to_` helpers because the union / structure dump helpers dispatch to leaf
-    * structure helpers via `dumpValueExpression` / `mapValueExpression`.
+  /** Transitive closure of structures reachable from `@sqlJson` columns: the structures directly used as JSON columns,
+    * plus every structure transitively referenced by their fields or by JSON-union members. These all need `_dump_` /
+    * `_map_to_` helpers because the union / structure dump helpers dispatch to leaf structure helpers via
+    * `dumpValueExpression` / `mapValueExpression`.
     */
   def jsonStructureClosure(ctx: ServiceView): List[Model.Structure[SqlMeta]] = {
-    val allModels         = models(ctx)
-    val allModelNames     = allModels.map(_.id.name).toSet
-    val allUnions         = unions(ctx)
-    val allUnionNames     = allUnions.map(_.id.name).toSet
+    val allModels          = models(ctx)
+    val allModelNames      = allModels.map(_.id.name).toSet
+    val allUnions          = unions(ctx)
+    val allUnionNames      = allUnions.map(_.id.name).toSet
     val seedJsonStructures = modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)
     val seedJsonUnions     = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
 
     def referencedStructureNames(tpe: NeutralType): Set[String] = tpe match {
-      case NeutralType.ModelRef(id) if allModelNames.contains(id.name) || allUnionNames.contains(id.name) => Set(id.name)
-      case NeutralType.ListT(inner)                                       => referencedStructureNames(inner)
-      case NeutralType.MapT(_, value)                                     => referencedStructureNames(value)
-      case NeutralType.OptionalT(inner)                                   => referencedStructureNames(inner)
-      case _                                                              => Set.empty
+      case NeutralType.ModelRef(id) if allModelNames.contains(id.name) || allUnionNames.contains(id.name) =>
+        Set(id.name)
+      case NeutralType.ListT(inner)                                                                       => referencedStructureNames(inner)
+      case NeutralType.MapT(_, value)                                                                     => referencedStructureNames(value)
+      case NeutralType.OptionalT(inner)                                                                   => referencedStructureNames(inner)
+      case _                                                                                              => Set.empty
     }
 
-    var visited = Set.empty[String]
+    var visited  = Set.empty[String]
     var frontier = (seedJsonStructures.map(_.id.name) ++ seedJsonUnions.map(_.id.name)).toSet
     while (frontier.nonEmpty) {
       visited ++= frontier
@@ -359,7 +360,7 @@ object SqlNeutralServiceTemplateAttributes {
 
   def jsonMappingUsesTimestamp(ctx: ServiceView): Boolean = {
     val closureModels = jsonStructureClosure(ctx)
-    val jsonUnions = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
+    val jsonUnions    = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
     closureModels.exists(_.fields.exists(field => memberTypeName(ctx, field) == "datetime")) ||
     jsonUnions.exists(_.members.exists(member => internal.typeName(ctx, member.tpe) == "datetime"))
   }
