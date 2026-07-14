@@ -16,7 +16,6 @@ ${uuidTypeName} = str
 
 <% } %><% for (union <- sqlAttrs.unions(ctx)) { %><% for (member <- union.members) { %>
 @dataclass
-
 class ${unionVariantTypeName(union.id.name, member.name)}:
     ${member.name}: <% render("fragments/types/type_name", Map("typeName" -> sqlAttrs.renderType(ctx, member.tpe))) +%>
 
