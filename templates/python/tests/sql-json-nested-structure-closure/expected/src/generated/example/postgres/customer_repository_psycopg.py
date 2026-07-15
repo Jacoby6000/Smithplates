@@ -120,7 +120,7 @@ def _dump_json_timestamp(value: datetime) -> str:
 
 def _map_to_ContactInfo(data: dict[str, object]) -> ContactInfo:
     return ContactInfo(
-        email=str(data["email"]),
+        email=cast(str, data["email"]),
         address=_map_to_PostalAddress(cast(dict[str, object], data["address"])),
     )
 
@@ -134,8 +134,8 @@ def _dump_ContactInfo(value: ContactInfo) -> dict[str, object]:
 
 def _map_to_GeoCoordinates(data: dict[str, object]) -> GeoCoordinates:
     return GeoCoordinates(
-        lat=float(data["lat"]),
-        lng=float(data["lng"]),
+        lat=cast(float, data["lat"]),
+        lng=cast(float, data["lng"]),
         recorded_at=_map_json_timestamp(data["recorded_at"]),
     )
 
@@ -150,8 +150,8 @@ def _dump_GeoCoordinates(value: GeoCoordinates) -> dict[str, object]:
 
 def _map_to_PostalAddress(data: dict[str, object]) -> PostalAddress:
     return PostalAddress(
-        street=str(data["street"]),
-        city=str(data["city"]),
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
         coords=_map_to_GeoCoordinates(cast(dict[str, object], data["coords"])),
     )
 

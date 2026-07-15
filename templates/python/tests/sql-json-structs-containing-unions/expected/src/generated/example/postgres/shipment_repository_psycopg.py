@@ -124,8 +124,8 @@ def _dump_json_timestamp(value: datetime) -> str:
 
 def _map_to_PostalAddress(data: dict[str, object]) -> PostalAddress:
     return PostalAddress(
-        street=str(data["street"]),
-        city=str(data["city"]),
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
     )
 
 
@@ -142,7 +142,7 @@ def _map_to_DeliveryState(data: dict[str, object]) -> DeliveryState:
         raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
     if "pending" in data:
         return DeliveryStatePending(
-            pending=str(data["pending"]),
+            pending=cast(str, data["pending"]),
         )
     if "delivered" in data:
         return DeliveryStateDelivered(
