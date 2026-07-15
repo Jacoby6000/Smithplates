@@ -113,27 +113,33 @@ def publishedModuleSettings: Seq[Def.Setting[_]] = Seq(
 def languageTemplateNamespace(languageId: String, feature: String): String =
   s"$languageId/src/$feature"
 
-/** Package each template tree under its own classpath namespace (e.g. python/src/http). */
-def languageNamespacedTemplateResources(languageId: String, features: String*): Def.Setting[_] =
+/** Package each language's template tree under its own classpath namespace (e.g. python/src/http). */
+def languageNamespacedTemplateResources(languageIds: Seq[String], features: String*): Def.Setting[_] =
   Compile / resourceGenerators += Def.task {
     val repoRoot     = (ThisBuild / baseDirectory).value
     val resourceRoot = (Compile / resourceManaged).value
-    val templateSrc  = repoRoot / "templates" / languageId / "src"
 
-    features.flatMap { feature =>
-      val sourceRoot = templateSrc / feature
-      (sourceRoot ** "*")
-        .filter(_.isFile)
-        .get
-        .map { source =>
-          val relative = source.relativeTo(sourceRoot).get.getPath
-          val target   = resourceRoot / languageTemplateNamespace(languageId, feature) / relative
-          IO.createDirectories(Seq(target.getParentFile))
-          IO.copyFile(source, target, preserveLastModified = true)
-          target
-        }
+    languageIds.flatMap { languageId =>
+      val templateSrc = repoRoot / "templates" / languageId / "src"
+
+      features.flatMap { feature =>
+        val sourceRoot = templateSrc / feature
+        (sourceRoot ** "*")
+          .filter(_.isFile)
+          .get
+          .map { source =>
+            val relative = source.relativeTo(sourceRoot).get.getPath
+            val target   = resourceRoot / languageTemplateNamespace(languageId, feature) / relative
+            IO.createDirectories(Seq(target.getParentFile))
+            IO.copyFile(source, target, preserveLastModified = true)
+            target
+          }
+      }
     }
   }
+
+def languageNamespacedTemplateResources(languageId: String, features: String*): Def.Setting[_] =
+  languageNamespacedTemplateResources(Seq(languageId), features: _*)
 
 def pythonTemplateNamespace(feature: String): String =
   languageTemplateNamespace("python", feature)
@@ -430,8 +436,7 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
-    pythonNamespacedTemplateResources("common", "http"),
-    languageNamespacedTemplateResources("typescript", "common", "http"),
+    languageNamespacedTemplateResources(Seq("python", "typescript"), "common", "http"),
     pythonLanguageBaseConfigResource,
     languageBaseConfigResource("typescript"),
     scalateTemplatePrecompileSettings(
@@ -471,7 +476,7 @@ lazy val smithplatesSqlServiceRenderer = (project in file("modules/smithplates-s
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
-    pythonNamespacedTemplateResources("common", "db"),
+    languageNamespacedTemplateResources("python", "common", "db"),
     pythonLanguageBaseConfigResource,
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.sql.service.renderer.SqlTemplatePrecompilerMain",

@@ -11,4 +11,4 @@ echo "==> example/typescript typecheck"
 npx tsc --noEmit
 
 echo "==> example/typescript tests"
-npx tsx --test tests/
+npx tsx --test tests/*.test.ts

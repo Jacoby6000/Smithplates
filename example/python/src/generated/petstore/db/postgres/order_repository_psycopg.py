@@ -116,7 +116,7 @@ def _map_to_FulfillmentState(data: dict[str, object]) -> FulfillmentState:
         raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
     if "pending" in data:
         return FulfillmentStatePending(
-            pending=str(data["pending"]),
+            pending=cast(str, data["pending"]),
         )
     if "shipped" in data:
         return FulfillmentStateShipped(

@@ -17,6 +17,12 @@ object HttpNeutralServiceTemplateAttributes {
   def packageName(ctx: ServiceView): String =
     ctx.conventions.packageName(ctx.subject.id.namespace)
 
+  def namespaceModuleDir(ctx: ServiceView): String = {
+    val namespace = ctx.subject.id.namespace
+    val dir       = namespace.split('.').filter(_.nonEmpty).mkString("/")
+    s"${ctx.conventions.rootNamespaceDir}/$dir"
+  }
+
   def serviceName(ctx: ServiceView): String =
     ctx.subject.id.name
 

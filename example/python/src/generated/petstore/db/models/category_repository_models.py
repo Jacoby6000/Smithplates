@@ -29,15 +29,15 @@ FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | Fulfillme
 
 
 @dataclass
+class CreateCategoryRecordOutput:
+    id: str
+
+
+@dataclass
 class Category:
     id: str
     name: str
     store_id: str
-
-
-@dataclass
-class CreateCategoryRecordOutput:
-    id: str
 
 
 @dataclass

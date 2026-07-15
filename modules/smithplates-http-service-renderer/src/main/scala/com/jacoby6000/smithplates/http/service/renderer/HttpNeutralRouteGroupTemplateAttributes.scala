@@ -36,6 +36,12 @@ object HttpNeutralRouteGroupTemplateAttributes {
   def packageName(ctx: RouteGroupView): String =
     ctx.conventions.packageName(ctx.subject.service.id.namespace)
 
+  def namespaceModuleDir(ctx: RouteGroupView): String = {
+    val namespace = ctx.subject.service.id.namespace
+    val dir       = namespace.split('.').filter(_.nonEmpty).mkString("/")
+    s"${ctx.conventions.rootNamespaceDir}/$dir"
+  }
+
   def operationMethodName(ctx: RouteGroupView, operationName: String): String =
     ctx.conventions.functionName(operationName)
 

@@ -67,6 +67,8 @@ jobs:
             server: python
           - client: openapi-reference-python
             server: python
+          - client: typescript
+            server: python
 
     steps:
       - name: Checkout
@@ -84,6 +86,14 @@ jobs:
 
       - name: Render example smithy-build configs
         run: nix develop --accept-flake-config --command ./scripts/render-smithy-build.sh all
+
+      - name: Build TypeScript client example
+        if: matrix.client == 'typescript'
+        run: nix develop --accept-flake-config --command ./scripts/run-example-build.sh typescript
+
+      - name: TypeScript typecheck
+        if: matrix.client == 'typescript'
+        run: nix develop --accept-flake-config --command sh -c 'cd example/typescript && npx tsc --noEmit'
 
       - name: Run shared HTTP reference tests
         run: nix develop --accept-flake-config --command ./example/tests/run-tests.sh ${{ matrix.client }} ${{ matrix.server }}

@@ -209,8 +209,8 @@ WHERE id = ? RETURNING updated_at;""",
 
 def _map_to_PetHighlight(data: dict[str, object]) -> PetHighlight:
     return PetHighlight(
-        name=str(data["name"]),
-        color=str(data["color"]),
+        name=cast(str, data["name"]),
+        color=cast(str, data["color"]),
     )
 
 
@@ -223,21 +223,21 @@ def _dump_PetHighlight(value: PetHighlight) -> dict[str, object]:
 
 def _map_to_PetTags(data: dict[str, object]) -> PetTags:
     return PetTags(
-        items=[str(item) for item in cast(list[object], data["items"])],
+        items=cast(list[str], data["items"]),
     )
 
 
 def _dump_PetTags(value: PetTags) -> dict[str, object]:
     return {
-        "items": [item for item in value.items],
+        "items": value.items,
     }
 
 
 def _map_to_PostalAddress(data: dict[str, object]) -> PostalAddress:
     return PostalAddress(
-        street=str(data["street"]),
-        city=str(data["city"]),
-        postal_code=str(data["postal_code"]),
+        street=cast(str, data["street"]),
+        city=cast(str, data["city"]),
+        postal_code=cast(str, data["postal_code"]),
     )
 
 
