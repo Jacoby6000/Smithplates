@@ -57,7 +57,14 @@ private[http] object HttpOperationExtractor {
                 .lintInputMemberOrder(serviceShape, operationName, inputShape, uri, inputMembers)
                 .toList
             val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
-            val bodyBinding    = HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+            val bodyBinding    =
+              if (isWebsocket && orderedMembers.isEmpty && inputShape != ShapeId.from("smithy.api#Unit")) {
+                // Websocket operations with union-typed inputs have no extracted input members
+                // (unions aren't structures). The entire input shape is the message body.
+                HttpOperationBodyBinding.Document(inputShape)
+              } else {
+                HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+              }
             (
               HttpOperationOutputMemberExtractor
                 .extract(model, serviceShape, operationName, outputShape, isWebsocket),

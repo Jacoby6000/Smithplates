@@ -17,8 +17,10 @@ import websockets
 from pydantic import TypeAdapter
 <% } %>
 <% for (operation <- wsOps) { %>
+<% if (S.websocketHasInputMessages(operation)) { %>
 <% S.websocketInputModule(ctx, operation).foreach { module => %>
 from ${module} import ${S.websocketInputTypeName(ctx, operation).get}
+<% } %>
 <% } %>
 <% S.websocketOutputModule(ctx, operation).foreach { module => %>
 from ${module} import ${S.websocketOutputTypeName(ctx, operation).get}
@@ -30,15 +32,20 @@ class ${S.serviceName(ctx)}WebsocketClient:
     def __init__(self, base_url: str) -> None:
         self._base_url = base_url.rstrip("/")
 <% for (operation <- wsOps) { %>
-<% val path = S.websocketPath(operation) %>
+<% val path = S.websocketPythonPath(ctx, operation) %>
 <% val connection = S.websocketConnectionName(ctx, operation) %>
+<% val pathLabels = S.websocketPathLabels(operation) %>
 
-    async def connect_${S.operationMethodName(ctx, operation.id.name)}(self) -> ${connection}:
+    async def connect_${S.operationMethodName(ctx, operation.id.name)}(
+        self<% for (label <- pathLabels) { %>,
+        ${S.websocketPathLabelName(ctx, label)}: str<% } %>
+    ) -> ${connection}:
         websocket = await websockets.connect(f"{self._base_url}${path}")
         return ${connection}(websocket)
 <% } %>
 <% for (operation <- wsOps) { %>
 <% val inputType = S.websocketInputTypeName(ctx, operation) %>
+<% val hasInput = S.websocketHasInputMessages(operation) %>
 <% val outputType = S.websocketOutputTypeName(ctx, operation) %>
 
 class ${S.websocketConnectionName(ctx, operation)}:
@@ -47,7 +54,7 @@ class ${S.websocketConnectionName(ctx, operation)}:
 <% if (outputType.isDefined) { %>
         self._output_adapter: TypeAdapter[${outputType.get}] = TypeAdapter(${outputType.get})
 <% } %>
-<% if (inputType.isDefined) { %>
+<% if (hasInput) { %>
 
     async def send(self, message: ${inputType.get}) -> None:
         await self._websocket.send(message.model_dump_json(exclude_none=True))

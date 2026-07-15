@@ -5,7 +5,10 @@ import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
+import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
+import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
@@ -134,6 +137,40 @@ object HttpNeutralServiceTemplateAttributes {
 
   def websocketPath(operation: OperationModel[HttpOperationMeta]): String =
     operation.meta.feature.websocket.map(_.path).getOrElse(operation.meta.feature.uriPattern)
+
+  /** Path label members of a websocket operation's input. These become route parameters
+    * in the generated FastAPI websocket handler and client connect method.
+    */
+  def websocketPathLabels(
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpOperationInputMemberMeta] =
+    operation.meta.feature.inputMembers.filter(_.binding == HttpInputMemberBindingMeta.PathLabel)
+
+  /** Python parameter name (snake_case) for a path label member. */
+  def websocketPathLabelName(
+      ctx: ServiceView,
+      member: HttpOperationInputMemberMeta
+  ): String =
+    ctx.conventions.memberName(member.name)
+
+  /** WebSocket route path with URI labels converted to Python parameter names (snake_case)
+    * so they match function parameters and f-string interpolation variables.
+    */
+  def websocketPythonPath(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String =
+    websocketPathLabels(operation).foldLeft(websocketPath(operation)) { case (path, member) =>
+      val label       = "{" + member.name + "}"
+      val pythonLabel = "{" + websocketPathLabelName(ctx, member) + "}"
+      path.replace(label, pythonLabel)
+    }
+
+  /** Whether the websocket operation has client-to-server message content (body members).
+    * Path-label-only inputs define routing parameters, not messages.
+    */
+  def websocketHasInputMessages(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operation.meta.feature.bodyBinding != HttpOperationBodyBindingMeta.None
 
   def websocketHandlerName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): String =
     s"handle_${ctx.conventions.functionName(operation.id.name)}"

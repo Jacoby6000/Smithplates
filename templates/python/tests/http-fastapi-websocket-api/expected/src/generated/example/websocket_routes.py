@@ -31,13 +31,18 @@ def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
         await websocket.send_text(message.model_dump_json(exclude_none=True))
 
     @websocket_router.websocket("/chat")
-    async def _chat_stream_websocket(websocket: WebSocket) -> None:
+    async def _chat_stream_websocket(
+        websocket: WebSocket,
+    ) -> None:
         await websocket.accept()
         try:
             while True:
                 raw = await websocket.receive_text()
                 message = _chat_stream_input_adapter.validate_python(json.loads(raw))
-                await handlers.handle_chat_stream(websocket, message)
+                await handlers.handle_chat_stream(
+                    websocket,
+                    message=message,
+                )
         except WebSocketDisconnect:
             return
 

@@ -42,16 +42,22 @@ private[http] object HttpOperationInputMemberExtractor {
       isWebsocket: Boolean = false
   ): HttpValidated[List[HttpOperationInputMember]] = {
     val operationName = operation.getId.getName
-    if (isWebsocket || inputShapeId == ShapeId.from("smithy.api#Unit")) {
+    if (inputShapeId == ShapeId.from("smithy.api#Unit")) {
       Nil.validNel
     } else {
       model.getShape(inputShapeId).toScala.flatMap(_.asStructureShape.toScala) match {
         case None            =>
-          InvalidHttpOperation(
-            serviceShape,
-            operationName,
-            s"input shape '${inputShapeId.toString}' must be a structure or Unit"
-          ).invalidNel
+          if (isWebsocket) {
+            // Websocket operations may use union-typed inputs for client-to-server message
+            // contracts. Those don't carry @httpLabel members, so return Nil.
+            Nil.validNel
+          } else {
+            InvalidHttpOperation(
+              serviceShape,
+              operationName,
+              s"input shape '${inputShapeId.toString}' must be a structure or Unit"
+            ).invalidNel
+          }
         case Some(structure) =>
           val boundResource     =
             internal.resolveBoundResource(structure).orElse(operationBoundResource(operation.getId, serviceResources))
