@@ -12,5 +12,8 @@ if [[ ${#ts_files[@]} -eq 0 ]]; then
   exit 1
 fi
 
+# Run tsc against tsconfig.json (which sets baseUrl, paths, lib, esModuleInterop,
+# etc.) rather than passing input files explicitly: when input files are passed
+# on the command line, tsc ignores tsconfig.json and drops those options.
 echo "==> example/typescript tsc --noEmit"
-npx tsc --noEmit "${ts_files[@]}"
+npx tsc --noEmit
