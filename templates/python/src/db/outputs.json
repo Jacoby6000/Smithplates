@@ -1,6 +1,13 @@
 {
   "shared": [
     {
+      "id": "python.sql.db.tests.conftest",
+      "artifactKind": "test",
+      "template": "tests/conftest.py",
+      "outputPath": "conftest.py",
+      "binding": { "type": "once" }
+    },
+    {
       "id": "python.sql.db.models",
       "artifactKind": "src",
       "template": "models/models.ssp",

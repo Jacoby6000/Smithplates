@@ -109,12 +109,12 @@ def mapValueExpression(
     s"{str(key): ${mapValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in cast(dict[str, object], $valueExpr).items()}"
   } else {
     typeName match {
-      case "str"                             => s"str($valueExpr)"
-      case "int"                             => s"int($valueExpr)"
-      case "float"                           => s"float($valueExpr)"
-      case "bool"                            => s"bool($valueExpr)"
+      case "str"                             => s"cast(str, $valueExpr)"
+      case "int"                             => s"cast(int, $valueExpr)"
+      case "float"                           => s"cast(float, $valueExpr)"
+      case "bool"                            => s"cast(bool, $valueExpr)"
       case "Decimal"                         => s"Decimal(str($valueExpr))"
-      case "bytes"                           => s"bytes($valueExpr)"
+      case "bytes"                           => s"bytes(cast(bytes, $valueExpr))"
       case "datetime"                        => s"_map_json_timestamp($valueExpr)"
       case "object"                          => valueExpr
       case other if structureTypeNames(ctx).contains(other) =>

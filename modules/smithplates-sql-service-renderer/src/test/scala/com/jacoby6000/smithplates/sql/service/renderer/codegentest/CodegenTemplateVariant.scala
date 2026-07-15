@@ -55,7 +55,7 @@ final case class CodegenTemplateVariant(
   def sourceFileExtension: String =
     languageId match {
       case "typescript" => ".ts"
-      case _             => ".py"
+      case _            => ".py"
     }
 
   def matchesGeneratedOutputPath(outputRelativePath: String, namespacePathPrefix: String): Boolean = {
@@ -75,7 +75,10 @@ final case class CodegenTemplateVariant(
             true
           } else if (CodegenTemplateVariant.internal.isSqlProtocolOutputPath(outputRelativePath, namespaceRoot, ext)) {
             true
-          } else if (CodegenTemplateVariant.internal.isSqlNamespaceRootEnumPath(outputRelativePath, namespaceRoot, ext)) {
+          } else if (CodegenTemplateVariant.internal.isSqlNamespaceRootEnumPath(
+              outputRelativePath,
+              namespaceRoot,
+              ext)) {
             true
           } else {
             false

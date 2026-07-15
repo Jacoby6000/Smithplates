@@ -128,7 +128,7 @@ object HttpNeutralServiceTemplateAttributes {
             .map(ModelRef.apply)
           if (variantRefs.nonEmpty) variantRefs else operation.output.toList
         }
-      val errorRefs = ctx.subject.operations.flatMap(_.errors)
+      val errorRefs   = ctx.subject.operations.flatMap(_.errors)
       (successRefs ++ errorRefs).distinct
     }
 
