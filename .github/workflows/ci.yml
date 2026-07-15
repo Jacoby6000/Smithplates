@@ -93,7 +93,7 @@ jobs:
 
       - name: TypeScript typecheck
         if: matrix.client == 'typescript'
-        run: nix develop --accept-flake-config --command sh -c 'cd example/typescript && npx tsc --noEmit'
+        run: nix develop --accept-flake-config --command ./scripts/run-example-linters.sh typescript
 
       - name: Run shared HTTP reference tests
         run: nix develop --accept-flake-config --command ./example/tests/run-tests.sh ${{ matrix.client }} ${{ matrix.server }}
