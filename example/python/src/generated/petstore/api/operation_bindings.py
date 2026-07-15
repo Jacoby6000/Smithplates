@@ -249,6 +249,26 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             ),
         },
     ),
+    "pet_events": OperationHttpBinding(
+        variants_by_type_name={
+            "PetEventsOutput": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
+    "PetEvents": OperationHttpBinding(
+        variants_by_type_name={
+            "PetEventsOutput": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
     "resolve_pet_location": OperationHttpBinding(
         variants_by_type_name={
             "PetLocationRedirect": ResponseVariantBinding(

@@ -2,14 +2,44 @@
 
 from __future__ import annotations
 
+import json
 from typing import Protocol
 
-from fastapi import APIRouter
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from pydantic import TypeAdapter
+
+from generated.petstore.api.pet_events_input import PetEventsInput
+from generated.petstore.api.pet_events_output import PetEventsOutput
 
 
-class WebsocketHandlers(Protocol): ...
+class WebsocketHandlers(Protocol):
+    async def handle_pet_events(
+        self,
+        websocket: WebSocket,
+        message: PetEventsInput,
+    ) -> None: ...
 
 
 def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
     websocket_router = APIRouter()
+
+    _pet_events_input_adapter = TypeAdapter(PetEventsInput)
+
+    async def send_pet_events_message(
+        websocket: WebSocket,
+        message: PetEventsOutput,
+    ) -> None:
+        await websocket.send_text(message.model_dump_json(exclude_none=True))
+
+    @websocket_router.websocket("/pets/events")
+    async def _pet_events_websocket(websocket: WebSocket) -> None:
+        await websocket.accept()
+        try:
+            while True:
+                raw = await websocket.receive_text()
+                message = _pet_events_input_adapter.validate_python(json.loads(raw))
+                await handlers.handle_pet_events(websocket, message)
+        except WebSocketDisconnect:
+            return
+
     return websocket_router

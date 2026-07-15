@@ -6,20 +6,23 @@ import json
 from typing import Protocol
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from generated.example.client_message import ClientMessage, validate_client_message
+from generated.example.client_message import ClientMessage
 from generated.example.server_message import ServerMessage
+from pydantic import TypeAdapter
 
 
 class WebsocketHandlers(Protocol):
     async def handle_chat_stream(
         self,
-        message: ClientMessage,
         websocket: WebSocket,
+        message: ClientMessage,
     ) -> None: ...
 
 
 def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
     websocket_router = APIRouter()
+
+    _chat_stream_input_adapter = TypeAdapter(ClientMessage)
 
     async def send_chat_stream_message(
         websocket: WebSocket,
@@ -33,8 +36,8 @@ def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
         try:
             while True:
                 raw = await websocket.receive_text()
-                message = validate_client_message(json.loads(raw))
-                await handlers.handle_chat_stream(message, websocket)
+                message = _chat_stream_input_adapter.validate_python(json.loads(raw))
+                await handlers.handle_chat_stream(websocket, message)
         except WebSocketDisconnect:
             return
 

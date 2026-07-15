@@ -13,6 +13,9 @@ cd "${EXAMPLE_ROOT}"
 echo "==> example/python pytest (API smoke)"
 uv run pytest tests/test_api.py
 
+echo "==> example/python pytest (websocket smoke)"
+uv run pytest tests/test_websocket.py
+
 echo "==> example/python pytest (sqlite integration)"
 uv run pytest tests/petstore/db/sqlite -m "integration and sqlite"
 

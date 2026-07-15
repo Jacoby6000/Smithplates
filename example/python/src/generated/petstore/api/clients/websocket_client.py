@@ -2,7 +2,51 @@
 
 from __future__ import annotations
 
+import json
+from typing import Any, Self
+
+import websockets
+from pydantic import TypeAdapter
+
+from generated.petstore.api.pet_events_input import PetEventsInput
+from generated.petstore.api.pet_events_output import PetEventsOutput
+
 
 class PetstoreWebsocketClient:
     def __init__(self, base_url: str) -> None:
         self._base_url = base_url.rstrip("/")
+
+    async def connect_pet_events(self) -> PetEventsConnection:
+        websocket = await websockets.connect(f"{self._base_url}/pets/events")
+        return PetEventsConnection(websocket)
+
+
+class PetEventsConnection:
+    def __init__(self, websocket: Any) -> None:
+        self._websocket = websocket
+        self._output_adapter: TypeAdapter[PetEventsOutput] = TypeAdapter(PetEventsOutput)
+
+    async def send(self, message: PetEventsInput) -> None:
+        await self._websocket.send(message.model_dump_json(exclude_none=True))
+
+    async def receive(self) -> PetEventsOutput:
+        raw = await self._websocket.recv()
+        return self._output_adapter.validate_python(json.loads(raw))
+
+    async def close(self) -> None:
+        await self._websocket.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+        await self.close()
+
+    def __aiter__(self) -> Self:
+        return self
+
+    async def __anext__(self) -> PetEventsOutput:
+        try:
+            return await self.receive()
+        except websockets.ConnectionClosed:
+            raise StopAsyncIteration from None

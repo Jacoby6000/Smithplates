@@ -869,6 +869,83 @@ class HttpCoreModelExtractorSpec extends FunSuite {
       )
   }
 
+  test("HttpCoreMetaValidator rejects @websocket operations with neither input nor output") {
+    import HttpCoreMetaValidator.given
+
+    val operation: OperationModel[HttpOperationMeta] = OperationModel(
+      id = ModelId("example", "StreamNothing"),
+      meta = OperationMeta(
+        documentation = None,
+        tags = List("v1"),
+        feature = HttpOperationMeta(
+          method = "GET",
+          uriPattern = "/stream/nothing",
+          successStatus = 200,
+          documentation = None,
+          inputMembers = Nil,
+          bodyBinding = HttpOperationBodyBindingMeta.None,
+          responseVariants = Nil,
+          websocket = Some(HttpWebsocketMeta(path = "/stream/nothing"))
+        )
+      ),
+      input = None,
+      output = None,
+      errors = Nil
+    )
+
+    summon[OperationMetaValidator[HttpOperationMeta]]
+      .validate(operation)
+      .fold(
+        errors => assert(errors.exists(_.isInstanceOf[InvalidOperationMeta])),
+        _ => fail("expected invalid operation meta when neither input nor output is declared")
+      )
+  }
+
+  test("HttpCoreMetaValidator accepts @websocket operations that are unidirectional (input-only or output-only)") {
+    import HttpCoreMetaValidator.given
+
+    val baseFeature: HttpOperationMeta = HttpOperationMeta(
+      method = "GET",
+      uriPattern = "/stream",
+      successStatus = 200,
+      documentation = None,
+      inputMembers = Nil,
+      bodyBinding = HttpOperationBodyBindingMeta.None,
+      responseVariants = Nil,
+      websocket = Some(HttpWebsocketMeta(path = "/stream"))
+    )
+
+    val inputOnly: OperationModel[HttpOperationMeta] = OperationModel(
+      id = ModelId("example", "InputStream"),
+      meta = OperationMeta(documentation = None, tags = Nil, feature = baseFeature),
+      input = Some(ModelRef(ModelId("example", "ClientMessage"))),
+      output = None,
+      errors = Nil
+    )
+
+    val outputOnly: OperationModel[HttpOperationMeta] = OperationModel(
+      id = ModelId("example", "OutputStream"),
+      meta = OperationMeta(documentation = None, tags = Nil, feature = baseFeature),
+      input = None,
+      output = Some(ModelRef(ModelId("example", "ServerMessage"))),
+      errors = Nil
+    )
+
+    summon[OperationMetaValidator[HttpOperationMeta]]
+      .validate(inputOnly)
+      .fold(
+        errors => fail(s"expected input-only websocket to be valid; got: ${errors.toList}"),
+        _ => ()
+      )
+
+    summon[OperationMetaValidator[HttpOperationMeta]]
+      .validate(outputOnly)
+      .fold(
+        errors => fail(s"expected output-only websocket to be valid; got: ${errors.toList}"),
+        _ => ()
+      )
+  }
+
   test("extract propagates HttpServiceExtractor failures as InvalidSmithyShape") {
     val model = HttpTestModelLoader.assemble(
       "example.smithy" ->

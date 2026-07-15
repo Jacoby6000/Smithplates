@@ -12,7 +12,14 @@ from fastapi import FastAPI
 from generated.petstore.api.api_exception_handler import DefaultFallbackApiExceptionHandler
 from generated.petstore.api.app_factory import create_app
 from generated.petstore.api.app_services import ApiServices
-from server.api_adapters import CategoriesApiService, HealthApiService, OrdersApiService, PetsApiService
+from generated.petstore.api.websocket_routes import build_websocket_router
+from server.api_adapters import (
+    CategoriesApiService,
+    HealthApiService,
+    OrdersApiService,
+    PetEventsHandlers,
+    PetsApiService,
+)
 from server.database import DEFAULT_DATABASE_PATH, repository_lifespan
 from server.repository_service import PetstoreRepositoryService
 
@@ -54,10 +61,30 @@ def build_app(*, database_path: Path | None = None) -> FastAPI:
                 orders_api=OrdersApiService(repository_service),
                 pets_api=PetsApiService(repository_service),
             )
+            fastapi_app.state.websocket_handlers = PetEventsHandlers(repository_service)
             yield
 
     app.router.lifespan_context = lifespan
+    app.include_router(build_websocket_router(_ProxyPetEventsHandlers(app)))
     return app
+
+
+class _ProxyPetEventsHandlers:
+    """Defer to the lifespan-installed WebSocket handlers on each call.
+
+    The generated `build_websocket_router` captures its `handlers` argument at router
+    construction time (before the FastAPI lifespan replaces the bootstrap with a
+    repository-backed implementation). This proxy looks up the live handlers from
+    `app.state.websocket_handlers` per message, mirroring the per-request service
+    lookup that REST routes use via `Depends(get_api_services)`.
+    """
+
+    def __init__(self, app: FastAPI) -> None:
+        self._app = app
+
+    async def handle_pet_events(self, websocket, message) -> None:  # type: ignore[no-untyped-def]
+        handlers = self._app.state.websocket_handlers
+        await handlers.handle_pet_events(websocket, message)
 
 
 def _database_path_from_env() -> Path | None:

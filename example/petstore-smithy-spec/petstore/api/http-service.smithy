@@ -17,5 +17,6 @@ service Petstore {
         PlaceOrder
         GetOrder
         HealthCheck
+        PetEvents
     ]
 }

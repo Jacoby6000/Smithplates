@@ -8,10 +8,11 @@ import software.amazon.smithy.model.traits.AbstractTraitBuilder;
 import software.amazon.smithy.model.traits.Trait;
 
 /**
- * Marks an operation as a bidirectional WebSocket endpoint. The operation's input shape is the union
+ * Marks an operation as a WebSocket endpoint. The operation's input shape is the union
  * (or structure) of messages the server can receive from the client; the operation's output shape is
- * the union (or structure) of messages the client can receive from the server. The operation must
- * also declare an {@code @http} binding whose {@code uri} is the WebSocket route path.
+ * the union (or structure) of messages the client can receive from the server. A websocket may be
+ * unidirectional: only an input or only an output need be declared (at least one is required).
+ * The operation must also declare an {@code @http} binding whose {@code uri} is the WebSocket route path.
  */
 public final class WebsocketTrait extends AbstractTrait {
     public static final ShapeId ID = ShapeId.from("smithplates.codegen.http#websocket");

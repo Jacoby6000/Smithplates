@@ -48,6 +48,7 @@ run_example_linters() {
   local -a mypy_targets=(
     src/server
     tests/test_api.py
+    tests/test_websocket.py
     tests/petstore/db/sqlite
   )
   local -a postgres_tests=()
