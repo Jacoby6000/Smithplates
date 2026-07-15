@@ -503,7 +503,9 @@ object SqlCodegenIntegrationTestBuilder {
         case "Boolean"                                       => "True"
         case "Blob"                                          => s"b\"integration-$suffix\""
         case "Document"                                      => "{\"integration\": True}"
-        case "Timestamp"                                     => "datetime.now(timezone.utc)"
+        case "Timestamp"                                     =>
+          if (variant == SampleVariant.Initial) "datetime(2024, 1, 1, tzinfo=timezone.utc)"
+          else "datetime(2024, 1, 2, tzinfo=timezone.utc)"
         case other if context.uuidTypeNames.contains(other)  =>
           s"\"${uuidSample(suffix)}\""
         case other if context.models.exists(_.name == other) =>

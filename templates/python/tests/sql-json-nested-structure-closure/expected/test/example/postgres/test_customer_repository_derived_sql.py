@@ -52,7 +52,7 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
             address=PostalAddress(
                 street="integration-street",
                 city="integration-city",
-                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
             ),
         ),
     )
@@ -67,7 +67,7 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
     assert fetched.contact.address == PostalAddress(
         street="integration-street",
         city="integration-city",
-        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
     )
 
     updated = await customer_repository_service.update_customer(
@@ -77,7 +77,7 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
             address=PostalAddress(
                 street="integration-updated-street",
                 city="integration-updated-city",
-                coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime.now(timezone.utc)),
+                coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
             ),
         ),
         id=entity_id,
@@ -91,7 +91,7 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
     assert fetched_after_update.contact.address == PostalAddress(
         street="integration-updated-street",
         city="integration-updated-city",
-        coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime.now(timezone.utc)),
+        coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
     )
 
     deleted = await customer_repository_service.delete_customer(id=entity_id)
@@ -116,7 +116,7 @@ async def test_derived_sql_methods_transaction_commit(
                 address=PostalAddress(
                     street="integration-street",
                     city="integration-city",
-                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
                 ),
             ),
             transaction=tx,
@@ -132,7 +132,7 @@ async def test_derived_sql_methods_transaction_commit(
         assert fetched.contact.address == PostalAddress(
             street="integration-street",
             city="integration-city",
-            coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+            coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
         )
 
     fetched_after_commit = await customer_repository_service.get_customer(id=entity_id)
@@ -142,7 +142,7 @@ async def test_derived_sql_methods_transaction_commit(
     assert fetched_after_commit.contact.address == PostalAddress(
         street="integration-street",
         city="integration-city",
-        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
     )
 
 
@@ -163,7 +163,7 @@ async def test_derived_sql_methods_transaction_rollback(
                     address=PostalAddress(
                         street="integration-street",
                         city="integration-city",
-                        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime.now(timezone.utc)),
+                        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
                     ),
                 ),
                 transaction=tx,
