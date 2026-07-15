@@ -1,7 +1,7 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%
 def jsonModels: List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
-  (modelsUsedAsJson(ctx) ++ modelsUsedAsJsonCol(ctx)).distinctBy(_.id.name).sortBy(_.id.name)
+  sqlAttrs.jsonStructureClosure(ctx)
 
 def jsonUnions: List[com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
   (unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)).distinctBy(_.id.name).sortBy(_.id.name)

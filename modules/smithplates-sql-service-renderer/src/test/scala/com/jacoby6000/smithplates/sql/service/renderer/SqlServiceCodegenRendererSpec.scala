@@ -156,7 +156,8 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
       artifacts.map(_.relativePath).sorted,
       List(
         "src/generated/example/models/widget_repository_models.py",
-        "src/generated/example/widget_repository_protocol.py"
+        "src/generated/example/widget_repository_protocol.py",
+        "tests/conftest.py"
       )
     )
     assert(artifacts.forall(!_.relativePath.contains("/sqlite/")))
@@ -301,7 +302,8 @@ class SqlServiceCodegenRendererSpec extends munit.FunSuite {
 
     val protocolPath = "src/generated/example/class__protocol.py"
     val modelsPath   = "src/generated/example/models/class__models.py"
-    assertEquals(artifacts.map(_.relativePath).sorted, List(protocolPath, modelsPath))
+    val conftestPath = "tests/conftest.py"
+    assertEquals(artifacts.map(_.relativePath).sorted, List(conftestPath, modelsPath, protocolPath).sorted)
 
     val protocolContent      = artifacts.find(_.relativePath == protocolPath).map(_.content).getOrElse("")
     val sqliteServiceContent =

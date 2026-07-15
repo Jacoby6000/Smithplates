@@ -119,8 +119,18 @@ object HttpNeutralServiceTemplateAttributes {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    def responseModelRefs(ctx: ServiceView): List[ModelRef] =
-      ctx.subject.operations.flatMap(operation => operation.output.toList ++ operation.errors).distinct
+    def responseModelRefs(ctx: ServiceView): List[ModelRef] = {
+      val successRefs =
+        ctx.subject.operations.flatMap { operation =>
+          val variantRefs = operation.meta.feature.responseVariants
+            .filter(_.statusCode == operation.meta.feature.successStatus)
+            .flatMap(_.modelShapeId)
+            .map(ModelRef.apply)
+          if (variantRefs.nonEmpty) variantRefs else operation.output.toList
+        }
+      val errorRefs   = ctx.subject.operations.flatMap(_.errors)
+      (successRefs ++ errorRefs).distinct
+    }
 
     def serviceErrorModelRefs(ctx: ServiceView): List[ModelRef] =
       serviceErrors(ctx).map(error => ModelRef(error.id))
