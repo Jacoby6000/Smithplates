@@ -18,12 +18,17 @@ private[http] object HttpOperationOutputMemberExtractor {
       model: Model,
       serviceShape: ShapeId,
       operationName: String,
-      outputShapeId: Option[ShapeId]
+      outputShapeId: Option[ShapeId],
+      isWebsocket: Boolean = false
   ): HttpValidated[List[HttpOperationOutputMember]] =
-    outputShapeId.filter(_ != internal.UnitShapeId) match {
-      case None          => Nil.validNel
-      case Some(shapeId) =>
-        extractFromStructure(model, serviceShape, operationName, shapeId)
+    if (isWebsocket) {
+      Nil.validNel
+    } else {
+      outputShapeId.filter(_ != internal.UnitShapeId) match {
+        case None          => Nil.validNel
+        case Some(shapeId) =>
+          extractFromStructure(model, serviceShape, operationName, shapeId)
+      }
     }
 
   def extractFromStructure(

@@ -11,6 +11,7 @@ Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for cod
 - Smithy `@tags` group operations into generated route modules.
 - `@httpProblem` generates RFC 9457-style problem detail exceptions and response helpers.
 - `@httpStaticHeader` adds fixed response headers for generated response bindings.
+- `@websocket` promotes an operation into a bidirectional WebSocket endpoint (see [Websockets](#websockets)).
 
 Keep HTTP shapes in a namespace dedicated to the API contract. Do not reuse SQL table shapes as HTTP request or response shapes; map between generated API and database models in hand-written application code.
 
@@ -98,6 +99,44 @@ The generated HTTP layer owns FastAPI routing and wire conversion. Your applicat
 4. Keep mapping between HTTP models and database models in hand-written code.
 
 This keeps generated files replaceable and avoids editing generated route modules.
+
+## Websockets
+
+`@websocket` marks an operation as a bidirectional WebSocket endpoint. The operation's input shape is the union (or structure) of messages the server can receive from the client; the operation's output shape is the union (or structure) of messages the client can receive from the server. A typical operation uses union-typed input and output so many distinct message types flow in each direction.
+
+The operation must also declare an `@http` binding (its `uri` is the WebSocket route path) and at least one `@tags` value for grouping. WebSocket operations are excluded from REST route/client generation and are handled by dedicated templates instead.
+
+```smithy
+@tags(["chat"])
+@http(method: "GET", uri: "/chat", code: 200)
+@websocket
+operation ChatStream {
+    input: ClientMessage
+    output: ServerMessage
+}
+
+union ClientMessage {
+    join: JoinRoom
+    leave: LeaveRoom
+    ping: Ping
+}
+
+union ServerMessage {
+    welcome: Welcome
+    roomJoined: RoomJoined
+    pong: Pong
+    error: ServerError
+}
+```
+
+### Generated server output (Python/FastAPI)
+
+Smithplates emits `<sourceOutputDir>/<smithy namespace>/websocket_routes.py` containing a `WebsocketHandlers` protocol (one async handler per `@websocket` operation) and a `build_websocket_router(handlers)` factory. Implement the protocol, build the router, and include it on your FastAPI app. Each handler receives a typed inbound message and the live `WebSocket`; call the generated `send_<operation>_message` helper to serialize outbound messages.
+
+### Generated client output
+
+- Python: `<sourceOutputDir>/<smithy namespace>/clients/websocket_client.py` — a `<Service>WebsocketClient` with a `connect_<operation>` method per endpoint returning a connection exposing `send`, `receive`, `close`, and async iteration. Requires the `websockets` package only when the service declares at least one `@websocket` operation.
+- TypeScript: `<sourceOutputDir>/<smithy namespace>/clients/websocketClient.ts` — a `<Service>WebsocketClient` using the native `WebSocket` API, with a `connect<Operation>` method returning a connection exposing `send`, `onMessage`, `onClose`, and `close`.
 
 ### Client wiring
 

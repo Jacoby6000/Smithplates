@@ -89,5 +89,6 @@ final case class HttpOperation(
     outputMembers: List[HttpOperationOutputMember],
     operationErrors: List[HttpOperationError],
     responseBinding: HttpOperationResponseBinding,
-    tags: List[String]
+    tags: List[String],
+    websocket: Boolean = false
 )

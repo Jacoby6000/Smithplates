@@ -22,6 +22,18 @@ structure httpService {
 }
 
 @documentation("""
+Marks an operation as a bidirectional WebSocket endpoint. The operation's input shape is the union
+(or structure) of messages the server can receive from the client; the operation's output shape is
+the union (or structure) of messages the client can receive from the server.
+
+The operation must also declare an `@http` binding whose `uri` is the WebSocket route path and at
+least one `@tags` value for route grouping. A typical operation declares union-typed input and
+output shapes so many distinct message types can flow in each direction.
+""")
+@trait(selector: "operation")
+structure websocket {}
+
+@documentation("""
 Attaches a fixed HTTP response header to an output structure (for example
 `Content-Type: application/problem+json` on an error payload model).
 """)

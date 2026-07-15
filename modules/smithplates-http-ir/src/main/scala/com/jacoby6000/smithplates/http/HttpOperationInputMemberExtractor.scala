@@ -38,10 +38,11 @@ private[http] object HttpOperationInputMemberExtractor {
       serviceShape: ShapeId,
       operation: software.amazon.smithy.model.shapes.OperationShape,
       inputShapeId: ShapeId,
-      serviceResources: List[HttpResource]
+      serviceResources: List[HttpResource],
+      isWebsocket: Boolean = false
   ): HttpValidated[List[HttpOperationInputMember]] = {
     val operationName = operation.getId.getName
-    if (inputShapeId == ShapeId.from("smithy.api#Unit")) {
+    if (isWebsocket || inputShapeId == ShapeId.from("smithy.api#Unit")) {
       Nil.validNel
     } else {
       model.getShape(inputShapeId).toScala.flatMap(_.asStructureShape.toScala) match {

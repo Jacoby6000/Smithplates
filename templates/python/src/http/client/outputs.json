@@ -34,6 +34,13 @@
       "template": "clients/__init__.ssp",
       "outputPath": "{{smithyNamespaceDir}}/clients/__init__.py",
       "binding": { "type": "service" }
+    },
+    {
+      "id": "python.http.client.websocket_client",
+      "artifactKind": "src",
+      "template": "websocket_client.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/clients/websocket_client.py",
+      "binding": { "type": "service" }
     }
   ],
   "variants": {

@@ -1,6 +1,6 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpNeutralRouteGroupTemplateAttributes.RouteGroupView %>
 <% val R = com.jacoby6000.smithplates.http.service.renderer.HttpNeutralRouteGroupTemplateAttributes %>
-<% val operations = R.operations(ctx) %>
+<% val operations = R.restOperations(ctx) %>
 <% val hasBodyBinding = R.routeGroupHasBody(ctx) %>
 <% val typingSymbols = List("Annotated") %>
 <% import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta %>

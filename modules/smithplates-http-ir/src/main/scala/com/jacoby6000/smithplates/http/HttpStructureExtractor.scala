@@ -25,7 +25,8 @@ private[http] object HttpStructureExtractor {
       (operations.flatMap(_.responseBinding.allVariants.map(_.modelShapeId)) ++
         serviceErrors.map(_.shapeId) ++
         internal.documentInputShapeIds(operations) ++
-        internal.memberPayloadStructureShapeIds(model, operations))
+        internal.memberPayloadStructureShapeIds(model, operations) ++
+        internal.websocketMessageShapeIds(operations))
         .filter(_ != internal.UnitShapeId)
         .distinct
     val (structureIds, unionIds) = HttpShapeGraph.referencedShapes(model, rootShapeIds)
@@ -56,6 +57,15 @@ private[http] object HttpStructureExtractor {
               .filter(shapeId => HttpShapeGraph.isUserDefinedStructure(model, shapeId))
           case _                                         =>
             Nil
+        }
+      }
+
+    def websocketMessageShapeIds(operations: List[HttpOperation]): List[ShapeId] =
+      operations.flatMap { operation =>
+        if (operation.websocket) {
+          List(operation.inputShape) ++ operation.outputShape.toList
+        } else {
+          Nil
         }
       }
 
