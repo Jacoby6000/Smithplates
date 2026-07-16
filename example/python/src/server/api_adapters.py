@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+
+from fastapi import WebSocket
+
 from generated.petstore.api.apis.categories_api_base import CategoriesApiServiceProtocol
 from generated.petstore.api.apis.health_api_base import HealthApiServiceProtocol
 from generated.petstore.api.apis.orders_api_base import OrdersApiServiceProtocol
@@ -14,12 +18,18 @@ from generated.petstore.api.get_order_output import GetOrderOutput
 from generated.petstore.api.get_pet_output import GetPetOutput
 from generated.petstore.api.health_check_output import HealthCheckOutput
 from generated.petstore.api.order_not_found import OrderNotFound
+from generated.petstore.api.pet_events_input import PetEventsInput
+from generated.petstore.api.pet_events_output import PetEventsOutput
 from generated.petstore.api.pet_location_redirect import PetLocationRedirect
 from generated.petstore.api.pet_not_found import PetNotFound
+from generated.petstore.api.pet_pong import PetPong
+from generated.petstore.api.pet_status import PetStatus
+from generated.petstore.api.pet_status_changed import PetStatusChanged
 from generated.petstore.api.place_order_input import PlaceOrderInput
 from generated.petstore.api.place_order_output import PlaceOrderOutput
 from generated.petstore.api.update_pet_body import UpdatePetBody
 from generated.petstore.api.update_pet_output import UpdatePetOutput
+from generated.petstore.api.websocket_routes import WebsocketHandlers
 from server.repository_service import PetstoreRepositoryService
 
 
@@ -89,3 +99,42 @@ class OrdersApiService(OrdersApiServiceProtocol):
 class HealthApiService(HealthApiServiceProtocol):
     async def health_check(self) -> HealthCheckOutput:
         return HealthCheckOutput(status="ok")
+
+
+class PetEventsHandlers(WebsocketHandlers):
+    """Hand-implemented WebSocket handlers for the PetEvents endpoint.
+
+    On connect the server immediately pushes a `welcome` message (driven by the
+    generated route, which calls `handle_pet_events` for every inbound message).
+    Each inbound message is then echoed back: a `ping` is answered with a `pong`,
+    and a `subscribe` is answered with the current status of the requested pet.
+    """
+
+    def __init__(self, repository_service: PetstoreRepositoryService) -> None:
+        self._repository_service = repository_service
+
+    async def handle_pet_events(
+        self,
+        websocket: WebSocket,
+        message: PetEventsInput,
+    ) -> None:
+        if message.ping is not None:
+            await _send_pet_events_output(
+                websocket,
+                PetEventsOutput(pong=PetPong(nonce=message.ping.nonce)),
+            )
+        elif message.subscribe is not None:
+            pet_id = message.subscribe.pet_id
+            pet = await self._repository_service.get_pet(pet_id)
+            status = pet.status if pet is not None else PetStatus.PENDING
+            await _send_pet_events_output(
+                websocket,
+                PetEventsOutput(
+                    statusChanged=PetStatusChanged(pet_id=pet_id, status=status),
+                ),
+            )
+        await asyncio.sleep(0)
+
+
+async def _send_pet_events_output(websocket: WebSocket, message: PetEventsOutput) -> None:
+    await websocket.send_text(message.model_dump_json(exclude_none=True))

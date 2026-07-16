@@ -34,7 +34,8 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
         "python.http.server.api_exception_handler",
         "python.http.server.apis_init",
         "python.http.server.fastapi.route_group_protocol",
-        "python.http.server.fastapi.route_group_routes"
+        "python.http.server.fastapi.route_group_routes",
+        "python.http.server.fastapi.websocket_routes"
       )
     )
     assertEquals(
@@ -70,6 +71,7 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
         "python.http.client.client_response",
         "python.http.client.client_registry",
         "python.http.client.clients_init",
+        "python.http.client.websocket_client",
         "python.http.client.httpx.route_group_client"
       )
     )

@@ -26,7 +26,15 @@ private[http] object HttpShapeGraph {
     val unions            = scala.collection.mutable.Set.empty[ShapeId]
     val pendingStructures = scala.collection.mutable.Queue.empty[ShapeId]
 
-    rootShapeIds.filter(isUserDefinedStructure(model, _)).foreach(pendingStructures.enqueue)
+    rootShapeIds.foreach { shapeId =>
+      model.getShape(shapeId).toScala match {
+        case Some(shape) if shape.isUnionShape     =>
+          internal.enqueueUnion(model, shapeId, pendingStructures, structures, unions)
+        case Some(shape) if shape.isStructureShape =>
+          if (isUserDefinedStructure(model, shapeId)) pendingStructures.enqueue(shapeId)
+        case _                                     => ()
+      }
+    }
 
     while (pendingStructures.nonEmpty) {
       val shapeId = pendingStructures.dequeue()

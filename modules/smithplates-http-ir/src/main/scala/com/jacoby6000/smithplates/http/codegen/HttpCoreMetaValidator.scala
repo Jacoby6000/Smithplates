@@ -13,4 +13,17 @@ object HttpCoreMetaValidator {
         CodegenValidated.unit
     }
   }
+
+  given OperationMetaValidator[HttpOperationMeta] = OperationMetaValidator { operation =>
+    operation.meta.feature.websocket match {
+      case Some(_) if operation.input.isEmpty && operation.output.isEmpty =>
+        InvalidOperationMeta(
+          operation.id,
+          "@websocket operations must declare at least an input shape (client-to-server messages) or " +
+            "an output shape (server-to-client messages)"
+        ).invalidNel
+      case _                                                              =>
+        CodegenValidated.unit
+    }
+  }
 }

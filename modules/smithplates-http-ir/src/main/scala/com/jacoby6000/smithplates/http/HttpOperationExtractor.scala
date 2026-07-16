@@ -3,6 +3,7 @@ package com.jacoby6000.smithplates.http
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.http.SmithyHttpTraitAccess.*
 import com.jacoby6000.smithplates.http.model.*
+import com.jacoby6000.smithplates.http.traits.WebsocketTrait
 import software.amazon.smithy.model.Model
 import software.amazon.smithy.model.shapes.OperationShape
 import software.amazon.smithy.model.shapes.ShapeId
@@ -39,6 +40,7 @@ private[http] object HttpOperationExtractor {
         serialization: HttpSerialization
     ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] = {
       val operationName = operation.getId.getName
+      val isWebsocket   = operation.getTrait(classOf[WebsocketTrait]).toScala.isDefined
       (
         requireHttpBinding(serviceShape, operationName, operation),
         requireRouteTag(serviceShape, operationName, operation),
@@ -47,7 +49,7 @@ private[http] object HttpOperationExtractor {
         validateErrorShapes(model, serviceShape, operation)
       ).mapN { (http, tag, inputShape, outputShape, errorShapeIds) =>
         HttpOperationInputMemberExtractor
-          .extract(model, serviceShape, operation, inputShape, serviceResources)
+          .extract(model, serviceShape, operation, inputShape, serviceResources, isWebsocket)
           .andThen { inputMembers =>
             val uri            = http.getUri.toString
             val warnings       =
@@ -55,9 +57,17 @@ private[http] object HttpOperationExtractor {
                 .lintInputMemberOrder(serviceShape, operationName, inputShape, uri, inputMembers)
                 .toList
             val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
-            val bodyBinding    = HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+            val bodyBinding    =
+              if (isWebsocket && orderedMembers.isEmpty && inputShape != ShapeId.from("smithy.api#Unit")) {
+                // Websocket operations with union-typed inputs have no extracted input members
+                // (unions aren't structures). The entire input shape is the message body.
+                HttpOperationBodyBinding.Document(inputShape)
+              } else {
+                HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+              }
             (
-              HttpOperationOutputMemberExtractor.extract(model, serviceShape, operationName, outputShape),
+              HttpOperationOutputMemberExtractor
+                .extract(model, serviceShape, operationName, outputShape, isWebsocket),
               HttpOperationErrorExtractor.extract(model, serviceShape, operationName, errorShapeIds)
             ).mapN { (outputMembers, operationErrors) =>
               HttpResponseVariantResolver
@@ -90,7 +100,8 @@ private[http] object HttpOperationExtractor {
                       outputMembers = outputMembers,
                       operationErrors = operationErrors,
                       responseBinding = responseBinding,
-                      tags = List(tag)
+                      tags = List(tag),
+                      websocket = isWebsocket
                     ),
                     warnings
                   )

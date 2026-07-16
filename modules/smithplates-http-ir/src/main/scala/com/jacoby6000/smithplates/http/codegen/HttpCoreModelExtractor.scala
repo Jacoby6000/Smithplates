@@ -17,7 +17,6 @@ import com.jacoby6000.smithplates.codegen.core.ModelSetValidator
 import com.jacoby6000.smithplates.codegen.core.ModelValidator
 import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.codegen.core.OperationMeta
-import com.jacoby6000.smithplates.codegen.core.OperationMetaValidator
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.OperationValidator
 import com.jacoby6000.smithplates.codegen.core.PrimitiveLiteral
@@ -31,6 +30,7 @@ import com.jacoby6000.smithplates.codegen.core.Variant
 import com.jacoby6000.smithplates.http.*
 import com.jacoby6000.smithplates.http.SmithyHttpTraitAccess.*
 import com.jacoby6000.smithplates.http.model.*
+import com.jacoby6000.smithplates.http.traits.WebsocketTrait
 import com.jacoby6000.smithplates.smithy.neutral.*
 import software.amazon.smithy.model.shapes.MemberShape
 import software.amazon.smithy.model.shapes.ShapeId
@@ -41,7 +41,6 @@ import scala.jdk.OptionConverters.*
 object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpServiceMeta, HttpOperationMeta] {
   import HttpCoreMetaValidator.given
 
-  given OperationMetaValidator[HttpOperationMeta]                     = OperationMetaValidator.noop
   given ServiceMetaValidator[HttpServiceMeta]                         = ServiceMetaValidator.noop
   given ModelValidator[HttpMeta]                                      = ModelValidator.default
   given OperationValidator[HttpOperationMeta]                         = OperationValidator.default
@@ -118,7 +117,9 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                       Some(ModelIds.fromShapeId(variant.modelShapeId))
                     }
                   )
-                }
+                },
+                websocket = internal
+                  .websocketMeta(model, operation.shapeId, operation.uri)
               )
             ),
             input = if (operation.inputShape == HttpStructureExtractor.internal.UnitShapeId) {
@@ -146,9 +147,11 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           .filter(_ != HttpStructureExtractor.internal.UnitShapeId)
           .distinct
       val existingStructureIds   = httpService.structures.map(_.shapeId).toSet
+      val existingUnionIds       = httpService.unions.map(_.shapeId).toSet
       val extraStructureIds      =
         operationShapeIds
           .filterNot(existingStructureIds.contains)
+          .filterNot(existingUnionIds.contains)
           .filterNot(errorStructureShapeIds.contains)
 
       val service = ServiceModel(
@@ -428,6 +431,11 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           case HttpTimestampFormat.EpochSeconds => CoreTimestampFormat.EpochSeconds
           case HttpTimestampFormat.HttpDate     => CoreTimestampFormat.DateTime
         }
+
+    def websocketMeta(model: SmithyModel, operationShapeId: ShapeId, path: String): Option[HttpWebsocketMeta] =
+      model.getShape(operationShapeId).toScala.flatMap(_.getTrait(classOf[WebsocketTrait]).toScala).map { _ =>
+        HttpWebsocketMeta(path = path)
+      }
 
     def toInputMemberMeta(member: HttpOperationInputMember): HttpOperationInputMemberMeta =
       HttpOperationInputMemberMeta(

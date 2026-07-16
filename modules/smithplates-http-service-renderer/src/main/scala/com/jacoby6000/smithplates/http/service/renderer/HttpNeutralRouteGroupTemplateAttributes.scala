@@ -33,6 +33,15 @@ object HttpNeutralRouteGroupTemplateAttributes {
   def operations(ctx: RouteGroupView): List[OperationModel[HttpOperationMeta]] =
     ctx.subject.operations
 
+  /** Operations in this route group that are not WebSocket endpoints. REST route/client templates render only these;
+    * WebSocket operations are handled by dedicated templates.
+    */
+  def restOperations(ctx: RouteGroupView): List[OperationModel[HttpOperationMeta]] =
+    operations(ctx).filterNot(_.meta.feature.websocket.isDefined)
+
+  def websocketOperations(ctx: RouteGroupView): List[OperationModel[HttpOperationMeta]] =
+    operations(ctx).filter(_.meta.feature.websocket.isDefined)
+
   def packageName(ctx: RouteGroupView): String =
     ctx.conventions.packageName(ctx.subject.service.id.namespace)
 

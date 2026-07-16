@@ -72,6 +72,13 @@
         "template": "fastapi/route_group_routes.ssp",
         "outputPath": "{{smithyNamespaceDir}}/apis/{{tagName}}_api.py",
         "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
+      },
+      {
+        "id": "python.http.server.fastapi.websocket_routes",
+        "artifactKind": "src",
+        "template": "fastapi/websocket_routes.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/websocket_routes.py",
+        "binding": { "type": "service" }
       }
     ]
   }

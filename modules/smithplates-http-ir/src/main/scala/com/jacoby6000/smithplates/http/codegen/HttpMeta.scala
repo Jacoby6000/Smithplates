@@ -86,6 +86,14 @@ final case class HttpResponseVariantMeta(
     modelShapeId: Option[ModelId] = None
 )
 
+/** Websocket operation metadata. A websocket operation is a bidirectional endpoint whose input shape is the
+  * union/structure of client-to-server messages and whose output shape is the union/structure of server-to-client
+  * messages. `path` is the WebSocket route path (taken from the `@http` uri).
+  */
+final case class HttpWebsocketMeta(
+    path: String
+)
+
 /** Operation-level HTTP feature metadata. */
 final case class HttpOperationMeta(
     method: String,
@@ -94,5 +102,6 @@ final case class HttpOperationMeta(
     documentation: Option[String] = None,
     inputMembers: List[HttpOperationInputMemberMeta] = Nil,
     bodyBinding: HttpOperationBodyBindingMeta = HttpOperationBodyBindingMeta.None,
-    responseVariants: List[HttpResponseVariantMeta] = Nil
+    responseVariants: List[HttpResponseVariantMeta] = Nil,
+    websocket: Option[HttpWebsocketMeta] = None
 )

@@ -14,6 +14,7 @@ from generated.petstore.api.get_pet_output import GetPetOutput
 from generated.petstore.api.health_check_output import HealthCheckOutput
 from generated.petstore.api.model_validation import validate_api_model
 from generated.petstore.api.order_not_found import OrderNotFound
+from generated.petstore.api.pet_events_output import PetEventsOutput
 from generated.petstore.api.pet_location_redirect import PetLocationRedirect
 from generated.petstore.api.pet_not_found import PetNotFound
 from generated.petstore.api.place_order_output import PlaceOrderOutput
@@ -33,6 +34,7 @@ _MODEL_TYPES: dict[str, type[object]] = {
     "GetPetOutput": GetPetOutput,
     "HealthCheckOutput": HealthCheckOutput,
     "OrderNotFound": OrderNotFound,
+    "PetEventsOutput": PetEventsOutput,
     "PetLocationRedirect": PetLocationRedirect,
     "PetNotFound": PetNotFound,
     "PlaceOrderOutput": PlaceOrderOutput,

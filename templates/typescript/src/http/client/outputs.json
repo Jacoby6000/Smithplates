@@ -27,6 +27,13 @@
       "template": "clients/index.ssp",
       "outputPath": "{{smithyNamespaceDir}}/clients/index.ts",
       "binding": { "type": "service" }
+    },
+    {
+      "id": "typescript.http.client.websocket_client",
+      "artifactKind": "src",
+      "template": "websocket_client.ssp",
+      "outputPath": "{{smithyNamespaceDir}}/clients/websocketClient.ts",
+      "binding": { "type": "service" }
     }
   ],
   "variants": {

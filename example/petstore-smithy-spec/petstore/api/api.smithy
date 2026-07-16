@@ -3,6 +3,7 @@ namespace petstore.api
 
 use smithplates.codegen.http#httpService
 use smithplates.codegen.http#httpStaticHeader
+use smithplates.codegen.http#websocket
 use smithy.api#http
 use smithy.api#httpHeader
 use smithy.api#httpLabel
@@ -10,6 +11,7 @@ use smithy.api#httpPayload
 use smithy.api#idempotent
 use smithy.api#readonly
 use smithy.api#required
+use smithy.api#suppress
 use smithy.api#tags
 use smithy.api#timestampFormat
 
@@ -364,4 +366,54 @@ operation HealthCheck {
 structure HealthCheckOutput {
     @required
     status: String
+}
+
+/// Bidirectional WebSocket endpoint delivering pet status events.
+@tags(["pets"])
+@suppress(["HttpMethodSemantics"])
+@http(method: "GET", uri: "/pets/events", code: 200)
+@readonly
+@websocket
+operation PetEvents {
+    input: PetEventsInput
+    output: PetEventsOutput
+}
+
+structure PetEventsInput {
+    ping: PetPing
+    subscribe: PetSubscription
+}
+
+structure PetEventsOutput {
+    welcome: PetWelcome
+    pong: PetPong
+    statusChanged: PetStatusChanged
+}
+
+structure PetPing {
+    @required
+    nonce: String
+}
+
+structure PetSubscription {
+    @required
+    pet_id: String
+}
+
+structure PetWelcome {
+    @required
+    message: String
+}
+
+structure PetPong {
+    @required
+    nonce: String
+}
+
+structure PetStatusChanged {
+    @required
+    pet_id: String
+
+    @required
+    status: PetStatus
 }

@@ -304,6 +304,32 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             404: "PetNotFound",
         },
     ),
+    "pet_events": ClientOperationHttpBinding(
+        variants_by_type_name={
+            "PetEventsOutput": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+        variants_by_status={
+            200: "PetEventsOutput",
+        },
+    ),
+    "PetEvents": ClientOperationHttpBinding(
+        variants_by_type_name={
+            "PetEventsOutput": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+        variants_by_status={
+            200: "PetEventsOutput",
+        },
+    ),
     "resolve_pet_location": ClientOperationHttpBinding(
         variants_by_type_name={
             "PetLocationRedirect": ResponseVariantBinding(

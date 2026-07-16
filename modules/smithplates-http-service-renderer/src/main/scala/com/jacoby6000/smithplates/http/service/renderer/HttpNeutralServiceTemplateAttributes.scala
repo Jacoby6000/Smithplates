@@ -5,7 +5,10 @@ import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
+import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
+import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
@@ -123,6 +126,91 @@ object HttpNeutralServiceTemplateAttributes {
         s"${internal.modelsPackageName(ctx)}.$moduleBase"
       }
 
+  /** WebSocket operations on this service. A websocket operation's input shape is the union/structure of
+    * client-to-server messages and its output shape is the union/structure of server-to-client messages.
+    */
+  def websocketOperations(ctx: ServiceView): List[OperationModel[HttpOperationMeta]] =
+    operations(ctx).filter(_.meta.feature.websocket.isDefined)
+
+  def hasWebsockets(ctx: ServiceView): Boolean =
+    websocketOperations(ctx).nonEmpty
+
+  def websocketPath(operation: OperationModel[HttpOperationMeta]): String =
+    operation.meta.feature.websocket.map(_.path).getOrElse(operation.meta.feature.uriPattern)
+
+  /** Path label members of a websocket operation's input. These become route parameters in the generated FastAPI
+    * websocket handler and client connect method.
+    */
+  def websocketPathLabels(
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpOperationInputMemberMeta] =
+    operation.meta.feature.inputMembers.filter(_.binding == HttpInputMemberBindingMeta.PathLabel)
+
+  /** Python parameter name (snake_case) for a path label member. */
+  def websocketPathLabelName(
+      ctx: ServiceView,
+      member: HttpOperationInputMemberMeta
+  ): String =
+    ctx.conventions.memberName(member.name)
+
+  /** WebSocket route path with URI labels converted to Python parameter names (snake_case) so they match function
+    * parameters and f-string interpolation variables.
+    */
+  def websocketPythonPath(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String =
+    websocketPathLabels(operation).foldLeft(websocketPath(operation)) { case (path, member) =>
+      val label       = "{" + member.name + "}"
+      val pythonLabel = "{" + websocketPathLabelName(ctx, member) + "}"
+      path.replace(label, pythonLabel)
+    }
+
+  /** Whether the websocket operation has client-to-server message content (body members). Path-label-only inputs define
+    * routing parameters, not messages.
+    */
+  def websocketHasInputMessages(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operation.meta.feature.bodyBinding != HttpOperationBodyBindingMeta.None
+
+  def websocketHandlerName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): String =
+    s"handle_${ctx.conventions.functionName(operation.id.name)}"
+
+  def websocketConnectionName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): String =
+    s"${ctx.conventions.className(operation.id)}Connection"
+
+  def websocketInputRef(operation: OperationModel[HttpOperationMeta]): Option[ModelRef] =
+    operation.input
+
+  def websocketOutputRef(operation: OperationModel[HttpOperationMeta]): Option[ModelRef] =
+    operation.output
+
+  def websocketInputTypeName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.input.map(ref => ctx.conventions.className(ref.id))
+
+  def websocketOutputTypeName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.output.map(ref => ctx.conventions.className(ref.id))
+
+  def websocketInputModule(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.input.map(ref => ctx.conventions.modulePath(ref.id))
+
+  def websocketOutputModule(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.output.map(ref => ctx.conventions.modulePath(ref.id))
+
+  def websocketInputValidateFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.input.map(ref => internal.validateFunctionName(ctx, ref))
+
+  def websocketOutputValidateFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.output.map(ref => internal.validateFunctionName(ctx, ref))
+
+  def websocketInputParseFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.input.map(ref => internal.parseFunctionName(ctx, ref))
+
+  def websocketOutputParseFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.output.map(ref => internal.parseFunctionName(ctx, ref))
+
+  def websocketInputSerializeFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.input.map(ref => internal.serializeFunctionName(ctx, ref))
+
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     def responseModelRefs(ctx: ServiceView): List[ModelRef] = {
@@ -143,6 +231,17 @@ object HttpNeutralServiceTemplateAttributes {
 
     def modelsPackageName(ctx: ServiceView): String =
       s"${packageName(ctx)}.models"
+
+    def validateFunctionName(ctx: ServiceView, ref: ModelRef): String = {
+      val name = ctx.conventions.className(ref.id)
+      s"validate_${ctx.conventions.memberName(name).stripSuffix("_")}"
+    }
+
+    def parseFunctionName(ctx: ServiceView, ref: ModelRef): String =
+      s"parse${ctx.conventions.className(ref.id)}"
+
+    def serializeFunctionName(ctx: ServiceView, ref: ModelRef): String =
+      s"serialize${ctx.conventions.className(ref.id)}"
 
     def tagSegments(tag: String): List[String] =
       tag.split("[_\\-]+").toList.filter(_.nonEmpty)
