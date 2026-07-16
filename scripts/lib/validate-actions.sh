@@ -9,6 +9,7 @@ smithystache_validate_run_example_build() {
   case "${target}" in
     all|examples) ./scripts/run-example-build.sh all ;;
     examples/python) ./scripts/run-example-build.sh python ;;
+    examples/typescript) ./scripts/run-example-build.sh typescript ;;
     *) return 0 ;;
   esac
 }
@@ -26,6 +27,10 @@ smithystache_validate_run_lint_for_target() {
     examples|examples/python)
       smithystache_validate_run_example_build "${target}"
       ./scripts/run-example-linters.sh "$(smithystache_validate_example_project "${target}")"
+      ;;
+    examples/typescript)
+      smithystache_validate_run_example_build "${target}"
+      ./scripts/run-example-linters.sh typescript
       ;;
     *)
       echo "error: unknown validate target for lint: ${target}" >&2
@@ -45,6 +50,9 @@ smithystache_validate_run_test_for_target() {
     python|python/db|python/db/sqlite|python/db/postgres) ./scripts/run-tests.sh templates ;;
     examples|examples/python)
       ./scripts/run-example-tests.sh "$(smithystache_validate_example_project "${target}")"
+      ;;
+    examples/typescript)
+      ./scripts/run-example-tests.sh typescript
       ;;
     *)
       echo "error: unknown validate target for test: ${target}" >&2

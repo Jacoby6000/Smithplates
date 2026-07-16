@@ -21,3 +21,5 @@ metals.sbt
 
 example/**/smithy-build.json
 **/build/smithy
+example/typescript/node_modules/
+example/typescript/package-lock.json

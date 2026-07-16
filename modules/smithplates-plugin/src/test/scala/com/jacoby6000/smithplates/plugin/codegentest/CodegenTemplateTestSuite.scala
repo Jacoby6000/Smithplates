@@ -79,7 +79,8 @@ object CodegenTemplateTestSuite {
       CodegenTemplateVariant("python", "http", "server"),
       CodegenTemplateVariant("python", "http", "client"),
       CodegenTemplateVariant("python", "db", "sqlite"),
-      CodegenTemplateVariant("python", "db", "postgres")
+      CodegenTemplateVariant("python", "db", "postgres"),
+      CodegenTemplateVariant("typescript", "http", "client")
     )
 
     val buildOutputs =

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run linters for Smithplates example reference projects.
 # Invoked directly:
-#   scripts/run-example-linters.sh [all|python]
+#   scripts/run-example-linters.sh [all|python|typescript]
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -39,8 +39,11 @@ case "${mode}" in
   python)
     run_example_harness_linters python
     ;;
+  typescript)
+    run_example_harness_linters typescript
+    ;;
   *)
-    echo "usage: $0 [all|python]" >&2
+    echo "usage: $0 [all|python|typescript]" >&2
     exit 2
     ;;
 esac

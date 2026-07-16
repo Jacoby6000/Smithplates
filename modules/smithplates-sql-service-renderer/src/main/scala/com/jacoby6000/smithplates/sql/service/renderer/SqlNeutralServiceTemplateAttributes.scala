@@ -361,6 +361,7 @@ object SqlNeutralServiceTemplateAttributes {
   def jsonMappingUsesTimestamp(ctx: ServiceView): Boolean = {
     val closureModels = jsonStructureClosure(ctx)
     val jsonUnions    = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
+
     closureModels.exists(_.fields.exists(field => memberTypeName(ctx, field) == "datetime")) ||
     jsonUnions.exists(_.members.exists(member => internal.typeName(ctx, member.tpe) == "datetime"))
   }

@@ -29,20 +29,25 @@ FulfillmentState = FulfillmentStatePending | FulfillmentStateShipped | Fulfillme
 
 
 @dataclass
-class Category:
-    id: str
-    name: str
-    store_id: str
-
-
-@dataclass
 class CreatePetRecordOutput:
     id: str
 
 
 @dataclass
+class UpdatePetRecordOutput:
+    updated: bool
+
+
+@dataclass
 class DeletePetRecordOutput:
     deleted: bool
+
+
+@dataclass
+class Category:
+    id: str
+    name: str
+    store_id: str
 
 
 @dataclass
@@ -119,8 +124,3 @@ class PostalAddress:
 class Store:
     id: str
     name: str
-
-
-@dataclass
-class UpdatePetRecordOutput:
-    updated: bool

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run tests for Smithplates example reference projects.
 # Invoked directly:
-#   scripts/run-example-tests.sh [all|python]
+#   scripts/run-example-tests.sh [all|python|typescript]
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -22,14 +22,16 @@ run_example_harness_tests() {
 
 run_all() {
   run_example_harness_tests python all
+  run_example_harness_tests typescript typescript
 }
 
 mode="${1:-all}"
 case "${mode}" in
   all) run_all ;;
   python) run_example_harness_tests python python ;;
+  typescript) run_example_harness_tests typescript typescript ;;
   *)
-    echo "usage: $0 [all|python]" >&2
+    echo "usage: $0 [all|python|typescript]" >&2
     exit 2
     ;;
 esac

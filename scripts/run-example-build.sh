@@ -4,6 +4,7 @@
 # Usage:
 #   scripts/run-example-build.sh all
 #   scripts/run-example-build.sh python
+#   scripts/run-example-build.sh typescript
 #   scripts/run-example-build.sh openapi-reference-python
 set -euo pipefail
 
@@ -27,6 +28,7 @@ usage() {
   cat <<'EOF' >&2
 usage: scripts/run-example-build.sh all
        scripts/run-example-build.sh python
+       scripts/run-example-build.sh typescript
        scripts/run-example-build.sh openapi-reference-python
 EOF
   exit 2
@@ -162,6 +164,32 @@ build_python_example() {
   format_generated_python "${example_dir}" src/generated tests
 }
 
+build_typescript_example() {
+  local example_dir="${ROOT}/example/typescript"
+  require_java
+
+  echo "==> example/typescript smithy build"
+  rm -rf "${example_dir}/build"
+  (
+    cd "${example_dir}"
+    run_smithy_build_with_local_plugin
+  )
+
+  local build_root="${example_dir}/build/smithy/source/smithplates"
+  if [[ ! -d "${build_root}/src/generated" ]]; then
+    echo "error: missing Smithplates generated output at ${build_root}/src/generated" >&2
+    exit 1
+  fi
+
+  rm -rf "${example_dir}/src/generated"
+  cp -a "${build_root}/src/generated" "${example_dir}/src/"
+
+  if [[ -d "${build_root}/tests" ]]; then
+    rm -rf "${example_dir}/tests/generated"
+    cp -a "${build_root}/tests" "${example_dir}/tests/generated"
+  fi
+}
+
 resolve_openapi_generator_jar() {
   local cache_directory="${XDG_CACHE_HOME:-${HOME}/.cache}/smithystache"
   local jar_path="${cache_directory}/openapi-generator-cli-${OPENAPI_GENERATOR_VERSION}.jar"
@@ -251,11 +279,16 @@ case "$1" in
   all)
     "${ROOT}/scripts/render-smithy-build.sh" all
     build_python_example
+    build_typescript_example
     build_openapi_reference_example
     ;;
   python)
     "${ROOT}/scripts/render-smithy-build.sh" example/python
     build_python_example
+    ;;
+  typescript)
+    "${ROOT}/scripts/render-smithy-build.sh" example/typescript
+    build_typescript_example
     ;;
   openapi-reference-python)
     "${ROOT}/scripts/render-smithy-build.sh" example/openapi-reference-python

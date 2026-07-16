@@ -1,0 +1,7 @@
+{
+  "name": "typescript",
+  "description": "Generated Smithplates TypeScript fetch client case runner (client-only target).",
+  "client": {
+    "runCase": "run-case.sh"
+  }
+}
