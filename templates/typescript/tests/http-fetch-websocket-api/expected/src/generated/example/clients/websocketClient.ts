@@ -41,7 +41,7 @@ export class ChatStreamConnection {
     return () => this.socket.removeEventListener("message", listener);
   }
 
-  onClose(handler: (event: CloseEvent) => void): () => void {
+  onClose(handler: (event: { code: number; reason: string; wasClean: boolean }) => void): () => void {
     this.socket.addEventListener("close", handler);
     return () => this.socket.removeEventListener("close", handler);
   }

@@ -138,8 +138,8 @@ object HttpNeutralServiceTemplateAttributes {
   def websocketPath(operation: OperationModel[HttpOperationMeta]): String =
     operation.meta.feature.websocket.map(_.path).getOrElse(operation.meta.feature.uriPattern)
 
-  /** Path label members of a websocket operation's input. These become route parameters
-    * in the generated FastAPI websocket handler and client connect method.
+  /** Path label members of a websocket operation's input. These become route parameters in the generated FastAPI
+    * websocket handler and client connect method.
     */
   def websocketPathLabels(
       operation: OperationModel[HttpOperationMeta]
@@ -153,8 +153,8 @@ object HttpNeutralServiceTemplateAttributes {
   ): String =
     ctx.conventions.memberName(member.name)
 
-  /** WebSocket route path with URI labels converted to Python parameter names (snake_case)
-    * so they match function parameters and f-string interpolation variables.
+  /** WebSocket route path with URI labels converted to Python parameter names (snake_case) so they match function
+    * parameters and f-string interpolation variables.
     */
   def websocketPythonPath(
       ctx: ServiceView,
@@ -166,8 +166,8 @@ object HttpNeutralServiceTemplateAttributes {
       path.replace(label, pythonLabel)
     }
 
-  /** Whether the websocket operation has client-to-server message content (body members).
-    * Path-label-only inputs define routing parameters, not messages.
+  /** Whether the websocket operation has client-to-server message content (body members). Path-label-only inputs define
+    * routing parameters, not messages.
     */
   def websocketHasInputMessages(operation: OperationModel[HttpOperationMeta]): Boolean =
     operation.meta.feature.bodyBinding != HttpOperationBodyBindingMeta.None
