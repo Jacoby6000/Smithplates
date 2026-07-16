@@ -34,6 +34,10 @@
           exec ${pkgs.coursier}/bin/cs launch "software.amazon.smithy:smithy-cli:${smithyVersion}" -- "$@"
         '';
 
+        coursier = pkgs.writeShellScriptBin "coursier" ''
+          exec ${pkgs.coursier}/bin/cs "$@"
+        '';
+
         runTestsScript = pkgs.writeShellScriptBin "smithystache-run-tests" ''
           set -euo pipefail
           if [ -f ./scripts/run-tests.sh ]; then
@@ -67,6 +71,7 @@
             sbtn
             sbt
             smithy
+            coursier
             uv
             docker
             git
