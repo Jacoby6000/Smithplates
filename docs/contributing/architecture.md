@@ -18,18 +18,23 @@ flowchart LR
     Plugin["smithplates plugin"]
     IR["Intermediate representation<br/>SQL IR · HTTP IR · shared types"]
 
-    subgraph outputs["Generated outputs"]
-        Migrations["Schema migrations<br/>Postgres · SQLite"]
-        SqlSvc["SQL repositories<br/>Python"]
-        HttpServer["HTTP server<br/>Python / FastAPI"]
-        HttpClient["HTTP clients<br/>Python · TypeScript"]
+    subgraph python["Python"]
+        PyMigrations["Schema migrations<br/>Postgres · SQLite"]
+        PySql["SQL repositories"]
+        PyServer["HTTP server<br/>FastAPI"]
+        PyClient["HTTP client<br/>httpx"]
+    end
+
+    subgraph typescript["TypeScript"]
+        TsClient["HTTP client<br/>fetch · axios"]
     end
 
     Smithy --> Plugin --> IR
-    IR --> Migrations
-    IR --> SqlSvc
-    IR --> HttpServer
-    IR --> HttpClient
+    IR --> PyMigrations
+    IR --> PySql
+    IR --> PyServer
+    IR --> PyClient
+    IR --> TsClient
 ```
 <!-- architecture-pipeline.mmd:end -->
 
