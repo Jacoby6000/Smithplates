@@ -50,11 +50,16 @@ is loaded), not during plugin config validation. Consumer-deck static file copy
 
 ### Templates
 
-Only `python` has bundled templates (default `classpath:`; sources under
-[`templates/python/src/db/`](../templates/python/src/db/) and
-[`templates/python/src/http/`](../templates/python/src/http/) with `server/`,
-`client/`, and `models/` subtrees). Other languages require an explicit
-`templateDirectory` whose classpath contains every required template.
+Bundled languages (default `classpath:`):
+
+- **Python** — [`templates/python/src/db/`](../templates/python/src/db/) and
+  [`templates/python/src/http/`](../templates/python/src/http/) (`server/`,
+  `client/`, `models/`).
+- **TypeScript** — [`templates/typescript/src/http/`](../templates/typescript/src/http/)
+  (client + models only; `httpLibrary` `fetch` or `axios`).
+
+Other languages require an explicit `templateDirectory` whose classpath
+contains every required template and an `outputs.json` deck.
 
 Bundled codegen templates are inferred from enabled dialects/frameworks — do
 not require per-artifact `artifacts` entries in `smithplates`.

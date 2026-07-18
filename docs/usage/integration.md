@@ -133,15 +133,16 @@ The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on
 
 #### OpenAPI Generator coordination
 
-Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), and protocol modules (`*_api_base.py`). Smithplates also generates httpx async clients under `smithplates.<language>.http.client`. Use OpenAPI export when you also need an OpenAPI document for external tooling.
+Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), protocol modules (`*_api_base.py`), and optional `websocket_routes.py`. Smithplates also generates HTTP clients under `smithplates.<language>.http.client` (Python/httpx and TypeScript axios/fetch). Use OpenAPI export when you also need an OpenAPI document for external tooling.
 
-The Python petstore reference uses this split:
+The petstore references use this split:
 
 | Concern | Tool | Output |
 |---------|------|--------|
-| FastAPI server wiring | Smithplates HTTP server codegen | `src/generated/petstore/api/` |
-| Shared HTTP Pydantic models | Smithplates HTTP codegen | `src/generated/petstore/api/` (same namespace root as the server) |
-| httpx async HTTP client | Smithplates HTTP client codegen | `example/python/src/generated/petstore/api/client/` |
+| FastAPI server wiring | Smithplates HTTP server codegen | `example/python/src/generated/petstore/api/` |
+| Shared HTTP models | Smithplates HTTP codegen | same namespace root as the server/client |
+| httpx async HTTP client | Smithplates HTTP client codegen (Python) | `example/python/src/generated/petstore/api/client/` |
+| fetch HTTP client | Smithplates HTTP client codegen (TypeScript) | `example/typescript/src/generated/petstore/api/` |
 | OpenAPI document + reference Python client | Smithy OpenAPI plugin + OpenAPI Generator | `example/openapi-reference-python/` |
 
 Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL Smithy files in the OpenAPI projection, and keep hand-written adapters responsible for mapping generated API models to generated DB models.

@@ -1,12 +1,18 @@
 # Examples
 
-The main reference project is the Python petstore example:
+Reference projects live under [`example/`](../../example/).
 
-```text
-example/python/
-```
+| Directory | Role |
+|-----------|------|
+| [`example/python/`](../../example/python/) | Full petstore: SQL + FastAPI server + Smithplates httpx client + adapters |
+| [`example/typescript/`](../../example/typescript/) | Petstore TypeScript HTTP client (`httpLibrary: "fetch"`) against the shared Smithy model |
+| [`example/openapi-reference-python/`](../../example/openapi-reference-python/) | OpenAPI Generator asyncio client (comparison / external-consumer reference) |
 
-It demonstrates:
+Shared Smithy models live under [`example/petstore-smithy-spec/`](../../example/petstore-smithy-spec/).
+
+## Python petstore
+
+Demonstrates:
 
 - a consumer `smithy-build.json` using only `com.jacoby6000:smithplates-plugin`;
 - SQL schema DDL generation for SQLite and Postgres;
@@ -15,6 +21,10 @@ It demonstrates:
 - Smithplates httpx HTTP client generation from the same `@httpService` model;
 - optional OpenAPI Generator reference client under `example/openapi-reference-python/`;
 - hand-written adapters that map API models to database models.
+
+## TypeScript petstore client
+
+Demonstrates a client-only `typescript` language entry with `httpLibrary: "fetch"` (axios is also bundled). Cross-implementation example tests can drive the TypeScript client against the Python server — see [`example/tests/`](../../example/tests/).
 
 ## Regenerate artifacts
 
@@ -32,7 +42,7 @@ Or from an example directory:
 
 The build script runs `publishM2`, renders `smithy-build.json`, runs Smithy build, syncs Smithplates-generated output, and formats the Python petstore reference with `uv run ruff format`. OpenAPI export and the OpenAPI Generator reference client live under `example/openapi-reference-python/`; that generated client is build-only validation collateral and is not linted.
 
-## Runtime shape
+## Runtime shape (Python)
 
 Generated code stays under `src/generated/` and `tests/`. Hand-written application code lives under `src/server/` and implements generated protocols.
 
@@ -49,6 +59,7 @@ Use this as the reference pattern for combining SQL and HTTP codegen in one appl
 | File | Purpose |
 |------|---------|
 | `example/python/smithy-build.json.template` | Source template for the Smithplates SQL and HTTP plugin config. |
+| `example/typescript/smithy-build.json.template` | TypeScript client-only plugin config. |
 | `example/python/smithy-build.json` | Rendered config with the current local or published plugin version. |
 | `example/openapi-reference-python/` | OpenAPI export + OpenAPI Generator reference client. |
 | `scripts/run-example-build.sh` | End-to-end regeneration for example reference projects. |
@@ -67,7 +78,7 @@ bash scripts/render-smithy-build.sh example/python
 bash scripts/run-example-build.sh python
 ```
 
-When inspecting only the generated consumer project:
+When inspecting only the generated Python consumer project:
 
 ```bash
 cd example/python

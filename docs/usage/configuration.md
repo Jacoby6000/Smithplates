@@ -208,8 +208,8 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 
 | Field | Required | Meaning |
 |-------|----------|---------|
-| `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled implementation today. |
-| `httpLibrary` | No; default `httpx` | HTTP client library for generated client artifacts. Python/httpx is the bundled implementation today. |
+| `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled server today. |
+| `httpLibrary` | No; default `httpx` for Python | HTTP client library. Bundled values: `httpx` (Python), `fetch` or `axios` (TypeScript). |
 | `packageName` | No | Override the derived import package for server or client output exactly. When omitted, packages include the Smithy service namespace. |
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
 | `modelsPackageName` | No | Override the derived models import package exactly. When omitted, per-shape model packages include each shape's Smithy namespace. |
@@ -218,14 +218,14 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 
 ## Custom codegen outputs
 
-Consumers extend bundled Python SQL/HTTP codegen in two ways:
+Consumers extend bundled SQL/HTTP codegen in two ways:
 
 ### `additionalTemplatesDirectory` (append to bundled outputs)
 
-For **existing bundled features** (Python SQL, HTTP server/client), point
+For **existing bundled features** (Python SQL/HTTP, TypeScript HTTP client), point
 `additionalTemplatesDirectory` at a folder that ships an `outputs.json` deck
 beside its templates — the same layout as bundled language template roots under
-`templates/python/src/...`.
+`templates/<language>/src/...`.
 
 ```json
 {
@@ -275,7 +275,8 @@ to a root that ships its own complete `outputs.json` deck. This replaces the bun
 deck for that block (existing behavior). See [custom-templates.md](custom-templates.md).
 
 Bundled output ids for overrides are listed in
-`templates/python/src/{db,http/**}/outputs.json`.
+`templates/python/src/{db,http/**}/outputs.json` and
+`templates/typescript/src/http/**/outputs.json`.
 
 ## Output root
 

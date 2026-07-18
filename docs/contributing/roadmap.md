@@ -2,21 +2,26 @@
 
 This page is for contributor-facing planning. User-facing docs should describe shipped behavior first and link to [Limitations](../usage/limitations.md) for boundaries.
 
+## Shipped since v0.2.5 (through v0.3.x)
+
+- **Language-neutral codegen (`#34` / `#35`–`#42`)** — `NeutralType` / `ModelSet`, strategies, `CodegenPlanner`, SQL + HTTP cutover to `outputs.json` decks, consumer `additionalTemplatesDirectory`, cleanup of Python-specific Scala rendering helpers.
+- **TypeScript HTTP clients** — bundled axios/fetch clients + petstore example.
+- **WebSockets** — `@websocket` server (Python/FastAPI) and clients (Python + TypeScript).
+- **`@sqlAutoIncrement`** and HTTP **`@nestedProperties`** payload flattening.
+
 ## Current focus
 
-- Keep SQL and HTTP docs aligned with shipped behavior.
-- Make the Python petstore example the canonical full-stack reference.
-- Keep shared-only SQL codegen dialect-free for model/protocol output.
-- Split broad integration docs into task-oriented usage pages.
-- Split contributor docs by change path: SQL, HTTP, templates, testing, release, and docs maintenance.
+- Keep SQL and HTTP docs aligned with shipped behavior (including TypeScript and WebSockets).
+- Wire consumer-deck `CodegenStaticOutput` / filesystem static copy left open by `#41`.
+- Keep the Python petstore example the canonical full-stack reference; TypeScript example for client-only flows.
 
 ## Known future work
 
 - Diff-based incremental migrations from Smithy model changes.
 - Additional SQL dialects and driver patterns.
-- Additional language targets beyond bundled Python.
-- Additional HTTP frameworks beyond bundled FastAPI.
-- Stronger generated HTTP execution tests beyond render-focused golden cases.
+- TypeScript (or other) HTTP **server** and SQL template bundles.
+- Additional HTTP server frameworks beyond bundled FastAPI.
+- Stronger generated HTTP execution tests beyond render-focused golden cases and example harnesses.
 
 ## Roadmap hygiene
 

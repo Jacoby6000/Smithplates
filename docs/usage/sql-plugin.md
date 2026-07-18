@@ -27,6 +27,8 @@ Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/
 ## Modeling conventions
 
 - Annotate **structures** with `@sqlTable`; put `@sqlPrimaryKey`, `@sqlForeignKey`, `@sqlIndex`, and column traits on **members**.
+- Use `@sqlAutoIncrement` on an `Integer` primary-key member for database-generated serial columns (`INTEGER PRIMARY KEY AUTOINCREMENT` on SQLite, `GENERATED ALWAYS AS IDENTITY` on Postgres). Auto-increment columns are omitted from derived insert inputs; they must still appear on `@sqlUpdate` structures when they identify the row.
+- Use `@sqlAutoUuid` for database-generated UUID primary keys (implies `@sqlUuid`; same insert/update rules as auto-increment).
 - Use a **dedicated SQL namespace** (for example `example.db`) separate from HTTP API namespaces. Do not share shapes with `@httpService` models; see [Integration — HTTP and SQL model separation](integration.md#http-and-sql-model-separation).
 - Use flat `operations` lists on `@sqlService` services, not Smithy `resources` (resource properties cannot carry SQL member traits).
 - Derive DML with `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, `@sqlDeriveSelectOne`, or `@sqlDeriveSelect` on operations; use `DerivedStruct` as derive input (and derive-select output). `@sqlDeriveInsert` rejects target tables that participate in a cycle made entirely of `@required` foreign-key members, because safely inserting those rows requires deferred constraint evaluation. Cycles with at least one optional FK remain derivable.

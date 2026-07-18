@@ -158,7 +158,7 @@ These mirror and extend the pytest smoke tests in
 
 ## Coverage gaps (vs [`../petstore-smithy-spec/`](../petstore-smithy-spec/))
 
-All eight HTTP operations have at least one shared case. Gaps below are scenarios
+All nine REST HTTP operations have at least one shared case. `@websocket` `PetEvents` is not covered by shared cases yet. Gaps below are scenarios
 not yet represented in `cases/*.case.json`.
 
 ### Operations — covered
@@ -174,6 +174,12 @@ not yet represented in `cases/*.case.json`.
 | `GetCategory` | `category-lookup` |
 | `PlaceOrder` | `order-lifecycle` |
 | `GetOrder` | `order-lifecycle`, `order-fulfillment-states` |
+
+### WebSocket — not covered
+
+| Operation | Notes |
+| --- | --- |
+| `PetEvents` (`@websocket`) | No shared `cases/*.case.json` yet; server WS wiring is generated but not exercised by the cross-client harness |
 
 ### Error responses — not covered
 

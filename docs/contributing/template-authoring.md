@@ -7,19 +7,22 @@ Smithplates target-language output is rendered with Scalate SSP templates. Templ
 ```text
 templates/
   python/
+    base_config.json
     src/
       db/
       http/
     tests/
-      <case-name>/
-        smithy/smithy-files.smithy
-        smithy-build.json
-        expected/
+  typescript/
+    base_config.json
+    src/
+      http/
+    tests/
 language-test-harnesses/
   python/
+  typescript/   # when present
 ```
 
-Bundled templates are packaged as compile resources and precompiled into renderer jars.
+Bundled templates are packaged as compile resources and precompiled into renderer jars. Each template root needs an `outputs.json` deck beside the templates.
 
 ## SQL templates
 
@@ -44,13 +47,15 @@ When no SQL dialect is enabled, shared-only rendering is dialect-free and requir
 
 ## HTTP templates
 
-Bundled HTTP service templates live under:
+### Python
+
+Bundled HTTP templates live under:
 
 ```text
 templates/python/src/http/
 ```
 
-These render FastAPI route modules, protocol base classes, app wiring, response helpers, problem-detail helpers, and model artifacts.
+These render FastAPI route modules (including WebSocket routers), protocol base classes, app wiring, response helpers, problem-detail helpers, httpx clients, and model artifacts.
 
 | Artifact area | Template responsibility |
 |---------------|-------------------------|
@@ -59,7 +64,19 @@ These render FastAPI route modules, protocol base classes, app wiring, response 
 | `api_response` | Generated response wrapper types. |
 | `api_exceptions` / handler templates | Problem+json exception classes and FastAPI handlers. |
 | `apis/<route_group>` | FastAPI route modules and route-group protocol base classes. |
+| `websocket_routes` | `@websocket` handler protocol and router factory. |
+| `client/*` / `clients/*` | httpx route-group clients, registry, and WebSocket client. |
 | `models` | Python API payload model artifacts. |
+
+### TypeScript
+
+Bundled TypeScript HTTP **client** templates live under:
+
+```text
+templates/typescript/src/http/
+```
+
+Select `httpLibrary: "fetch"` or `"axios"`. There is no bundled TypeScript HTTP server or SQL set today.
 
 ## Fragments
 

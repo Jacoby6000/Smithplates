@@ -15,7 +15,7 @@ Guides for **developing** Smithplates itself.
 | Document | Topic |
 |----------|-------|
 | [SQL architecture](sql-architecture.md) | SQL schema IR, service/query IR, DDL renderers, query renderers, and service renderer boundaries |
-| [HTTP architecture](http-architecture.md) | HTTP IR, transforms, FastAPI rendering, plugin orchestration, and HTTP test coverage |
+| [HTTP architecture](http-architecture.md) | HTTP IR, transforms, FastAPI/TypeScript rendering, WebSockets, and HTTP test coverage |
 | [Template authoring](template-authoring.md) | SSP layout, fragments, bundled templates, golden tests, and precompilation |
 | [Integration tests](integration-tests.md) | Docker-backed Postgres and SQLite schema-path integration tests |
 

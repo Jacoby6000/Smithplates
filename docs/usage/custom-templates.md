@@ -1,6 +1,6 @@
 # Custom templates
 
-Smithplates renders target-language artifacts with Scalate SSP templates. Bundled Python templates are packaged in the published renderer jars; other languages or custom layouts can provide an explicit `templateDirectory`.
+Smithplates renders target-language artifacts with Scalate SSP templates. Bundled templates ship for **Python** (SQL + HTTP server/client) and **TypeScript** (HTTP client); other languages or custom layouts provide an explicit `templateDirectory`.
 
 Every template directory pairs the templates with an **`outputs.json` deck** that declares which files to generate. When you point a feature at a custom `templateDirectory`, that directory must contain both the templates **and** an `outputs.json` (see [Output deck](#output-deck-outputsjson) below).
 
@@ -50,9 +50,11 @@ Configure HTTP templates under each language's `server` (and/or `client`) settin
 
 Bundled Python/FastAPI templates live under `templates/python/src/http/`, each with its own `outputs.json` deck: `http/server/outputs.json`, `http/client/outputs.json`, and `http/models/outputs.json`.
 
+Bundled TypeScript client templates live under `templates/typescript/src/http/` with decks for `client/` and `models/` (`httpLibrary` variants `fetch` / `axios`).
+
 ## Output deck (`outputs.json`)
 
-The output deck is a language-neutral JSON file that lists the artifacts a feature emits. The engine derives the deck path from the resolved template directory: `<templateDirectory>/outputs.json`. There is no per-language logic in the plugin — the same rules apply to every language, and only the JSON data differs. The bundled Python decks are the easiest starting point to copy and adapt.
+The output deck is a language-neutral JSON file that lists the artifacts a feature emits. The engine derives the deck path from the resolved template directory: `<templateDirectory>/outputs.json`. There is no per-language logic in the plugin — the same rules apply to every language, and only the JSON data differs. The bundled Python and TypeScript decks are the easiest starting points to copy and adapt.
 
 ### Top-level shape
 
@@ -67,7 +69,7 @@ The output deck is a language-neutral JSON file that lists the artifacts a featu
 ```
 
 - `shared` (optional, default `[]`) — always emitted.
-- `variants` (optional, default `{}`) — keyed by the enabled framework/library/dialect (`fastapi`, `httpx`, `sqlite`, `postgres`, …). The emitted set is `shared` plus every enabled variant.
+- `variants` (optional, default `{}`) — keyed by the enabled framework/library/dialect (`fastapi`, `httpx`, `fetch`, `axios`, `sqlite`, `postgres`, …). The emitted set is `shared` plus every enabled variant.
 
 ### Output objects
 

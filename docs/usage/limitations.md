@@ -5,9 +5,9 @@ This page separates current shipped behavior from roadmap work.
 ## Current language and framework support
 
 - Bundled SQL service templates are Python-only.
-- Bundled HTTP service templates are Python/FastAPI-only.
-- Bundled HTTP client templates are Python/httpx-only.
-- Non-bundled languages and frameworks require explicit `templateDirectory` support.
+- Bundled HTTP **server** templates are Python/FastAPI-only (including `@websocket` route wiring).
+- Bundled HTTP **client** templates: Python/httpx and TypeScript (axios or fetch), including WebSocket clients when the service declares `@websocket` operations.
+- Non-bundled languages and frameworks require an explicit `templateDirectory` that ships its own `outputs.json` deck.
 
 ## Migrations
 
@@ -34,11 +34,16 @@ HTTP golden tests currently focus on render output. Application behavior should 
 
 ## HTTP service generation
 
-HTTP service generation targets server-side Python/FastAPI wiring. Generated route modules call generated protocol boundaries. Application behavior still belongs in hand-written protocol implementations.
+HTTP service generation targets server-side Python/FastAPI wiring (REST route groups plus optional `@websocket` handlers). Generated route modules call generated protocol boundaries. Application behavior still belongs in hand-written protocol implementations.
 
 ## HTTP client generation
 
-HTTP client generation targets Python/httpx async clients that mirror the server-side route groups and wire bindings. Configure `smithplates.<language>.http.client` alongside or instead of `server`. OpenAPI Generator remains useful for external consumers and non-Python clients.
+HTTP client generation mirrors server-side route groups and wire bindings. Configure `smithplates.<language>.http.client` alongside or instead of `server`:
+
+- Python: `httpLibrary: "httpx"` (default).
+- TypeScript: `httpLibrary: "fetch"` or `"axios"`.
+
+OpenAPI Generator remains useful for external consumers and languages without a bundled Smithplates client.
 
 ## OpenAPI coordination
 

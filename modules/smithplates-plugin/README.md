@@ -1,6 +1,6 @@
 # smithplates-plugin
 
-Scala/SBT Smithy build plugin that extracts SQL and HTTP IR from a Smithy model, renders dialect-specific SQL DDL, runs SQL database service codegen, and runs HTTP service codegen. SQL codegen combines service IR, SQL IR, and Scalate SSP templates into target-language repository artifacts and integration tests. HTTP codegen combines `@httpService` IR and Scalate SSP templates into FastAPI route modules, protocols, app wiring, response helpers, and problem detail helpers. See the [codegen pipeline](../../docs/contributing/architecture.md) for the full architecture.
+Scala/SBT Smithy build plugin that extracts SQL and HTTP IR from a Smithy model, plans codegen via language-neutral `outputs.json` decks, renders dialect-specific SQL DDL, runs SQL database service codegen, and runs HTTP server/client codegen. SQL codegen combines service IR, SQL IR, and Scalate SSP templates into target-language repository artifacts and integration tests. HTTP codegen produces FastAPI servers (Python), HTTP clients (Python/httpx and TypeScript axios/fetch), WebSocket endpoints, shared models, and problem detail helpers. See the [codegen pipeline](../../docs/contributing/architecture.md) for the full architecture.
 
 ## Traits
 
@@ -29,6 +29,7 @@ Smithy trait IDL is packaged into the published plugin dependency graph from [`.
 | `@sqlUpdate(tableRef: String)` | `structure` | UPDATE query for the referenced `@sqlTable` |
 | `@sqlService` | `service` | SQL data-access service with flat `operations` only (no `resources`; see below) |
 | `@sqlAutoUuid` | `member` | Database-generated UUID (implies `@sqlUuid`); omit from inserts; include PK on updates |
+| `@sqlAutoIncrement` | `member` (`Integer`) | Database-generated serial PK — SQLite `INTEGER PRIMARY KEY AUTOINCREMENT`, Postgres `GENERATED ALWAYS AS IDENTITY`; omit from inserts; include PK on updates |
 | `@sqlCreatedTimestamp` | `member` | Set on insert; omit from insert/update inputs |
 | `@sqlUpdatedTimestamp` | `member` | Set on insert/update; omit from insert/update inputs |
 
@@ -39,6 +40,9 @@ Smithy trait IDL is packaged into the published plugin dependency graph from [`.
 | `@httpService(serialization: HttpSerializationFormat = "json")` | `service` | HTTP API service selected for Smithplates HTTP codegen |
 | `@httpStaticHeader(name: String, value: String)` | `structure` | Fixed response header binding for generated HTTP output handling |
 | `@httpProblem(type: String = "about:blank", title: String, detail: String?, code: Integer?)` | `structure[trait|error]` | RFC 9457 problem detail exception and response handling; `code` implies `@httpError` |
+| `@websocket` | `operation` | Bidirectional WebSocket endpoint (requires `@http` URI + `@tags`); dedicated server/client templates |
+
+Smithy `@nestedProperties` on a single `@httpPayload` input member flattens the payload target as the HTTP body (see [HTTP plugin — Nested payload bodies](../../docs/usage/http-plugin.md#nested-payload-bodies)).
 
 `Document` and `Blob` members map to JSON and binary columns respectively. Smithy `enum` shapes map to `SqlColumnType.StringEnum` (Postgres `CREATE TYPE … AS ENUM`, SQLite `TEXT` with `CHECK`); `intEnum` maps to `SqlColumnType.IntEnum` (integer column with `CHECK` on allowed values). Lists, maps, and nested structures require `@sqlJson` on the member to store as JSON.
 
@@ -240,7 +244,7 @@ Bundled templates (under `python/db/`):
 
 Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and placeholder styles (`sqlite` → `?`, `postgres` → `%s`). Derived DML queries are rendered as segment lists with implied bind parameters between segments.
 
-`@sqlJson` columns use per-type `_json_bind_*` / `_read_*` helpers: structures serialize as explicit field objects; unions use Smithy-style single-key discriminators (exactly one member key on read/write). `@sqlTable` row models treat `@required`, `@sqlPrimaryKey`, and database-managed members (`@sqlCreatedTimestamp`, `@sqlAutoUuid`, etc.) as non-optional; only members without those traits are typed as `T | None` without field defaults.
+`@sqlJson` columns use per-type `_json_bind_*` / `_read_*` helpers: structures serialize as explicit field objects; unions use Smithy-style single-key discriminators (exactly one member key on read/write). `@sqlTable` row models treat `@required`, `@sqlPrimaryKey`, and database-managed members (`@sqlCreatedTimestamp`, `@sqlAutoUuid`, `@sqlAutoIncrement`, etc.) as non-optional; only members without those traits are typed as `T | None` without field defaults.
 
 `outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
 

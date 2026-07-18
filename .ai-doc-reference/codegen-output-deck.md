@@ -19,7 +19,8 @@ This document describes the contract; the executable definition is:
 
 Bundled reference decks (Python):
 `templates/python/src/http/{server,client,models}/outputs.json`,
-`templates/python/src/db/outputs.json`.
+`templates/python/src/db/outputs.json`, and
+`templates/typescript/src/http/{client,models}/outputs.json`.
 
 ## Location & loading
 

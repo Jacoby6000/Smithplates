@@ -26,7 +26,7 @@ Consumers reference only `com.jacoby6000:smithplates-plugin`; its published tran
 Configure Smithplates under `plugins.smithplates.<language>`. At least one language must contain `sql` or `http`.
 
 - Use [SQL quickstart](#sql-quickstart) when you want database schema, repositories, migration services, and generated DB tests.
-- Use [HTTP quickstart](#http-quickstart) when you want FastAPI route wiring, service protocols, response helpers, and API models.
+- Use [HTTP quickstart](#http-quickstart) when you want FastAPI route wiring, service protocols, response helpers, and API models (add a `typescript` language entry for a fetch/axios client).
 - Use both sections when the same consumer project generates SQL and HTTP artifacts. Keep the Smithy namespaces separate and bridge them in hand-written code.
 
 ## SQL quickstart
@@ -219,5 +219,5 @@ Then decide whether your project commits generated files, syncs them as part of 
 
 - [Configuration](configuration.md) for all settings and output locations.
 - [SQL plugin](sql-plugin.md) for SQL traits, generated repositories, migrations, and transactions.
-- [HTTP plugin](http-plugin.md) for FastAPI output, route groups, protocols, and problem details.
-- [Examples](examples.md) for the full Python reference project.
+- [HTTP plugin](http-plugin.md) for FastAPI/WebSocket output, Python and TypeScript clients, route groups, and problem details.
+- [Examples](examples.md) for the Python and TypeScript reference projects.

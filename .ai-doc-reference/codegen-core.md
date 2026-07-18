@@ -6,8 +6,8 @@ renderers.
 
 ## Role
 
-`smithplates-codegen-core` is the language-neutral foundation for the #34 epic.
-It owns:
+`smithplates-codegen-core` is the language-neutral foundation shipped by the
+closed `#34` epic (`#35`–`#42`). It owns:
 
 * **Domain ADTs** — `NeutralType`, `Model[A]`, `ModelSet[A]`, `ServiceModel`,
   `OperationModel`, metadata wrappers (`ModelMeta`, `ServiceMeta`, `OperationMeta`)
@@ -36,20 +36,18 @@ Smithy model
   → feature renderer writes Smithy build manifest
 ```
 
-**Template renderers** still bridge SQL bindings to legacy SSP views:
+**Template rendering** is fully on neutral `TemplateView` adapters:
 
-| Area | Neutral today | Legacy bridge |
-|------|---------------|---------------|
-| HTTP models (`structure`/`union`/`enum` bindings) | `TemplateView` + `HttpNeutralModelTemplateAttributes` + `TypeRenderer` | — |
-| HTTP service utilities (`model_validation`, `api_response`, `app_services`, `client_registry`, `client_response`, `api_exceptions`, `api_exception_handler`, `app_factory`, `operation_bindings`, `apis/__init__`, `clients/__init__`) | `TemplateView` + `HttpNeutralServiceTemplateAttributes` | Python-specific helpers (`pythonTupleOfPairs`) in SSP preamble |
-| HTTP server/client route-group templates | `TemplateView` + `HttpNeutralRouteGroupTemplateAttributes` | String-based `referencedModelNames` inlined (was `HttpModelTypeNames`) |
-| SQL db templates (all bindings) | `TemplateView` + `SqlNeutralServiceTemplateAttributes` envelope | legacy `ServiceTemplateView` payload + `Template*View` types + `SqlCodegenHelperAttributes` + `SqlCodegenTemplateViews`; `SqlCodegenUuidTypeNames` (extraction only, no Python filtering) |
+| Area | Adapter |
+|------|---------|
+| HTTP models | `HttpNeutralModelTemplateAttributes` + `TypeRenderer` |
+| HTTP service utilities | `HttpNeutralServiceTemplateAttributes` |
+| HTTP route groups / clients | `HttpNeutralRouteGroupTemplateAttributes` |
+| SQL db templates | `SqlNeutralServiceTemplateAttributes` (`ServiceModel[SqlServiceMeta, SqlOperationMeta]` + enriched `SqlMeta` on `usedTypes`) |
 
-Full removal of the legacy `ServiceTemplateView` payload requires extending
-`SqlMeta` / `SqlOperationMeta` to carry all SQL-specific facts (column types,
-`@sqlJson`, `@sqlVarchar`, SQL queries, bind parameters, result fields),
-then migrating all 78 db SSP templates to neutral `ctx.subject` /
-`ctx.usedTypes` / `ctx.conventions` accessors (#39).
+Python-only formatting helpers (for example `pythonTupleOfPairs` in the HTTP SSP preamble) live in templates, not in legacy Scala view types. `SqlCodegenUuidTypeNames` is a small context-build helper that populates `SqlServiceMeta.uuidTypeNames` during enrichment — not a parallel template-view bridge.
+
+Extraction still uses feature-specific IR alongside core extractors (for example HTTP binding facts via `HttpCoreMetaBuilder`, SQL schema/query IR for DDL and rendered SQL). That is separate from the template `TemplateView` surface documented here.
 
 ## Key packages
 

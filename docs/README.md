@@ -8,8 +8,8 @@ For projects that depend on Smithplates plugins via `smithy build`:
 - [Getting started](usage/getting-started.md) — minimal consumer path from plugin coordinate to generated output
 - [Configuration](usage/configuration.md) — SQL and HTTP settings reference
 - [SQL plugin](usage/sql-plugin.md) — traits, SQL IR, service IR, and generated artifacts
-- [HTTP plugin](usage/http-plugin.md) — bundled Python/FastAPI service codegen
-- [Examples](usage/examples.md) — Python petstore reference project
+- [HTTP plugin](usage/http-plugin.md) — FastAPI/WebSocket server, Python and TypeScript clients
+- [Examples](usage/examples.md) — Python and TypeScript petstore references
 - [Limitations](usage/limitations.md) — shipped behavior boundaries and roadmap distinctions
 
 ## [Contributing](contributing/)

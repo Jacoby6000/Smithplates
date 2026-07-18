@@ -27,6 +27,7 @@ Optional `--target` scopes lint and test to a subset:
 | `python/db/postgres` | Shared `db` + postgres | Golden tests (postgres variants) + pytest postgres |
 | `examples` | All example harness linters | All example harness tests |
 | `examples/python` | Python petstore reference (ruff, mypy) | pytest (API + sqlite + postgres) + shared HTTP tests |
+| `examples/typescript` | TypeScript petstore client (`tsc`) | Shared HTTP tests (`typescript` → `python` server) |
 
 On Windows (PowerShell):
 
@@ -53,7 +54,7 @@ Run Scala and template-language static checks through [`scripts/run-linters.sh`]
 nix run .#run-linters
 ```
 
-CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; currently `python`) on Linux with Nix, plus a Docker smoke job ([`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh)) that checks flake dev-shell parity between host Nix and the test image and that `./validate` selects Docker when Nix is unavailable. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
+CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; `python` and TypeScript golden cases under `templates/typescript/tests/`), example harnesses (`examples`, `examples/python`, `examples/typescript`), on Linux with Nix, plus a Docker smoke job ([`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh)) that checks flake dev-shell parity between host Nix and the test image and that `./validate` selects Docker when Nix is unavailable. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
 
 ### Docker dev-shell parity (CI)
 

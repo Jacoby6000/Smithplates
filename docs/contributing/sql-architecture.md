@@ -12,7 +12,7 @@ Smithy model
   -> query renderers
   -> service codegen context
   -> Scalate SSP templates
-  -> generated Python DB artifacts
+  -> generated Python DB artifacts (planner + SSP via `SqlNeutralServiceTemplateAttributes`)
 ```
 
 ## Schema IR

@@ -56,8 +56,9 @@ Before merging behavior changes, ask:
 | New or changed plugin setting | `docs/usage/configuration.md`, `docs/usage/integration.md`, relevant settings specs |
 | SQL modeling or generated DB behavior | `docs/usage/sql-plugin.md`, `docs/contributing/sql-architecture.md`, `modules/smithplates-plugin/README.md` |
 | HTTP modeling or generated API behavior | `docs/usage/http-plugin.md`, `docs/contributing/http-architecture.md`, OpenAPI docs if transforms are affected |
+| New bundled language or client library | `docs/usage/limitations.md`, `docs/usage/configuration.md`, `docs/usage/http-plugin.md`, `templates/README.md`, `example/README.md` |
 | Template layout or bundled artifacts | `docs/usage/custom-templates.md`, `docs/contributing/template-authoring.md`, `templates/README.md` when relevant |
-| Example workflow or generated config | `docs/usage/examples.md`, `example/python/README.md`, rendered `smithy-build.json` files |
+| Example workflow or generated config | `docs/usage/examples.md`, `example/README.md`, language example READMEs, rendered `smithy-build.json` files |
 | Test command, CI target, or harness behavior | `CONTRIBUTING.md`, `docs/contributing/testing.md`, harness README files |
 | Public support boundary or future work | `docs/usage/limitations.md`, `docs/contributing/roadmap.md` |
 

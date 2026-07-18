@@ -6,7 +6,7 @@ Smithplates is an SBT multi-module project (**Scala 3.3.6**, strict compiler opt
 
 The Mermaid diagram below is generated from [`docs/reusable-components/architecture-pipeline.mmd`](../reusable-components/architecture-pipeline.mmd). Edit that component, then run `scripts/sync_reusable_components.py` to refresh embedded copies in this document and the repository [`README.md`](../../README.md).
 
-The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). It also extracts **HTTP service IR** from `@httpService` models. SQL IR feeds the **schema and migrations** path directly. SQL and HTTP service codegen render target-language artifacts with Scalate SSP templates.
+The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). It also extracts **HTTP service IR** from `@httpService` models and lowers shared shapes through **`HttpCoreModelExtractor` / `SqlCoreModelExtractor`** into the language-neutral core. SQL IR feeds the **schema and migrations** path directly. SQL and HTTP service codegen expand `outputs.json` decks with [`CodegenPlanner`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenPlanner.scala) and render Scalate SSP templates.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -19,12 +19,16 @@ flowchart TD
         SQLIR["SQL schema IR"]
         SVCIR["SQL service/query IR"]
         HTTPIR["HTTP service IR"]
+        Core["Neutral ModelSet / CodegenPlanner"]
 
         SM --> SSP
         SSP --> ModelTransforms
         ModelTransforms --> SQLIR
         SQLIR --> SVCIR
         ModelTransforms --> HTTPIR
+        SQLIR --> Core
+        SVCIR --> Core
+        HTTPIR --> Core
     end
 
     subgraph sql["SQL Rendering"]
@@ -65,17 +69,20 @@ flowchart TD
         end
     end
 
-    subgraph http["HTTP Rendering (interfaces)"]
+    subgraph http["HTTP Rendering"]
         HttpTemplates["HTTP Scalate SSP templates"]
-        Routes["FastAPI route modules"]
-        HttpProtocols["Target language service protocols"]
-        Problems["Problem+JSON error helpers"]
+        Routes["FastAPI routes + WebSockets"]
+        HttpProtocols["Service protocols"]
+        Clients["Python httpx / TypeScript clients"]
+        Problems["Problem+JSON helpers"]
 
-        HTTPIR --> Routes
-        HTTPIR --> HttpProtocols
-        HTTPIR --> Problems
+        Core --> Routes
+        Core --> HttpProtocols
+        Core --> Clients
+        Core --> Problems
         HttpTemplates --> Routes
         HttpTemplates --> HttpProtocols
+        HttpTemplates --> Clients
         HttpTemplates --> Problems
     end
 ```
@@ -99,7 +106,8 @@ flowchart TD
 | Derived dialect-specific queries | INSERT, UPDATE, DELETE, and SELECT rendered per dialect from service IR, bound to service operations | `SqlServiceIr.queries`; service IR + SQL IR |
 | Dialect-specific implementations | Driver-specific `@sqlService` implementations | `service_aiosqlite.ssp`, `service_psycopg.ssp`; interfaces + derived queries + templates |
 | Test suite implementations | Pytest lifecycle tests for derived CRUD operations | `service_derived_sql_integration_tests*.ssp`; derived queries + templates + generated migration services |
-| HTTP service artifacts | FastAPI route modules, service protocols, app wiring, response helpers, and problem+json exceptions | `smithplates-http-service-renderer`; bundled `templates/python/src/http/` |
+| HTTP service artifacts | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json exceptions | `smithplates-http-service-renderer`; bundled `templates/python/src/http/` |
+| HTTP client artifacts | Python httpx and TypeScript axios/fetch clients (plus WebSocket clients) | `smithplates-http-service-renderer`; `templates/python/src/http/client/`, `templates/typescript/src/http/` |
 
 Consumer configuration is documented in [Integration](../usage/integration.md): each language entry controls SQL and HTTP codegen, enabled dialects control DDL export and driver templates, and output directories stay explicit.
 
@@ -107,11 +115,11 @@ Generated filesystem paths and default Python import packages are derived from S
 
 ### Language-neutral codegen (planner and strategies)
 
-After the #34 epic cutovers (#39 SQL, #40 HTTP, #41 consumer decks), bundled and consumer codegen output is declared in JSON **`outputs.json`** decks beside templates, decoded into [`CodegenOutput`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenOutput.scala) values, and expanded by [`CodegenPlanner`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenPlanner.scala):
+The `#34` epic (`#35`–`#42`) is closed. Bundled and consumer codegen output is declared in JSON **`outputs.json`** decks beside templates, decoded into [`CodegenOutput`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenOutput.scala) values, and expanded by [`CodegenPlanner`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenPlanner.scala):
 
 1. **Extraction** — `smithplates-smithy-neutral` lowers Smithy shapes to [`NeutralType`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/NeutralType.scala); feature modules (`HttpCoreModelExtractor`, `SqlCoreModelExtractor`) produce `ModelSet[Meta]` + `ServiceModel` lists validated by `SystemValidator`.
 2. **Planning** — `CodegenPlanner.plan` resolves `SmithyBinding` (service, operation groups, model kinds, once) into concrete output paths via [`PathTemplate`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/PathTemplate.scala), applies `overrides` from consumer decks, and fails on duplicate resolved paths before rendering.
-3. **Rendering** — each planned artifact invokes a `TemplateRenderer`. **HTTP** templates (models, service utilities, route groups) receive neutral [`TemplateView`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/TemplateView.scala) with `usedTypes` and [`Conventions`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/strategy/Conventions.scala) from a [`NamingStrategy`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/strategy/NamingStrategy.scala), via `HttpNeutralModelTemplateAttributes`, `HttpNeutralServiceTemplateAttributes`, and `HttpNeutralRouteGroupTemplateAttributes`. **SQL** service entry templates receive a `SqlNeutralServiceTemplateAttributes` envelope (`TemplateView` + legacy `ServiceTemplateView` for Scalate includes); fragment partials still use the legacy view shape.
+3. **Rendering** — each planned artifact invokes a `TemplateRenderer`. **HTTP** templates receive neutral [`TemplateView`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/TemplateView.scala) with `usedTypes`, `typeRenderer`, and [`Conventions`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/strategy/Conventions.scala) via `HttpNeutralModelTemplateAttributes`, `HttpNeutralServiceTemplateAttributes`, or `HttpNeutralRouteGroupTemplateAttributes`. **SQL** templates use `SqlNeutralServiceTemplateAttributes` on the same `TemplateView` shape, enriched from `SqlServiceMeta` / `SqlOperationMeta` / `SqlMeta` at render time.
 
 Deeper reference: [`.ai-doc-reference/codegen-core.md`](../../.ai-doc-reference/codegen-core.md).
 

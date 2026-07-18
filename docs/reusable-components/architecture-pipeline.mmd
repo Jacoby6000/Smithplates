@@ -7,12 +7,16 @@ flowchart TD
         SQLIR["SQL schema IR"]
         SVCIR["SQL service/query IR"]
         HTTPIR["HTTP service IR"]
+        Core["Neutral ModelSet / CodegenPlanner"]
 
         SM --> SSP
         SSP --> ModelTransforms
         ModelTransforms --> SQLIR
         SQLIR --> SVCIR
         ModelTransforms --> HTTPIR
+        SQLIR --> Core
+        SVCIR --> Core
+        HTTPIR --> Core
     end
 
     subgraph sql["SQL Rendering"]
@@ -53,16 +57,19 @@ flowchart TD
         end
     end
 
-    subgraph http["HTTP Rendering (interfaces)"]
+    subgraph http["HTTP Rendering"]
         HttpTemplates["HTTP Scalate SSP templates"]
-        Routes["FastAPI route modules"]
-        HttpProtocols["Target language service protocols"]
-        Problems["Problem+JSON error helpers"]
+        Routes["FastAPI routes + WebSockets"]
+        HttpProtocols["Service protocols"]
+        Clients["Python httpx / TypeScript clients"]
+        Problems["Problem+JSON helpers"]
 
-        HTTPIR --> Routes
-        HTTPIR --> HttpProtocols
-        HTTPIR --> Problems
+        Core --> Routes
+        Core --> HttpProtocols
+        Core --> Clients
+        Core --> Problems
         HttpTemplates --> Routes
         HttpTemplates --> HttpProtocols
+        HttpTemplates --> Clients
         HttpTemplates --> Problems
     end

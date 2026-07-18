@@ -1,27 +1,27 @@
 # HTTP architecture
 
-The HTTP pipeline turns Smithy `@httpService` models into generated Python/FastAPI server wiring.
+The HTTP pipeline turns Smithy `@httpService` models into generated server and client artifacts via the language-neutral planner (`outputs.json` + `CodegenPlanner`) and Scalate SSP templates.
 
 ## Pipeline
 
 ```text
 Smithy model
   -> HTTP problem transform
-  -> HTTP service IR
-  -> HTTP service codegen context
-  -> Scalate SSP templates
-  -> generated FastAPI artifacts
+  -> HTTP service IR + HttpCoreModelExtractor (neutral ModelSet)
+  -> CodegenPlanner (bundled + optional consumer decks)
+  -> Scalate SSP templates (TemplateView + HttpNeutral* attributes)
+  -> generated FastAPI / httpx / TypeScript / WebSocket artifacts
 ```
 
 ## HTTP IR
 
 `smithplates-http-ir` owns:
 
-- Smithplates HTTP trait IDL;
-- `@httpService`, `@httpProblem`, and `@httpStaticHeader` trait handling;
-- HTTP service extraction;
+- Smithplates HTTP trait IDL (`@httpService`, `@httpProblem`, `@httpStaticHeader`, `@websocket`);
+- HTTP service extraction and body-binding resolution (including `@nestedProperties` → `NestedDocument`);
 - route grouping from Smithy `@tags`;
-- model transforms for OpenAPI compatibility.
+- model transforms for OpenAPI compatibility;
+- `HttpCoreModelExtractor` / `HttpCoreMetaBuilder` for neutral core metadata.
 
 Start here when changing how Smithy HTTP models are interpreted.
 
@@ -29,8 +29,8 @@ Typical changes:
 
 - Add or change an HTTP codegen trait.
 - Change route-group extraction from Smithy `@tags`.
-- Change request/response binding interpretation.
-- Change warning or validation behavior around problem details.
+- Change request/response binding interpretation (payload, nested properties, headers).
+- Change warning or validation behavior around problem details or WebSockets.
 
 ## HTTP transforms
 
@@ -48,20 +48,24 @@ Transform changes should be tested both as direct model transforms and through O
 
 `smithplates-http-service-renderer` owns:
 
-- HTTP codegen settings;
+- HTTP codegen settings and deck composition;
 - FastAPI server artifact selection;
-- httpx client artifact selection;
-- generated API model, route, protocol, client, app, response, and exception views;
+- Python httpx and TypeScript axios/fetch client artifact selection;
+- neutral template attribute builders (`HttpNeutralModelTemplateAttributes`, `HttpNeutralServiceTemplateAttributes`, `HttpNeutralRouteGroupTemplateAttributes`);
 - bundled HTTP server and client template precompilation.
 
-Bundled templates currently target Python/FastAPI servers and Python/httpx clients.
+Bundled templates currently target:
+
+- Python/FastAPI servers (REST + `@websocket`);
+- Python/httpx clients;
+- TypeScript clients (`fetch` or `axios`).
 
 Typical changes:
 
-- Add generated route, protocol, response, model, or exception attributes.
-- Change FastAPI app wiring.
+- Add generated route, protocol, response, model, client, or exception attributes.
+- Change FastAPI app wiring or WebSocket router emission.
 - Change problem+json exception output.
-- Add generated tests or support for another framework.
+- Add golden coverage for another framework or language variant.
 
 ## Plugin orchestration
 
@@ -70,12 +74,17 @@ Typical changes:
 - validates HTTP language targets;
 - extracts HTTP IR;
 - logs extraction warnings;
-- renders configured language targets;
+- plans and renders configured language targets from `outputs.json` decks;
 - writes generated artifacts through Smithy's file manifest.
 
 ## Test coverage
 
-HTTP golden cases live under `templates/python/tests/http-fastapi-*` and `templates/python/tests/http-httpx-*` and are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is covered by the Python petstore example and shared example tests.
+HTTP golden cases live under:
+
+- `templates/python/tests/http-fastapi-*`, `http-httpx-*`, websocket and nested-properties cases;
+- `templates/typescript/tests/http-axios-*`, `http-fetch-*` (including websocket).
+
+They are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is covered by the Python petstore, TypeScript petstore client, and shared example tests under `example/tests/`.
 
 ## Change map
 
@@ -85,7 +94,8 @@ HTTP golden cases live under `templates/python/tests/http-fastapi-*` and `templa
 | Change OpenAPI compatibility transforms | `smithplates-http-ir` transforms | transform tests, OpenAPI projection example |
 | Change generated FastAPI output | `smithplates-http-service-renderer`, `templates/python/src/http/server` | HTTP golden case, example HTTP tests |
 | Change generated httpx client output | `smithplates-http-service-renderer`, `templates/python/src/http/client` | HTTP client golden case |
+| Change generated TypeScript client output | `smithplates-http-service-renderer`, `templates/typescript/src/http` | TypeScript golden cases, example/typescript |
 | Change HTTP plugin settings | `smithplates-plugin` HTTP settings | plugin settings specs, HTTP golden case |
-| Add another HTTP framework | HTTP renderer artifact config, templates, validators | new golden variant and example coverage |
+| Add another HTTP framework | HTTP renderer deck composition, templates, validators | new golden variant and example coverage |
 
 HTTP codegen should keep generated route modules thin. Business behavior belongs behind generated protocol boundaries in hand-written application code.

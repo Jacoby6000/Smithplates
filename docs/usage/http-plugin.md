@@ -1,6 +1,10 @@
 # HTTP plugin
 
-Smithplates HTTP service codegen turns Smithy `@httpService` models into generated FastAPI server wiring for Python.
+Smithplates HTTP codegen turns Smithy `@httpService` models into:
+
+- **Python/FastAPI** server wiring (route groups, protocols, app factory, WebSockets);
+- **Python/httpx** and **TypeScript** (axios or fetch) HTTP clients from the same model;
+- shared API models and RFC 9457 problem-detail helpers.
 
 ## Modeling
 
@@ -11,6 +15,7 @@ Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for cod
 - Smithy `@tags` group operations into generated route modules.
 - `@httpProblem` generates RFC 9457-style problem detail exceptions and response helpers.
 - `@httpStaticHeader` adds fixed response headers for generated response bindings.
+- Smithy `@nestedProperties` on a single `@httpPayload` member flattens that member's target structure as the HTTP request body while the operation input shape is reconstructed for dispatch (see [Nested payload bodies](#nested-payload-bodies)).
 - `@websocket` promotes an operation into a bidirectional WebSocket endpoint (see [Websockets](#websockets)).
 
 Keep HTTP shapes in a namespace dedicated to the API contract. Do not reuse SQL table shapes as HTTP request or response shapes; map between generated API and database models in hand-written application code.
@@ -49,13 +54,30 @@ HTTP settings live under `smithplates.<language>.http`. Configure `server`, `cli
             "httpLibrary": "httpx"
           }
         }
+      },
+      "typescript": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
+        "http": {
+          "rootNamespace": "generated",
+          "client": {
+            "httpLibrary": "fetch"
+          }
+        }
       }
     }
   }
 }
 ```
 
-Python/FastAPI is the bundled HTTP server target today. Python/httpx is the bundled HTTP client target. Non-bundled languages or frameworks require an explicit `templateDirectory`.
+Bundled targets today:
+
+| Language | Server | Client libraries |
+|----------|--------|------------------|
+| `python` | FastAPI (`webFramework: "fastapi"`) | `httpx` |
+| `typescript` | — (client-only) | `fetch` or `axios` |
+
+Non-bundled languages or frameworks require an explicit `templateDirectory` with an `outputs.json` deck.
 
 Optional `rootNamespace` (default `generated` for bundled Python) prefixes Python import packages. Filesystem layout is `<sourceOutputDir>/<smithy namespace path>/` (for example `example` for a service in namespace `example`). When both `server` and `client` are enabled, the server pass emits models once; the client pass reuses them.
 
@@ -77,6 +99,8 @@ Generated route modules depend on generated protocol base classes. Application c
 
 ## Generated client output
 
+### Python / httpx
+
 For bundled httpx templates, Smithplates emits files such as:
 
 ```text
@@ -88,6 +112,42 @@ For bundled httpx templates, Smithplates emits files such as:
 ```
 
 Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models at the namespace root.
+
+### TypeScript / fetch or axios
+
+For bundled TypeScript clients (`httpLibrary: "fetch"` or `"axios"`), Smithplates emits camelCase `.ts` modules such as:
+
+```text
+<sourceOutputDir>/<smithy namespace>/client/clientRegistry.ts
+<sourceOutputDir>/<smithy namespace>/client/clientResponse.ts
+<sourceOutputDir>/<smithy namespace>/client/operationBindings.ts
+<sourceOutputDir>/<smithy namespace>/clients/<routeGroup>Client.ts
+<sourceOutputDir>/<smithy namespace>/<modelShape>.ts
+```
+
+See [`example/typescript/`](../../example/typescript/) for a petstore fetch-client reference.
+
+## Nested payload bodies
+
+When an operation input has a single `@httpPayload` member annotated with Smithy `@nestedProperties`, Smithplates treats the **payload target** as the flattened HTTP request body (OpenAPI-style nested properties) and reconstructs the outer input shape when invoking the service protocol. Path/query/header members may still appear alongside that payload on the input shape.
+
+```smithy
+use smithy.api#httpPayload
+use smithy.api#nestedProperties
+
+structure CreateWidgetInput {
+    @httpPayload
+    @nestedProperties
+    body: WidgetCreateRequest
+}
+
+structure WidgetCreateRequest {
+    @required
+    name: String
+}
+```
+
+Without `@nestedProperties`, a lone `@httpPayload` member remains a normal document body whose wire type is the payload member itself (wrapped in the input shape as usual).
 
 ## Application wiring
 
@@ -140,9 +200,13 @@ Smithplates emits `<sourceOutputDir>/<smithy namespace>/websocket_routes.py` con
 
 ### Client wiring
 
+**Python / httpx:**
+
 1. Create an `httpx.AsyncClient` (or reuse an existing client).
 2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
 3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
+
+**TypeScript / fetch or axios:** construct the generated client registry with your `baseUrl` (and axios instance when using axios), then call the typed route-group client methods.
 
 ## Problem details
 
@@ -201,4 +265,5 @@ See [OpenAPI](openapi.md) for projection usage.
 
 ## Reference example
 
-The [Python petstore example](../../example/python/) combines Smithplates HTTP service codegen, SQL repository codegen, OpenAPI export, generated client code, and hand-written adapters.
+- [Python petstore](../../example/python/) — SQL + FastAPI server + httpx client + adapters.
+- [TypeScript petstore client](../../example/typescript/) — fetch client against the shared petstore Smithy model.

@@ -8,7 +8,7 @@ This project was inspired by OpenAPI Generator and some of my work at Disney. Ou
 
 ## Architecture
 
-The `smithplates` plugin extracts SQL and HTTP IR from the Smithy model, then fans out into schema migrations, SQL database service codegen, and HTTP service codegen. SQL database service codegen combines `@sqlService` contracts with SQL IR and Scalate SSP templates to produce target-language query models, interfaces, dialect-specific implementations, migration runners, and test suites. HTTP service codegen uses `@httpService` contracts and bundled FastAPI templates to produce route modules, service protocols, app wiring, and problem+json helpers.
+The `smithplates` plugin extracts SQL and HTTP IR from the Smithy model, lowers shared shapes into a language-neutral codegen core (`NeutralType` / `ModelSet` / `CodegenPlanner`), then fans out into schema migrations, SQL database service codegen, and HTTP service/client codegen. Bundled artifact lists live in `outputs.json` decks beside Scalate SSP templates. SQL database service codegen combines `@sqlService` contracts with SQL IR and templates to produce query models, interfaces, dialect-specific implementations, migration runners, and test suites. HTTP codegen uses `@httpService` contracts for FastAPI servers (Python), HTTP clients (Python/httpx and TypeScript axios/fetch), shared models, WebSocket endpoints, and problem+json helpers.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
@@ -21,12 +21,16 @@ flowchart TD
         SQLIR["SQL schema IR"]
         SVCIR["SQL service/query IR"]
         HTTPIR["HTTP service IR"]
+        Core["Neutral ModelSet / CodegenPlanner"]
 
         SM --> SSP
         SSP --> ModelTransforms
         ModelTransforms --> SQLIR
         SQLIR --> SVCIR
         ModelTransforms --> HTTPIR
+        SQLIR --> Core
+        SVCIR --> Core
+        HTTPIR --> Core
     end
 
     subgraph sql["SQL Rendering"]
@@ -67,17 +71,20 @@ flowchart TD
         end
     end
 
-    subgraph http["HTTP Rendering (interfaces)"]
+    subgraph http["HTTP Rendering"]
         HttpTemplates["HTTP Scalate SSP templates"]
-        Routes["FastAPI route modules"]
-        HttpProtocols["Target language service protocols"]
-        Problems["Problem+JSON error helpers"]
+        Routes["FastAPI routes + WebSockets"]
+        HttpProtocols["Service protocols"]
+        Clients["Python httpx / TypeScript clients"]
+        Problems["Problem+JSON helpers"]
 
-        HTTPIR --> Routes
-        HTTPIR --> HttpProtocols
-        HTTPIR --> Problems
+        Core --> Routes
+        Core --> HttpProtocols
+        Core --> Clients
+        Core --> Problems
         HttpTemplates --> Routes
         HttpTemplates --> HttpProtocols
+        HttpTemplates --> Clients
         HttpTemplates --> Problems
     end
 ```
@@ -100,9 +107,10 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 |------|--------|-----------------|-----------|
 | **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite | SQL IR → dialect renderers |
 | **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
-| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations, and migration runners | Python | Service IR + SQL IR + SSP templates under [`templates/`](templates/) |
+| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations, and migration runners | Python | Service IR + SQL IR + SSP templates under [`templates/python/`](templates/python/) |
 | **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + generated migration runners + SSP templates |
-| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, response helpers, and problem+json errors | Python | HTTP IR + SSP templates under [`templates/`](templates/) |
+| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json errors | Python | HTTP IR + planner decks + SSP templates under [`templates/python/src/http/`](templates/python/src/http/) |
+| **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) | HTTP IR + planner decks + SSP templates under [`templates/python/`](templates/python/) / [`templates/typescript/`](templates/typescript/) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
@@ -111,10 +119,10 @@ implementations without overwriting any generated outputs.  These tools never ou
 
 ## Where it is headed
 
-- **Additional languages** beyond Python (each with its own language entry and template bundle)
+- **Broader language coverage** — TypeScript HTTP clients ship today; SQL and HTTP *server* templates beyond Python, and additional client libraries, are still roadmap work
 - **More database backends and access patterns** (sync/async drivers, connection pooling conventions, alternate placeholder styles)
 - **Diff-based incremental migrations** beyond the current generated initial schema files and runtime migration runners
-- **Support for unsupported languages** even if this tool does not support your language, you can define your own templates to add your own support.  Contribute it back to our repo if you do!
+- **Custom language templates** — non-bundled languages can ship their own `templateDirectory` + `outputs.json` deck; contribute useful bundles upstream when you can
 
 
 ## Documentation
