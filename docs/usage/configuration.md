@@ -69,7 +69,7 @@ Use this when a project only wants database schema, repository protocols, dialec
 
 ### HTTP only
 
-Use this when a project only wants generated FastAPI wiring from `@httpService` models:
+Use this when a project only wants generated FastAPI wiring and/or HTTP clients from `@httpService` models:
 
 ```json
 {
@@ -87,8 +87,19 @@ Use this when a project only wants generated FastAPI wiring from `@httpService` 
         "testOutputDir": "tests",
         "http": {
           "server": {
-            "webFramework": "fastapi",
-            "packageName": "generated.api"
+            "webFramework": "fastapi"
+          },
+          "client": {
+            "httpLibrary": "httpx"
+          }
+        }
+      },
+      "typescript": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
+        "http": {
+          "client": {
+            "httpLibrary": "fetch"
           }
         }
       }

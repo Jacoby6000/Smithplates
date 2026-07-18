@@ -49,6 +49,11 @@ OpenAPI Generator remains useful for external consumers and languages without a 
 
 Smithplates HTTP codegen reads Smithy directly. OpenAPI Generator remains useful for client generation and consumer-specific workflows, but it is not the source of truth for Smithplates server generation.
 
+## Codegen extension residuals
+
+- Consumer-deck `CodegenStaticOutput` / filesystem static copy from `additionalTemplatesDirectory` is not wired yet. See [Custom templates](custom-templates.md) and [Configuration — Custom codegen outputs](configuration.md#custom-codegen-outputs).
+- Bundled Python SQL `enum` / `intEnum` files are still emitted via a Scala side path (`string_enum` / `int_enum`), not via `outputs.json` model bindings.
+
 ## Project naming
 
-The repository path and some scripts may still use `SmithyStache`; the product, plugin key, and Maven artifact are documented as Smithplates / `smithplates` / `com.jacoby6000:smithplates-plugin`.
+The repository path and some scripts may still use `SmithyStache` / `smithystache` (Docker image names, validate env vars, example-test schema ids); the product, plugin key, and Maven artifact are documented as Smithplates / `smithplates` / `com.jacoby6000:smithplates-plugin`.

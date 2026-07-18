@@ -60,10 +60,14 @@ There is no TypeScript golden harness yet; typecheck the petstore client under
 
 ### `@sqlService` Python DB backends
 
-Golden-test shared `db/model/*_models.py` and `db/*_protocol.py` once under
-`expected/src/db/`, plus per-implementation `*_aiosqlite.py` / `*_psycopg.py` and
-`test_*_derived_sql.py` under `expected/test/db/` when derived insert +
-select-one exist.
+Golden fixtures use namespace-aware paths under `expected/` (for example
+`expected/src/generated/example/models/*_models.py` and
+`expected/src/generated/example/*_protocol.py` once per service namespace), plus
+per-implementation `*_aiosqlite.py` / `*_psycopg.py` and
+`test_*_derived_sql.py` under `expected/test/<namespace>/sqlite|postgres/` when
+derived insert + select-one exist. SQL enum files land beside the protocol as
+`expected/src/generated/<namespace>/<EnumFile>.py` (Scala side path, not
+`outputs.json`). See [`templates/python/tests/README.md`](../templates/python/tests/README.md).
 
 * Bundled `*_psycopg.py` uses per-cursor `row_factory`
 * Bundled `*_aiosqlite.py` uses mapper-style row mapping
@@ -81,3 +85,5 @@ select-one exist.
   `test_derived_sql_methods_transaction_commit` and
   `test_derived_sql_methods_transaction_rollback` (caller-managed `transaction=`
   handle) in addition to the CRUD lifecycle test
+* Generated `conftest.py` is emitted once under `testOutputDir` (deck id
+  `python.sql.db.tests.conftest`)

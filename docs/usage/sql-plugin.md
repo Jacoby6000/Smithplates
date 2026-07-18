@@ -6,21 +6,21 @@ Smithy build plugin (`smithplates`) and trait namespace for relational schema an
 
 ## Codegen pipeline
 
-The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smithy model. SQL IR feeds **schema and migrations** directly. **SQL database service codegen** combines **database services and operations IR** (`@sqlService` contracts plus SQL IR) with **Scalate SSP templates** to render target-language artifacts.
+The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smithy model. SQL IR feeds **schema and migrations** directly. **SQL database service codegen** lowers shared shapes into the language-neutral model set, expands the language's `outputs.json` deck with [`CodegenPlanner`](../contributing/architecture.md#language-neutral-codegen-planner-and-strategies), and renders Scalate SSP templates through `SqlNeutralServiceTemplateAttributes`.
 
 | Path | `smithy-build.json` config | Generated artifacts |
 |------|---------------------------|---------------------|
 | **Schema and migrations** | `smithplates.<language>.sql.<dialect>` with `enable: true` | Versioned migration `.sql` files under `migrationLocation` (initial `v1_initial_schema.sql` is full schema DDL) and generated per-dialect migration services (Python today) |
 | **SQL database service codegen** | `smithplates.<language>.sql` | Target-language query models, repository interfaces, dialect-specific implementations, and derived-query integration tests |
 
-See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping.
+See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping. Settings live in [Configuration](configuration.md); this page focuses on modeling and generated SQL behavior.
 
 ## `smithplates` SQL outputs
 
 | Config | Output |
 |--------|--------|
 | Enabled dialects (`sqlite`, `postgres`) | Versioned migration `.sql` files under `migrationLocation` (SQL IR → dialect DDL); initial `v1_initial_schema.sql` contains full schema DDL (`CREATE TABLE`, indexes, enums, foreign-key constraints) |
-| Language `sql` targets | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + templates) |
+| Language `sql` targets | Scalate SSP-rendered query models, `Protocol` interfaces, dialect-specific implementations, and derived-query test suites per `@sqlService` (service IR + SQL IR + planner decks + templates) |
 
 Trait definitions ship inside the plugin JAR: schema traits at `META-INF/smithy/smithplates.codegen.sql.smithy` (`smithplates-sql-ir`) and query/service traits at `META-INF/smithy/smithplates.codegen.sql.service.smithy` (`smithplates-sql-service-ir`). Typed Java trait classes register via `TraitService` SPI: schema traits under `com.jacoby6000.smithplates.sql.traits` (`smithplates-sql-ir`) and query/service traits under `com.jacoby6000.smithplates.sql.service.traits` (`smithplates-sql-service-ir`).
 
@@ -72,28 +72,40 @@ service FooRepository {
 
 ## SQL database service codegen
 
-**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/) and emit **dataclasses** for table/query models (HTTP models use Pydantic — see [HTTP plugin](http-plugin.md)). Configure `smithplates.<language>.sql` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/) with artifact selection from [`templates/python/src/db/outputs.json`](../../templates/python/src/db/outputs.json). Generated **SQL models use dataclasses** with explicit JSON mapping helpers (HTTP models use Pydantic — see [HTTP plugin](http-plugin.md)). Configure `smithplates.<language>.sql` in `smithy-build.json` (see [Configuration](configuration.md)); bundled artifacts are selected from enabled dialects via the deck's `variants` keys (`sqlite`, `postgres`).
 
-| Artifact | Pipeline stage |
-|----------|----------------|
-| `db/model/{{serviceFileName}}_models.py` | Target Language Query Models |
-| `db/{{enum_name_snake_case}}.py` | Python `StrEnum` / `IntEnum` classes for referenced Smithy `enum` / `intEnum` shapes |
-| `db/{{serviceFileName}}_protocol.py` | Target language interfaces |
-| `db/<dialect>/{{serviceFileName}}_<driver>.py` | Dialect-specific implementations (interfaces + derived queries + templates) |
-| `db/<dialect>/<dialect>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files from a migrations directory, creates `_smithplates_migrations` state table, validates the live schema hash against the last recorded hash before applying pending migrations, applies one migration at a time, and records version plus a schema hash computed from database catalog metadata after each migration |
-| `db/<dialect>/test_{{serviceFileName}}_derived_sql.py` | Derived-query integration tests (apply migrations via generated migration service) |
-| `db/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` in generated postgres integration tests (add `<testOutputDir>/db/postgres/stubs` to `mypy_path`) |
+Paths are **namespace-aware**: artifacts land under `<sourceOutputDir>/<smithy namespace path>/…` (and the matching test root). Placeholders such as `{{smithyNamespaceDir}}` and `{{serviceModuleName}}` come from the language naming strategy. See [Configuration — Namespace-aware layout](configuration.md#namespace-aware-layout).
 
-Layout for the bundled `db` service type:
+| Artifact (relative to `sourceOutputDir` / `testOutputDir`) | Pipeline stage | Deck id / notes |
+|------------------------------------------------------------|----------------|-----------------|
+| `{{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py` | Target language query models | `python.sql.db.models` |
+| `{{smithyNamespaceDir}}/{{enumFileName}}.py` | Python `StrEnum` / `IntEnum` for referenced Smithy `enum` / `intEnum` shapes | **Scala side path** (`string_enum` / `int_enum` templates — not listed in `outputs.json`) |
+| `{{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py` | Target language interfaces | `python.sql.db.service_protocol` |
+| `{{smithyNamespaceDir}}/<dialect>/{{serviceModuleName}}_<driver>.py` | Dialect-specific implementations | `python.sql.db.sqlite.service` / `python.sql.db.postgres.service` |
+| `{{smithyNamespaceDir}}/<dialect>/<dialect or driver>_migrations.py` | Dialect migration service: reads ordered `v<number>*.sql` files, creates `_smithplates_migrations`, validates schema hash, applies pending migrations | `python.sql.db.sqlite.migrations_service` / `python.sql.db.postgres.migrations_service` |
+| `{{smithyNamespaceDir}}/<dialect>/*_transaction_run.py` | Shared transaction helpers (copied verbatim, non-`.ssp`) | `python.sql.db.sqlite.transaction_run` / `python.sql.db.postgres.transaction_run` |
+| `{{smithyNamespaceDir}}/<dialect>/test_{{serviceModuleName}}_derived_sql.py` | Derived-query integration tests | `python.sql.db.*.integration_tests` under `testOutputDir` |
+| `conftest.py` | Shared pytest bootstrap under `testOutputDir` | `python.sql.db.tests.conftest` |
+| `{{smithyNamespaceDir}}/postgres/stubs/testcontainers/postgres.pyi` | Bundled mypy stubs for `testcontainers.postgres.PostgresContainer` | `python.sql.db.postgres.testcontainers_stub` (add that stubs dir to `mypy_path`) |
+
+Layout for the bundled `db` template root:
 
 ```
 db/
-  model/models.ssp                → db/model/{{serviceFileName}}_models.py
-  string_enum.ssp / int_enum.ssp  → db/{{enum_name_snake_case}}.py
-  service_protocol.ssp            → db/{{serviceFileName}}_protocol.py
+  outputs.json                    → deck: shared + sqlite/postgres variants
+  models/models.ssp               → {{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py
+  service_protocol.ssp            → {{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py
+  string_enum.ssp / int_enum.ssp  → {{smithyNamespaceDir}}/{{enumFileName}}.py  (Scala side path)
+  tests/conftest.py               → <testOutputDir>/conftest.py
   sqlite/service_aiosqlite.ssp
+  sqlite/migrations_service.ssp
+  sqlite/sqlite_transaction_run.py
+  sqlite/tests/…
   postgres/service_psycopg.ssp
-  <implementation>/tests/…        → <testOutputDir>/db/<implementation>/test_*.py
+  postgres/migrations_service.ssp
+  postgres/psycopg_transaction_run.py
+  postgres/tests/…
+  postgres/stubs/testcontainers/postgres.pyi
 ```
 
 `dialect` selects SQLite (`?` placeholders in generated Python) or Postgres (`%s` placeholders in generated Python service implementations). Build-time migration files contain dialect DDL. Generated column definitions include an `FK -> table (column)` comment for foreign-key columns. Postgres migrations emit foreign-key constraints as trailing `ALTER TABLE ... ADD CONSTRAINT` statements after table and index creation; SQLite migrations keep foreign keys inline in `CREATE TABLE` because SQLite cannot add table constraints after creation.
@@ -108,7 +120,7 @@ SQLite’s stdlib API only supports `row_factory` on the **connection**. Tempora
 
 ### Optional `transaction` parameter
 
-Every generated service method ends with a keyword-only `transaction` parameter (default `None`). The shared `{{serviceFileName}}_protocol.py` is generic over a type parameter `T` (`class {{serviceClassName}}ServiceProtocol(Protocol[T])`) and declares `transaction: T | None`. Each dialect implementation binds `T` to that backend’s transaction handle type and implements the protocol as `{{serviceClassName}}ServiceProtocol[{{transactionTypeName}}]`:
+Every generated service method ends with a keyword-only `transaction` parameter (default `None`). The shared `{{serviceModuleName}}_protocol.py` is generic over a type parameter `T` (`class {{serviceClassName}}ServiceProtocol(Protocol[T])`) and declares `transaction: T | None`. Each dialect implementation binds `T` to that backend’s transaction handle type and implements the protocol as `{{serviceClassName}}ServiceProtocol[{{transactionTypeName}}]`:
 
 | Dialect | `T` (transaction handle) | Pass when joining an outer transaction | Auto transaction when `None` |
 |---------|--------------------------|----------------------------------------|------------------------------|
@@ -127,4 +139,4 @@ Trait tables, Smithy examples, template context fields, SPI entries, and Python 
 
 ## Configuration
 
-See [Integration](integration.md) for the `smithplates` plugin example and [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md) for trait and template details.
+See [Configuration](configuration.md) for the settings matrix and [Integration](integration.md) for a combined SQL + HTTP walkthrough. Trait and template details: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).

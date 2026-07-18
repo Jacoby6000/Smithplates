@@ -40,6 +40,8 @@ flowchart TD
 
         SQLIR --> DDL
         SVCIR --> Queries
+        Core --> Templates
+        Queries --> Templates
 
         subgraph migration["Migration Engine"]
             MigrationSvc["Generated migration service"]
@@ -58,10 +60,10 @@ flowchart TD
             PostgresImpl["SQL Service Postgres Implementations"]
             SqliteImpl["SQL Service SQLite Implementations"]
 
-            SQLIR --> Models
-            SVCIR --> Protocols
             Templates --> Models
             Templates --> Protocols
+            Templates --> PostgresImpl
+            Templates --> SqliteImpl
             Queries --> PostgresImpl
             Queries --> SqliteImpl
             Protocols --> PostgresImpl
@@ -132,20 +134,25 @@ implementations without overwriting any generated outputs.  These tools never ou
 | **Users** (consume plugins in your Smithy project) | [`docs/usage/`](docs/usage/) |
 | **Contributors** (develop Smithplates) | [`docs/contributing/`](docs/contributing/) |
 
-**Usage:** [Getting started](docs/usage/getting-started.md) · [Configuration](docs/usage/configuration.md) · [SQL plugin](docs/usage/sql-plugin.md) · [HTTP plugin](docs/usage/http-plugin.md) · [Examples](docs/usage/examples.md)
+**Usage:** [Getting started](docs/usage/getting-started.md) · [Configuration](docs/usage/configuration.md) · [SQL plugin](docs/usage/sql-plugin.md) · [HTTP plugin](docs/usage/http-plugin.md) · [Custom templates](docs/usage/custom-templates.md) · [Examples](docs/usage/examples.md) · [Limitations](docs/usage/limitations.md)
 
 **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Testing](docs/contributing/testing.md) · [Template authoring](docs/contributing/template-authoring.md)
+
+**Release history:** [`CHANGELOG.md`](CHANGELOG.md) (notable changes since v0.2.5, including the v0.3.0 migration notes)
 
 Conventions: [`AGENTS.md`](AGENTS.md) and [`.cursor/rules/`](.cursor/rules/)
 
 ## Quick start
 
-Requires [sbtn](https://www.scala-sbt.org/) on `PATH` (`coursier install sbtn`).
+Requires [sbtn](https://www.scala-sbt.org/) on `PATH` (`coursier install sbtn`) and **JDK 17**.
 
 ```bash
-sbtn publishM2
+./validate                 # lint + test (preferred)
+sbtn publishM2             # local Maven install for consumer smithy build
 sbtn smithplatesPlugin/test
 ```
+
+TypeScript HTTP client example: [`example/typescript/`](example/typescript/) (`./validate --target examples/typescript`).
 
 Pre-commit hooks (optional; `pre-commit install`):
 

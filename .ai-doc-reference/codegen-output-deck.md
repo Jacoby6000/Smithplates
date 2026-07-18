@@ -1,10 +1,17 @@
 # Codegen output deck (`outputs.json`) contract
 
 The set of artifacts a language emits for a feature (`@httpService` server/client/models,
-`@sqlService` DB output) is defined by an **`outputs.json` deck** resource that lives next
-to that language's templates. No artifact data is hardcoded in Scala — the composers
+`@sqlService` DB output) is defined primarily by an **`outputs.json` deck** resource that
+lives next to that language's templates. Deck composers
 (`HttpServiceCodegenApiArtifacts`, `HttpClientCodegenApiArtifacts`,
-`SqlServiceCodegenDbArtifacts`) only load and compose decks.
+`SqlServiceCodegenDbArtifacts`) load and compose decks rather than hardcoding
+per-language artifact tables.
+
+**Exception — Python SQL enums:** string/int enum artifacts are still rendered by a
+Scala side path in `SqlServiceCodegenRenderer.renderEnumArtifacts` (`string_enum` /
+`int_enum` templates). They are **not** declared in `templates/python/src/db/outputs.json`.
+HTTP enums *are* deck-driven. See also [`AGENTS.md`](../AGENTS.md) decisions log and
+[`docs/usage/custom-templates.md`](../docs/usage/custom-templates.md#sql-enum-side-path).
 
 ## Source of truth
 

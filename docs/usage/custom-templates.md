@@ -4,6 +4,15 @@ Smithplates renders target-language artifacts with Scalate SSP templates. Bundle
 
 Every template directory pairs the templates with an **`outputs.json` deck** that declares which files to generate. When you point a feature at a custom `templateDirectory`, that directory must contain both the templates **and** an `outputs.json` (see [Output deck](#output-deck-outputsjson) below).
 
+There are two consumer extension modes:
+
+| Mode | Setting | Effect |
+|------|---------|--------|
+| **Append / override** | `additionalTemplatesDirectory` on `sql`, `http.server`, or `http.client` | Consumer deck is appended to the bundled deck; `"overrides": "<bundled-id>"` replaces a bundled output by id |
+| **Full replacement** | `templateDirectory` | Replaces the bundled deck entirely; the custom root must ship a complete `outputs.json` |
+
+Filesystem (non-classpath) SSP directories also require language-level `enableExternalTemplates: true` and emit a build warning because SSP executes arbitrary Scala at build time. Full settings detail: [Configuration — Custom codegen outputs](configuration.md#custom-codegen-outputs).
+
 ## SQL templates
 
 Configure SQL templates per language target:
@@ -97,6 +106,12 @@ Each output has common keys plus type-specific keys.
 | `filePath`   | yes      | Resource to copy. |
 | `copyToPath` | yes      | Output path pattern (same placeholder rules). |
 
+Consumer-deck static outputs (`CodegenStaticOutput` from `additionalTemplatesDirectory`) are **not wired yet** — only SSP / non-`.ssp` *template* bindings are rendered from additional decks today. Bundled decks may still copy non-`.ssp` files listed as `type: "template"` (verbatim copy when the path does not end in `.ssp`). Use full `templateDirectory` replacement when a custom language needs static support files in the deck until consumer static copy lands.
+
+### SQL enum side path
+
+Bundled Python SQL `enum` / `intEnum` artifacts are still rendered by a Scala side path (`string_enum` / `int_enum` templates) rather than `outputs.json` model bindings. HTTP enums *are* deck-driven (`models/enum.ssp`). When authoring a custom SQL deck, do not assume enum files appear just because a model binding exists — mirror the current side path or wait for a future deck cutover.
+
 ### Bindings
 
 `binding.type` selects the shapes an output is expanded over:
@@ -129,7 +144,9 @@ Each output has common keys plus type-specific keys.
 
 ### Overrides
 
-Set `overrides` to another output's `id` to replace it — the overridden output is dropped and the overriding one is kept. This lets a variant swap a `shared` default for a framework-specific implementation without redefining the rest of the deck. Duplicate ids, self-overrides, and overrides pointing at an unknown id are rejected.
+Set `overrides` to another output's `id` to replace it — the overridden output is dropped and the overriding one is kept. This lets a variant swap a `shared` default for a framework-specific implementation without redefining the rest of the deck. The same mechanism works across a bundled deck and an `additionalTemplatesDirectory` deck. Duplicate ids, self-overrides, and overrides pointing at an unknown id are rejected.
+
+Duplicate **resolved output paths** among the merged deck fail at **codegen (plan/render) time**, not during `smithy-build.json` validation — resolved paths depend on Smithy namespaces, tags, and enabled dialects.
 
 ### Validation & strictness
 

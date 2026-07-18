@@ -84,10 +84,12 @@ Shared pytest fixtures for postgres integration tests live in [`conftest.py`](co
 ## Run golden render comparison
 
 ```bash
-sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"
-# or
 ./scripts/run-template-golden-tests.sh
+# or
+sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"
 ```
+
+Without a Python-scoped `SMITHYSTACHE_VALIDATE_TARGET`, `./scripts/run-template-golden-tests.sh` runs the **full** `CodegenTemplateTestSuite` (Python and TypeScript cases). The env/target scoping is Python harness-oriented; TypeScript-only iteration should use the `sbtn` form above.
 
 Scoped by dialect or HTTP framework:
 

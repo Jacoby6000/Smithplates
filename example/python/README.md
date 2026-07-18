@@ -39,6 +39,7 @@ Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) 
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |
 | `@sqlAutoUuid`, `@sqlVarchar`, indexes | `Pet`, `Store`, … |
+| `@sqlAutoIncrement` / `@nestedProperties` | Not demonstrated here — see golden cases under `templates/*/tests/` |
 | `@sqlJson` lists/structs/unions | `tags`, `attributes`, `fulfillment` |
 | Blob + Document columns | `photo`, `metadata` |
 | FK joins (many-to-one, optional, transitive) | `GetPetRecord` joins category → store, optional owner/profile |

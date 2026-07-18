@@ -27,7 +27,7 @@ Use `./validate` from the repository root:
 | Python DB SSP templates | golden render test for affected case | Python harness linters and pytest |
 | HTTP IR or transforms | `sbtn smithplatesHttpIr/test` | HTTP golden tests and example HTTP tests |
 | HTTP SSP templates (Python) | HTTP golden case under `templates/python/tests/` | `./validate --target examples/python` |
-| HTTP SSP templates (TypeScript) | HTTP golden case under `templates/typescript/tests/` | `./validate --target examples/typescript` |
+| HTTP SSP templates (TypeScript) | Golden **render** under `templates/typescript/tests/` via `CodegenTemplateTestSuite` | `./validate --target examples/typescript` (example **typecheck** + cross-impl HTTP tests — not golden render) |
 | Codegen core / planner | `sbtn smithplatesCodegenCore/test` | `./validate test --target plugin` |
 | Plugin settings or orchestration | focused plugin spec | `./validate test --target plugin` plus affected generated-output tests |
 | Docs only | `git diff --check`, reusable component check if relevant | pre-commit docs hook |
@@ -71,6 +71,8 @@ Golden template tests render Smithy fixtures under `templates/<language>/tests/`
 ./scripts/run-template-golden-tests.sh
 sbtn 'smithplatesPlugin/testOnly *CodegenTemplateTestSuite*'
 ```
+
+`./scripts/run-template-golden-tests.sh` without a Python-scoped `--target` runs the **full** suite (Python and TypeScript). The script's `--target` flag is Python harness-oriented; for TypeScript-only golden iteration use the `sbtn …CodegenTemplateTestSuite*` form above.
 
 Refresh expected output only when generated output intentionally changes:
 

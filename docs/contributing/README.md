@@ -29,4 +29,6 @@ Guides for **developing** Smithplates itself.
 
 Agent and coding conventions: [`AGENTS.md`](../../AGENTS.md) and [`.cursor/rules/`](../../.cursor/rules/) at the repository root.
 
+Release history: [`CHANGELOG.md`](../../CHANGELOG.md)
+
 CI: [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)

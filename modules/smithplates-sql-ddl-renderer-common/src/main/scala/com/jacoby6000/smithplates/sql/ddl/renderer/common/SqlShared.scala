@@ -5,8 +5,8 @@ import com.jacoby6000.smithplates.sql.SqlText
 import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.NoSqlTables
 import com.jacoby6000.smithplates.sql.model.SqlAutoGeneration
-import com.jacoby6000.smithplates.sql.model.SqlAutoUuid
 import com.jacoby6000.smithplates.sql.model.SqlAutoIncrement
+import com.jacoby6000.smithplates.sql.model.SqlAutoUuid
 import com.jacoby6000.smithplates.sql.model.SqlColumn
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlCreatedTimestamp

@@ -28,9 +28,15 @@ templates/typescript/tests/<case-name>/
 ## Run golden render comparison
 
 ```bash
-sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"
-# or
 ./scripts/run-template-golden-tests.sh
+```
+
+By default this runs the full `CodegenTemplateTestSuite` (Python **and** TypeScript
+cases). The script's `--target` flag is Python harness-oriented for scoped runs;
+for TypeScript-only golden iteration prefer:
+
+```bash
+sbtn "smithplatesPlugin/testOnly *CodegenTemplateTestSuite*"
 ```
 
 TypeScript goldens are part of the shared suite (not `./validate --target typescript`). Example typecheck for generated consumer code: `./validate --target examples/typescript`.

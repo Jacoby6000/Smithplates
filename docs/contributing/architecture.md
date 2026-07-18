@@ -38,6 +38,8 @@ flowchart TD
 
         SQLIR --> DDL
         SVCIR --> Queries
+        Core --> Templates
+        Queries --> Templates
 
         subgraph migration["Migration Engine"]
             MigrationSvc["Generated migration service"]
@@ -56,10 +58,10 @@ flowchart TD
             PostgresImpl["SQL Service Postgres Implementations"]
             SqliteImpl["SQL Service SQLite Implementations"]
 
-            SQLIR --> Models
-            SVCIR --> Protocols
             Templates --> Models
             Templates --> Protocols
+            Templates --> PostgresImpl
+            Templates --> SqliteImpl
             Queries --> PostgresImpl
             Queries --> SqliteImpl
             Protocols --> PostgresImpl
@@ -97,8 +99,8 @@ flowchart TD
 | SQL IR | `@sqlTable` structures and FK relationships | [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) |
 | Database services and operations IR | Derived DML query specs and `@sqlService` operation contracts | [`SqlQueryExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlQueryExtractor.scala), [`SqlServiceExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceExtractor.scala); `SqlServiceIr` |
 | HTTP service IR | `@httpService` service contracts, route grouping, response bindings, and problem details | `smithplates-http-ir`; HTTP traits and transforms |
-| SSP templates | Language- and dialect-specific codegen templates | `smithplates.<language>.sql.templateDirectory` / `smithplates.<language>.http.server.templateDirectory`; bundled sources under [`templates/`](../../templates/) |
-| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models.ssp` |
+| SSP templates | Language- and dialect-specific codegen templates selected by `outputs.json` decks | `smithplates.<language>.sql.templateDirectory` / `smithplates.<language>.http.{server,client}.templateDirectory`; bundled sources under [`templates/`](../../templates/); planner: `CodegenPlanner` |
+| Target Language Query Models | Dataclass (or equivalent) types for service input, output, error, and query shapes | [`SqlServiceCodegenRenderer`](../../modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala); `models/models.ssp` via deck + neutral `TemplateView` |
 | Dialect-specific DDL | `CREATE TABLE`, indexes, enums in versioned migration files | [`SqlSchemaDdlRenderer`](../../modules/smithplates-sql-ddl-renderer-common/src/main/scala/com/jacoby6000/smithplates/sql/ddl/renderer/common/SqlSchemaDdlRenderer.scala) per dialect; [`DialectRenderers.renderDdlOnly`](../../modules/smithplates-plugin/src/main/scala/com/jacoby6000/smithplates/plugin/DialectRenderers.scala) in the plugin; `smithplates.<language>.sql.<dialect>.migrationLocation` (directory) |
 | Schema integration tests | Apply generated DDL to real databases | [`smithplates-sql-ddl-renderer-postgres-it`](../../modules/smithplates-sql-ddl-renderer-postgres-it/), [`smithplates-sql-ddl-renderer-sqlite-it`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) |
 | Migration engine | Per-language migration runner: applies versioned `.sql` files one at a time, records version + schema hash in `_smithplates_migrations`; hash is computed from live database catalog metadata after each migration and validated before applying pending migrations | Bundled Python `sqlite_migrations.py` / `psycopg_migrations.py`; `migrations_service.ssp` |
@@ -109,7 +111,7 @@ flowchart TD
 | HTTP service artifacts | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json exceptions | `smithplates-http-service-renderer`; bundled `templates/python/src/http/` |
 | HTTP client artifacts | Python httpx and TypeScript axios/fetch clients (plus WebSocket clients) | `smithplates-http-service-renderer`; `templates/python/src/http/client/`, `templates/typescript/src/http/` |
 
-Consumer configuration is documented in [Integration](../usage/integration.md): each language entry controls SQL and HTTP codegen, enabled dialects control DDL export and driver templates, and output directories stay explicit.
+Consumer configuration is documented in [Configuration](../usage/configuration.md) (settings) and [Integration](../usage/integration.md) (combined walkthrough): each language entry controls SQL and HTTP codegen, enabled dialects control DDL export and driver templates, and output directories stay explicit.
 
 Generated filesystem paths and default Python import packages are derived from Smithy shape namespaces via [`CodegenPackageNames`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/CodegenPackageNames.scala) and [`SmithyNamespaceMapping`](../../modules/smithplates-scalate-precompiler/src/main/scala/com/jacoby6000/smithplates/codegen/SmithyNamespaceMapping.scala). Template roots (`classpath:python/src/db`, `classpath:python/src/http/server`, …) select which artifact families are rendered; output paths and import packages follow the Smithy namespace plus optional `rootNamespace`, not the template directory layout.
 

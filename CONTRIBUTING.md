@@ -110,7 +110,7 @@ Flake app equivalent:
 nix run .#run-tests
 ```
 
-The dev shell provides **Java 11**, **sbtn**, **Smithy CLI**, **uv**, and the **docker** client. It does not start a Docker daemon — use your host Docker service.
+The dev shell provides **Java 17**, **sbtn**, **Smithy CLI**, **uv**, **Node/npm** (TypeScript example typecheck), and the **docker** client. It does not start a Docker daemon — use your host Docker service.
 
 ### With Docker (no Nix on the host)
 
@@ -127,7 +127,7 @@ The Docker path builds `smithystache-test:local` (override with `SMITHYSTACHE_TE
 
 ### Manual setup
 
-If you prefer installing tools yourself, see [`docs/contributing/getting-started.md`](docs/contributing/getting-started.md). You need **sbtn**, **Java 11**, **Smithy CLI**, **uv**, and **Docker** (for integration tests).
+If you prefer installing tools yourself, see [`docs/contributing/getting-started.md`](docs/contributing/getting-started.md). You need **sbtn**, **Java 17**, **Smithy CLI**, **uv**, and **Docker** (for integration tests). Node.js + npm are required for `./validate --target examples/typescript`.
 
 ### Lint before pushing
 
@@ -196,9 +196,9 @@ Bundled Python DB templates live under [`templates/python/src/db/`](templates/py
 ### Updating bundled Python templates
 
 1. Edit SSP under `templates/python/src/db/` or `templates/python/src/http/` (and `fragments/`), and update the nearby `outputs.json` deck when adding/removing artifacts.
-2. Run `./scripts/run-template-golden-tests.sh` — compares rendered output to golden files under `tests/<case>/expected/`.
+2. Run `./scripts/run-template-golden-tests.sh` — runs the full `CodegenTemplateTestSuite` (Python **and** TypeScript golden cases by default) and compares rendered output to golden files under `tests/<case>/expected/`. The script's `--target` flag is Python-oriented for harness scoping; for TypeScript-only iteration prefer `sbtn 'smithplatesPlugin/testOnly *CodegenTemplateTestSuite*'`.
 3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/tests/README.md`](templates/python/tests/README.md)). For TypeScript: `sbtn 'generateGoldenTemplatesFor typescript <case-name> ...'`.
-4. For Python, run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
+4. For Python, run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`). For TypeScript, typecheck via `./validate --target examples/typescript` (example harness), not a golden execution harness.
 
 Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `unmanagedResourceDirectories`).
 
@@ -215,7 +215,7 @@ Consumers can also point `smithplates.<language>.{sql,http.server,http.client}.t
 
 ### Postgres mypy stubs
 
-Generated postgres integration tests import `testcontainers`. Bundled stubs ship at `test/db/postgres/stubs/testcontainers/postgres.pyi`; add `<testOutputDir>/db/postgres/stubs` to `mypy_path` in consumer projects.
+Generated postgres integration tests import `testcontainers`. Bundled stubs ship at `<testOutputDir>/<smithy namespace path>/postgres/stubs/testcontainers/postgres.pyi`; add that stubs directory to `mypy_path` in consumer projects.
 
 ---
 

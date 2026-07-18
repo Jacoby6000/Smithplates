@@ -26,6 +26,8 @@ flowchart TD
 
         SQLIR --> DDL
         SVCIR --> Queries
+        Core --> Templates
+        Queries --> Templates
 
         subgraph migration["Migration Engine"]
             MigrationSvc["Generated migration service"]
@@ -44,10 +46,10 @@ flowchart TD
             PostgresImpl["SQL Service Postgres Implementations"]
             SqliteImpl["SQL Service SQLite Implementations"]
 
-            SQLIR --> Models
-            SVCIR --> Protocols
             Templates --> Models
             Templates --> Protocols
+            Templates --> PostgresImpl
+            Templates --> SqliteImpl
             Queries --> PostgresImpl
             Queries --> SqliteImpl
             Protocols --> PostgresImpl

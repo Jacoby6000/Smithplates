@@ -2,7 +2,7 @@
 
 Smithplates plugins are consumed as Maven JARs during `smithy build`. Models and `smithy-build.json` live in the **consumer** repository, not in Smithplates.
 
-For the task-oriented user guide, start with [Getting started](getting-started.md), [Configuration](configuration.md), [SQL plugin](sql-plugin.md), and [HTTP plugin](http-plugin.md). This page remains the combined integration reference.
+For the task-oriented user guide, start with [Getting started](getting-started.md), [Configuration](configuration.md) (canonical settings matrix), [SQL plugin](sql-plugin.md), and [HTTP plugin](http-plugin.md). This page is the combined walkthrough: version alignment, a full SQL+HTTP example, OpenAPI coordination, and HTTP/SQL namespace separation.
 
 ## Local development
 
@@ -17,13 +17,17 @@ Keep the Smithplates plugin version in the consumer `smithy-build.json` aligned 
 
 | Artifact | Version source | `smithy-build.json` coordinate |
 |----------|----------------|----------------------------------|
-| SQL plugin | `sbtn print smithplatesPlugin/version` | `com.jacoby6000:smithplates-plugin:<version>` |
+| SQL / HTTP plugin | `sbtn print smithplatesPlugin/version` | `com.jacoby6000:smithplates-plugin:<version>` |
 | Smithy toolchain | `1.71.0` (in plugin `libraryDependencies`) | Matching Smithy CLI |
 | HTTP service trait | bundled in `smithplates-plugin` | `@httpService` via classpath trait discovery |
 
-## `smithy-build.json` example
+See [`CHANGELOG.md`](../../CHANGELOG.md) for breaking changes between releases (especially the v0.3.0 migration notes).
 
-Configure Smithplates under the `smithplates` plugin key. Each top-level entry under `smithplates` is a language id, such as `python`. Set the Maven dependency version to the output of `sbtn print smithplatesPlugin/version` (after `publishM2`) or the exact release/snapshot coordinate you depend on.
+## Combined `smithy-build.json` example
+
+Configure Smithplates under the `smithplates` plugin key. Each top-level entry under `smithplates` is a language id (`python`, `typescript`, …). Set the Maven dependency version to the output of `sbtn print smithplatesPlugin/version` (after `publishM2`) or the exact release/snapshot coordinate you depend on.
+
+At least one language must contain `sql` or `http`. Full field documentation — including `rootNamespace`, `packageName`, `modelsPackageName`, `additionalTemplatesDirectory`, and `enableExternalTemplates` — lives in [Configuration](configuration.md).
 
 ```json
 {
@@ -47,6 +51,26 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
           "postgres": {
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
+          },
+          "rootNamespace": "generated"
+        },
+        "http": {
+          "rootNamespace": "generated",
+          "server": {
+            "webFramework": "fastapi"
+          },
+          "client": {
+            "httpLibrary": "httpx"
+          }
+        }
+      },
+      "typescript": {
+        "sourceOutputDir": "src/generated",
+        "testOutputDir": "tests",
+        "http": {
+          "rootNamespace": "generated",
+          "client": {
+            "httpLibrary": "fetch"
           }
         }
       }
@@ -55,48 +79,28 @@ Configure Smithplates under the `smithplates` plugin key. Each top-level entry u
 }
 ```
 
-HTTP service codegen is configured under the same language entry as SQL. At least one language must contain `sql` or `http`.
+### What this generates
 
-Unlike SQL, HTTP settings do **not** use per-dialect `enable` flags. Each language's `http` entry contains a `server` object with web-framework and output settings.
+| Concern | Config | Typical output (under `build/smithy/source/smithplates/`) |
+|---------|--------|----------------------------------------------------------|
+| Schema migrations | `python.sql.<dialect>` | Versioned `.sql` files under each `migrationLocation` |
+| SQL repositories | `python.sql` | Namespace-aware models, protocol, dialect implementations, migration services, and derived-query tests — see [SQL plugin](sql-plugin.md) |
+| FastAPI server | `python.http.server` | Route groups, protocols, app wiring, optional `websocket_routes.py` |
+| Python HTTP client | `python.http.client` | httpx route-group clients, registry, optional WebSocket client |
+| TypeScript HTTP client | `typescript.http.client` | axios or fetch clients + shared models |
+| Shared HTTP models / `HttpProblem` | `http` (server and/or client) | Per-shape models under the Smithy namespace; shared `HttpProblem` under `{rootNamespace}/smithplates/codegen/http/` |
 
-```json
-"python": {
-  "sourceOutputDir": "src/generated",
-  "testOutputDir": "tests",
-  "http": {
-    "server": {
-      "webFramework": "fastapi",
-      "packageName": "generated.rendering_pipeline_api"
-    }
-  }
-}
-```
+Default Python import packages include the Smithy service namespace (for example `generated.example` for namespace `example`). Explicit `packageName` overrides replace that derived package; filesystem paths still follow the Smithy namespace. See [Configuration — Namespace-aware layout](configuration.md#namespace-aware-layout).
 
-### `smithplates.<language>.http.server`
-
-Controls **HTTP service codegen** (`@httpService` service IR + Scalate SSP templates → route modules, protocols, app wiring, and response dispatch helpers) for a language entry. The `server` object supports:
-
-| Field | Required | Default | Purpose |
-|-------|----------|---------|---------|
-| `webFramework` | No | `fastapi` | Python web framework for generated route and protocol templates. Only `fastapi` is supported today; additional frameworks (for example `flask`) will use the same field when added. |
-| `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/http/`](../../templates/python/src/http/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all templates required by `webFramework`. |
-| `packageName` | No | `generated.api` | Python import root for generated modules (for example `generated.rendering_pipeline_api`) |
-
-Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
-
-Example output layout for bundled FastAPI templates (paths relative to `build/smithy/source/smithplates/`; sources under `templates/python/src/http/`):
-
-- `build/smithy/source/smithplates/<sourceOutputDir>/api/app_factory.py`
-- `build/smithy/source/smithplates/<sourceOutputDir>/api/app_services.py`
-- `build/smithy/source/smithplates/<sourceOutputDir>/api/operation_bindings.py`
-- `build/smithy/source/smithplates/<sourceOutputDir>/api/apis/<route_group>_api.py` (per Smithy `@tags` route group)
-- `build/smithy/source/smithplates/<sourceOutputDir>/api/apis/<route_group>_api_base.py`
+Bundled artifact lists come from each template root's `outputs.json` deck. Users do not list individual artifacts in `smithy-build.json`. To append or override bundled outputs, use `additionalTemplatesDirectory` ([Configuration — Custom codegen outputs](configuration.md#custom-codegen-outputs), [Custom templates](custom-templates.md)).
 
 Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
 
-Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#httpService`). The trait accepts an optional `serialization` field (default `"json"`). Operations use Smithy `@http` bindings and `@tags` for route grouping. Output structures may declare a fixed response header with `@httpStaticHeader` (`use smithplates.codegen.http#httpStaticHeader`).
+### Modeling reminders
 
-Service error structures with `@error` may use `@httpProblem` (`use smithplates.codegen.http#httpProblem`) to emit RFC 9457 `application/problem+json` exception classes and imply `Content-Type: application/problem+json` on operation error response bindings. Set `code` on `@httpProblem` to imply `@httpError` with the same status (otherwise declare `@httpError` separately). Set `type` to an HTTPS URL documenting the error (defaults to `about:blank`; smithplates warns when `type` is not HTTPS). Provide `title` and optional trait `detail` defaults; raise the generated exception with `detail=` and `instance=` to describe a specific occurrence (for example trace identifiers).
+Annotate HTTP API services with `@httpService` (`use smithplates.codegen.http#httpService`). The trait accepts an optional `serialization` field (default `"json"`). Operations use Smithy `@http` bindings and `@tags` for route grouping. Output structures may declare a fixed response header with `@httpStaticHeader`. Service error structures with `@error` may use `@httpProblem` for RFC 9457 problem details. Bidirectional endpoints use `@websocket` (see [HTTP plugin — Websockets](http-plugin.md#websockets)). Nested payload flattening uses Smithy `@nestedProperties` on a single `@httpPayload` member (see [HTTP plugin — Nested payload bodies](http-plugin.md#nested-payload-bodies)).
+
+## OpenAPI projection transforms
 
 Smithplates ships Smithy build projection transforms for OpenAPI and other Smithy tooling that only understands standard traits:
 
@@ -105,6 +109,8 @@ Smithplates ships Smithy build projection transforms for OpenAPI and other Smith
 | `applyHttpProblemHttpError` | Materializes implied `@httpError` from `@httpProblem(code: ...)`. The smithplates build plugin applies the same logic before HTTP extraction. |
 | `applyHttpServiceRestJson1` | Adds `@restJson1` to services that declare `@httpService`, so you do not need a separate OpenAPI-only service shape. |
 | `stripSmithplatesHttpCodegenTraits` | Removes smithplates HTTP codegen traits (`@httpService`, `@httpProblem`, `@httpStaticHeader`) from the transformed projection model after implied traits are materialized. Required when the projection also loads the original Smithy sources; otherwise Smithy reports conflicting `@httpService` traits during merge validation. |
+
+`@websocket` is **not** stripped by `stripSmithplatesHttpCodegenTraits`. Keep WebSocket operations out of OpenAPI projections, or accept that OpenAPI tooling will see the trait unless you filter those shapes yourself.
 
 List these transforms in `smithy-build.json` **before** the OpenAPI plugin when exporting `@httpService` models that use `@httpProblem` or other smithplates HTTP traits:
 
@@ -131,7 +137,9 @@ List these transforms in `smithy-build.json` **before** the OpenAPI plugin when 
 
 The OpenAPI projection still needs `software.amazon.smithy:smithy-aws-traits` on the build classpath for `@restJson1`. Transforms are registered via SPI on the smithplates plugin classpath (`com.jacoby6000:smithplates-plugin` and its dependencies). For programmatic use outside `smithy build`, call the corresponding `*ModelTransformer.transform(model)` helpers in the smithplates HTTP IR module.
 
-#### OpenAPI Generator coordination
+More detail: [OpenAPI](openapi.md).
+
+### OpenAPI Generator coordination
 
 Smithplates HTTP codegen reads Smithy directly and owns the FastAPI server wiring: `app_factory.py`, `app_services.py`, `api_response.py`, `operation_bindings.py`, route modules (`*_api.py`), protocol modules (`*_api_base.py`), and optional `websocket_routes.py`. Smithplates also generates HTTP clients under `smithplates.<language>.http.client` (Python/httpx and TypeScript axios/fetch). Use OpenAPI export when you also need an OpenAPI document for external tooling.
 
@@ -147,13 +155,13 @@ The petstore references use this split:
 
 Keep OpenAPI projections scoped to API Smithy sources only. Do not include SQL Smithy files in the OpenAPI projection, and keep hand-written adapters responsible for mapping generated API models to generated DB models.
 
-### HTTP and SQL model separation
+## HTTP and SQL model separation
 
 When a project uses both `smithplates.<language>.http` and `smithplates.<language>.sql`, **keep HTTP API models and database models in separate Smithy namespaces** and avoid coupling them in the Smithy model.
 
 | Layer | Smithy namespace (example) | Traits | Purpose |
 |-------|----------------------------|--------|---------|
-| HTTP API | `example.api` | `@httpService`, `@http`, `@tags` | Wire contract, request/response shapes, HTTP errors |
+| HTTP API | `example.api` | `@httpService`, `@http`, `@tags`, optional `@websocket` / `@httpProblem` | Wire contract, request/response shapes, HTTP errors |
 | Database | `example.db` | `@sqlTable`, `@sqlService`, `@sqlDerive*` | Tables, repository operations, column/JSON types |
 
 **Conventions:**
@@ -165,59 +173,20 @@ When a project uses both `smithplates.<language>.http` and `smithplates.<languag
 
 The [Python petstore reference](../../example/python/) demonstrates this layout: `petstore.api` for HTTP/OpenAPI codegen and `petstore.db` for schema/repository codegen, with mapping in `src/server/repository_service.py`.
 
-### `smithplates.<language>.sql` dialect keys
-
-Dialect configuration controls the **schema and migrations** path (SQL IR → dialect-specific DDL). Versioned migration `.sql` files are written at build time; generated migration services apply them at runtime and track schema state in `_smithplates_migrations`.
-
-| Key | Purpose |
-|-----|---------|
-| `sqlite` | SQLite DDL export |
-| `postgres` | Postgres DDL export |
-
-Each dialect object supports:
-
-| Field | Required | Default | Purpose |
-|-------|----------|---------|---------|
-| `enable` | No | `false` | When `true`, render SQL IR to DDL migration files for this dialect and enable dialect-specific SQL service artifacts for configured language targets |
-| `migrationLocation` | When `enable` is `true` | — | Output directory for versioned migration `.sql` files (for example `db/migrations/sqlite`; initial schema is written as `v1_initial_schema.sql`) |
-
-### `smithplates.<language>.sql`
-
-Controls **SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and test suites) for a language entry. In addition to dialect keys, each `sql` object supports:
-
-| Field | Required | Default | Purpose |
-|-------|----------|---------|---------|
-| `templateDirectory` | When language is not bundled | `classpath:` for bundled `python` only (templates packaged from [`templates/python/src/db/`](../../templates/python/src/db/)) | Classpath prefix for Scalate SSP templates; required for languages without bundled templates, and must contain all top-level templates required by enabled dialects. Bundled Python templates also use a `fragments/` tree referenced from main templates via `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`. |
-
-Output directories are configured once on `smithplates.<language>` (`sourceOutputDir`, `testOutputDir`); see [Configuration](configuration.md).
-
-When a language target is configured, bundled `db` service-type templates are selected automatically from enabled dialects. Users do not list individual `artifacts` entries.
-
-Example output layout for bundled templates (paths relative to `build/smithy/source/smithplates/`; `example` is the Smithy namespace from the model):
-
-- `build/smithy/source/smithplates/<sourceOutputDir>/example/models/{{serviceFileName}}_models.py`
-- `build/smithy/source/smithplates/<sourceOutputDir>/example/{{serviceFileName}}_protocol.py`
-- `build/smithy/source/smithplates/<sourceOutputDir>/example/sqlite/{{serviceFileName}}_aiosqlite.py` (when `sqlite.enable` is `true`)
-- `build/smithy/source/smithplates/<testOutputDir>/example/sqlite/test_{{serviceFileName}}_derived_sql.py` (when `sqlite.enable` is `true`)
-
-Copy or project artifacts from the Smithy build output tree into your repository layout as needed.
-
-### Plugin outputs
+## Plugin outputs summary
 
 All plugin file-manifest paths are relative to **`build/smithy/source/smithplates/`** (the Smithy projection directory for the `smithplates` plugin).
 
 | Plugin | Build output directory | Pipeline path | Contents |
 |--------|------------------------|---------------|----------|
 | `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Versioned migration `.sql` files under each dialect `migrationLocation` |
-| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
+| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Namespace-aware query models, interfaces, dialect implementations, migration services, `conftest.py`, and derived-query integration tests |
 | `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service/client codegen | FastAPI routes/protocols/app wiring/WebSockets (Python); HTTP clients (Python/httpx, TypeScript axios/fetch); shared models and `HttpProblem` helpers per `@httpService` |
 
 The `@httpService` trait ships in `smithplates-plugin`; consumers do not need a separate AWS protocol traits dependency for HTTP codegen.
 
-See [Architecture](../contributing/architecture.md) for the full codegen pipeline.
-
-See [SQL plugin](sql-plugin.md) for plugin behavior.
+See [Architecture](../contributing/architecture.md) for the full codegen pipeline and [SQL plugin](sql-plugin.md) / [HTTP plugin](http-plugin.md) for feature behavior.
 
 ## SPI registration
 
-The SQL plugin registers as `com.jacoby6000.smithplates.plugin.SmithplatesBuildPlugin`.
+The plugin registers as `com.jacoby6000.smithplates.plugin.SmithplatesBuildPlugin`.

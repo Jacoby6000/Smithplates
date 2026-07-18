@@ -54,13 +54,14 @@ Before merging behavior changes, ask:
 
 | Change | Docs to check |
 |--------|---------------|
-| New or changed plugin setting | `docs/usage/configuration.md`, `docs/usage/integration.md`, relevant settings specs |
-| SQL modeling or generated DB behavior | `docs/usage/sql-plugin.md`, `docs/contributing/sql-architecture.md`, `modules/smithplates-plugin/README.md` |
-| HTTP modeling or generated API behavior | `docs/usage/http-plugin.md`, `docs/contributing/http-architecture.md`, OpenAPI docs if transforms are affected |
-| New bundled language or client library | `docs/usage/limitations.md`, `docs/usage/configuration.md`, `docs/usage/http-plugin.md`, `templates/README.md`, `example/README.md` |
-| Template layout or bundled artifacts | `docs/usage/custom-templates.md`, `docs/contributing/template-authoring.md`, `templates/README.md` when relevant |
+| New or changed plugin setting | `docs/usage/configuration.md` (canonical), `docs/usage/integration.md` walkthrough only, relevant settings specs, `CHANGELOG.md` when user-visible |
+| SQL modeling or generated DB behavior | `docs/usage/sql-plugin.md`, `docs/contributing/sql-architecture.md`, `modules/smithplates-plugin/README.md`, `CHANGELOG.md` when user-visible |
+| HTTP modeling or generated API behavior | `docs/usage/http-plugin.md`, `docs/contributing/http-architecture.md`, OpenAPI docs if transforms are affected, `CHANGELOG.md` when user-visible |
+| New bundled language or client library | `docs/usage/limitations.md`, `docs/usage/configuration.md`, `docs/usage/http-plugin.md`, `templates/README.md`, `example/README.md`, `CHANGELOG.md` |
+| Template layout or bundled artifacts | `docs/usage/custom-templates.md`, `docs/contributing/template-authoring.md`, `templates/README.md` when relevant, `CHANGELOG.md` when paths change |
 | Example workflow or generated config | `docs/usage/examples.md`, `example/README.md`, language example READMEs, rendered `smithy-build.json` files |
 | Test command, CI target, or harness behavior | `CONTRIBUTING.md`, `docs/contributing/testing.md`, harness README files |
 | Public support boundary or future work | `docs/usage/limitations.md`, `docs/contributing/roadmap.md` |
+| Breaking generated API / config / paths | `CHANGELOG.md` migration notes, then the canonical usage page for that feature |
 
 If a behavior is documented in more than one place, choose one page as the canonical explanation and make other pages link to it.

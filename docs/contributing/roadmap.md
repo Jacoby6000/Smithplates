@@ -11,8 +11,9 @@ This page is for contributor-facing planning. User-facing docs should describe s
 
 ## Current focus
 
-- Keep SQL and HTTP docs aligned with shipped behavior (including TypeScript and WebSockets).
+- Keep SQL and HTTP docs aligned with shipped behavior (including TypeScript and WebSockets); keep [`CHANGELOG.md`](../../CHANGELOG.md) current.
 - Wire consumer-deck `CodegenStaticOutput` / filesystem static copy left open by `#41`.
+- Move SQL enum emission into `outputs.json` model bindings (today: Scala `string_enum` / `int_enum` side path).
 - Keep the Python petstore example the canonical full-stack reference; TypeScript example for client-only flows.
 
 ## Known future work

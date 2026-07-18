@@ -207,52 +207,61 @@ The **schema and migrations** path renders SQL IR to dialect-specific DDL and wr
 
 ## SQL database service codegen
 
-**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.<language>.sql` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** (database services and operations IR + SQL IR + Scalate SSP templates → query models, interfaces, dialect-specific implementations, and tests) is configured under `smithplates.<language>.sql` (see [`docs/usage/configuration.md`](../../docs/usage/configuration.md) and [`docs/usage/integration.md`](../../docs/usage/integration.md)). [`SqlServiceCodegenRenderer`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRenderer.scala) (in `smithplates-sql-service-renderer`) expands the language's `outputs.json` deck with `CodegenPlanner` and renders SSP templates with [Scalate](https://github.com/scalate/scalate) for each `@sqlService` in the model. Bundled Python templates live under [`../../templates/python/src/db/`](../../templates/python/src/db/) and are packaged as compile resources (default `classpath:`); bundled artifacts are selected from enabled dialects via deck `variants`.
 
-Template and output layout for the bundled `db` service type:
+Template and output layout for the bundled `db` service type (paths relative to `sourceOutputDir` / `testOutputDir`; namespace-aware):
 
 ```
 db/
-  model/models.ssp                             → db/model/{{serviceFileName}}_models.py
-  service_protocol.ssp                         → db/{{serviceFileName}}_protocol.py
-  sqlite/service_aiosqlite.ssp               → db/sqlite/{{serviceFileName}}_aiosqlite.py
+  outputs.json
+  models/models.ssp
+    → {{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py
+  service_protocol.ssp
+    → {{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py
+  string_enum.ssp / int_enum.ssp
+    → {{smithyNamespaceDir}}/{{enumFileName}}.py   (Scala side path; not in outputs.json)
+  tests/conftest.py
+    → <testOutputDir>/conftest.py
+  sqlite/service_aiosqlite.ssp
+    → {{smithyNamespaceDir}}/sqlite/{{serviceModuleName}}_aiosqlite.py
   sqlite/tests/service_derived_sql_integration_tests.ssp
-                                               → <testOutputDir>/db/sqlite/test_{{serviceFileName}}_derived_sql.py
-  postgres/service_psycopg.ssp               → db/postgres/{{serviceFileName}}_psycopg.py
+    → <testOutputDir>/{{smithyNamespaceDir}}/sqlite/test_{{serviceModuleName}}_derived_sql.py
+  postgres/service_psycopg.ssp
+    → {{smithyNamespaceDir}}/postgres/{{serviceModuleName}}_psycopg.py
   postgres/tests/service_derived_sql_integration_tests_postgres.ssp
-                                               → <testOutputDir>/db/postgres/test_{{serviceFileName}}_derived_sql.py
+    → <testOutputDir>/{{smithyNamespaceDir}}/postgres/test_{{serviceModuleName}}_derived_sql.py
 ```
 
-Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDir` (required when any artifact has `kind: test`). Bundled artifact ids, template paths, and output paths live in [`templates/python/src/db/outputs.json`](../../templates/python/src/db/outputs.json); [`SqlServiceCodegenDbArtifacts`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) loads and filters that deck by enabled dialects.
+Models and the service Protocol are shared once under the Smithy namespace (`…/models/` and `…_protocol.py`); driver-specific implementations live under `…/sqlite/` or `…/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDir` (required when any deck entry has `artifactKind: "test"`). Bundled artifact ids, template paths, and output paths live in [`templates/python/src/db/outputs.json`](../../templates/python/src/db/outputs.json); [`SqlServiceCodegenDbArtifacts`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) loads and filters that deck by enabled dialects. SQL enum files remain a Scala side path (`renderEnumArtifacts`).
 
-Each `@sqlService` produces one artifact set. Template context includes:
+Each `@sqlService` produces one artifact set. Templates receive a neutral `TemplateView` enriched by `SqlNeutralServiceTemplateAttributes`, including:
 
-- **models** — every input, output, and error structure referenced by the service (including nested structures), with all members and Smithy optionality (`required` / `@required` vs optional)
+- **models / usedTypes** — every input, output, and error structure referenced by the service (including nested structures), with Smithy optionality and `TypeRenderer` for target-language type syntax
 - **operations** — one entry per service operation with flattened top-level input parameters (nested structures stay single typed arguments), output type, error types, and a precomputed response union (`Output | Error1 | …`; `@sqlDeriveSelectOne` uses `Output | None` and does not surface operation errors in generated Python)
 - **sql** (when an operation matches a derived query by shape id) — rendered SQL statement, bind-parameter order, execution mode, and row-mapping metadata for `@sqlDeriveInsert`, `@sqlDeriveUpdate`, `@sqlDeriveDelete`, and `@sqlDeriveSelectOne`
 
-Bundled templates (under `python/db/`):
+Bundled templates (under `python/src/db/`):
 
-| Kind | Template | Default output | Purpose |
-|------|----------|----------------|---------|
-| `src` | `db/model/models.ssp` | `db/model/{{serviceFileName}}_models.py` | `@dataclass` models (shared) |
-| `src` | `db/service_protocol.ssp` | `db/{{serviceFileName}}_protocol.py` | async `Protocol` interface (shared) |
-| `src` | `db/sqlite/service_aiosqlite.ssp` | `db/sqlite/{{serviceFileName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (when `sql.sqlite.enable` is `true`) |
-| `src` | `db/postgres/service_psycopg.ssp` | `db/postgres/{{serviceFileName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (when `sql.postgres.enable` is `true`) |
-| `test` | `db/sqlite/tests/service_derived_sql_integration_tests.ssp` | `db/sqlite/test_{{serviceFileName}}_derived_sql.py` | in-memory SQLite pytest lifecycle tests (under `testOutputDir`) |
-| `test` | `db/postgres/tests/service_derived_sql_integration_tests_postgres.ssp` | `db/postgres/test_{{serviceFileName}}_derived_sql.py` | Testcontainers Postgres + psycopg pytest lifecycle tests (under `testOutputDir`) |
+| `artifactKind` | Template | Default `outputPath` | Purpose |
+|----------------|----------|----------------------|---------|
+| `src` | `models/models.ssp` | `{{smithyNamespaceDir}}/models/{{serviceModuleName}}_models.py` | `@dataclass` models (shared) |
+| `src` | `service_protocol.ssp` | `{{smithyNamespaceDir}}/{{serviceModuleName}}_protocol.py` | async `Protocol` interface (shared) |
+| `src` | `sqlite/service_aiosqlite.ssp` | `{{smithyNamespaceDir}}/sqlite/{{serviceModuleName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (when `sql.sqlite.enable` is `true`) |
+| `src` | `postgres/service_psycopg.ssp` | `{{smithyNamespaceDir}}/postgres/{{serviceModuleName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (when `sql.postgres.enable` is `true`) |
+| `test` | `sqlite/tests/service_derived_sql_integration_tests.ssp` | `{{smithyNamespaceDir}}/sqlite/test_{{serviceModuleName}}_derived_sql.py` | in-memory SQLite pytest lifecycle tests (under `testOutputDir`) |
+| `test` | `postgres/tests/service_derived_sql_integration_tests_postgres.ssp` | `{{smithyNamespaceDir}}/postgres/test_{{serviceModuleName}}_derived_sql.py` | Testcontainers Postgres + psycopg pytest lifecycle tests (under `testOutputDir`) |
 
 Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and placeholder styles (`sqlite` → `?`, `postgres` → `%s`). Derived DML queries are rendered as segment lists with implied bind parameters between segments.
 
 `@sqlJson` columns use per-type `_json_bind_*` / `_read_*` helpers: structures serialize as explicit field objects; unions use Smithy-style single-key discriminators (exactly one member key on read/write). `@sqlTable` row models treat `@required`, `@sqlPrimaryKey`, and database-managed members (`@sqlCreatedTimestamp`, `@sqlAutoUuid`, `@sqlAutoIncrement`, etc.) as non-optional; only members without those traits are typed as `T | None` without field defaults.
 
-`outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
+`outputPath` patterns support placeholders such as `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceModuleName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, `{{serviceVersion}}`, and `{{smithyNamespaceDir}}` (see [Custom templates](../../docs/usage/custom-templates.md)).
 
 See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`CodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (`python/db/sqlite`, `python/db/postgres`, `python/api/fastapi`, and TypeScript HTTP client variants). Fixture layout: [`templates/python/tests/README.md`](../../templates/python/tests/README.md), [`templates/typescript/tests/README.md`](../../templates/typescript/tests/README.md).
 
 ## HTTP service codegen
 
-**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, WebSocket routes, response helpers, exceptions, clients, and models) is configured under `smithplates.<language>.http.server` / `http.client` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders decks from [`../../templates/python/src/http/`](../../templates/python/src/http/) (FastAPI server + httpx client) and [`../../templates/typescript/src/http/`](../../templates/typescript/src/http/) (axios/fetch client). Artifact lists live in each tree's `outputs.json`.
+**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, WebSocket routes, response helpers, exceptions, clients, and models) is configured under `smithplates.<language>.http.server` / `http.client` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders decks from [`../../templates/python/src/http/`](../../templates/python/src/http/) (FastAPI server + httpx client) and [`../../templates/typescript/src/http/`](../../templates/typescript/src/http/) (axios/fetch client). Artifact lists live in each tree's `outputs.json`. Templates receive neutral `TemplateView` attributes (`HttpNeutralModelTemplateAttributes`, `HttpNeutralServiceTemplateAttributes`, `HttpNeutralRouteGroupTemplateAttributes`).
 
 HTTP golden cases live under `templates/python/tests/http-*` and `templates/typescript/tests/http-*` and run through the same `CodegenTemplateTestSuite` as SQL service codegen. Runtime example coverage lives in the Python/TypeScript petstore references and shared HTTP example tests.
 
@@ -262,7 +271,7 @@ Golden **render** comparison runs in Scala (`sbtn "smithplatesPlugin/testOnly *C
 
 ## Smithy integration
 
-Register in `smithy-build.json` (see [`docs/usage/integration.md`](../../docs/usage/integration.md)). Use the version from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate:
+Register in `smithy-build.json` (see [`docs/usage/configuration.md`](../../docs/usage/configuration.md) and [`docs/usage/integration.md`](../../docs/usage/integration.md)). Use the version from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate:
 
 ```json
 "maven": {

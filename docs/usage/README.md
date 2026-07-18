@@ -7,8 +7,9 @@ Guides for **consuming** Smithplates plugins in your Smithy project.
 | Document | Topic |
 |----------|-------|
 | [Getting started](getting-started.md) | Minimal consumer path from Maven coordinate to generated output |
-| [Configuration](configuration.md) | `smithplates` settings for SQL, HTTP, output roots, dialects, language targets, and templates |
+| [Configuration](configuration.md) | Canonical `smithplates` settings for SQL, HTTP, output roots, dialects, language targets, and templates |
 | [Examples](examples.md) | Python full-stack petstore and TypeScript HTTP client reference |
+| [Changelog](../../CHANGELOG.md) | Release history and migration notes since v0.2.5 |
 
 ## Feature guides
 
@@ -24,7 +25,7 @@ Guides for **consuming** Smithplates plugins in your Smithy project.
 
 | Document | Topic |
 |----------|-------|
-| [Integration](integration.md) | Full configuration walkthrough, output layout, OpenAPI coordination, and HTTP/SQL namespace separation |
+| [Integration](integration.md) | Combined SQL + HTTP walkthrough, OpenAPI coordination, and HTTP/SQL namespace separation (settings matrix lives in [Configuration](configuration.md)) |
 
 Trait tables, Scalate SSP template context, and SPI details:
 

@@ -10,13 +10,28 @@ Reference projects live under [`example/`](../../example/).
 
 Shared Smithy models live under [`example/petstore-smithy-spec/`](../../example/petstore-smithy-spec/).
 
+## Feature coverage: examples vs golden tests
+
+| Feature | Petstore examples | Golden / fixture coverage |
+|---------|-------------------|---------------------------|
+| SQL schema + derived repositories (SQLite/Postgres) | Python | `templates/python/tests/` (`db-*`) |
+| FastAPI server + httpx client | Python | `templates/python/tests/http-*` |
+| TypeScript axios/fetch clients | TypeScript (`fetch`) | `templates/typescript/tests/http-*` |
+| Shared `HttpProblem` | Python + TypeScript | HTTP goldens |
+| `@websocket` | Python (+ TypeScript client against shared model) | Python + TypeScript HTTP goldens |
+| `@sqlAutoIncrement` | Not in petstore Smithy | Python DB goldens |
+| `@nestedProperties` body binding | Not in petstore Smithy | Python + TypeScript HTTP goldens |
+| `additionalTemplatesDirectory` | Not in petstore | Golden cases under template test suites |
+
+Prefer the petstore examples for end-to-end consumer layout. Prefer golden fixtures under [`templates/python/tests/`](../../templates/python/tests/) and [`templates/typescript/tests/`](../../templates/typescript/tests/) when inspecting newer trait or deck behavior.
+
 ## Python petstore
 
 Demonstrates:
 
 - a consumer `smithy-build.json` using only `com.jacoby6000:smithplates-plugin`;
 - SQL schema DDL generation for SQLite and Postgres;
-- Python DB model, repository protocol, dialect implementation, migration service, and generated test output;
+- Python DB model (dataclasses), repository protocol, dialect implementation, migration service, and generated test output under namespace-aware paths;
 - Python/FastAPI HTTP route and service protocol generation;
 - Smithplates httpx HTTP client generation from the same `@httpService` model;
 - optional OpenAPI Generator reference client under `example/openapi-reference-python/`;
@@ -61,6 +76,7 @@ Use this as the reference pattern for combining SQL and HTTP codegen in one appl
 | `example/python/smithy-build.json.template` | Source template for the Smithplates SQL and HTTP plugin config. |
 | `example/typescript/smithy-build.json.template` | TypeScript client-only plugin config. |
 | `example/python/smithy-build.json` | Rendered config with the current local or published plugin version. |
+| `example/typescript/smithy-build.json` | Rendered TypeScript client config. |
 | `example/openapi-reference-python/` | OpenAPI export + OpenAPI Generator reference client. |
 | `scripts/run-example-build.sh` | End-to-end regeneration for example reference projects. |
 | `example/python/build-generated.sh` | Thin wrapper for the Python petstore reference. |
@@ -74,8 +90,8 @@ When changing Smithplates itself:
 
 ```bash
 sbtn publishM2
-bash scripts/render-smithy-build.sh example/python
-bash scripts/run-example-build.sh python
+bash scripts/render-smithy-build.sh all
+bash scripts/run-example-build.sh all
 ```
 
 When inspecting only the generated Python consumer project:
