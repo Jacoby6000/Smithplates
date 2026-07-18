@@ -6,87 +6,30 @@ Smithplates is an SBT multi-module project (**Scala 3.3.6**, strict compiler opt
 
 The Mermaid diagram below is generated from [`docs/reusable-components/architecture-pipeline.mmd`](../reusable-components/architecture-pipeline.mmd). Edit that component, then run `scripts/sync_reusable_components.py` to refresh embedded copies in this document and the repository [`README.md`](../../README.md).
 
+At a high level: **Smithy → IR → platform outputs**. The diagram below is the user-facing story; the stages table and sections after it map that story onto modules.
+
 The [`smithplates`](../../modules/smithplates-plugin/) plugin extracts **SQL IR** via [`SqlIrExtractor`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/SqlIrExtractor.scala) into [`SqlSchema`](../../modules/smithplates-sql-ir/src/main/scala/com/jacoby6000/smithplates/sql/model/SqlSchemaModel.scala) (tables and relationships), then **service IR** via [`SqlServiceIrExtractor`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrExtractor.scala) into [`SqlServiceIr`](../../modules/smithplates-sql-service-ir/src/main/scala/com/jacoby6000/smithplates/sql/service/SqlServiceIrModel.scala) (derived queries and `@sqlService` operations). It also extracts **HTTP service IR** from `@httpService` models and lowers shared shapes through **`HttpCoreModelExtractor` / `SqlCoreModelExtractor`** into the language-neutral core. SQL IR feeds the **schema and migrations** path directly. SQL and HTTP service codegen expand `outputs.json` decks with [`CodegenPlanner`](../../modules/smithplates-codegen-core/src/main/scala/com/jacoby6000/smithplates/codegen/core/planning/CodegenPlanner.scala) and render Scalate SSP templates.
 
 <!-- architecture-pipeline.mmd:start -->
 ```mermaid
-%%{init: {"flowchart": {"curve": "step"}}}%%
-flowchart TD
-    subgraph transform["Smithy Model Transformation"]
-        SM["Smithy model"]
-        SSP["smithplates-plugin"]
-        ModelTransforms["Model transformations"]
-        SQLIR["SQL schema IR"]
-        SVCIR["SQL service/query IR"]
-        HTTPIR["HTTP service IR"]
-        Core["Neutral ModelSet / CodegenPlanner"]
+%%{init: {"flowchart": {"curve": "basis"}}}%%
+flowchart LR
+    Smithy["Smithy model<br/>you author"]
+    Plugin["smithplates plugin"]
+    IR["Intermediate representation<br/>SQL IR · HTTP IR · shared types"]
 
-        SM --> SSP
-        SSP --> ModelTransforms
-        ModelTransforms --> SQLIR
-        SQLIR --> SVCIR
-        ModelTransforms --> HTTPIR
-        SQLIR --> Core
-        SVCIR --> Core
-        HTTPIR --> Core
+    subgraph outputs["Generated outputs"]
+        Migrations["Schema migrations<br/>Postgres · SQLite"]
+        SqlSvc["SQL repositories<br/>Python"]
+        HttpServer["HTTP server<br/>Python / FastAPI"]
+        HttpClient["HTTP clients<br/>Python · TypeScript"]
     end
 
-    subgraph sql["SQL Rendering"]
-        DDL["Dialect-specific DDL"]
-        Queries["Derived SQL query rendering"]
-        Templates["DB Scalate SSP templates"]
-
-        SQLIR --> DDL
-        SVCIR --> Queries
-        Core --> Templates
-        Queries --> Templates
-
-        subgraph migration["Migration Engine"]
-            MigrationSvc["Generated migration service"]
-            PostgresMigrations["Postgres Migrations"]
-            SqliteMigrations["SQLite Migrations"]
-
-            DDL --> PostgresMigrations
-            DDL --> SqliteMigrations
-            PostgresMigrations --> MigrationSvc
-            SqliteMigrations --> MigrationSvc
-        end
-
-        subgraph interfaces["SQL Service interfaces"]
-            Models["DB models"]
-            Protocols["Repository protocols"]
-            PostgresImpl["SQL Service Postgres Implementations"]
-            SqliteImpl["SQL Service SQLite Implementations"]
-
-            Templates --> Models
-            Templates --> Protocols
-            Templates --> PostgresImpl
-            Templates --> SqliteImpl
-            Queries --> PostgresImpl
-            Queries --> SqliteImpl
-            Protocols --> PostgresImpl
-            Protocols --> SqliteImpl
-            MigrationSvc --> PostgresImpl
-            MigrationSvc --> SqliteImpl
-        end
-    end
-
-    subgraph http["HTTP Rendering"]
-        HttpTemplates["HTTP Scalate SSP templates"]
-        Routes["FastAPI routes + WebSockets"]
-        HttpProtocols["Service protocols"]
-        Clients["Python httpx / TypeScript clients"]
-        Problems["Problem+JSON helpers"]
-
-        Core --> Routes
-        Core --> HttpProtocols
-        Core --> Clients
-        Core --> Problems
-        HttpTemplates --> Routes
-        HttpTemplates --> HttpProtocols
-        HttpTemplates --> Clients
-        HttpTemplates --> Problems
-    end
+    Smithy --> Plugin --> IR
+    IR --> Migrations
+    IR --> SqlSvc
+    IR --> HttpServer
+    IR --> HttpClient
 ```
 <!-- architecture-pipeline.mmd:end -->
 
