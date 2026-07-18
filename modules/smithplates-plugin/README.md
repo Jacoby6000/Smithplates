@@ -223,7 +223,7 @@ db/
                                                → <testOutputDir>/db/postgres/test_{{serviceFileName}}_derived_sql.py
 ```
 
-Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDir` (required when any artifact has `kind: test`). See [`SqlServiceCodegenDbArtifacts`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) for the bundled artifact lists.
+Models and the service Protocol are shared once under `db/model/` and `db/`; driver-specific implementations live under `db/sqlite/` or `db/postgres/`. Integration test templates live under each implementation's `tests/` directory; rendered tests are written under the user-configured `testOutputDir` (required when any artifact has `kind: test`). Bundled artifact ids, template paths, and output paths live in [`templates/python/src/db/outputs.json`](../../templates/python/src/db/outputs.json); [`SqlServiceCodegenDbArtifacts`](../smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) loads and filters that deck by enabled dialects.
 
 Each `@sqlService` produces one artifact set. Template context includes:
 
@@ -237,8 +237,8 @@ Bundled templates (under `python/db/`):
 |------|----------|----------------|---------|
 | `src` | `db/model/models.ssp` | `db/model/{{serviceFileName}}_models.py` | `@dataclass` models (shared) |
 | `src` | `db/service_protocol.ssp` | `db/{{serviceFileName}}_protocol.py` | async `Protocol` interface (shared) |
-| `src` | `db/sqlite/service_aiosqlite.ssp` | `db/sqlite/{{serviceFileName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (use with `"dialect": "sqlite"`) |
-| `src` | `db/postgres/service_psycopg.ssp` | `db/postgres/{{serviceFileName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (use with `"dialect": "postgres"`) |
+| `src` | `db/sqlite/service_aiosqlite.ssp` | `db/sqlite/{{serviceFileName}}_aiosqlite.py` | `aiosqlite.Connection` implementation (when `sql.sqlite.enable` is `true`) |
+| `src` | `db/postgres/service_psycopg.ssp` | `db/postgres/{{serviceFileName}}_psycopg.py` | `psycopg.AsyncConnection` implementation (when `sql.postgres.enable` is `true`) |
 | `test` | `db/sqlite/tests/service_derived_sql_integration_tests.ssp` | `db/sqlite/test_{{serviceFileName}}_derived_sql.py` | in-memory SQLite pytest lifecycle tests (under `testOutputDir`) |
 | `test` | `db/postgres/tests/service_derived_sql_integration_tests_postgres.ssp` | `db/postgres/test_{{serviceFileName}}_derived_sql.py` | Testcontainers Postgres + psycopg pytest lifecycle tests (under `testOutputDir`) |
 
@@ -248,13 +248,13 @@ Enabled dialects (`sqlite`, `postgres`) select driver-specific templates and pla
 
 `outputFile` patterns support `{{serviceName}}`, `{{serviceClassName}}`, `{{serviceFileName}}`, `{{serviceNamespace}}`, `{{serviceShapeId}}`, and `{{serviceVersion}}`.
 
-See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`CodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (`python/db/sqlite`, `python/db/postgres`, and `python/api/fastapi` variants). Fixture layout and conventions: [`templates/python/tests/README.md`](../../templates/python/tests/README.md).
+See [`SqlServiceCodegenRendererSpec`](../smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenRendererSpec.scala) for schema-level checks. Golden SSP output is compared by [`CodegenTemplateTestSuite`](src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (`python/db/sqlite`, `python/db/postgres`, `python/api/fastapi`, and TypeScript HTTP client variants). Fixture layout: [`templates/python/tests/README.md`](../../templates/python/tests/README.md), [`templates/typescript/tests/README.md`](../../templates/typescript/tests/README.md).
 
 ## HTTP service codegen
 
-**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, response helpers, exceptions, and models) is configured under `smithplates.<language>.http.server` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders bundled Python/FastAPI templates from [`../../templates/python/src/http/`](../../templates/python/src/http/).
+**HTTP service codegen** (`@httpService` IR + Scalate SSP templates → FastAPI routes, protocols, app wiring, WebSocket routes, response helpers, exceptions, clients, and models) is configured under `smithplates.<language>.http.server` / `http.client` (see [`docs/usage/http-plugin.md`](../../docs/usage/http-plugin.md)). [`HttpServiceCodegenRenderer`](../smithplates-http-service-renderer/src/main/scala/com/jacoby6000/smithplates/http/service/renderer/HttpServiceCodegenRenderer.scala) renders decks from [`../../templates/python/src/http/`](../../templates/python/src/http/) (FastAPI server + httpx client) and [`../../templates/typescript/src/http/`](../../templates/typescript/src/http/) (axios/fetch client). Artifact lists live in each tree's `outputs.json`.
 
-HTTP golden cases live under `templates/python/tests/http-fastapi-*` and run through the same `CodegenTemplateTestSuite` as SQL service codegen. Runtime example coverage lives in the Python petstore reference and shared HTTP example tests.
+HTTP golden cases live under `templates/python/tests/http-*` and `templates/typescript/tests/http-*` and run through the same `CodegenTemplateTestSuite` as SQL service codegen. Runtime example coverage lives in the Python/TypeScript petstore references and shared HTTP example tests.
 
 ### Python validation
 
@@ -298,4 +298,4 @@ Contributor generator tasks are defined on **`smithplatesPlugin`** (also aliased
 
 | Task | Usage |
 |------|--------|
-| `generateGoldenTemplatesFor` | `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` — writes rendered artifacts into `templates/<language>/tests/<case-name>/expected/` |
+| `generateGoldenTemplatesFor` | `sbtn 'generateGoldenTemplatesFor <language> <case-name> [<case-name> ...]'` — writes rendered artifacts into `templates/<language>/tests/<case-name>/expected/` (e.g. `python` or `typescript`) |

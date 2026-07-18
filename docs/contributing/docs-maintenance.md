@@ -46,6 +46,7 @@ Pre-commit checks verify reusable component sync when relevant files change.
 - Prefer one canonical explanation for a behavior, then link to it.
 - Keep roadmap items out of current-behavior guides unless they are clearly labeled as limitations or future work.
 - Treat `example/python/` as the canonical full-stack consumer reference.
+- Treat `example/typescript/` as the canonical HTTP **client-only** (TypeScript) reference.
 
 ## Change checklist
 

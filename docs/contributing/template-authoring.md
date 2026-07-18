@@ -18,9 +18,10 @@ templates/
       http/
     tests/
 language-test-harnesses/
-  python/
-  typescript/   # when present
+  python/         # ruff/mypy/pytest against golden expected/ trees
+  # no typescript harness yet — typecheck via example/typescript
 ```
+
 
 Bundled templates are packaged as compile resources and precompiled into renderer jars. Each template root needs an `outputs.json` deck beside the templates.
 
@@ -101,13 +102,14 @@ Avoid duplicating dialect-specific behavior across templates. Put reusable namin
 ```bash
 ./scripts/run-template-golden-tests.sh
 sbtn 'generateGoldenTemplatesFor python <case-name>'
+sbtn 'generateGoldenTemplatesFor typescript <case-name>'
 ./language-test-harnesses/python/run-linters.sh
 ./language-test-harnesses/python/run-tests.sh
 ```
 
 ## Adding or updating a golden case
 
-Golden cases live under `templates/python/tests/<case-name>/`.
+Golden cases live under `templates/<language>/tests/<case-name>/` (Python and TypeScript today).
 
 Each case contains:
 
@@ -122,19 +124,19 @@ Use a case when you need to prove a generated-output contract, not just a Scala 
 After changing the expected output intentionally:
 
 ```bash
-sbtn 'generateGoldenTemplatesFor python <case-name>'
+sbtn 'generateGoldenTemplatesFor <language> <case-name>'
 ./scripts/run-template-golden-tests.sh
 ```
 
-Then run the language harness if the generated files should type-check or execute.
+Then run the language harness (Python) or example typecheck (TypeScript) if the generated files should type-check or execute.
 
 ## Adding a new bundled language or framework
 
-1. Add templates under `templates/<language>/src/<service-type>/`.
-2. Add or update artifact configuration in the relevant renderer.
-3. Add template-directory validation for bundled support.
+1. Add templates under `templates/<language>/src/<feature>/` with an `outputs.json` deck beside them (see [`.ai-doc-reference/codegen-output-deck.md`](../../.ai-doc-reference/codegen-output-deck.md)).
+2. Add `templates/<language>/base_config.json` for naming and type-renderer strategy.
+3. Register deck loading / template-directory validation for bundled support (renderers compose decks; they do not hardcode per-language artifact lists in Scala).
 4. Add golden cases under `templates/<language>/tests/`.
-5. Add or extend a language harness if generated code can be linted or executed.
+5. Add or extend a language harness if generated code can be linted or executed (optional — TypeScript currently typechecks via `example/typescript`).
 6. Update user docs for the new public configuration and limitations.
 
 ## Template precompilation

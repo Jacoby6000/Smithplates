@@ -19,3 +19,16 @@ Or from the repository root:
 ```
 
 Requires [uv](https://docs.astral.sh/uv/) on `PATH`; postgres pytest variants require **Docker**.
+
+## TypeScript
+
+There is no `language-test-harnesses/typescript` directory today. TypeScript golden
+**render** comparison still runs via `CodegenTemplateTestSuite` against
+[`templates/typescript/tests/`](../templates/typescript/tests/). Typechecking of a
+full consumer project uses the petstore client:
+
+```bash
+./validate --target examples/typescript
+# or
+./scripts/run-example-linters.sh typescript
+```

@@ -61,7 +61,7 @@ When combining Smithplates and OpenAPI Generator:
 - Keep OpenAPI projections scoped to HTTP API Smithy files, not SQL database model files.
 - Keep generated package names aligned when application code imports both generated trees.
 
-The [Python petstore example](../../example/python/) uses Smithplates for server and database artifacts, then exports OpenAPI and generates a Python client from that OpenAPI document.
+The [Python petstore example](../../example/python/) uses Smithplates for FastAPI server wiring, SQL repositories, and a Smithplates httpx client from the same `@httpService` model. It also exports OpenAPI and regenerates a comparison client with OpenAPI Generator under [`example/openapi-reference-python/`](../../example/openapi-reference-python/). Prefer the Smithplates client for in-tree tests; use the OpenAPI Generator client when comparing against external-consumer workflows.
 
 ## Source separation
 

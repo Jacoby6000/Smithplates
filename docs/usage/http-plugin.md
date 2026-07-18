@@ -92,8 +92,12 @@ Generated paths are relative to `build/smithy/source/smithplates/`. For bundled 
 <sourceOutputDir>/<smithy namespace>/operation_bindings.py
 <sourceOutputDir>/<smithy namespace>/apis/<route_group>_api.py
 <sourceOutputDir>/<smithy namespace>/apis/<route_group>_api_base.py
+<sourceOutputDir>/<smithy namespace>/websocket_routes.py
 <sourceOutputDir>/<smithy namespace>/<model_shape>.py
+<sourceOutputDir>/smithplates/codegen/http/http_problem.py
 ```
+
+`websocket_routes.py` is emitted only when the service declares `@websocket` operations. The shared `HttpProblem` base is emitted when `@httpProblem` is used (see [Problem details](#problem-details)).
 
 Generated route modules depend on generated protocol base classes. Application code implements those protocols and passes implementations into the generated app factory or service registry.
 
@@ -108,8 +112,11 @@ For bundled httpx templates, Smithplates emits files such as:
 <sourceOutputDir>/<smithy namespace>/client/client_response.py
 <sourceOutputDir>/<smithy namespace>/client/operation_bindings.py
 <sourceOutputDir>/<smithy namespace>/clients/<route_group>_client.py
+<sourceOutputDir>/<smithy namespace>/clients/websocket_client.py
 <sourceOutputDir>/<smithy namespace>/<model_shape>.py
 ```
+
+`websocket_client.py` is emitted only when the service declares `@websocket` operations.
 
 Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models at the namespace root.
 
@@ -122,8 +129,12 @@ For bundled TypeScript clients (`httpLibrary: "fetch"` or `"axios"`), Smithplate
 <sourceOutputDir>/<smithy namespace>/client/clientResponse.ts
 <sourceOutputDir>/<smithy namespace>/client/operationBindings.ts
 <sourceOutputDir>/<smithy namespace>/clients/<routeGroup>Client.ts
+<sourceOutputDir>/<smithy namespace>/clients/websocketClient.ts
 <sourceOutputDir>/<smithy namespace>/<modelShape>.ts
+<sourceOutputDir>/smithplates/codegen/http/httpProblem.ts
 ```
+
+`websocketClient.ts` and `httpProblem.ts` appear when the model uses `@websocket` / `@httpProblem` respectively.
 
 See [`example/typescript/`](../../example/typescript/) for a petstore fetch-client reference.
 
@@ -216,11 +227,15 @@ This is the recommended way to model HTTP errors: you declare a Smithy error str
 with trait defaults, and smithplates generates exception classes, Pydantic error
 models, and FastAPI handlers that serialize `application/problem+json`.
 
-Smithplates emits a shared base model **`HttpProblem`** once per codegen run at
-`{rootNamespace}/smithplates/codegen/http/http_problem.py` (namespace
-`smithplates.codegen.http`, aligned with the `@httpProblem` trait). Error structures
-annotated with `@httpProblem` extend `HttpProblem` in generated Python. You do **not**
-need to define your own RFC 9457 base type.
+Smithplates emits a shared base model **`HttpProblem`** once per codegen run under
+`{rootNamespace}/smithplates/codegen/http/` (Smithy namespace `smithplates.codegen.http`,
+aligned with the `@httpProblem` trait):
+
+- Python: `http_problem.py`
+- TypeScript: `httpProblem.ts`
+
+Error structures annotated with `@httpProblem` extend `HttpProblem` in generated code.
+You do **not** need to define your own RFC 9457 base type.
 
 You may still define an ordinary structure named `Problem` (or any other name) in your
 service namespace when it is unrelated to `@httpProblem`; it is generated like any

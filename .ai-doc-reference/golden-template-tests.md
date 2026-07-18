@@ -10,9 +10,19 @@ SSP codegen template golden tests live under
 
 * `smithy/smithy-files.smithy`
 * `smithy-build.json`
-* Golden files under `expected/` with `src/<service-type>/...`,
-  `test/<service-type>/<implementation>/...`, and optional
-  `expected/src/<service-type>/<implementation>/unsupported.md`
+* Golden files under `expected/` (paths follow each language's `sourceOutputDir` /
+  `testOutputDir` and deck output templates)
+* Optional skip marker:
+  `expected/src/generated/<…>/<implementation>/unsupported.md`
+
+Languages today:
+
+* [`templates/python/tests/`](../templates/python/tests/) — SQL DB + FastAPI server +
+  httpx client (+ WebSockets, consumer decks). See the case table in
+  [`templates/python/tests/README.md`](../templates/python/tests/README.md).
+* [`templates/typescript/tests/`](../templates/typescript/tests/) — HTTP client only
+  (fetch/axios + WebSocket client). See
+  [`templates/typescript/tests/README.md`](../templates/typescript/tests/README.md).
 
 ## Test suite
 
@@ -23,11 +33,15 @@ covers every variant. Add a
 (grouped by `languageId`) to extend coverage rather than subclassing.
 
 Renderer golden tests compare rendered output only via `CodegenTemplateTestSuite`.
+There is no `./validate --target typescript`; TypeScript goldens run inside the
+shared suite (full / plugin SBT tests). Example typecheck is
+`./validate --target examples/typescript`.
 
 ## Refresh golden files
 
 ```bash
 sbtn 'generateGoldenTemplatesFor python <case-name> ...'
+sbtn 'generateGoldenTemplatesFor typescript <case-name> ...'
 ```
 
 Generator:
@@ -37,9 +51,12 @@ on `smithplatesPlugin`.
 ## Python integration tests
 
 Execute generated integration tests (ruff, mypy, pytest) from
-`templates/<language>/tests/<case>/expected/` via
-[`language-test-harnesses/<language>/`](../language-test-harnesses/). Pytest temp
+`templates/python/tests/<case>/expected/` via
+[`language-test-harnesses/python/`](../language-test-harnesses/python/). Pytest temp
 output lives under `target/language-test-harnesses/`.
+
+There is no TypeScript golden harness yet; typecheck the petstore client under
+[`example/typescript/`](../example/typescript/).
 
 ### `@sqlService` Python DB backends
 

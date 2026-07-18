@@ -8,6 +8,7 @@
 | [Smithy CLI](https://smithy.io/2.0/guides/smithy-cli/cli.html) | Validate models and run `smithy build` in consumer projects (via Coursier) |
 | [Docker](https://www.docker.com/) | Required only for dialect integration tests |
 | [uv](https://docs.astral.sh/uv/) | Required for Python language test harness (`language-test-harnesses/python/`) |
+| Node.js + npm | Required for TypeScript example typecheck (`example/typescript/`, `./validate --target examples/typescript`) |
 | [pre-commit](https://pre-commit.com/) | Optional; installs git hooks for fmt/fix/compile |
 
 Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository root.
@@ -17,6 +18,8 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | SBT project | Directory | Maven coordinate | Role |
 |-------------|-----------|------------------|------|
 | `smithplatesPlugin` | [`modules/smithplates-plugin/`](../../modules/smithplates-plugin/) | `com.jacoby6000:smithplates-plugin` (version from `sbtn print smithplatesPlugin/version`) | Published `smithplates` build plugin (orchestration only) |
+| `smithplatesCodegenCore` | [`modules/smithplates-codegen-core/`](../../modules/smithplates-codegen-core/) | — | Language-neutral IR, planner, strategies, `outputs.json` decks |
+| `smithplatesSmithyNeutral` | [`modules/smithplates-smithy-neutral/`](../../modules/smithplates-smithy-neutral/) | — | Shared Smithy → `NeutralType` lowering |
 | `smithplatesSqlIr` | [`modules/smithplates-sql-ir/`](../../modules/smithplates-sql-ir/) | — | Schema IR, table extraction |
 | `smithplatesSqlDdlRendererCommon` | [`modules/smithplates-sql-ddl-renderer-common/`](../../modules/smithplates-sql-ddl-renderer-common/) | — | Shared DDL rendering (`SqlSchemaDdlRenderer`, `SqlShared`) |
 | `smithplatesSqlServiceIr` | [`modules/smithplates-sql-service-ir/`](../../modules/smithplates-sql-service-ir/) | — | Query/service IR, extractors |
@@ -26,10 +29,10 @@ Assume `sbtn` is already on `PATH`. Run commands from the Smithplates repository
 | `smithplatesSqlServiceQueryRendererSqlite` | [`modules/smithplates-sql-service-query-renderer-sqlite/`](../../modules/smithplates-sql-service-query-renderer-sqlite/) | — | SQLite `SqlQueryRenderer` |
 | `smithplatesSqlDdlRendererPostgres` | [`modules/smithplates-sql-ddl-renderer-postgres/`](../../modules/smithplates-sql-ddl-renderer-postgres/) | — | Postgres DDL renderer |
 | `smithplatesSqlDdlRendererSqlite` | [`modules/smithplates-sql-ddl-renderer-sqlite/`](../../modules/smithplates-sql-ddl-renderer-sqlite/) | — | SQLite DDL renderer |
-| `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Scalate SSP service codegen (Python templates) |
+| `smithplatesSqlServiceRenderer` | [`modules/smithplates-sql-service-renderer/`](../../modules/smithplates-sql-service-renderer/) | — | Scalate SSP SQL service codegen (Python DB templates + `outputs.json`) |
 | `smithplatesScalatePrecompiler` | [`modules/smithplates-scalate-precompiler/`](../../modules/smithplates-scalate-precompiler/) | — | Shared Scalate template precompilation support |
 | `smithplatesHttpIr` | [`modules/smithplates-http-ir/`](../../modules/smithplates-http-ir/) | — | HTTP service IR, traits, and projection transforms |
-| `smithplatesHttpServiceRenderer` | [`modules/smithplates-http-service-renderer/`](../../modules/smithplates-http-service-renderer/) | — | Scalate SSP HTTP service codegen (Python/FastAPI templates) |
+| `smithplatesHttpServiceRenderer` | [`modules/smithplates-http-service-renderer/`](../../modules/smithplates-http-service-renderer/) | — | Scalate SSP HTTP codegen (Python FastAPI/httpx + TypeScript clients) |
 | `smithplatesTestkit` | [`modules/smithplates-testkit/`](../../modules/smithplates-testkit/) | — | Shared Smithy fixtures and JDBC DDL test helpers (`src/main`) |
 | `smithplatesSqlDdlRendererPostgresIt` | [`modules/smithplates-sql-ddl-renderer-postgres-it/`](../../modules/smithplates-sql-ddl-renderer-postgres-it/) | — | Postgres renderer integration tests |
 | `smithplatesSqlDdlRendererSqliteIt` | [`modules/smithplates-sql-ddl-renderer-sqlite-it/`](../../modules/smithplates-sql-ddl-renderer-sqlite-it/) | — | SQLite renderer integration tests |

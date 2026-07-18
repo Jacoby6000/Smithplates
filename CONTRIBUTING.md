@@ -54,7 +54,7 @@ Run Scala and template-language static checks through [`scripts/run-linters.sh`]
 nix run .#run-linters
 ```
 
-CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs: plugin build (`./validate --target plugin`) and per-language template validation (`./validate --target <language>`; `python` and TypeScript golden cases under `templates/typescript/tests/`), example harnesses (`examples`, `examples/python`, `examples/typescript`), on Linux with Nix, plus a Docker smoke job ([`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh)) that checks flake dev-shell parity between host Nix and the test image and that `./validate` selects Docker when Nix is unavailable. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
+CI runs [`.github/workflows/ci.yml`](.github/workflows/ci.yml) in parallel jobs on Linux with Nix: plugin build (`./validate --target plugin`), Python template validation (`./validate --target python`; TypeScript goldens under `templates/typescript/tests/` run via `CodegenTemplateTestSuite` inside full/`plugin` SBT tests, not a separate `./validate --target typescript`), and example harnesses (`examples` / `examples/python` / `examples/typescript`). A Docker smoke job ([`scripts/ci-docker-validate.sh`](scripts/ci-docker-validate.sh)) checks flake dev-shell parity between host Nix and the test image and that `./validate` selects Docker when Nix is unavailable. Jobs restore Nix, sbt/coursier, uv, and Docker test-image caches where applicable.
 
 ### Docker dev-shell parity (CI)
 
@@ -145,6 +145,8 @@ Work on the Smithy build plugin, SQL IR, query renderers, schema DDL, and codege
 
 | Area | Directory | Typical tests |
 |------|-----------|---------------|
+| Language-neutral codegen core | `modules/smithplates-codegen-core/` | `sbtn smithplatesCodegenCore/test` |
+| Smithy → neutral lowering | `modules/smithplates-smithy-neutral/` | `sbtn smithplatesSmithyNeutral/test` |
 | Schema IR | `modules/smithplates-sql-ir/` | `sbtn smithplatesSqlIr/test` |
 | Shared DDL rendering | `modules/smithplates-sql-ddl-renderer-common/` | (covered by dialect renderer tests) |
 | Service/query IR | `modules/smithplates-sql-service-ir/` | `sbtn smithplatesSqlServiceIr/test` |
@@ -177,37 +179,39 @@ Work on **target-language artifacts** produced from `@sqlService` models: SSP te
 
 ```
 templates/
-  <language>/                 # e.g. python
-    src/<feature>/            # SSP sources (bundled into the plugin JAR)
+  <language>/                 # e.g. python, typescript
+    base_config.json          # naming + type-renderer strategy
+    src/<feature>/            # SSP sources + outputs.json deck (bundled into renderer JARs)
     tests/
       <test-case>/
         smithy/smithy-files.smithy
         smithy-build.json
-        expected/             # golden render + execution fixtures
+        expected/             # golden render (+ execution fixtures when a harness exists)
 language-test-harnesses/
-  <language>/                 # ruff/mypy/pytest runners for golden expected/ trees
+  <language>/                 # optional: ruff/mypy/pytest (or equivalent) for golden expected/ trees
 ```
 
-Bundled Python DB templates live under [`templates/python/src/db/`](templates/python/src/db/). Golden render comparisons use [`templates/python/tests/`](templates/python/tests/) (`expected/` under each case); execution checks use [`language-test-harnesses/python/`](language-test-harnesses/python/).
+Bundled Python DB templates live under [`templates/python/src/db/`](templates/python/src/db/) (`outputs.json` beside the templates). TypeScript HTTP client templates live under [`templates/typescript/src/http/`](templates/typescript/src/http/). Golden render comparisons use [`templates/<language>/tests/`](templates/) (`expected/` under each case). Python execution checks use [`language-test-harnesses/python/`](language-test-harnesses/python/); TypeScript typechecks today via the [`example/typescript/`](example/typescript/) petstore client (`./validate --target examples/typescript`), not a golden harness.
 
 ### Updating bundled Python templates
 
-1. Edit SSP under `templates/python/src/db/` (and `fragments/`).
+1. Edit SSP under `templates/python/src/db/` or `templates/python/src/http/` (and `fragments/`), and update the nearby `outputs.json` deck when adding/removing artifacts.
 2. Run `./scripts/run-template-golden-tests.sh` — compares rendered output to golden files under `tests/<case>/expected/`.
-3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/tests/README.md`](templates/python/tests/README.md)).
-4. Run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
+3. Refresh goldens when output changes intentionally: `sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'` (see [`templates/python/tests/README.md`](templates/python/tests/README.md)). For TypeScript: `sbtn 'generateGoldenTemplatesFor typescript <case-name> ...'`.
+4. For Python, run `./language-test-harnesses/python/run-linters.sh` then `./language-test-harnesses/python/run-tests.sh` (or `./scripts/run-linters.sh templates` / `./scripts/run-tests.sh templates`).
 
 Wire template resources in root [`build.sbt`](build.sbt) (`Compile` / `Test` `unmanagedResourceDirectories`).
 
 ### Adding a new language
 
-1. Add `templates/<language>/src/<feature>/` with SSP templates mirroring the artifact layout expected by [`SqlServiceCodegenDbArtifacts`](modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala).
-2. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
-3. Add golden cases under `templates/<language>/tests/<test-case>/`.
-4. Add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh`; extend [`scripts/run-linters.sh`](scripts/run-linters.sh) and [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically.
-5. Add the new language's [`CodegenTemplateVariant`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/codegentest/CodegenTemplateVariant.scala)s to [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (discovery, build, and comparison registration are grouped by `languageId`).
+1. Add `templates/<language>/src/<feature>/` with SSP templates and an `outputs.json` deck (see [`.ai-doc-reference/codegen-output-deck.md`](.ai-doc-reference/codegen-output-deck.md)). Deck composers such as [`SqlServiceCodegenDbArtifacts`](modules/smithplates-sql-service-renderer/src/main/scala/com/jacoby6000/smithplates/sql/service/renderer/SqlServiceCodegenDbArtifacts.scala) load that JSON — they do not hardcode per-language artifact lists.
+2. Add `templates/<language>/base_config.json` for naming/type-renderer strategy.
+3. Register bundled templates in the plugin if publishing built-in support (`LanguageTargetTemplateValidator`, `build.sbt` resources).
+4. Add golden cases under `templates/<language>/tests/<test-case>/`.
+5. Optionally add a harness under `language-test-harnesses/<language>/` with `run-linters.sh` and `run-tests.sh` ([`scripts/run-linters.sh`](scripts/run-linters.sh) / [`scripts/run-tests.sh`](scripts/run-tests.sh) pick up new languages automatically). TypeScript currently typechecks via the example project instead.
+6. Add the new language's [`CodegenTemplateVariant`](modules/smithplates-sql-service-renderer/src/test/scala/com/jacoby6000/smithplates/sql/service/renderer/codegentest/CodegenTemplateVariant.scala)s to [`CodegenTemplateTestSuite`](modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) (discovery, build, and comparison registration are grouped by `languageId`).
 
-Consumers can also point `smithplates.<language>.sql.templateDirectory` at their own template tree; bundled languages use default `classpath:` (see [`docs/usage/integration.md`](docs/usage/integration.md)).
+Consumers can also point `smithplates.<language>.{sql,http.server,http.client}.templateDirectory` at their own template tree (must ship `outputs.json`); bundled languages use default `classpath:` (see [`docs/usage/custom-templates.md`](docs/usage/custom-templates.md)).
 
 ### Postgres mypy stubs
 

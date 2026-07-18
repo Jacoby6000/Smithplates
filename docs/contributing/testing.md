@@ -26,7 +26,9 @@ Use `./validate` from the repository root:
 | SQL service renderer Scala logic | focused `smithplatesSqlServiceRenderer/testOnly ...` | `./validate lint,test --target python/db/<dialect>` |
 | Python DB SSP templates | golden render test for affected case | Python harness linters and pytest |
 | HTTP IR or transforms | `sbtn smithplatesHttpIr/test` | HTTP golden tests and example HTTP tests |
-| HTTP SSP templates | HTTP golden case | `./validate --target examples/python` |
+| HTTP SSP templates (Python) | HTTP golden case under `templates/python/tests/` | `./validate --target examples/python` |
+| HTTP SSP templates (TypeScript) | HTTP golden case under `templates/typescript/tests/` | `./validate --target examples/typescript` |
+| Codegen core / planner | `sbtn smithplatesCodegenCore/test` | `./validate test --target plugin` |
 | Plugin settings or orchestration | focused plugin spec | `./validate test --target plugin` plus affected generated-output tests |
 | Docs only | `git diff --check`, reusable component check if relevant | pre-commit docs hook |
 
@@ -63,7 +65,7 @@ Docker must be installed and running.
 
 ## Golden render tests
 
-Golden template tests render Smithy fixtures under `templates/python/tests/` and compare the generated tree to `expected/`.
+Golden template tests render Smithy fixtures under `templates/<language>/tests/` and compare the generated tree to `expected/`. Python and TypeScript cases share [`CodegenTemplateTestSuite`](../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala).
 
 ```bash
 ./scripts/run-template-golden-tests.sh
@@ -74,18 +76,21 @@ Refresh expected output only when generated output intentionally changes:
 
 ```bash
 sbtn 'generateGoldenTemplatesFor python <case-name> [<case-name> ...]'
+sbtn 'generateGoldenTemplatesFor typescript <case-name> [<case-name> ...]'
 ```
+
+See [`templates/python/tests/README.md`](../../templates/python/tests/README.md) and [`templates/typescript/tests/README.md`](../../templates/typescript/tests/README.md).
 
 ## Generated Python execution tests
 
-Language harnesses run ruff, mypy, and pytest against golden `expected/` trees:
+The Python language harness runs ruff, mypy, and pytest against golden `expected/` trees:
 
 ```bash
 ./language-test-harnesses/python/run-linters.sh
 ./language-test-harnesses/python/run-tests.sh
 ```
 
-Postgres variants require Docker.
+Postgres variants require Docker. There is no TypeScript golden harness yet; use the example typecheck below.
 
 ## HTTP shared example tests
 
@@ -94,6 +99,7 @@ Shared HTTP scenario tests live under `example/tests/`. They run the reference s
 ```bash
 cd example/tests
 ./run-tests.sh python python
+./run-tests.sh typescript python
 ./run-tests.sh openapi-reference-python python
 ./run-tests.sh python python health-check
 ```
@@ -102,13 +108,14 @@ Use these when HTTP route behavior, generated app wiring, OpenAPI export/client 
 
 ## Example tests
 
-The Python petstore reference has separate validation:
+Petstore references have separate validation:
 
 ```bash
 ./validate --target examples/python
+./validate --target examples/typescript
 ```
 
-Use this when changing example wiring, generated HTTP integration, OpenAPI export, or generated-client coordination.
+Use these when changing example wiring, generated HTTP integration, OpenAPI export, or generated-client coordination.
 
 ## Troubleshooting `sbtn`
 

@@ -8,7 +8,7 @@ Guides for **consuming** Smithplates plugins in your Smithy project.
 |----------|-------|
 | [Getting started](getting-started.md) | Minimal consumer path from Maven coordinate to generated output |
 | [Configuration](configuration.md) | `smithplates` settings for SQL, HTTP, output roots, dialects, language targets, and templates |
-| [Examples](examples.md) | Python petstore reference project and generated-artifact workflow |
+| [Examples](examples.md) | Python full-stack petstore and TypeScript HTTP client reference |
 
 ## Feature guides
 

@@ -18,7 +18,7 @@ petstore-smithy-spec/
   petstore/
     api/                     namespace petstore.api
       api-types.smithy       enums, errors, unions, shared HTTP value types
-      api.smithy             HTTP operations and request/response shapes
+      api.smithy             HTTP operations (REST + `@websocket`), request/response shapes
       http-service.smithy    `@httpService` Petstore service
     db/                      namespace petstore.db
       db-types.smithy        SQL column/value types

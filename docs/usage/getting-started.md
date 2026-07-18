@@ -185,6 +185,25 @@ structure HealthCheckOutput {
 
 With the HTTP configuration above, this model generates FastAPI app wiring, route modules, service protocol base classes, response helpers, and shared Pydantic models under `src/generated/example/api/` (for a service in namespace `example.api`).
 
+### TypeScript client quickstart
+
+Add a sibling language entry for a bundled fetch or axios client (no server templates for TypeScript today):
+
+```json
+"typescript": {
+  "sourceOutputDir": "src/generated",
+  "testOutputDir": "tests",
+  "http": {
+    "rootNamespace": "generated",
+    "client": {
+      "httpLibrary": "fetch"
+    }
+  }
+}
+```
+
+See [HTTP plugin](http-plugin.md) and [`example/typescript/`](../../example/typescript/) for the full client layout.
+
 ## Using SQL and HTTP together
 
 When one project uses both SQL and HTTP codegen, keep the Smithy namespaces separate:
@@ -194,7 +213,7 @@ When one project uses both SQL and HTTP codegen, keep the Smithy namespaces sepa
 
 Do not reuse SQL table shapes as HTTP request or response shapes. Generated repositories and generated HTTP routes should meet in hand-written application code that maps API models to DB models.
 
-See [Configuration](configuration.md) for the full settings model and [Examples](examples.md) for the Python petstore reference.
+See [Configuration](configuration.md) for the full settings model and [Examples](examples.md) for the Python and TypeScript petstore references.
 
 ## Run `smithy build`
 

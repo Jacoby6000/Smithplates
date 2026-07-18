@@ -210,7 +210,7 @@ All plugin file-manifest paths are relative to **`build/smithy/source/smithplate
 |--------|------------------------|---------------|----------|
 | `smithplates` | `build/smithy/source/smithplates/` | Schema and migrations | Versioned migration `.sql` files under each dialect `migrationLocation` |
 | `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | SQL database service codegen | Query models, interfaces, dialect-specific implementations, and derived-query integration tests |
-| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service codegen | FastAPI route modules, protocols, app wiring, and response dispatch helpers per `@httpService` service |
+| `smithplates` | `build/smithy/source/smithplates/<sourceOutputDir>` and `.../<testOutputDir>` | HTTP service/client codegen | FastAPI routes/protocols/app wiring/WebSockets (Python); HTTP clients (Python/httpx, TypeScript axios/fetch); shared models and `HttpProblem` helpers per `@httpService` |
 
 The `@httpService` trait ships in `smithplates-plugin`; consumers do not need a separate AWS protocol traits dependency for HTTP codegen.
 

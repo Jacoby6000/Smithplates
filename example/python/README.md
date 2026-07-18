@@ -33,6 +33,8 @@ Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) 
 | Separate API/DB Smithy namespaces | `petstore.api` (HTTP) and `petstore.db` (SQL); mapped in `src/server/repository_service.py` |
 | `@sqlTable`, CRUD derive traits | `PetRepository`, `CategoryRepository`, `OrderRepository` in `petstore.db` |
 | `@httpService`, `@http`, `@tags` | `Petstore` service in [`petstore-smithy-spec/petstore/api/http-service.smithy`](../petstore-smithy-spec/petstore/api/http-service.smithy) (`petstore.api`) |
+| `@websocket` | Chat-style bidirectional endpoint in `petstore.api` (generated `websocket_routes.py` + client) |
+| `@httpProblem` / shared `HttpProblem` | API error structures; base under `src/generated/smithplates/codegen/http/` |
 | Smithplates httpx HTTP client | `smithplates.python.http.client` → `src/generated/petstore/api/client/` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |

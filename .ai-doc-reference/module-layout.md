@@ -49,10 +49,11 @@ Full design: [`docs/contributing/architecture.md#template-precompilation`](../do
 
 ## Codegen templates
 
-`@sqlService` interface/model codegen and `@httpService` FastAPI/httpx codegen
-use Scalate SSP templates under
-[`templates/<language>/src/<feature>/`](../templates/). Bundled Python templates
-organize reusable snippets under `fragments/` and include them via
+`@sqlService` Python DB codegen and `@httpService` codegen (Python FastAPI/httpx
++ TypeScript axios/fetch clients, including WebSockets) use Scalate SSP templates
+under [`templates/<language>/src/<feature>/`](../templates/) with an `outputs.json`
+deck beside each template root. Bundled Python templates organize reusable
+snippets under `fragments/` and include them via
 `<% include("fragments/...") %>` / `<% render("fragments/...", Map(...)) %>`;
 other languages may use a different layout. Plugin config validation checks
 top-level templates required by enabled dialects/frameworks.

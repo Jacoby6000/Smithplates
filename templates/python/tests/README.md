@@ -25,7 +25,7 @@ Optional variant skip marker: `expected/src/generated/<smithy namespace>/<implem
 
 ## HTTP cases
 
-HTTP golden cases use `@httpService` services and `smithplates.<language>.http.server` config (no SQL dialect keys). Variant id: `python/api/fastapi`.
+HTTP golden cases use `@httpService` services and `smithplates.python.http.{server,client}` config (no SQL dialect keys). Variants include `python/api/fastapi` and client-focused cases.
 
 | Case | What it validates |
 |------|-------------------|
@@ -36,12 +36,24 @@ HTTP golden cases use `@httpService` services and `smithplates.<language>.http.s
 | `http-fastapi-body-unions-nested-api` | Tagged unions and nested structures in input/output bodies |
 | `http-fastapi-mixed-input-bindings-api` | POST with `@httpHeader`, `@httpLabel`, and `@httpPayload` together |
 | `http-fastapi-operation-errors-api` | Operation-level `@httpError` unions on protocol methods (no exceptions) |
+| `http-fastapi-operation-httpproblem-errors-api` | Operation-level `@httpProblem` error unions |
 | `http-fastapi-output-bindings-api` | Output `@httpPayload` flattening, `@httpHeader` redirects, `@httpProblem` implied Content-Type |
+| `http-fastapi-string-alias-enum-imports-api` | String aliases and enum import closure |
+| `http-fastapi-httpx-combined-api` | Server + httpx client from one model |
+| `http-httpx-mixed-input-bindings-api` | httpx client with mixed input bindings |
+| `http-fastapi-websocket-api` | `@websocket` server routes + client |
+| `http-fastapi-websocket-path-params-api` | WebSocket URI path labels |
+| `http-nested-properties-api` | Smithy `@nestedProperties` on `@httpPayload` body flattening |
+| `http-union-list-member-api` | Unions and list members in HTTP models |
+| `http-additional-templates-append` | Consumer `additionalTemplatesDirectory` append |
+| `http-additional-templates-override` | Consumer deck `overrides` by bundled id |
+| `http-additional-templates-external` | `enableExternalTemplates` filesystem templates |
+| `http-additional-templates-path-collision` | Duplicate resolved output paths fail |
 
 ```
 templates/python/tests/<case-name>/
   smithy/smithy-files.smithy
-  smithy-build.json                # http.python.server config; no maven block in golden fixtures
+  smithy-build.json                # http.python.server / client config; no maven block in golden fixtures
   expected/
     src/generated/<smithy namespace>/app_factory.py
     src/generated/<smithy namespace>/app_services.py
@@ -49,13 +61,25 @@ templates/python/tests/<case-name>/
     src/generated/<smithy namespace>/operation_bindings.py
     src/generated/<smithy namespace>/api_exceptions.py
     src/generated/<smithy namespace>/api_exception_handler.py
-    src/generated/<smithy namespace>/problem.py
+    src/generated/smithplates/codegen/http/http_problem.py   # shared HttpProblem base
     src/generated/<smithy namespace>/<output_shape>.py
     src/generated/<smithy namespace>/apis/<route_group>_api.py
     src/generated/<smithy namespace>/apis/<route_group>_api_base.py
+    src/generated/<smithy namespace>/websocket_routes.py      # when @websocket ops exist
+    src/generated/<smithy namespace>/clients/websocket_client.py
 ```
 
 Shared pytest fixtures for postgres integration tests live in [`conftest.py`](conftest.py) (session-scoped `PostgresContainer`).
+
+## SQL cases (selection)
+
+| Case | What it validates |
+|------|-------------------|
+| `sql-derived-crud-auto-managed-columns` | `@sqlAutoUuid` / timestamps / `@sqlAutoIncrement` insert omission |
+| `sql-enums` | Smithy `enum` / `intEnum` DDL + models |
+| `sql-self-referential-foreign-key` | Self-FK inline in `CREATE TABLE` |
+| `sql-additional-templates-*` | Consumer SQL decks (append / override / external) |
+| `sql-derive-*` | Per-derive-trait and join cardinality coverage |
 
 ## Run golden render comparison
 

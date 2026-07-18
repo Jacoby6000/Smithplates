@@ -72,7 +72,7 @@ service FooRepository {
 
 ## SQL database service codegen
 
-**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/). Configure `smithplates.<language>.sql` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
+**SQL database service codegen** combines service IR, SQL IR-derived queries, and Scalate SSP templates into target-language artifacts. Bundled Python templates live under [`templates/python/src/db/`](../../templates/python/src/db/) and emit **dataclasses** for table/query models (HTTP models use Pydantic — see [HTTP plugin](http-plugin.md)). Configure `smithplates.<language>.sql` in `smithy-build.json` (see [Integration](integration.md)); bundled artifacts are selected from enabled dialects.
 
 | Artifact | Pipeline stage |
 |----------|----------------|
