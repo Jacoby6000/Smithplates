@@ -91,6 +91,15 @@ to identify the row in the WHERE clause.
 @trait(selector: "member")
 structure sqlAutoUuid {}
 
+@documentation("""
+Maps an Integer table member to a database-generated auto-increment column. The column
+becomes `INTEGER PRIMARY KEY AUTOINCREMENT` (SQLite) or `GENERATED ALWAYS AS IDENTITY`
+(Postgres). Omit from insert inputs. Primary keys with this trait must still appear on
+@sqlUpdate structures to identify the row in the WHERE clause.
+""")
+@trait(selector: "member")
+structure sqlAutoIncrement {}
+
 @documentation("Column value is set by the database on insert; omit from insert/update inputs. Defaults to the second-to-last table column unless @sqlColumnIndex overrides.")
 @trait(selector: "member")
 structure sqlCreatedTimestamp {}

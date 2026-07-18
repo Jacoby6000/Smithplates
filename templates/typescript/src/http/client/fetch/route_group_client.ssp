@@ -77,6 +77,9 @@ def tsBodyExpr(op: OperationModel[HttpOperationMeta]): Option[String] =
         }.mkString(", ")
         Some(s"JSON.stringify({ $entries })")
       }
+    case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+      val paramName = R.routeParameterName(ctx, nested.payloadMemberName)
+      Some(s"JSON.stringify(dumpApiModel($paramName))")
   }
 def tsParams(op: OperationModel[HttpOperationMeta]): List[String] = {
   val f = op.meta.feature
@@ -95,6 +98,8 @@ def tsParams(op: OperationModel[HttpOperationMeta]): List[String] = {
         val paramType = R.httpMemberTypeAnnotation(ctx, member, member.required).replace("None", "null")
         s"$paramName: $paramType"
       }
+    case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+      List(s"${R.routeParameterName(ctx, nested.payloadMemberName)}: ${nested.payloadTargetShapeName}")
     case HttpOperationBodyBindingMeta.None                     =>
       Nil
   }

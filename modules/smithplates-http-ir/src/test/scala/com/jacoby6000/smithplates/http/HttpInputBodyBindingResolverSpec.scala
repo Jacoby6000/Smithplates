@@ -43,14 +43,38 @@ class HttpInputBodyBindingResolverSpec extends FunSuite {
       HttpOperationBodyBinding.None
     )
   }
+
+  test("HttpInputBodyBindingResolver returns NestedDocument for single @nestedProperties payload") {
+    assertEquals(
+      HttpInputBodyBindingResolver.resolve(
+        HttpInputBodyBindingResolverSpec.internal.inputShapeId,
+        List(HttpInputBodyBindingResolverSpec.internal.nestedPayloadMember)),
+      HttpOperationBodyBinding.NestedDocument(
+        HttpInputBodyBindingResolverSpec.internal.inputShapeId,
+        HttpInputBodyBindingResolverSpec.internal.nestedPayloadMember
+      )
+    )
+  }
+
+  test("HttpInputBodyBindingResolver returns Members for @nestedProperties payload alongside route bindings") {
+    assertEquals(
+      HttpInputBodyBindingResolver.resolve(
+        HttpInputBodyBindingResolverSpec.internal.inputShapeId,
+        List(
+          HttpInputBodyBindingResolverSpec.internal.pathMember,
+          HttpInputBodyBindingResolverSpec.internal.nestedPayloadMember)
+      ),
+      HttpOperationBodyBinding.Members(List(HttpInputBodyBindingResolverSpec.internal.nestedPayloadMember))
+    )
+  }
 }
 object HttpInputBodyBindingResolverSpec {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    val unitShapeId: ShapeId                    = ShapeId.from("smithy.api#Unit")
-    val inputShapeId: ShapeId                   = ShapeId.from("example#CreateProjectInput")
-    val payloadMember: HttpOperationInputMember =
+    val unitShapeId: ShapeId                          = ShapeId.from("smithy.api#Unit")
+    val inputShapeId: ShapeId                         = ShapeId.from("example#CreateProjectInput")
+    val payloadMember: HttpOperationInputMember       =
       HttpOperationInputMember(
         name = "name",
         targetShape = ShapeId.from("smithy.api#String"),
@@ -60,7 +84,18 @@ object HttpInputBodyBindingResolverSpec {
         binding = HttpInputMemberBinding.Payload(),
         resourceIdentifierName = None
       )
-    val pathMember: HttpOperationInputMember    =
+    val nestedPayloadMember: HttpOperationInputMember =
+      HttpOperationInputMember(
+        name = "body",
+        targetShape = ShapeId.from("example#BodyShape"),
+        typeName = "BodyShape",
+        timestampFormat = None,
+        required = true,
+        binding = HttpInputMemberBinding.Payload(),
+        resourceIdentifierName = None,
+        nestedProperties = true
+      )
+    val pathMember: HttpOperationInputMember          =
       HttpOperationInputMember(
         name = "projectId",
         targetShape = ShapeId.from("smithy.api#String"),

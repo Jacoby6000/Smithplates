@@ -34,8 +34,9 @@ private[http] object HttpEnumExtractor {
     def operationMemberTypeNames(operation: HttpOperation): List[String] =
       operation.inputMembers.map(_.typeName) ++
         (operation.bodyBinding match {
-          case HttpOperationBodyBinding.Members(members) => members.map(_.typeName)
-          case _                                         => Nil
+          case HttpOperationBodyBinding.Members(members)                 => members.map(_.typeName)
+          case HttpOperationBodyBinding.NestedDocument(_, payloadMember) => List(payloadMember.typeName)
+          case _                                                         => Nil
         })
 
     def componentTypeNames(typeName: String): List[String] =

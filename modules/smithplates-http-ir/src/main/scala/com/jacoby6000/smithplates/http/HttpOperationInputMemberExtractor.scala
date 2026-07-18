@@ -11,6 +11,7 @@ import software.amazon.smithy.model.traits.HttpHeaderTrait
 import software.amazon.smithy.model.traits.HttpLabelTrait
 import software.amazon.smithy.model.traits.HttpPayloadTrait
 import software.amazon.smithy.model.traits.HttpQueryTrait
+import software.amazon.smithy.model.traits.NestedPropertiesTrait
 import software.amazon.smithy.model.traits.ReferencesTrait
 import software.amazon.smithy.model.traits.ResourceIdentifierTrait
 
@@ -110,6 +111,7 @@ private[http] object HttpOperationInputMemberExtractor {
       val resourceIdentifierName =
         resolveResourceIdentifierName(memberName, member, resourceReference, boundResource, serviceResources)
       val binding                = resolveBinding(member)
+      val nestedProperties       = Option(member.getTrait(classOf[NestedPropertiesTrait]).orElse(null)).isDefined
       (
         validateResourceIdentifier(
           serviceShape,
@@ -128,7 +130,8 @@ private[http] object HttpOperationInputMemberExtractor {
           timestampFormat = memberType.timestampFormat,
           required = member.requiredMember,
           binding = binding,
-          resourceIdentifierName = resourceIdentifierName
+          resourceIdentifierName = resourceIdentifierName,
+          nestedProperties = nestedProperties
         )
       }
     }

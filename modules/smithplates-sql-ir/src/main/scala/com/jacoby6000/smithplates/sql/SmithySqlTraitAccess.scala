@@ -1,5 +1,6 @@
 package com.jacoby6000.smithplates.sql
 
+import com.jacoby6000.smithplates.sql.traits.SqlAutoIncrementTrait
 import com.jacoby6000.smithplates.sql.traits.SqlAutoUuidTrait
 import com.jacoby6000.smithplates.sql.traits.SqlColumnIndexTrait
 import com.jacoby6000.smithplates.sql.traits.SqlColumnTrait
@@ -67,6 +68,9 @@ private[sql] object SmithySqlTraitAccess {
     def sqlAutoUuid: Boolean =
       internal.SmithySqlTraitLookup.traitPresent(member, classOf[SqlAutoUuidTrait])
 
+    def sqlAutoIncrement: Boolean =
+      internal.SmithySqlTraitLookup.traitPresent(member, classOf[SqlAutoIncrementTrait])
+
     def sqlCreatedTimestamp: Boolean =
       internal.SmithySqlTraitLookup.traitPresent(member, classOf[SqlCreatedTimestampTrait])
 
@@ -76,6 +80,8 @@ private[sql] object SmithySqlTraitAccess {
     def autoGeneration: Option[model.SqlAutoGeneration] =
       if (member.sqlAutoUuid) {
         Some(model.SqlAutoUuid)
+      } else if (member.sqlAutoIncrement) {
+        Some(model.SqlAutoIncrement)
       } else if (member.sqlCreatedTimestamp) {
         Some(model.SqlCreatedTimestamp)
       } else if (member.sqlUpdatedTimestamp) {

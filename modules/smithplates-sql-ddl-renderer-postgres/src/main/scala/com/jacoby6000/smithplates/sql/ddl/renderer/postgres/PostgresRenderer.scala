@@ -15,25 +15,31 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
     )
 
   private[postgres] def renderColumn(column: SqlColumn): String = {
-    val checks = column.columnType match {
+    val checks          = column.columnType match {
       case enumType: SqlColumnType.IntEnum =>
         List(SqlShared.intEnumCheck(column.name, enumType.values))
       case _                               => Nil
     }
-    SqlShared.renderColumnLine(
-      column.name,
-      internal.sqlTypeFor(column.columnType),
-      column.nullable,
-      checks,
-      column.autoGeneration.map(
-        SqlShared.autoGenerationDefaultClause(
-          _,
-          column.columnType,
-          uuidExpression = "gen_random_uuid()",
-          timestampExpression = internal.postgresTimestampExpression
-        )
+    val defaultClause   = column.autoGeneration.flatMap(
+      SqlShared.autoGenerationDefaultClause(
+        _,
+        column.columnType,
+        uuidExpression = "gen_random_uuid()",
+        timestampExpression = internal.postgresTimestampExpression
       )
     )
+    val isAutoIncrement = column.autoGeneration.contains(SqlAutoIncrement)
+    if (isAutoIncrement) {
+      s"${column.name} INTEGER GENERATED ALWAYS AS IDENTITY"
+    } else {
+      SqlShared.renderColumnLine(
+        column.name,
+        internal.sqlTypeFor(column.columnType),
+        column.nullable,
+        checks,
+        defaultClause
+      )
+    }
   }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */

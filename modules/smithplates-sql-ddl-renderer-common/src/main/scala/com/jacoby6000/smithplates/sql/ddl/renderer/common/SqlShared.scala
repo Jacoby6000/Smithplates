@@ -6,6 +6,7 @@ import com.jacoby6000.smithplates.sql.model.DDLStatement
 import com.jacoby6000.smithplates.sql.model.NoSqlTables
 import com.jacoby6000.smithplates.sql.model.SqlAutoGeneration
 import com.jacoby6000.smithplates.sql.model.SqlAutoUuid
+import com.jacoby6000.smithplates.sql.model.SqlAutoIncrement
 import com.jacoby6000.smithplates.sql.model.SqlColumn
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlCreatedTimestamp
@@ -50,27 +51,41 @@ object SqlShared {
       SqlTableTree
         .tablesInRenderOrder(schema)
         .flatMap { table =>
-          val columnLines     =
+          val columnLines                 =
             table.columns.map(column => internal.renderColumnWithForeignKeyComment(table, column, schema, renderColumn))
-          val primaryKeyLine  = s"PRIMARY KEY (${table.primaryKeys.mkString(", ")})"
-          val foreignKeyLines =
+          val autoIncrementPkColumns      =
+            table.columns.filter(_.autoGeneration.contains(SqlAutoIncrement)).map(_.name).toSet
+          val nonAutoIncrementPrimaryKeys = table.primaryKeys.filterNot(autoIncrementPkColumns.contains)
+          val primaryKeyLine              =
+            if (nonAutoIncrementPrimaryKeys.nonEmpty)
+              s"PRIMARY KEY (${nonAutoIncrementPrimaryKeys.mkString(", ")})"
+            else ""
+          val foreignKeyLines             =
             foreignKeyRendering match {
               case ForeignKeyRendering.Inline      =>
                 table.foreignKeys.map(foreignKey => internal.renderInlineForeignKey(tableById, foreignKey))
               case ForeignKeyRendering.Separate(_) =>
                 Nil
             }
-          val keyLines        = primaryKeyLine :: foreignKeyLines
-          val createTable     =
-            DDLStatement.CreateTable(
-              table = table,
-              statement = s"""CREATE TABLE ${table.name} (
-                   |    ${columnLines.mkString(",\n    ")},
-                   |
-                   |    ${keyLines.mkString(",\n    ")}
-                   |);""".stripMargin
-            )
-          val indexStatements =
+          val keyLines                    = (if (primaryKeyLine.nonEmpty) List(primaryKeyLine) else Nil) ++ foreignKeyLines
+          val createTable                 =
+            if (keyLines.nonEmpty)
+              DDLStatement.CreateTable(
+                table = table,
+                statement = s"""CREATE TABLE ${table.name} (
+                     |    ${columnLines.mkString(",\n    ")},
+                     |
+                     |    ${keyLines.mkString(",\n    ")}
+                     |);""".stripMargin
+              )
+            else
+              DDLStatement.CreateTable(
+                table = table,
+                statement = s"""CREATE TABLE ${table.name} (
+                     |    ${columnLines.mkString(",\n    ")}
+                     |);""".stripMargin
+              )
+          val indexStatements             =
             table.indexes.map { index =>
               val indexPrefix   = if (index.unique) "uidx" else "idx"
               val indexName     =
@@ -142,14 +157,17 @@ object SqlShared {
       columnType: SqlColumnType,
       uuidExpression: String,
       timestampExpression: SqlTimestampFormat => String
-  ): String =
+  ): Option[String] =
     autoGeneration match {
-      case SqlAutoUuid                               => uuidExpression
+      case SqlAutoUuid                               => Some(uuidExpression)
+      case SqlAutoIncrement                          => None
       case SqlCreatedTimestamp | SqlUpdatedTimestamp =>
-        columnType match {
-          case SqlColumnType.Timestamp(format) => timestampExpression(format)
-          case _                               => "CURRENT_TIMESTAMP"
-        }
+        Some(
+          columnType match {
+            case SqlColumnType.Timestamp(format) => timestampExpression(format)
+            case _                               => "CURRENT_TIMESTAMP"
+          }
+        )
     }
 
   def baseSqlType(columnType: SqlColumnType): Option[String] =

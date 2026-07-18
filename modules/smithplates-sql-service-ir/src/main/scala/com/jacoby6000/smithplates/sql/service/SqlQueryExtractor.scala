@@ -26,8 +26,8 @@ private[service] object SqlTableMemberCatalog {
 
     def databaseManagedOnUpdate: Boolean =
       autoGeneration.exists {
-        case SqlAutoUuid => false
-        case _           => true
+        case SqlAutoUuid | SqlAutoIncrement => false
+        case _                              => true
       }
   }
 

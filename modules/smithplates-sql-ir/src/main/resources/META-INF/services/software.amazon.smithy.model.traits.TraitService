@@ -9,5 +9,6 @@ com.jacoby6000.smithplates.sql.traits.SqlIndexTrait$Provider
 com.jacoby6000.smithplates.sql.traits.SqlUniqueIndexTrait$Provider
 com.jacoby6000.smithplates.sql.traits.SqlForeignKeyTrait$Provider
 com.jacoby6000.smithplates.sql.traits.SqlAutoUuidTrait$Provider
+com.jacoby6000.smithplates.sql.traits.SqlAutoIncrementTrait$Provider
 com.jacoby6000.smithplates.sql.traits.SqlCreatedTimestampTrait$Provider
 com.jacoby6000.smithplates.sql.traits.SqlUpdatedTimestampTrait$Provider

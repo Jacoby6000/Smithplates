@@ -21,5 +21,6 @@ final case class HttpOperationInputMember(
     timestampFormat: Option[HttpTimestampFormat],
     required: Boolean,
     binding: HttpInputMemberBinding,
-    resourceIdentifierName: Option[String]
+    resourceIdentifierName: Option[String],
+    nestedProperties: Boolean = false
 )

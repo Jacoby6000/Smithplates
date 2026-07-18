@@ -80,7 +80,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             .traverse(httpService => convertService(model, httpService))
             .map { results =>
               val services = results.map(_._1)
-              val models   = results.flatMap(_._2).distinct.sortBy(_.id)
+              val models   = results.flatMap(_._2).groupBy(_.id).view.mapValues(_.head).values.toList.sortBy(_.id)
               (ModelSet(models), services)
             }
         }
@@ -448,11 +448,17 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
 
     def toBodyBindingMeta(binding: HttpOperationBodyBinding): HttpOperationBodyBindingMeta =
       binding match {
-        case HttpOperationBodyBinding.None               => HttpOperationBodyBindingMeta.None
-        case document: HttpOperationBodyBinding.Document =>
+        case HttpOperationBodyBinding.None                   => HttpOperationBodyBindingMeta.None
+        case document: HttpOperationBodyBinding.Document     =>
           HttpOperationBodyBindingMeta.Document(document.inputShape.getName)
-        case members: HttpOperationBodyBinding.Members   =>
+        case members: HttpOperationBodyBinding.Members       =>
           HttpOperationBodyBindingMeta.Members(members.members.map(toInputMemberMeta))
+        case nested: HttpOperationBodyBinding.NestedDocument =>
+          HttpOperationBodyBindingMeta.NestedDocument(
+            inputShapeName = nested.inputShape.getName,
+            payloadMemberName = nested.payloadMember.name,
+            payloadTargetShapeName = nested.payloadMember.typeName
+          )
       }
 
     def toInputBindingMeta(binding: HttpInputMemberBinding): HttpInputMemberBindingMeta =

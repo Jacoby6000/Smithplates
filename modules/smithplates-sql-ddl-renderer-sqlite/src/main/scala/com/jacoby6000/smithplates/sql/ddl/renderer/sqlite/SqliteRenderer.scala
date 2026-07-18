@@ -10,7 +10,7 @@ object SqliteRenderer extends SqlSchemaDdlRenderer {
     SqlShared.renderDdlStatements(schema, renderColumn)
 
   private[sqlite] def renderColumn(column: SqlColumn): String = {
-    val checks = column.columnType match {
+    val checks           = column.columnType match {
       case SqlColumnType.Varchar(maxLength)   =>
         List(s" CHECK(length(${column.name}) <= $maxLength)")
       case enumType: SqlColumnType.StringEnum =>
@@ -19,20 +19,28 @@ object SqliteRenderer extends SqlSchemaDdlRenderer {
         List(SqlShared.intEnumCheck(column.name, enumType.values))
       case _                                  => Nil
     }
-    SqlShared.renderColumnLine(
-      column.name,
-      internal.sqlTypeFor(column.columnType),
-      column.nullable,
-      checks,
-      column.autoGeneration.map(
-        SqlShared.autoGenerationDefaultClause(
-          _,
-          column.columnType,
-          uuidExpression = internal.sqliteAutoUuidDefault,
-          timestampExpression = internal.sqliteTimestampExpression
-        )
+    val defaultClause    = column.autoGeneration.flatMap(
+      SqlShared.autoGenerationDefaultClause(
+        _,
+        column.columnType,
+        uuidExpression = internal.sqliteAutoUuidDefault,
+        timestampExpression = internal.sqliteTimestampExpression
       )
     )
+    val isAutoIncrement  = column.autoGeneration.contains(SqlAutoIncrement)
+    val primaryKeySuffix = if (isAutoIncrement) " PRIMARY KEY AUTOINCREMENT" else ""
+
+    if (isAutoIncrement) {
+      s"${column.name} INTEGER NOT NULL$primaryKeySuffix"
+    } else {
+      SqlShared.renderColumnLine(
+        column.name,
+        internal.sqlTypeFor(column.columnType),
+        column.nullable,
+        checks,
+        defaultClause
+      )
+    }
   }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */

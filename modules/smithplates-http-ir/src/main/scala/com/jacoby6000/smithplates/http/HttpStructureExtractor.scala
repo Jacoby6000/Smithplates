@@ -43,8 +43,10 @@ private[http] object HttpStructureExtractor {
     def documentInputShapeIds(operations: List[HttpOperation]): List[ShapeId] =
       operations.flatMap { operation =>
         operation.bodyBinding match {
-          case HttpOperationBodyBinding.Document(inputShape) => List(inputShape)
-          case _                                             => Nil
+          case HttpOperationBodyBinding.Document(inputShape)               => List(inputShape)
+          case HttpOperationBodyBinding.NestedDocument(inputShape, member) =>
+            List(inputShape, member.targetShape)
+          case _                                                           => Nil
         }
       }
 

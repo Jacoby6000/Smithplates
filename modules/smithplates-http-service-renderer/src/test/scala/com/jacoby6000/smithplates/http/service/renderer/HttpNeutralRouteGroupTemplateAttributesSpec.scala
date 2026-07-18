@@ -287,6 +287,43 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
     assert(expression.contains("create_widget_input=create_widget_input"))
   }
 
+  test("NestedDocument body binding flattens payload target as body and wraps in input shape") {
+    val createWidget =
+      operation(
+        "CreateWidget",
+        HttpOperationMeta(
+          method = "POST",
+          uriPattern = "/widgets",
+          successStatus = 201,
+          bodyBinding = HttpOperationBodyBindingMeta.NestedDocument(
+            inputShapeName = "CreateWidgetInput",
+            payloadMemberName = "body",
+            payloadTargetShapeName = "WidgetCreateRequest"
+          ),
+          responseVariants = List(HttpResponseVariantMeta("WidgetSummary", 201))
+        )
+      )
+    val view         = routeGroupView(List(createWidget))
+
+    assertEquals(R.documentBodyParameter(view, createWidget), Some(("body", "WidgetCreateRequest")))
+    assertEquals(R.documentBodyInputShape(createWidget), Some("CreateWidgetInput"))
+    assertEquals(
+      R.operationImportedModelNames(view, createWidget).sorted,
+      List("CreateWidgetInput", "WidgetCreateRequest", "WidgetSummary")
+    )
+
+    val expr = R.operationServiceCallExpression(view, createWidget)
+    assert(expr.contains("create_widget_input=CreateWidgetInput(body=body)"))
+
+    val params = R.clientMethodParameters(view, createWidget)
+    assertEquals(params, List("body: WidgetCreateRequest"))
+
+    assertEquals(
+      R.clientRequestJsonArgument(view, createWidget),
+      """, json=body.model_dump(mode="json", exclude_none=True)"""
+    )
+  }
+
   test("binding presence helpers reflect mixed route input members") {
     val mixed =
       operation(

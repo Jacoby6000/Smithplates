@@ -126,6 +126,24 @@ object HttpNeutralRouteGroupTemplateAttributes {
   def documentBodyInputShape(operation: OperationModel[HttpOperationMeta]): Option[String] =
     operation.meta.feature.bodyBinding match {
       case HttpOperationBodyBindingMeta.Document(inputShapeName) => Some(inputShapeName)
+      case nested: HttpOperationBodyBindingMeta.NestedDocument   => Some(nested.inputShapeName)
+      case _                                                     => None
+    }
+
+  /** The FastAPI body parameter (name, type) for ``Document`` and ``NestedDocument`` body bindings. For ``Document``
+    * the parameter is the input shape (e.g. ``create_project_input: CreateProjectInput``). For ``NestedDocument`` the
+    * parameter is the payload target (e.g. ``body: ProjectCreateRequest``) because ``@nestedProperties`` flattens the
+    * target's fields to the document root.
+    */
+  def documentBodyParameter(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): Option[(String, String)] =
+    operation.meta.feature.bodyBinding match {
+      case HttpOperationBodyBindingMeta.Document(inputShapeName) =>
+        Some((routeParameterName(ctx, inputShapeName), inputShapeName))
+      case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+        Some((routeParameterName(ctx, nested.payloadMemberName), nested.payloadTargetShapeName))
       case _                                                     => None
     }
 
@@ -187,6 +205,8 @@ object HttpNeutralRouteGroupTemplateAttributes {
         members.map { member =>
           s"${routeParameterName(ctx, member.name)}: ${httpMemberTypeAnnotation(ctx, member, member.required)}"
         }
+      case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+        List(s"${routeParameterName(ctx, nested.payloadMemberName)}: ${nested.payloadTargetShapeName}")
       case HttpOperationBodyBindingMeta.None                     =>
         Nil
     }
@@ -259,6 +279,9 @@ object HttpNeutralRouteGroupTemplateAttributes {
             members.map(member => s"\"${member.name}\": ${routeParameterName(ctx, member.name)}").mkString(", ")
           s", json={$entries}"
         }
+      case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+        val paramName = routeParameterName(ctx, nested.payloadMemberName)
+        s", json=$paramName.model_dump(mode=\"json\", exclude_none=True)"
     }
 
   def routeParameterName(ctx: RouteGroupView, name: String): String =
@@ -317,6 +340,8 @@ object HttpNeutralRouteGroupTemplateAttributes {
             .filter(member => HttpSmithyTypeResolver.isStructureTypeName(member.typeName))
             .map(_.typeName)
             .distinct
+        case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+          List(nested.inputShapeName, nested.payloadTargetShapeName).distinct
         case HttpOperationBodyBindingMeta.None                     => Nil
       }
 
@@ -337,6 +362,11 @@ object HttpNeutralRouteGroupTemplateAttributes {
         case HttpOperationBodyBindingMeta.Members(members)         =>
           members.map(member =>
             s"${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}=${HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, member.name)}")
+        case nested: HttpOperationBodyBindingMeta.NestedDocument   =>
+          val inputParamName  = HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, nested.inputShapeName)
+          val memberParamName =
+            HttpNeutralRouteGroupTemplateAttributes.routeParameterName(ctx, nested.payloadMemberName)
+          List(s"$inputParamName=${nested.inputShapeName}($memberParamName=$memberParamName)")
         case HttpOperationBodyBindingMeta.None                     =>
           Nil
       }

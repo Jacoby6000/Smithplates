@@ -74,6 +74,17 @@ object HttpOperationBodyBindingMeta {
   final case class Document(inputShapeName: String) extends HttpOperationBodyBindingMeta
 
   final case class Members(members: List[HttpOperationInputMemberMeta]) extends HttpOperationBodyBindingMeta
+
+  /** A single ``@httpPayload`` member with ``@nestedProperties``: the wire body is the payload member's target
+    * structure (flattened), and the route reconstructs the input shape before dispatching. `inputShapeName` is the
+    * wrapping input (e.g. ``CreateProjectInput``); `payloadMemberName` is the member name (e.g. ``body``);
+    * `payloadTargetShapeName` is the flattened body type (e.g. ``ProjectCreateRequest``).
+    */
+  final case class NestedDocument(
+      inputShapeName: String,
+      payloadMemberName: String,
+      payloadTargetShapeName: String
+  ) extends HttpOperationBodyBindingMeta
 }
 
 /** Operation-level HTTP feature metadata. */

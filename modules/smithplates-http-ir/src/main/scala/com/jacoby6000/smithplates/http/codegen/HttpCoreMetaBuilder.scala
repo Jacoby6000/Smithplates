@@ -76,7 +76,8 @@ object HttpCoreMetaBuilder {
     }.toMap
 
   def dynamicHeaderFields(members: List[HttpOperationInputMember]): Map[String, String] =
-    members.collect { case HttpOperationInputMember(name, _, _, _, _, HttpInputMemberBinding.Header(headerName), _) =>
-      name -> headerName
+    members.collect {
+      case HttpOperationInputMember(name, _, _, _, _, HttpInputMemberBinding.Header(headerName), _, _) =>
+        name -> headerName
     }.toMap
 }

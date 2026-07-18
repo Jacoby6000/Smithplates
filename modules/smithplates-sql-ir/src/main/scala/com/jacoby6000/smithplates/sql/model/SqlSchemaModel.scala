@@ -27,6 +27,8 @@ sealed trait SqlAutoGeneration
 
 case object SqlAutoUuid extends SqlAutoGeneration
 
+case object SqlAutoIncrement extends SqlAutoGeneration
+
 case object SqlCreatedTimestamp extends SqlAutoGeneration
 
 case object SqlUpdatedTimestamp extends SqlAutoGeneration

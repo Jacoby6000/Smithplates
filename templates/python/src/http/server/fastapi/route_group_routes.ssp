@@ -76,8 +76,8 @@ async def ${R.operationMethodName(ctx, operation.id.name)}(
 <% for (member <- operation.meta.feature.inputMembers.filter(R.isRouteParameter)) { %>
     ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)} = ${fastapiParameterBinding(member)},
 <% } %>
-<% R.documentBodyInputShape(operation).foreach { inputShape => %>
-    ${R.memberName(ctx, inputShape)}: ${inputShape} = ${bodyParameterBinding(R.documentBodyRequired(operation))},
+<% R.documentBodyParameter(ctx, operation).foreach { case (paramName, paramType) => %>
+    ${paramName}: ${paramType} = ${bodyParameterBinding(R.documentBodyRequired(operation))},
 <% } %>
 <% for (member <- R.bodyBindingMembers(operation)) { %>
     ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)} = ${fastapiParameterBinding(member)},

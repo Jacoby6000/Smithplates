@@ -14,20 +14,25 @@ private[http] object HttpInputBodyBindingResolver {
       HttpOperationBodyBinding.None
     } else {
       val payloadMembers = members.filter {
-        case HttpOperationInputMember(_, _, _, _, _, HttpInputMemberBinding.Payload(), _) => true
-        case _                                                                            => false
+        case HttpOperationInputMember(_, _, _, _, _, HttpInputMemberBinding.Payload(), _, _) => true
+        case _                                                                               => false
       }
       if (payloadMembers.isEmpty) {
         HttpOperationBodyBinding.None
       } else {
         val hasRouteMembers = members.exists {
-          case HttpOperationInputMember(_, _, _, _, _, HttpInputMemberBinding.Payload(), _) => false
-          case _                                                                            => true
+          case HttpOperationInputMember(_, _, _, _, _, HttpInputMemberBinding.Payload(), _, _) => false
+          case _                                                                               => true
         }
         if (hasRouteMembers) {
           HttpOperationBodyBinding.Members(payloadMembers)
         } else {
-          HttpOperationBodyBinding.Document(inputShape)
+          payloadMembers match {
+            case single :: Nil if single.nestedProperties =>
+              HttpOperationBodyBinding.NestedDocument(inputShape, single)
+            case _                                        =>
+              HttpOperationBodyBinding.Document(inputShape)
+          }
         }
       }
     }
