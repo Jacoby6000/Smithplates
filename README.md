@@ -51,14 +51,12 @@ higher quality output than the AI would output on its own.
 
 The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build plugin. From a given Smithy specification it emits schema, SQL service, and HTTP service artifacts (see [Architecture](#architecture)):
 
-| Path | Output | Supported today | Mechanism |
-|------|--------|-----------------|-----------|
-| **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite | SQL IR → dialect renderers |
-| **Schema and migrations** | Schema integration tests | Contributor modules | SQL IR → DDL applied to real databases (testcontainers) |
-| **SQL database service codegen** | Target-language query models, repository interfaces, dialect-specific implementations, and migration runners | Python | Service IR + SQL IR + SSP templates under [`templates/python/`](templates/python/) |
-| **SQL database service codegen** | Derived-query integration tests | Python (SQLite in-memory; Postgres via testcontainers) | Derived queries + generated migration runners + SSP templates |
-| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json errors | Python | HTTP IR + planner decks + SSP templates under [`templates/python/src/http/`](templates/python/src/http/) |
-| **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) | HTTP IR + planner decks + SSP templates under [`templates/python/`](templates/python/) / [`templates/typescript/`](templates/typescript/) |
+| Path | Output | Supported today |
+|------|--------|-----------------|
+| **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite |
+| **SQL database service codegen** | Query models, repository interfaces, dialect-specific implementations, migration runners, and derived-query integration tests | Python |
+| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json errors | Python |
+| **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) |
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
