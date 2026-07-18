@@ -16,7 +16,7 @@ Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for cod
 - `@httpProblem` generates RFC 9457-style problem detail exceptions and response helpers.
 - `@httpStaticHeader` adds fixed response headers for generated response bindings.
 - Smithy `@nestedProperties` on a single `@httpPayload` member flattens that member's target structure as the HTTP request body while the operation input shape is reconstructed for dispatch (see [Nested payload bodies](#nested-payload-bodies)).
-- `@websocket` promotes an operation into a bidirectional WebSocket endpoint (see [Websockets](#websockets)).
+- `@websocket` promotes an operation into a bidirectional WebSocket endpoint (see [WebSockets](#websockets)).
 
 Keep HTTP shapes in a namespace dedicated to the API contract. Do not reuse SQL table shapes as HTTP request or response shapes; map between generated API and database models in hand-written application code.
 
@@ -116,9 +116,15 @@ For bundled httpx templates, Smithplates emits files such as:
 <sourceOutputDir>/<smithy namespace>/<model_shape>.py
 ```
 
-`websocket_client.py` is emitted only when the service declares `@websocket` operations.
+`websocket_client.py` is emitted only when the service declares `@websocket` operations (see [WebSockets](#websockets)).
 
 Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models at the namespace root.
+
+**REST client wiring (Python / httpx):**
+
+1. Create an `httpx.AsyncClient` (or reuse an existing client).
+2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
+3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
 
 ### TypeScript / fetch or axios
 
@@ -134,7 +140,9 @@ For bundled TypeScript clients (`httpLibrary: "fetch"` or `"axios"`), Smithplate
 <sourceOutputDir>/smithplates/codegen/http/httpProblem.ts
 ```
 
-`websocketClient.ts` and `httpProblem.ts` appear when the model uses `@websocket` / `@httpProblem` respectively.
+`websocketClient.ts` and `httpProblem.ts` appear when the model uses `@websocket` / `@httpProblem` respectively (see [WebSockets](#websockets)).
+
+**REST client wiring (TypeScript):** construct the generated client registry with your `baseUrl` (and axios instance when using axios), then call the typed route-group client methods.
 
 See [`example/typescript/`](../../example/typescript/) for a petstore fetch-client reference.
 
@@ -171,13 +179,27 @@ The generated HTTP layer owns FastAPI routing and wire conversion. Your applicat
 
 This keeps generated files replaceable and avoids editing generated route modules.
 
-## Websockets
+## WebSockets
 
-`@websocket` marks an operation as a bidirectional WebSocket endpoint. The operation's input shape is the union (or structure) of messages the server can receive from the client; the operation's output shape is the union (or structure) of messages the client can receive from the server. A typical operation uses union-typed input and output so many distinct message types flow in each direction.
+Smithplates supports bidirectional WebSocket endpoints on `@httpService` operations via `@websocket`.
 
-The operation must also declare an `@http` binding (its `uri` is the WebSocket route path) and at least one `@tags` value for grouping. WebSocket operations are excluded from REST route/client generation and are handled by dedicated templates instead.
+| Side | Language | What you get |
+|------|----------|--------------|
+| Server | Python / FastAPI | `websocket_routes.py` — handler protocol + router factory |
+| Client | Python | `clients/websocket_client.py` (depends on the `websockets` package) |
+| Client | TypeScript | `clients/websocketClient.ts` (native browser/`WebSocket` API) |
+
+REST route and REST client generation **skip** `@websocket` operations; they are handled only by these WebSocket artifacts.
+
+### 1. Model the endpoint
+
+Annotate the operation with `@websocket`, an `@http` binding (the `uri` is the WebSocket path), and at least one `@tags` value. The operation **input** is the message shape(s) the server receives from the client; the **output** is what the client receives from the server. Prefer unions (or structures of optional members) when multiple message types flow in each direction.
+
+Path labels on the input (`@httpLabel`) become path parameters on the WebSocket URI (for example `/streams/{streamId}/events`).
 
 ```smithy
+use smithplates.codegen.http#websocket
+
 @tags(["chat"])
 @http(method: "GET", uri: "/chat", code: 200)
 @websocket
@@ -200,24 +222,39 @@ union ServerMessage {
 }
 ```
 
-### Generated server output (Python/FastAPI)
+Configure `smithplates.<language>.http.server` and/or `http.client` as usual ([Configuration](configuration.md)); no separate WebSocket flag is required. Enabling HTTP codegen for a model that declares `@websocket` is enough.
 
-Smithplates emits `<sourceOutputDir>/<smithy namespace>/websocket_routes.py` containing a `WebsocketHandlers` protocol (one async handler per `@websocket` operation) and a `build_websocket_router(handlers)` factory. Implement the protocol, build the router, and include it on your FastAPI app. Each handler receives a typed inbound message and the live `WebSocket`; call the generated `send_<operation>_message` helper to serialize outbound messages.
+### 2. Implement the server (Python / FastAPI)
 
-### Generated client output
+Smithplates emits `<sourceOutputDir>/<smithy namespace>/websocket_routes.py` with:
 
-- Python: `<sourceOutputDir>/<smithy namespace>/clients/websocket_client.py` — a `<Service>WebsocketClient` with a `connect_<operation>` method per endpoint returning a connection exposing `send`, `receive`, `close`, and async iteration. Requires the `websockets` package only when the service declares at least one `@websocket` operation.
-- TypeScript: `<sourceOutputDir>/<smithy namespace>/clients/websocketClient.ts` — a `<Service>WebsocketClient` using the native `WebSocket` API, with a `connect<Operation>` method returning a connection exposing `send`, `onMessage`, `onClose`, and `close`.
+- a `WebsocketHandlers` protocol — one `async` method per `@websocket` operation;
+- `build_websocket_router(handlers)` — returns a FastAPI `APIRouter` to mount on your app;
+- `send_<operation>_message(websocket, message)` helpers — serialize typed outbound messages.
 
-### Client wiring
+Wire it like this:
 
-**Python / httpx:**
+1. Implement `WebsocketHandlers` in hand-written application code.
+2. Call `app.include_router(build_websocket_router(handlers))` when constructing the FastAPI app.
+3. In each handler, read the typed inbound `message`, perform your logic, and call `send_<operation>_message` (or send on the live `WebSocket`) for outbound frames.
 
-1. Create an `httpx.AsyncClient` (or reuse an existing client).
-2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
-3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
+Handlers receive the FastAPI `WebSocket`, any path-label arguments, and (when the operation has input messages) a validated inbound message. The generated router accepts the connection, loops over inbound frames, and dispatches each one to your handler.
 
-**TypeScript / fetch or axios:** construct the generated client registry with your `baseUrl` (and axios instance when using axios), then call the typed route-group client methods.
+Reference implementation: [`example/python/src/server/`](../../example/python/src/server/) (`PetEventsHandlers` + `build_websocket_router` in `app.py`) against [`PetEvents`](../../example/petstore-smithy-spec/petstore/api/api.smithy) in the petstore Smithy model.
+
+### 3. Use a generated client
+
+**Python** — construct `<Service>WebsocketClient(base_url=...)`, then `async with await client.connect_<operation>(...) as conn:` (path labels become method arguments). Use `await conn.send(...)`, `await conn.receive()`, `async for message in conn:`, and `await conn.close()`.
+
+**TypeScript** — construct `<Service>WebsocketClient({ baseUrl })`, then `client.connect<Operation>(...)`. The connection exposes `send`, `onMessage`, `onClose`, and `close`.
+
+Message payloads use the same generated models as the rest of the HTTP API (Pydantic in Python, typed models in TypeScript).
+
+### Limits and OpenAPI
+
+- Bundled WebSocket **server** generation is Python/FastAPI only.
+- `@websocket` is **not** removed by `stripSmithplatesHttpCodegenTraits`. Keep WebSocket operations out of OpenAPI projections, or filter them yourself — see [Integration](integration.md#openapi-projection-transforms) and [OpenAPI](openapi.md).
+- Golden coverage: `templates/python/tests/http-*-websocket-*` and `templates/typescript/tests/http-*-websocket-*`.
 
 ## Problem details
 
@@ -280,5 +317,5 @@ See [OpenAPI](openapi.md) for projection usage.
 
 ## Reference example
 
-- [Python petstore](../../example/python/) — SQL + FastAPI server + httpx client + adapters.
-- [TypeScript petstore client](../../example/typescript/) — fetch client against the shared petstore Smithy model.
+- [Python petstore](../../example/python/) — SQL + FastAPI server + httpx client + adapters, including the `@websocket` `PetEvents` endpoint.
+- [TypeScript petstore client](../../example/typescript/) — fetch client against the shared petstore Smithy model (includes the generated WebSocket client module when present).

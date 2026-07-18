@@ -16,7 +16,7 @@ Guides for **consuming** Smithplates plugins in your Smithy project.
 | Document | Topic |
 |----------|-------|
 | [SQL plugin](sql-plugin.md) | SQL traits, generated repositories, migration services, transactions, and Python DB behavior |
-| [HTTP plugin](http-plugin.md) | `@httpService`, FastAPI/WebSocket output, Python and TypeScript clients, route groups, and problem details |
+| [HTTP plugin](http-plugin.md) | `@httpService`, FastAPI output, [WebSockets](http-plugin.md#websockets) (`@websocket`), Python and TypeScript clients, route groups, and problem details |
 | [OpenAPI](openapi.md) | Smithplates HTTP projection transforms and OpenAPI Generator coordination |
 | [Custom templates](custom-templates.md) | Bundled templates, custom `templateDirectory`, the `outputs.json` output deck, and template validation |
 | [Limitations](limitations.md) | Current support boundaries and roadmap distinctions |

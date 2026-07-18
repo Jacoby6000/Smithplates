@@ -18,7 +18,7 @@ Shared Smithy models live under [`example/petstore-smithy-spec/`](../../example/
 | FastAPI server + httpx client | Python | `templates/python/tests/http-*` |
 | TypeScript axios/fetch clients | TypeScript (`fetch`) | `templates/typescript/tests/http-*` |
 | Shared `HttpProblem` | Python + TypeScript | HTTP goldens |
-| `@websocket` | Python (+ TypeScript client against shared model) | Python + TypeScript HTTP goldens |
+| `@websocket` | Python petstore (`PetEvents`) + generated TS client module | Python + TypeScript HTTP goldens; how-to: [HTTP plugin — WebSockets](http-plugin.md#websockets) |
 | `@sqlAutoIncrement` | Not in petstore Smithy | Python DB goldens |
 | `@nestedProperties` body binding | Not in petstore Smithy | Python + TypeScript HTTP goldens |
 | `additionalTemplatesDirectory` | Not in petstore | Golden cases under template test suites |

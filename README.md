@@ -55,8 +55,10 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 |------|--------|-----------------|
 | **Schema and migrations** | Dialect-specific DDL (`.sql` migration files) | Postgres, SQLite |
 | **SQL database service codegen** | Query models, repository interfaces, dialect-specific implementations, migration runners, and derived-query integration tests | Python |
-| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes, response helpers, and problem+json errors | Python |
+| **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes (`@websocket`), response helpers, and problem+json errors | Python |
 | **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) |
+
+WebSockets: annotate an `@httpService` operation with `@websocket` (plus `@http` URI and `@tags`). See [HTTP plugin — WebSockets](docs/usage/http-plugin.md#websockets).
 
 
 All generated output is intended to be stand-alone and separate from your production code.  The Database Access Layer
