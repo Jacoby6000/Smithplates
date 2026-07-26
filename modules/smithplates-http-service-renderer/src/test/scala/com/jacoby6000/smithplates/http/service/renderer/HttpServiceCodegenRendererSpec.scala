@@ -408,7 +408,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         val allPaths = allArtifacts.map(_.relativePath).toSet
         assert(allPaths.exists(_.contains("alpha")), s"expected alpha artifacts without filter")
         assert(allPaths.exists(_.contains("beta")), s"expected beta artifacts without filter")
-      case Validated.Invalid(errors) =>
+      case Validated.Invalid(errors)     =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
 
@@ -422,7 +422,7 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         val filteredPaths = filteredArtifacts.map(_.relativePath).toSet
         assert(filteredPaths.exists(_.contains("alpha")), s"expected alpha artifacts with filter")
         assert(!filteredPaths.exists(_.contains("beta")), s"expected no beta artifacts with filter")
-      case Validated.Invalid(errors) =>
+      case Validated.Invalid(errors)          =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
   }

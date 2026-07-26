@@ -87,18 +87,22 @@ object SmithplatesBuildPlugin {
         sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
           val languageTarget = sqlSettings.languageTargets(languageId)
           languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
-            val overriddenTarget = languageTarget.withOutputEntryOverrides(entry)
+            val overriddenTarget   = languageTarget.withOutputEntryOverrides(entry)
             val overriddenSettings = SmithplatesSqlSettings(
               sqlSettings.languageTargets.updated(languageId, overriddenTarget)
             )
-            val serviceFilter = entry.services.map(_.toSet)
-            val entryLabel    = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            val serviceFilter      = entry.services.map(_.toSet)
+            val entryLabel         = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
             if (serviceIr.services.isEmpty) {
               logger.info(
                 s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
               )
             } else {
-              overriddenSettings.toCodegenSettings(languageId, entry.sourceOutputDir, entry.testOutputDir, serviceFilter) match {
+              overriddenSettings.toCodegenSettings(
+                languageId,
+                entry.sourceOutputDir,
+                entry.testOutputDir,
+                serviceFilter) match {
                 case Validated.Valid(Some(codegenSettings)) =>
                   SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
                     case Validated.Valid(artifacts) =>
@@ -143,15 +147,22 @@ object SmithplatesBuildPlugin {
         } else {
           val languageTarget = httpSettings.languageTargets(languageId)
           languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
-            val overriddenTarget = languageTarget.withOutputEntryOverrides(entry)
+            val overriddenTarget   = languageTarget.withOutputEntryOverrides(entry)
             val overriddenSettings = SmithplatesHttpSettings(
               httpSettings.languageTargets.updated(languageId, overriddenTarget)
             )
-            val serviceFilter = entry.services.map(_.toSet)
-            val entryLabel    = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            val serviceFilter      = entry.services.map(_.toSet)
+            val entryLabel         = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
             runHttpCodegen(
-              context, model, serviceIr, overriddenSettings, languageId,
-              entry.sourceOutputDir, entry.testOutputDir, serviceFilter, entryLabel
+              context,
+              model,
+              serviceIr,
+              overriddenSettings,
+              languageId,
+              entry.sourceOutputDir,
+              entry.testOutputDir,
+              serviceFilter,
+              entryLabel
             )
           }
         }

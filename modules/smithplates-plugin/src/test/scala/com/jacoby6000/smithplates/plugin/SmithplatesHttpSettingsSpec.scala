@@ -831,12 +831,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
   test("withOutputEntryOverrides applies packageName overrides") {
     val target = SmithplatesHttpLanguageTarget(
       target = HttpLanguageTarget(
-        server = Some(HttpServerTarget(
-          webFramework = Some("fastapi"),
-          templateDirectory = None,
-          additionalTemplatesDirectory = None,
-          packageName = Some("generated.default")
-        )),
+        server = Some(
+          HttpServerTarget(
+            webFramework = Some("fastapi"),
+            templateDirectory = None,
+            additionalTemplatesDirectory = None,
+            packageName = Some("generated.default")
+          )),
         client = None,
         rootNamespace = None,
         modelsPackageName = None,

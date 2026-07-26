@@ -83,7 +83,7 @@ object SmithplatesSettings {
         .flatMap(_.toList)
         .traverse { case (key, memberJson) =>
           key.toLowerCase match {
-            case "enableexternaltemplates" =>
+            case "enableexternaltemplates"           =>
               None.validNel
             case "sourceoutputdir" | "testoutputdir" =>
               SqlValidated.invalid(
@@ -92,7 +92,7 @@ object SmithplatesSettings {
                     "specify them per-entry in the target's `outputs` array instead"
                 )
               )
-            case "sql"                                                           =>
+            case "sql"                               =>
               if (memberJson.isObject) {
                 LanguageTarget
                   .parse(languageId, memberJson)
@@ -102,7 +102,7 @@ object SmithplatesSettings {
                   InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
                 )
               }
-            case "http"                                                          =>
+            case "http"                              =>
               if (memberJson.isObject) {
                 HttpLanguageTarget
                   .parse(languageId, memberJson)
@@ -112,7 +112,7 @@ object SmithplatesSettings {
                   InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
                 )
               }
-            case other                                                           =>
+            case other                               =>
               SqlValidated.invalid(
                 InvalidPluginConfig(
                   s"smithplates.$languageId contains unknown key '$other'; expected `sql`, `http`, " +

@@ -85,7 +85,7 @@ object HttpServiceCodegenRenderer {
         serviceFilter: Option[Set[String]]
     ): List[ServiceModel[HttpServiceMeta, HttpOperationMeta]] =
       serviceFilter match {
-        case None              => services
+        case None               => services
         case Some(allowedNames) =>
           services.filter(service => allowedNames.contains(service.id.name))
       }

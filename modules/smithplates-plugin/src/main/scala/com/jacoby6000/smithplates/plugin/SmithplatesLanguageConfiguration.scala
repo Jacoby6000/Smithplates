@@ -27,12 +27,10 @@ final case class SmithplatesHttpLanguageTarget(
   def withOutputEntryOverrides(
       overrides: HttpServiceOutputEntry
   ): SmithplatesHttpLanguageTarget = {
-    val overriddenServer = target.server.map(server =>
-      server.copy(packageName = overrides.packageName.orElse(server.packageName))
-    )
-    val overriddenClient = target.client.map(client =>
-      client.copy(packageName = overrides.packageName.orElse(client.packageName))
-    )
+    val overriddenServer =
+      target.server.map(server => server.copy(packageName = overrides.packageName.orElse(server.packageName)))
+    val overriddenClient =
+      target.client.map(client => client.copy(packageName = overrides.packageName.orElse(client.packageName)))
     copy(
       target = target.copy(
         server = overriddenServer,

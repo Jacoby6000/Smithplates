@@ -80,7 +80,7 @@ object PluginConfigDecoders {
               testOutputDir = test,
               packageName = packageName
             ).validNel
-          case (None, _)                =>
+          case (None, _)               =>
             SqlValidated.invalid(
               InvalidPluginConfig("smithplates sql output entry requires `sourceOutputDir`")
             )
@@ -165,7 +165,7 @@ object PluginConfigDecoders {
               testOutputDir = test,
               packageName = packageName
             ).validNel
-          case (None, _)                =>
+          case (None, _)               =>
             SqlValidated.invalid(
               InvalidPluginConfig("smithplates http output entry requires `sourceOutputDir`")
             )
