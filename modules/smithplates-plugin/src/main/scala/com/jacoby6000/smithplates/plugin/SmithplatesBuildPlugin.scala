@@ -151,11 +151,12 @@ object SmithplatesBuildPlugin {
               )
             } else {
               val availableServiceNames = serviceIr.services.map(_.shapeId.getName)
+              val availableFullIds      = serviceIr.services.map(s => s"${s.shapeId.getNamespace}#${s.shapeId.getName}")
               serviceFilter match {
                 case Some(filter)
-                    if !filter.exists(name =>
-                      availableServiceNames.contains(name) || availableServiceNames.exists(s =>
-                        s == name.split("#").last)) =>
+                    if !availableServiceNames.exists(name =>
+                      filter.contains(name) || filter.exists(f => f == s"$name") || availableFullIds.exists(
+                        filter.contains)) =>
                   logger.warning(
                     s"smithplates $languageId SQL $entryLabel: no @sqlService matches filter ${filter.toList.sorted.mkString(", ")}; " +
                       s"available services: ${availableServiceNames.mkString(", ")}"
@@ -225,10 +226,11 @@ object SmithplatesBuildPlugin {
             val serviceFilter         = entry.services.map(_.toSet)
             val entryLabel            = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
             val availableServiceNames = serviceIr.services.map(_.shapeId.getName)
+            val availableFullIds      = serviceIr.services.map(s => s"${s.shapeId.getNamespace}#${s.shapeId.getName}")
             serviceFilter match {
               case Some(filter)
-                  if !filter.exists(name =>
-                    availableServiceNames.contains(name) || availableServiceNames.contains(name.split("#").last)) =>
+                  if !availableServiceNames.exists(name => filter.contains(name)) && !availableFullIds.exists(
+                    filter.contains) =>
                 logger.warning(
                   s"smithplates $languageId HTTP $entryLabel: no @httpService matches filter ${filter.toList.sorted.mkString(", ")}; " +
                     s"available services: ${availableServiceNames.mkString(", ")}"
