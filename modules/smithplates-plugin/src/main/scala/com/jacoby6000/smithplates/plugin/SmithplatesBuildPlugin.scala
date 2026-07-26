@@ -45,13 +45,19 @@ object SmithplatesBuildPlugin {
 
     /** Tracks written artifact paths across output entries to detect cross-entry collisions. Server and client passes
       * within the same output entry may legitimately write to the same path (shared model files), so collisions are
-      * only detected across different entries.
+      * only detected across different entries. When the same path is written by a different entry with **identical
+      * content** (e.g. shared `once`-bound artifacts like `conftest.py`), the duplicate write is silently skipped
+      * rather than treated as an error; only differing content at the same path fails the build.
       */
     final class PathCollisionTracker {
-      private val committedPaths = mutable.Set.empty[String]
-      private var entryPaths     = Set.empty[String]
+      private val committedPaths    = mutable.Map.empty[String, String]
+      private var entryPaths        = Set.empty[String]
+      private var entryPathContents = Map.empty[String, String]
 
-      def beginEntry(): Unit = entryPaths = Set.empty[String]
+      def beginEntry(): Unit = {
+        entryPaths = Set.empty[String]
+        entryPathContents = Map.empty[String, String]
+      }
 
       def writeArtifact(
           context: PluginContext,
@@ -59,20 +65,29 @@ object SmithplatesBuildPlugin {
           relativePath: String,
           content: String
       ): Unit = {
+        if (entryPaths.contains(relativePath)) {
+          return
+        }
         entryPaths = entryPaths + relativePath
+        entryPathContents = entryPathContents.updated(relativePath, content)
         SmithplatesBuildPlugin.internal.writeArtifact(context, label, relativePath, content)
       }
 
       def finishEntry(): Unit = {
-        val collisions = entryPaths.intersect(committedPaths.toSet)
+        val collisions = entryPaths.filter { path =>
+          committedPaths.get(path) match {
+            case Some(existingContent) => existingContent != entryPathContents(path)
+            case None                  => false
+          }
+        }
         if (collisions.nonEmpty) {
           throw new IllegalArgumentException(
             s"smithplates plugin path collision: artifact(s) ${collisions.toList.sorted.mkString(", ")} " +
-              s"were already written by a previous outputs entry; " +
+              s"were already written by a previous outputs entry with different content; " +
               s"ensure each output entry uses a distinct sourceOutputDir/testOutputDir or non-overlapping services"
           )
         }
-        committedPaths ++= entryPaths
+        committedPaths ++= entryPathContents
       }
     }
 
@@ -135,6 +150,18 @@ object SmithplatesBuildPlugin {
                 s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
               )
             } else {
+              val availableServiceNames = serviceIr.services.map(_.shapeId.getName)
+              serviceFilter match {
+                case Some(filter)
+                    if !filter.exists(name =>
+                      availableServiceNames.contains(name) || availableServiceNames.exists(s =>
+                        s == name.split("#").last)) =>
+                  logger.warning(
+                    s"smithplates $languageId SQL $entryLabel: no @sqlService matches filter ${filter.toList.sorted.mkString(", ")}; " +
+                      s"available services: ${availableServiceNames.mkString(", ")}"
+                  )
+                case _ => ()
+              }
               overriddenSettings.toCodegenSettings(
                 languageId,
                 entry.sourceOutputDir,
@@ -191,12 +218,23 @@ object SmithplatesBuildPlugin {
           val languageTarget = httpSettings.languageTargets(languageId)
           languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
             pathTracker.beginEntry()
-            val overriddenTarget   = languageTarget.withOutputEntryOverrides(entry)
-            val overriddenSettings = SmithplatesHttpSettings(
+            val overriddenTarget      = languageTarget.withOutputEntryOverrides(entry)
+            val overriddenSettings    = SmithplatesHttpSettings(
               httpSettings.languageTargets.updated(languageId, overriddenTarget)
             )
-            val serviceFilter      = entry.services.map(_.toSet)
-            val entryLabel         = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            val serviceFilter         = entry.services.map(_.toSet)
+            val entryLabel            = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            val availableServiceNames = serviceIr.services.map(_.shapeId.getName)
+            serviceFilter match {
+              case Some(filter)
+                  if !filter.exists(name =>
+                    availableServiceNames.contains(name) || availableServiceNames.contains(name.split("#").last)) =>
+                logger.warning(
+                  s"smithplates $languageId HTTP $entryLabel: no @httpService matches filter ${filter.toList.sorted.mkString(", ")}; " +
+                    s"available services: ${availableServiceNames.mkString(", ")}"
+                )
+              case _ => ()
+            }
             runHttpCodegen(
               context,
               model,
