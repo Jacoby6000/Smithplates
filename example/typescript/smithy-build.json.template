@@ -17,14 +17,18 @@
   "plugins": {
     "smithplates": {
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "rootNamespace": "generated",
           "client": {
             "httpLibrary": "fetch",
             "packageName": "generated.petstoreClient"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
+          ]
         }
       }
     }
