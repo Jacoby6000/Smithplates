@@ -179,7 +179,7 @@ SQL settings live under `smithplates.<language>.sql`. Enable dialects and declar
 }
 ```
 
-Each `outputs` entry supports the same fields as HTTP: `sourceOutputDir` (required), `testOutputDir` (required), `services` (optional, omit to generate all `@sqlService` shapes), and `packageName` (optional). When the model has multiple `@sqlService` shapes for different deployables, use multiple entries:
+Each `outputs` entry supports the same fields as HTTP: `sourceOutputDir` (required), `testOutputDir` (required), `services` (optional — accepts full shape IDs `com.example#ServerDb` or just shape names `ServerDb`; omit or set an empty list to generate all `@sqlService` shapes), and `packageName` (optional). When the model has multiple `@sqlService` shapes for different deployables, use multiple entries:
 
 ```json
 "outputs": [

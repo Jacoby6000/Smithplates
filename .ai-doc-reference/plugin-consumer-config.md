@@ -16,8 +16,11 @@ consumer `smithy-build.json` files.
 ## Language-first `smithplates` key
 
 Configuration under the `smithplates` plugin key is language-first: each top-level
-key is a language id such as `python`, with required `sourceOutputDir` and
-`testOutputDir`, plus optional `sql` and `http` blocks.
+key is a language id such as `python`, with optional `sql` and `http` blocks.
+Output directories (`sourceOutputDir`, `testOutputDir`) are **not** set at the
+language level — they are required fields inside each `sql.outputs[]` and
+`http.outputs[]` entry. Each target's `outputs` array must have at least one
+entry.
 
 ### SQL
 
@@ -25,7 +28,11 @@ SQL dialect keys (`sqlite`, `postgres`) live under `smithplates.<language>.sql`
 and take `enable` (default `false`) and `migrationLocation`. SQL blocks accept
 optional `templateDirectory`, `rootNamespace`, and `packageName`.
 
-Configure SQL outputs in `smithplates.<language>.sql`.
+Configure SQL outputs in `smithplates.<language>.sql.outputs[]` (required).
+Each entry takes `sourceOutputDir`, `testOutputDir`, optional `services` filter
+(accepts full shape IDs `com.example#MyService` or bare names `MyService`; empty
+list = generate all), and optional `packageName`. A warning is logged when a
+`services` filter matches no `@sqlService` in the model.
 
 Consumers can append bundled outputs via `additionalTemplatesDirectory` on the `sql`
 block (and `enableExternalTemplates` on the language entry). See
@@ -37,7 +44,9 @@ HTTP configuration uses `smithplates.<language>.http.server` and/or
 `smithplates.<language>.http.client`.
 
 Configure HTTP server/client outputs in
-`smithplates.<language>.http.server` / `smithplates.<language>.http.client`.
+`smithplates.<language>.http.outputs[]` (required). Each entry takes
+`sourceOutputDir`, `testOutputDir`, optional `services` filter (same semantics
+as SQL), and optional `packageName`.
 
 Consumers can also append bundled outputs via `additionalTemplatesDirectory` on each
 `sql` / `http.server` / `http.client` block (and `enableExternalTemplates` on the

@@ -195,6 +195,19 @@ Each `sql` and `http` target requires an `outputs` array with at least one entry
 
 When a model has multiple services and you want independent output trees (separate source roots, package names, or service filters), add multiple `outputs` entries each with its own `services` filter. A single entry without `services` generates all services into one tree.
 
+### Service filter behavior
+
+- **Shape ID matching:** `services` entries match against either the full Smithy shape ID (`com.example#MyService`) or just the shape name (`MyService`).
+- **Empty list:** `"services": []` is treated as if `services` were omitted — all services are generated.
+- **No matches:** If no `@httpService` or `@sqlService` in the model matches any entry in `services`, a **warning** is logged listing the available services. This helps catch typos in service names.
+- **Model scoping (HTTP only):** HTTP codegen narrows the emitted model set to only shapes referenced by the filtered services. SQL codegen filters services but still passes the full model set to the planner (planned for a future improvement).
+
+### Path collision detection
+
+Each `outputs` entry runs a full codegen pass. Within a single entry, the server and client passes may legitimately write to the same path (shared model files), so same-entry duplicate writes are deduplicated.
+
+Across different `outputs` entries, **identical paths with identical content** (e.g. shared `once`-bound artifacts like `conftest.py` or `http_problem.py`) are silently skipped — they emit the same file, so the second write is a no-op. Identical paths with **differing content** fail the build with a path collision error, directing you to use distinct `sourceOutputDir`/`testOutputDir` values or non-overlapping `services` filters.
+
 `migrationLocation` stays under the enabled dialect config inside `sql` (see [`smithplates.<language>.sql`](#smithplateslanguagesql)) — it is a runtime concept (where migration SQL files are written during build), not a codegen output path, so it is not part of `outputs`.
 
 ## `smithplates.<language>.sql`
@@ -316,6 +329,11 @@ Path collision detection runs at **codegen (plan/render) time**, not during
 namespaces, operation tags, enabled dialects, and path-template placeholders such as
 `{{smithyNamespaceDir}}`), so config validation cannot prove collisions with complete
 certainty before the model is loaded.
+
+In addition to within-pass collisions, Smithplates detects **cross-entry path
+collisions** when multiple `outputs` entries write to the same resolved path with
+**differing content** (see [Path collision detection](#path-collision-detection)
+above). Identical-content writes across entries are silently deduplicated.
 
 #### Static resource outputs
 

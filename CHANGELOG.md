@@ -13,7 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   specifies `sourceOutputDir`, `testOutputDir`, optional `services` filter,
   and optional `packageName` per codegen pass. Multiple entries produce
   independent output trees for multi-service models (e.g. separate API/runner
-  packages from one Smithy model). See issue #57.
+  packages from one Smithy model). The `services` filter accepts both full
+  shape IDs (`com.example#MyService`) and bare shape names (`MyService`);
+  an empty list is treated as omitted. A warning is logged when a `services`
+  filter matches no service in the model. Shared `once`-bound artifacts
+  (e.g. `conftest.py`) written identically by multiple entries are
+  deduplicated; differing content at the same path fails with a collision
+  error. See issue #57.
 - `@sqlAutoIncrement` on integer primary-key members: SQLite
   `INTEGER PRIMARY KEY AUTOINCREMENT`, Postgres `GENERATED ALWAYS AS IDENTITY`.
   Auto-increment columns are omitted from derived inserts.

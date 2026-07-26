@@ -298,6 +298,8 @@ After the first successful `smithy build`:
 | Editing generated sources | Treat them as build output; extend via protocols, adapters, or [custom templates](custom-templates.md). |
 | Expecting incremental migration SQL from model diffs | Only initial schema DDL is generated today — append later `vN_*.sql` files yourself. |
 | Unknown keys in `smithy-build.json` plugin config | Decoding is strict; fix spelling/casing to match [Configuration](configuration.md). |
+| Service filter matches nothing | If `outputs[].services` lists a shape name or ID not in the model, a warning is logged with the available services. Check spelling and namespace. |
+| Path collision across `outputs` entries | Shared `once` artifacts with identical content are deduplicated silently; differing content at the same path fails. Use distinct `sourceOutputDir`/`testOutputDir` per entry or non-overlapping `services` filters. |
 | OpenAPI export of `@websocket` operations | `stripSmithplatesHttpCodegenTraits` does **not** remove `@websocket`; filter those ops or keep them out of the OpenAPI projection. |
 | Forgetting to enable a dialect | Shared SQL models/protocols can emit without dialects; driver implementations and migration DDL need `sqlite.enable` / `postgres.enable`. |
 | Custom `templateDirectory` without `outputs.json` | Every template root must ship a deck — see [Custom templates](custom-templates.md). |
