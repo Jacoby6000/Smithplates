@@ -16,6 +16,7 @@ import software.amazon.smithy.build.SmithyBuildPlugin
 import software.amazon.smithy.model.Model
 
 import java.util.logging.Logger
+import scala.collection.mutable
 import scala.util.control.NonFatal
 
 final class SmithplatesBuildPlugin extends SmithyBuildPlugin {
@@ -41,6 +42,39 @@ object SmithplatesBuildPlugin {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val logger: Logger = Logger.getLogger(classOf[SmithplatesBuildPlugin].getName)
+
+    /** Tracks written artifact paths across output entries to detect cross-entry collisions. Server and client passes
+      * within the same output entry may legitimately write to the same path (shared model files), so collisions are
+      * only detected across different entries.
+      */
+    final class PathCollisionTracker {
+      private val committedPaths = mutable.Set.empty[String]
+      private var entryPaths     = Set.empty[String]
+
+      def beginEntry(): Unit = entryPaths = Set.empty[String]
+
+      def writeArtifact(
+          context: PluginContext,
+          label: String,
+          relativePath: String,
+          content: String
+      ): Unit = {
+        entryPaths = entryPaths + relativePath
+        SmithplatesBuildPlugin.internal.writeArtifact(context, label, relativePath, content)
+      }
+
+      def finishEntry(): Unit = {
+        val collisions = entryPaths.intersect(committedPaths.toSet)
+        if (collisions.nonEmpty) {
+          throw new IllegalArgumentException(
+            s"smithplates plugin path collision: artifact(s) ${collisions.toList.sorted.mkString(", ")} " +
+              s"were already written by a previous outputs entry; " +
+              s"ensure each output entry uses a distinct sourceOutputDir/testOutputDir or non-overlapping services"
+          )
+        }
+        committedPaths ++= entryPaths
+      }
+    }
 
     def warnWhenExternalTemplatesEnabled(settings: SmithplatesSettings): Unit = {
       val externalEnabled =
@@ -84,9 +118,12 @@ object SmithplatesBuildPlugin {
           }
         }
 
+        val pathTracker = new PathCollisionTracker
+
         sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
           val languageTarget = sqlSettings.languageTargets(languageId)
           languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
+            pathTracker.beginEntry()
             val overriddenTarget   = languageTarget.withOutputEntryOverrides(entry)
             val overriddenSettings = SmithplatesSqlSettings(
               sqlSettings.languageTargets.updated(languageId, overriddenTarget)
@@ -107,7 +144,11 @@ object SmithplatesBuildPlugin {
                   SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
                     case Validated.Valid(artifacts) =>
                       artifacts.foreach { artifact =>
-                        writeArtifact(context, s"SQL service $entryLabel", artifact.relativePath, artifact.content)
+                        pathTracker.writeArtifact(
+                          context,
+                          s"SQL service $entryLabel",
+                          artifact.relativePath,
+                          artifact.content)
                       }
                     case Validated.Invalid(errors)  =>
                       throw new IllegalArgumentException(
@@ -121,6 +162,7 @@ object SmithplatesBuildPlugin {
                   )
               }
             }
+            pathTracker.finishEntry()
           }
         }
       } match {
@@ -136,8 +178,9 @@ object SmithplatesBuildPlugin {
         model: Model,
         httpSettings: SmithplatesHttpSettings
     ): Unit = {
-      val serviceIr = HttpIrExtractor.extractOrThrow(model)
+      val serviceIr   = HttpIrExtractor.extractOrThrow(model)
       serviceIr.warnings.foreach(warning => logger.warning(warning.message))
+      val pathTracker = new PathCollisionTracker
 
       httpSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
         if (serviceIr.services.isEmpty) {
@@ -147,6 +190,7 @@ object SmithplatesBuildPlugin {
         } else {
           val languageTarget = httpSettings.languageTargets(languageId)
           languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
+            pathTracker.beginEntry()
             val overriddenTarget   = languageTarget.withOutputEntryOverrides(entry)
             val overriddenSettings = SmithplatesHttpSettings(
               httpSettings.languageTargets.updated(languageId, overriddenTarget)
@@ -162,8 +206,10 @@ object SmithplatesBuildPlugin {
               entry.sourceOutputDir,
               entry.testOutputDir,
               serviceFilter,
-              entryLabel
+              entryLabel,
+              pathTracker
             )
+            pathTracker.finishEntry()
           }
         }
       }
@@ -178,12 +224,20 @@ object SmithplatesBuildPlugin {
         sourceOutputDir: String,
         testOutputDir: String,
         serviceFilter: Option[Set[String]],
-        entryLabel: String
+        entryLabel: String,
+        pathTracker: PathCollisionTracker
     ): Unit = {
       val labelSuffix = if (entryLabel.isEmpty) "" else s" $entryLabel"
       httpSettings.toServerCodegenSettings(languageId, serviceIr, sourceOutputDir, testOutputDir, serviceFilter) match {
         case Validated.Valid(Some(codegenSettings)) =>
-          renderHttpArtifacts(context, model, serviceIr, languageId, s"HTTP service$labelSuffix", codegenSettings)
+          renderHttpArtifacts(
+            context,
+            model,
+            serviceIr,
+            languageId,
+            s"HTTP service$labelSuffix",
+            codegenSettings,
+            pathTracker)
         case Validated.Valid(None)                  => ()
         case Validated.Invalid(errors)              =>
           throw new IllegalArgumentException(
@@ -192,7 +246,14 @@ object SmithplatesBuildPlugin {
       }
       httpSettings.toClientCodegenSettings(languageId, serviceIr, sourceOutputDir, testOutputDir, serviceFilter) match {
         case Validated.Valid(Some(codegenSettings)) =>
-          renderHttpArtifacts(context, model, serviceIr, languageId, s"HTTP client$labelSuffix", codegenSettings)
+          renderHttpArtifacts(
+            context,
+            model,
+            serviceIr,
+            languageId,
+            s"HTTP client$labelSuffix",
+            codegenSettings,
+            pathTracker)
         case Validated.Valid(None)                  => ()
         case Validated.Invalid(errors)              =>
           throw new IllegalArgumentException(
@@ -207,12 +268,13 @@ object SmithplatesBuildPlugin {
         serviceIr: com.jacoby6000.smithplates.http.model.HttpServiceIr,
         languageId: String,
         label: String,
-        codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings
+        codegenSettings: com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenSettings,
+        pathTracker: PathCollisionTracker
     ): Unit =
       HttpServiceCodegenRenderer.render(model, codegenSettings) match {
         case Validated.Valid(artifacts) =>
           artifacts.foreach { artifact =>
-            writeArtifact(context, label, artifact.relativePath, artifact.content)
+            pathTracker.writeArtifact(context, label, artifact.relativePath, artifact.content)
           }
         case Validated.Invalid(errors)  =>
           throw new IllegalArgumentException(

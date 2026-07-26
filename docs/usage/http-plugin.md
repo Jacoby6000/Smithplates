@@ -130,7 +130,7 @@ Each entry in `outputs` supports:
 |-------|----------|-------------|
 | `sourceOutputDir` | Yes | Directory for generated source artifacts. |
 | `testOutputDir` | Yes | Directory for generated test artifacts. |
-| `services` | No | List of `@httpService` shape names to include. Omit to generate all services. |
+| `services` | No | List of `@httpService` shape IDs to include. Accepts either the full shape ID (`com.example#MyService`) or just the shape name (`MyService`). An empty list is treated as omitted. |
 | `packageName` | No | Overrides `server.packageName` / `client.packageName` for this entry's output. |
 
 When `outputs` is absent, all `@httpService` shapes in the model are generated together (existing behavior). When `outputs` is present, each entry runs a full server + client codegen pass scoped to the listed services.

@@ -190,7 +190,7 @@ Each `sql` and `http` target requires an `outputs` array with at least one entry
 |-------|----------|---------|
 | `sourceOutputDir` | Yes | Base output directory for generated source artifacts in this output tree. |
 | `testOutputDir` | Yes | Base output directory for generated test artifacts in this output tree. |
-| `services` | No; omit to generate all services | Filters this output tree to the listed service shape IDs (e.g. `com.example#MyService`). Omit to generate every service in the model. |
+| `services` | No; omit to generate all services | Filters this output tree to the listed service shape IDs. Accepts either the full shape ID (`com.example#MyService`) or just the shape name (`MyService`). An empty list is treated as omitted (generate all services). |
 | `packageName` | No | Override the derived import package for this output tree exactly (overrides `http.server.packageName` / `http.client.packageName` / `sql.packageName`). When omitted, packages include the Smithy service namespace. |
 
 When a model has multiple services and you want independent output trees (separate source roots, package names, or service filters), add multiple `outputs` entries each with its own `services` filter. A single entry without `services` generates all services into one tree.

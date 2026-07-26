@@ -134,7 +134,10 @@ object SqlServiceCodegenRenderer {
       serviceFilter match {
         case None               => services
         case Some(allowedNames) =>
-          services.filter(service => allowedNames.contains(service.id.name))
+          services.filter { service =>
+            val fullName = s"${service.id.namespace}#${service.id.name}"
+            allowedNames.contains(service.id.name) || allowedNames.contains(fullName)
+          }
       }
 
     final case class SqlPlannerTemplateRenderer(

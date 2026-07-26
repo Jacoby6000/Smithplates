@@ -2,6 +2,10 @@
 
 This page separates current shipped behavior from roadmap work.
 
+## Common pitfalls
+
+See [Getting started — Common pitfalls](getting-started.md#common-pitfalls) for the consumer-facing checklist (namespaces, strict config, migrations, OpenAPI + `@websocket`, and more).
+
 ## Current language and framework support
 
 - Bundled SQL service templates are Python-only.

@@ -2,6 +2,21 @@
 
 Guides for **consuming** Smithplates plugins in your Smithy project.
 
+## Which guide do I open?
+
+| I want to… | Open |
+|------------|------|
+| Add the plugin and generate something on day one | [Getting started](getting-started.md) |
+| Look up a `smithy-build.json` setting | [Configuration](configuration.md) |
+| Model SQL tables / repositories / migrations | [SQL plugin](sql-plugin.md) |
+| Model HTTP APIs, clients, or WebSockets | [HTTP plugin](http-plugin.md) ([WebSockets](http-plugin.md#websockets)) |
+| Flatten a request body with `@nestedProperties` | [HTTP plugin — Nested payload bodies](http-plugin.md#nested-payload-bodies) |
+| Extend or replace generated files | [Custom templates](custom-templates.md) |
+| Export OpenAPI alongside Smithplates | [OpenAPI](openapi.md) |
+| Copy a working full-stack layout | [Examples](examples.md) |
+| Know what is *not* supported yet | [Limitations](limitations.md) / [Common pitfalls](getting-started.md#common-pitfalls) |
+| Upgrade from an older plugin version | [Changelog](../../CHANGELOG.md) |
+
 ## Start here
 
 | Document | Topic |

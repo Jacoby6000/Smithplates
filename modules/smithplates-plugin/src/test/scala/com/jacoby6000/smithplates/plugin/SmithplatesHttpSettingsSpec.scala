@@ -856,4 +856,69 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
     val overridden = target.withOutputEntryOverrides(overrides)
     assertEquals(overridden.target.server.getOrElse(fail("expected server")).packageName, Some("generated.server"))
   }
+
+  test("empty services list is treated as None (all services)") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "server": {},
+              "outputs": [
+                { "services": [], "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val outputs = settings.languageTargets("python").target.outputs
+        assertEquals(outputs.head.services, None)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("services list with empty strings filters out blanks") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "server": {},
+              "outputs": [
+                { "services": ["", "ServerApi", ""], "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val outputs = settings.languageTargets("python").target.outputs
+        assertEquals(outputs.head.services, Some(List("ServerApi")))
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects SQL outputs with empty outputs array") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sql": {
+              "rootNamespace": "generated",
+              "outputs": []
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("requires at least one entry in `outputs`")))
+  }
 }

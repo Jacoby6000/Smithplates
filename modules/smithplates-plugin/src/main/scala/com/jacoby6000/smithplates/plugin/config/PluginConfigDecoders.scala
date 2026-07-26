@@ -71,11 +71,12 @@ object PluginConfigDecoders {
         testOutputDir: Option[String] = None,
         packageName: Option[String] = None
     ) {
-      def toDomain: SqlValidated[SqlServiceOutputEntry] =
+      def toDomain: SqlValidated[SqlServiceOutputEntry] = {
+        val servicesFiltered = services.map(_.filter(_.nonEmpty)).filter(_.nonEmpty)
         (sourceOutputDir, testOutputDir) match {
           case (Some(src), Some(test)) =>
             SqlServiceOutputEntry(
-              services = services,
+              services = servicesFiltered,
               sourceOutputDir = src,
               testOutputDir = test,
               packageName = packageName
@@ -89,6 +90,7 @@ object PluginConfigDecoders {
               InvalidPluginConfig("smithplates sql output entry requires `testOutputDir`")
             )
         }
+      }
     }
 
     final case class LanguageTargetJson(
@@ -101,22 +103,28 @@ object PluginConfigDecoders {
         outputs: List[SqlServiceOutputEntryJson] = Nil
     ) {
       def toDomain: SqlValidated[LanguageTarget] =
-        (
-          sqlite.traverse(_.toDomain("sqlite")),
-          postgres.traverse(_.toDomain("postgres")),
-          outputs.traverse(_.toDomain)
-        ).mapN { (sqliteDialect, postgresDialect, outputEntries) =>
-          LanguageTarget(
-            dialects = List(
-              sqliteDialect.map("sqlite" -> _),
-              postgresDialect.map("postgres" -> _)
-            ).flatten.toMap,
-            templateDirectory = templateDirectory,
-            additionalTemplatesDirectory = additionalTemplatesDirectory,
-            rootNamespace = rootNamespace,
-            packageName = packageName,
-            outputs = outputEntries
+        if (outputs.isEmpty) {
+          SqlValidated.invalid(
+            InvalidPluginConfig("smithplates.sql requires at least one entry in `outputs`")
           )
+        } else {
+          (
+            sqlite.traverse(_.toDomain("sqlite")),
+            postgres.traverse(_.toDomain("postgres")),
+            outputs.traverse(_.toDomain)
+          ).mapN { (sqliteDialect, postgresDialect, outputEntries) =>
+            LanguageTarget(
+              dialects = List(
+                sqliteDialect.map("sqlite" -> _),
+                postgresDialect.map("postgres" -> _)
+              ).flatten.toMap,
+              templateDirectory = templateDirectory,
+              additionalTemplatesDirectory = additionalTemplatesDirectory,
+              rootNamespace = rootNamespace,
+              packageName = packageName,
+              outputs = outputEntries
+            )
+          }
         }
     }
 
@@ -156,11 +164,12 @@ object PluginConfigDecoders {
         testOutputDir: Option[String] = None,
         packageName: Option[String] = None
     ) {
-      def toDomain: SqlValidated[HttpServiceOutputEntry] =
+      def toDomain: SqlValidated[HttpServiceOutputEntry] = {
+        val servicesFiltered = services.map(_.filter(_.nonEmpty)).filter(_.nonEmpty)
         (sourceOutputDir, testOutputDir) match {
           case (Some(src), Some(test)) =>
             HttpServiceOutputEntry(
-              services = services,
+              services = servicesFiltered,
               sourceOutputDir = src,
               testOutputDir = test,
               packageName = packageName
@@ -174,6 +183,7 @@ object PluginConfigDecoders {
               InvalidPluginConfig("smithplates http output entry requires `testOutputDir`")
             )
         }
+      }
     }
 
     final case class HttpLanguageTargetJson(

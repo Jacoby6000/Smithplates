@@ -426,6 +426,81 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         fail(errors.map(_.message).toList.mkString("; "))
     }
   }
+
+  test("HttpServiceCodegenRenderer matches services by full shape ID") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AlphaApi {
+          |    version: "1"
+          |    operations: [GetAlpha]
+          |}
+          |
+          |@httpService
+          |service BetaApi {
+          |    version: "1"
+          |    operations: [GetBeta]
+          |}
+          |
+          |@tags(["alpha"])
+          |@http(method: "GET", uri: "/alpha/{id}", code: 200)
+          |operation GetAlpha {
+          |    input: GetAlphaInput
+          |    output: AlphaOutput
+          |}
+          |
+          |@tags(["beta"])
+          |@http(method: "GET", uri: "/beta/{id}", code: 200)
+          |operation GetBeta {
+          |    input: GetBetaInput
+          |    output: BetaOutput
+          |}
+          |
+          |structure GetAlphaInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure AlphaOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure GetBetaInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure BetaOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val fullShapeIdSettings =
+      HttpServiceCodegenRendererSpec.internal.defaultFastApiSettings(
+        model,
+        serviceFilter = Some(Set("example#AlphaApi"))
+      )
+    HttpServiceCodegenRenderer.render(model, fullShapeIdSettings) match {
+      case Validated.Valid(filteredArtifacts) =>
+        val filteredPaths = filteredArtifacts.map(_.relativePath).toSet
+        assert(filteredPaths.exists(_.contains("alpha")), s"expected alpha artifacts with full shape ID filter")
+        assert(!filteredPaths.exists(_.contains("beta")), s"expected no beta artifacts with full shape ID filter")
+      case Validated.Invalid(errors)          =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
 }
 object HttpServiceCodegenRendererSpec {
 
