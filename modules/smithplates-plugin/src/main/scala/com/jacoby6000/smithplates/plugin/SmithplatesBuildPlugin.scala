@@ -85,29 +85,38 @@ object SmithplatesBuildPlugin {
         }
 
         sqlSettings.languageTargets.keySet.toList.sorted.foreach { languageId =>
-          sqlSettings.toCodegenSettings(languageId) match {
-            case Validated.Valid(Some(codegenSettings)) =>
-              if (serviceIr.services.isEmpty) {
-                logger.info(
-                  s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
-                )
-              } else {
-                SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
-                  case Validated.Valid(artifacts) =>
-                    artifacts.foreach { artifact =>
-                      writeArtifact(context, s"SQL service", artifact.relativePath, artifact.content)
-                    }
-                  case Validated.Invalid(errors)  =>
-                    throw new IllegalArgumentException(
-                      s"smithplates plugin failed $languageId SQL codegen validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
-                    )
-                }
-              }
-            case Validated.Valid(None)                  => ()
-            case Validated.Invalid(errors)              =>
-              throw new IllegalArgumentException(
-                s"smithplates plugin failed $languageId SQL codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+          val languageTarget = sqlSettings.languageTargets(languageId)
+          languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
+            val overriddenTarget = languageTarget.withOutputEntryOverrides(entry)
+            val overriddenSettings = SmithplatesSqlSettings(
+              sqlSettings.languageTargets.updated(languageId, overriddenTarget)
+            )
+            val serviceFilter = entry.services.map(_.toSet)
+            val entryLabel    = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            if (serviceIr.services.isEmpty) {
+              logger.info(
+                s"Skipping $languageId SQL service codegen: Smithy model contains no @sqlService services"
               )
+            } else {
+              overriddenSettings.toCodegenSettings(languageId, entry.sourceOutputDir, entry.testOutputDir, serviceFilter) match {
+                case Validated.Valid(Some(codegenSettings)) =>
+                  SqlServiceCodegenRenderer.render(model, schema, serviceIr, codegenSettings) match {
+                    case Validated.Valid(artifacts) =>
+                      artifacts.foreach { artifact =>
+                        writeArtifact(context, s"SQL service $entryLabel", artifact.relativePath, artifact.content)
+                      }
+                    case Validated.Invalid(errors)  =>
+                      throw new IllegalArgumentException(
+                        s"smithplates plugin failed $languageId SQL codegen validation: ${SqlValidated.toPluginExceptionMessage(errors)}"
+                      )
+                  }
+                case Validated.Valid(None)                  => ()
+                case Validated.Invalid(errors)              =>
+                  throw new IllegalArgumentException(
+                    s"smithplates plugin failed $languageId SQL codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+                  )
+              }
+            }
           }
         }
       } match {
@@ -132,25 +141,52 @@ object SmithplatesBuildPlugin {
             s"Skipping $languageId HTTP codegen: Smithy model contains no @httpService services"
           )
         } else {
-          httpSettings.toServerCodegenSettings(languageId, serviceIr) match {
-            case Validated.Valid(Some(codegenSettings)) =>
-              renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP service", codegenSettings)
-            case Validated.Valid(None)                  => ()
-            case Validated.Invalid(errors)              =>
-              throw new IllegalArgumentException(
-                s"smithplates plugin failed $languageId HTTP server codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
-              )
-          }
-          httpSettings.toClientCodegenSettings(languageId, serviceIr) match {
-            case Validated.Valid(Some(codegenSettings)) =>
-              renderHttpArtifacts(context, model, serviceIr, languageId, "HTTP client", codegenSettings)
-            case Validated.Valid(None)                  => ()
-            case Validated.Invalid(errors)              =>
-              throw new IllegalArgumentException(
-                s"smithplates plugin failed $languageId HTTP client codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
-              )
+          val languageTarget = httpSettings.languageTargets(languageId)
+          languageTarget.target.outputs.zipWithIndex.foreach { case (entry, index) =>
+            val overriddenTarget = languageTarget.withOutputEntryOverrides(entry)
+            val overriddenSettings = SmithplatesHttpSettings(
+              httpSettings.languageTargets.updated(languageId, overriddenTarget)
+            )
+            val serviceFilter = entry.services.map(_.toSet)
+            val entryLabel    = s"output[${index}] (services=${entry.services.getOrElse(Nil).mkString(", ")})"
+            runHttpCodegen(
+              context, model, serviceIr, overriddenSettings, languageId,
+              entry.sourceOutputDir, entry.testOutputDir, serviceFilter, entryLabel
+            )
           }
         }
+      }
+    }
+
+    def runHttpCodegen(
+        context: PluginContext,
+        model: Model,
+        serviceIr: com.jacoby6000.smithplates.http.model.HttpServiceIr,
+        httpSettings: SmithplatesHttpSettings,
+        languageId: String,
+        sourceOutputDir: String,
+        testOutputDir: String,
+        serviceFilter: Option[Set[String]],
+        entryLabel: String
+    ): Unit = {
+      val labelSuffix = if (entryLabel.isEmpty) "" else s" $entryLabel"
+      httpSettings.toServerCodegenSettings(languageId, serviceIr, sourceOutputDir, testOutputDir, serviceFilter) match {
+        case Validated.Valid(Some(codegenSettings)) =>
+          renderHttpArtifacts(context, model, serviceIr, languageId, s"HTTP service$labelSuffix", codegenSettings)
+        case Validated.Valid(None)                  => ()
+        case Validated.Invalid(errors)              =>
+          throw new IllegalArgumentException(
+            s"smithplates plugin failed $languageId HTTP server codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+          )
+      }
+      httpSettings.toClientCodegenSettings(languageId, serviceIr, sourceOutputDir, testOutputDir, serviceFilter) match {
+        case Validated.Valid(Some(codegenSettings)) =>
+          renderHttpArtifacts(context, model, serviceIr, languageId, s"HTTP client$labelSuffix", codegenSettings)
+        case Validated.Valid(None)                  => ()
+        case Validated.Invalid(errors)              =>
+          throw new IllegalArgumentException(
+            s"smithplates plugin failed $languageId HTTP client codegen settings: ${SqlValidated.toPluginExceptionMessage(errors)}"
+          )
       }
     }
 

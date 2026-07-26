@@ -33,11 +33,12 @@ class SmithplatesBuildPluginSpec extends FunSuite {
       .parseJson(s"""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "enableExternalTemplates": $enabled,
             "http": {
-              "server": {}
+              "server": {},
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }

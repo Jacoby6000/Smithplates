@@ -15,6 +15,24 @@ The plugin extracts **SQL IR** (tables, relationships, derived DML) from the Smi
 
 See [Architecture](../contributing/architecture.md) for the full pipeline diagram and implementation mapping. Settings live in [Configuration](configuration.md); this page focuses on modeling and generated SQL behavior.
 
+## Trait cheat sheet
+
+| Trait / shape | Apply to | Purpose |
+|---------------|----------|---------|
+| `@sqlTable` | structure | Marks a persistence table |
+| `@sqlPrimaryKey` | member | Primary key column |
+| `@sqlAutoUuid` | string member | DB-generated UUID PK (omit from inserts) |
+| `@sqlAutoIncrement` | `Integer` member | Serial PK (SQLite `AUTOINCREMENT` / Postgres `IDENTITY`; omit from inserts) |
+| `@sqlForeignKey` | member | FK to another `@sqlTable` |
+| `@sqlIndex` / `@sqlUniqueIndex` | member | Secondary / unique indexes (unique FK → one-to-one) |
+| `@sqlColumn` / `@sqlVarchar` / `@sqlUuid` / `@sqlJson` | member (or type) | Column naming and SQL types |
+| `@sqlCreatedTimestamp` / `@sqlUpdatedTimestamp` | member | Managed timestamps (omit from insert/update inputs) |
+| `DerivedStruct` | operation I/O | Sentinel expanded by derive traits |
+| `@sqlDeriveInsert` / `Update` / `Delete` / `SelectOne` / `Select` | operation | Generate DML from the target table |
+| `@sqlService` | service | Repository service with a flat `operations` list |
+
+Full trait tables and SPI details: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).
+
 ## `smithplates` SQL outputs
 
 | Config | Output |
@@ -138,5 +156,46 @@ Trait tables, Smithy examples, template context fields, SPI entries, and Python 
 → [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md)
 
 ## Configuration
+
+SQL settings live under `smithplates.<language>.sql`. Enable dialects and declare `outputs` entries:
+
+```json
+{
+  "plugins": {
+    "smithplates": {
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+Each `outputs` entry supports the same fields as HTTP: `sourceOutputDir` (required), `testOutputDir` (required), `services` (optional, omit to generate all `@sqlService` shapes), and `packageName` (optional). When the model has multiple `@sqlService` shapes for different deployables, use multiple entries:
+
+```json
+"outputs": [
+  {
+    "services": ["ServerDb"],
+    "sourceOutputDir": "src/generated/server",
+    "testOutputDir": "server/tests"
+  },
+  {
+    "services": ["RunnerDb"],
+    "sourceOutputDir": "src/generated/runner",
+    "testOutputDir": "runner/tests"
+  }
+]
+```
+
+`migrationLocation` stays per-dialect and is separate from codegen output directories — it controls where the runtime migration service writes versioned `.sql` files, not where generated code lands.
 
 See [Configuration](configuration.md) for the settings matrix and [Integration](integration.md) for a combined SQL + HTTP walkthrough. Trait and template details: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).

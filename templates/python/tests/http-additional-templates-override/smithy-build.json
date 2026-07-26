@@ -6,14 +6,18 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "http": {
           "server": {
             "webFramework": "fastapi",
             "packageName": "generated.ping_api",
             "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-override"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

@@ -6,13 +6,17 @@
   "plugins": {
     "smithplates": {
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "http": {
           "client": {
             "httpLibrary": "axios",
             "packageName": "generated.warehouseApiClient"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

@@ -6,15 +6,19 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "enableExternalTemplates": true,
         "http": {
           "server": {
             "webFramework": "fastapi",
             "packageName": "generated.ping_api",
             "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

@@ -340,6 +340,92 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     assert(enumArtifact.contains("class WidgetStatus(StrEnum)"))
     assert(enumArtifact.contains("ACTIVE = \"ACTIVE\""))
   }
+
+  test("HttpServiceCodegenRenderer filters services by serviceFilter") {
+    val model = HttpTestModelLoader.assemble(
+      "example.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#tags
+          |
+          |@httpService
+          |service AlphaApi {
+          |    version: "1"
+          |    operations: [GetAlpha]
+          |}
+          |
+          |@httpService
+          |service BetaApi {
+          |    version: "1"
+          |    operations: [GetBeta]
+          |}
+          |
+          |@tags(["alpha"])
+          |@http(method: "GET", uri: "/alpha/{id}", code: 200)
+          |operation GetAlpha {
+          |    input: GetAlphaInput
+          |    output: AlphaOutput
+          |}
+          |
+          |@tags(["beta"])
+          |@http(method: "GET", uri: "/beta/{id}", code: 200)
+          |operation GetBeta {
+          |    input: GetBetaInput
+          |    output: BetaOutput
+          |}
+          |
+          |structure GetAlphaInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure AlphaOutput {
+          |    @required
+          |    id: String
+          |}
+          |
+          |structure GetBetaInput {
+          |    @required
+          |    @httpLabel
+          |    id: String
+          |}
+          |
+          |structure BetaOutput {
+          |    @required
+          |    id: String
+          |}
+          |""".stripMargin
+    )
+
+    val allSettings =
+      HttpServiceCodegenRendererSpec.internal.defaultFastApiSettings(model)
+    HttpServiceCodegenRenderer.render(model, allSettings) match {
+      case Validated.Valid(allArtifacts) =>
+        val allPaths = allArtifacts.map(_.relativePath).toSet
+        assert(allPaths.exists(_.contains("alpha")), s"expected alpha artifacts without filter")
+        assert(allPaths.exists(_.contains("beta")), s"expected beta artifacts without filter")
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+
+    val filteredSettings =
+      HttpServiceCodegenRendererSpec.internal.defaultFastApiSettings(
+        model,
+        serviceFilter = Some(Set("AlphaApi"))
+      )
+    HttpServiceCodegenRenderer.render(model, filteredSettings) match {
+      case Validated.Valid(filteredArtifacts) =>
+        val filteredPaths = filteredArtifacts.map(_.relativePath).toSet
+        assert(filteredPaths.exists(_.contains("alpha")), s"expected alpha artifacts with filter")
+        assert(!filteredPaths.exists(_.contains("beta")), s"expected no beta artifacts with filter")
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
 }
 object HttpServiceCodegenRendererSpec {
 
@@ -364,25 +450,7 @@ object HttpServiceCodegenRendererSpec {
         model: software.amazon.smithy.model.Model,
         routeGroupTag: String = "v1_widgets"
     ): List[HttpCodegenArtifact] = {
-      val settings =
-        HttpServiceCodegenSettings(
-          templateDirectory = PythonServerTemplateDirectory,
-          defaultFrameworkKey = "fastapi",
-          enabledFrameworkKeys = List("fastapi"),
-          sourceOutputDirectory = Some("src/generated"),
-          testOutputDirectory = Some("tests"),
-          artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
-            serverTemplateDirectory = PythonServerTemplateDirectory,
-            modelsTemplateDirectory = PythonModelsTemplateDirectory,
-            frameworkKeys = List("fastapi"),
-            emitModels = true
-          ),
-          rootNamespace = RootNamespace,
-          packageNameOverride = None,
-          modelsPackageNameOverride = None,
-          emitModels = true,
-          modelTemplateDirectory = Some(PythonModelsTemplateDirectory)
-        )
+      val settings = defaultFastApiSettings(model)
 
       HttpServiceCodegenRenderer.render(model, settings) match {
         case Validated.Valid(artifacts) => artifacts
@@ -390,5 +458,29 @@ object HttpServiceCodegenRendererSpec {
           throw new IllegalStateException(errors.map(_.message).toList.mkString("; "))
       }
     }
+
+    def defaultFastApiSettings(
+        model: software.amazon.smithy.model.Model,
+        serviceFilter: Option[Set[String]] = None
+    ): HttpServiceCodegenSettings =
+      HttpServiceCodegenSettings(
+        templateDirectory = PythonServerTemplateDirectory,
+        defaultFrameworkKey = "fastapi",
+        enabledFrameworkKeys = List("fastapi"),
+        sourceOutputDirectory = Some("src/generated"),
+        testOutputDirectory = Some("tests"),
+        artifacts = HttpServiceCodegenApiArtifacts.forEnabledFrameworks(
+          serverTemplateDirectory = PythonServerTemplateDirectory,
+          modelsTemplateDirectory = PythonModelsTemplateDirectory,
+          frameworkKeys = List("fastapi"),
+          emitModels = true
+        ),
+        rootNamespace = RootNamespace,
+        packageNameOverride = None,
+        modelsPackageNameOverride = None,
+        emitModels = true,
+        modelTemplateDirectory = Some(PythonModelsTemplateDirectory),
+        serviceFilter = serviceFilter
+      )
   }
 }

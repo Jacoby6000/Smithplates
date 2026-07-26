@@ -5,9 +5,11 @@ import com.jacoby6000.smithplates.codegen.core.json.StrictJsonDecoding.makeStric
 import com.jacoby6000.smithplates.plugin.HttpClientTarget
 import com.jacoby6000.smithplates.plugin.HttpLanguageTarget
 import com.jacoby6000.smithplates.plugin.HttpServerTarget
+import com.jacoby6000.smithplates.plugin.HttpServiceOutputEntry
 import com.jacoby6000.smithplates.plugin.LanguageTarget
 import com.jacoby6000.smithplates.plugin.SmithplatesSqlSettings
 import com.jacoby6000.smithplates.plugin.SqlDialectSettings
+import com.jacoby6000.smithplates.plugin.SqlServiceOutputEntry
 import com.jacoby6000.smithplates.sql.SqlValidated
 import com.jacoby6000.smithplates.sql.model.InvalidPluginConfig
 import io.circe.Decoder
@@ -18,11 +20,17 @@ object PluginConfigDecoders {
   given Decoder[internal.SqlDialectJson] =
     deriveDecoder[internal.SqlDialectJson].makeStrict
 
+  given Decoder[internal.SqlServiceOutputEntryJson] =
+    deriveDecoder[internal.SqlServiceOutputEntryJson].makeStrict
+
   given Decoder[internal.HttpServerTargetJson] =
     deriveDecoder[internal.HttpServerTargetJson].makeStrict
 
   given Decoder[internal.HttpClientTargetJson] =
     deriveDecoder[internal.HttpClientTargetJson].makeStrict
+
+  given Decoder[internal.HttpServiceOutputEntryJson] =
+    deriveDecoder[internal.HttpServiceOutputEntryJson].makeStrict
 
   given Decoder[internal.HttpLanguageTargetJson] =
     deriveDecoder[internal.HttpLanguageTargetJson].makeStrict
@@ -57,19 +65,47 @@ object PluginConfigDecoders {
       }
     }
 
+    final case class SqlServiceOutputEntryJson(
+        services: Option[List[String]] = None,
+        sourceOutputDir: Option[String] = None,
+        testOutputDir: Option[String] = None,
+        packageName: Option[String] = None
+    ) {
+      def toDomain: SqlValidated[SqlServiceOutputEntry] =
+        (sourceOutputDir, testOutputDir) match {
+          case (Some(src), Some(test)) =>
+            SqlServiceOutputEntry(
+              services = services,
+              sourceOutputDir = src,
+              testOutputDir = test,
+              packageName = packageName
+            ).validNel
+          case (None, _)                =>
+            SqlValidated.invalid(
+              InvalidPluginConfig("smithplates sql output entry requires `sourceOutputDir`")
+            )
+          case (_, None)               =>
+            SqlValidated.invalid(
+              InvalidPluginConfig("smithplates sql output entry requires `testOutputDir`")
+            )
+        }
+    }
+
     final case class LanguageTargetJson(
         sqlite: Option[SqlDialectJson] = None,
         postgres: Option[SqlDialectJson] = None,
         templateDirectory: Option[String] = None,
         additionalTemplatesDirectory: Option[String] = None,
         rootNamespace: Option[String] = None,
-        packageName: Option[String] = None
+        packageName: Option[String] = None,
+        outputs: List[SqlServiceOutputEntryJson] = Nil
     ) {
       def toDomain: SqlValidated[LanguageTarget] =
         (
           sqlite.traverse(_.toDomain("sqlite")),
-          postgres.traverse(_.toDomain("postgres"))
-        ).mapN { (sqliteDialect, postgresDialect) =>
+          postgres.traverse(_.toDomain("postgres")),
+          outputs.traverse(_.toDomain)
+        ).mapN { (sqliteDialect, postgresDialect, outputEntries) =>
           LanguageTarget(
             dialects = List(
               sqliteDialect.map("sqlite" -> _),
@@ -78,7 +114,8 @@ object PluginConfigDecoders {
             templateDirectory = templateDirectory,
             additionalTemplatesDirectory = additionalTemplatesDirectory,
             rootNamespace = rootNamespace,
-            packageName = packageName
+            packageName = packageName,
+            outputs = outputEntries
           )
         }
     }
@@ -113,19 +150,59 @@ object PluginConfigDecoders {
         )
     }
 
+    final case class HttpServiceOutputEntryJson(
+        services: Option[List[String]] = None,
+        sourceOutputDir: Option[String] = None,
+        testOutputDir: Option[String] = None,
+        packageName: Option[String] = None
+    ) {
+      def toDomain: SqlValidated[HttpServiceOutputEntry] =
+        (sourceOutputDir, testOutputDir) match {
+          case (Some(src), Some(test)) =>
+            HttpServiceOutputEntry(
+              services = services,
+              sourceOutputDir = src,
+              testOutputDir = test,
+              packageName = packageName
+            ).validNel
+          case (None, _)                =>
+            SqlValidated.invalid(
+              InvalidPluginConfig("smithplates http output entry requires `sourceOutputDir`")
+            )
+          case (_, None)               =>
+            SqlValidated.invalid(
+              InvalidPluginConfig("smithplates http output entry requires `testOutputDir`")
+            )
+        }
+    }
+
     final case class HttpLanguageTargetJson(
         server: Option[HttpServerTargetJson] = None,
         client: Option[HttpClientTargetJson] = None,
         rootNamespace: Option[String] = None,
-        modelsPackageName: Option[String] = None
+        modelsPackageName: Option[String] = None,
+        outputs: List[HttpServiceOutputEntryJson] = Nil
     ) {
-      def toDomain: HttpLanguageTarget =
-        HttpLanguageTarget(
-          server = server.map(_.toDomain),
-          client = client.map(_.toDomain),
-          rootNamespace = rootNamespace,
-          modelsPackageName = modelsPackageName
-        )
+      def toDomain: SqlValidated[HttpLanguageTarget] =
+        if (server.isEmpty && client.isEmpty) {
+          SqlValidated.invalid(
+            InvalidPluginConfig("smithplates.http requires `server` and/or `client`")
+          )
+        } else if (outputs.isEmpty) {
+          SqlValidated.invalid(
+            InvalidPluginConfig("smithplates.http requires at least one entry in `outputs`")
+          )
+        } else {
+          outputs.traverse(_.toDomain).map { outputEntries =>
+            HttpLanguageTarget(
+              server = server.map(_.toDomain),
+              client = client.map(_.toDomain),
+              rootNamespace = rootNamespace,
+              modelsPackageName = modelsPackageName,
+              outputs = outputEntries
+            )
+          }
+        }
     }
   }
 }

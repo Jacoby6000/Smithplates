@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Per-service output scoping: the `outputs` array on `http` and `sql` targets
+  specifies `sourceOutputDir`, `testOutputDir`, optional `services` filter,
+  and optional `packageName` per codegen pass. Multiple entries produce
+  independent output trees for multi-service models (e.g. separate API/runner
+  packages from one Smithy model). See issue #57.
 - `@sqlAutoIncrement` on integer primary-key members: SQLite
   `INTEGER PRIMARY KEY AUTOINCREMENT`, Postgres `GENERATED ALWAYS AS IDENTITY`.
   Auto-increment columns are omitted from derived inserts.
@@ -18,8 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** `sourceOutputDir` and `testOutputDir` are no longer set at the
+  language level. They are now required fields in each `http.outputs[]` /
+  `sql.outputs[]` entry. The `outputs` array itself is required — at least one
+  entry must be specified. Existing configs must migrate by moving
+  `sourceOutputDir`/`testOutputDir` into an `outputs` array inside each
+  `http` and/or `sql` target block.
 - Documentation refresh for post-`v0.3.0` behavior, namespace-aware SQL artifact
   paths, consumer decks, TypeScript clients, and WebSockets.
+- Consumer usage docs: guide chooser, day-1 checklist, version discovery,
+  wiring snippets, trait cheat sheets, common pitfalls, and a custom-templates
+  append tutorial.
+- Petstore reference now demonstrates `@sqlAutoIncrement` (`OrderLine.id`) and
+  `@nestedProperties` on `UpdatePetInput.body`.
+- Safer SQLite boolean column coercion with dialect-specific `_read_bool_col`
+  helpers and a `sql-boolean-column` golden case.
 
 ## [0.3.0] - 2026-07-17
 

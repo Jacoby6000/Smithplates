@@ -36,8 +36,6 @@ object SmithplatesSettings {
           case (languageId, config) if config.sql.isDefined =>
             languageId -> SmithplatesSqlLanguageTarget(
               target = config.sql.get,
-              sourceOutputDir = config.sourceOutputDir,
-              testOutputDir = config.testOutputDir,
               enableExternalTemplates = config.enableExternalTemplates
             )
         }
@@ -45,8 +43,6 @@ object SmithplatesSettings {
           case (languageId, config) if config.http.isDefined =>
             languageId -> SmithplatesHttpLanguageTarget(
               target = config.http.get,
-              sourceOutputDir = config.sourceOutputDir,
-              testOutputDir = config.testOutputDir,
               enableExternalTemplates = config.enableExternalTemplates
             )
         }
@@ -80,83 +76,74 @@ object SmithplatesSettings {
     def parseLanguage(
         languageId: String,
         json: Json
-    ): SqlValidated[SmithplatesLanguageConfiguration] =
-      (
-        PluginConfigMembers.requiredStringMember(
-          json,
-          "sourceOutputDir",
-          s"smithplates.$languageId requires `sourceOutputDir`"
-        ),
-        PluginConfigMembers.requiredStringMember(
-          json,
-          "testOutputDir",
-          s"smithplates.$languageId requires `testOutputDir`"
-        )
-      ).mapN { (sourceOutputDir, testOutputDir) =>
-        (sourceOutputDir, testOutputDir)
-      }.andThen { case (sourceOutputDir, testOutputDir) =>
-        val enableExternalTemplates =
-          PluginConfigMembers.optionalBooleanMember(json, "enableExternalTemplates").getOrElse(false)
-        json.asObject.toList
-          .flatMap(_.toList)
-          .traverse { case (key, memberJson) =>
-            key.toLowerCase match {
-              case "sourceoutputdir" | "testoutputdir" | "enableexternaltemplates" =>
-                None.validNel
-              case "sql"                                                           =>
-                if (memberJson.isObject) {
-                  LanguageTarget
-                    .parse(languageId, memberJson)
-                    .map(target => Some(Left(target): Either[LanguageTarget, HttpLanguageTarget]))
-                } else {
-                  SqlValidated.invalid(
-                    InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
-                  )
-                }
-              case "http"                                                          =>
-                if (memberJson.isObject) {
-                  HttpLanguageTarget
-                    .parse(languageId, memberJson)
-                    .map(target => Some(Right(target): Either[LanguageTarget, HttpLanguageTarget]))
-                } else {
-                  SqlValidated.invalid(
-                    InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
-                  )
-                }
-              case other                                                           =>
-                SqlValidated.invalid(
-                  InvalidPluginConfig(
-                    s"smithplates.$languageId contains unknown key '$other'; expected `sql`, `http`, " +
-                      "`sourceOutputDir`, `testOutputDir`, or `enableExternalTemplates`"
-                  )
+    ): SqlValidated[SmithplatesLanguageConfiguration] = {
+      val enableExternalTemplates =
+        PluginConfigMembers.optionalBooleanMember(json, "enableExternalTemplates").getOrElse(false)
+      json.asObject.toList
+        .flatMap(_.toList)
+        .traverse { case (key, memberJson) =>
+          key.toLowerCase match {
+            case "enableexternaltemplates" =>
+              None.validNel
+            case "sourceoutputdir" | "testoutputdir" =>
+              SqlValidated.invalid(
+                InvalidPluginConfig(
+                  s"smithplates.$languageId: `sourceOutputDir` and `testOutputDir` have been removed; " +
+                    "specify them per-entry in the target's `outputs` array instead"
                 )
-            }
+              )
+            case "sql"                                                           =>
+              if (memberJson.isObject) {
+                LanguageTarget
+                  .parse(languageId, memberJson)
+                  .map(target => Some(Left(target): Either[LanguageTarget, HttpLanguageTarget]))
+              } else {
+                SqlValidated.invalid(
+                  InvalidPluginConfig(s"smithplates.$languageId.sql must be an object")
+                )
+              }
+            case "http"                                                          =>
+              if (memberJson.isObject) {
+                HttpLanguageTarget
+                  .parse(languageId, memberJson)
+                  .map(target => Some(Right(target): Either[LanguageTarget, HttpLanguageTarget]))
+              } else {
+                SqlValidated.invalid(
+                  InvalidPluginConfig(s"smithplates.$languageId.http must be an object")
+                )
+              }
+            case other                                                           =>
+              SqlValidated.invalid(
+                InvalidPluginConfig(
+                  s"smithplates.$languageId contains unknown key '$other'; expected `sql`, `http`, " +
+                    "or `enableExternalTemplates`"
+                )
+              )
           }
-          .andThen { entries =>
-            val sqlTargets  = entries.flatten.collect { case Left(target) => target }
-            val httpTargets = entries.flatten.collect { case Right(target) => target }
-            if (sqlTargets.isEmpty && httpTargets.isEmpty) {
-              SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId requires at least one of `sql` or `http`")
-              )
-            } else if (sqlTargets.size > 1) {
-              SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId contains duplicate `sql` entries")
-              )
-            } else if (httpTargets.size > 1) {
-              SqlValidated.invalid(
-                InvalidPluginConfig(s"smithplates.$languageId contains duplicate `http` entries")
-              )
-            } else {
-              SmithplatesLanguageConfiguration(
-                sourceOutputDir = sourceOutputDir,
-                testOutputDir = testOutputDir,
-                enableExternalTemplates = enableExternalTemplates,
-                sql = sqlTargets.headOption,
-                http = httpTargets.headOption
-              ).validNel
-            }
+        }
+        .andThen { entries =>
+          val sqlTargets  = entries.flatten.collect { case Left(target) => target }
+          val httpTargets = entries.flatten.collect { case Right(target) => target }
+          if (sqlTargets.isEmpty && httpTargets.isEmpty) {
+            SqlValidated.invalid(
+              InvalidPluginConfig(s"smithplates.$languageId requires at least one of `sql` or `http`")
+            )
+          } else if (sqlTargets.size > 1) {
+            SqlValidated.invalid(
+              InvalidPluginConfig(s"smithplates.$languageId contains duplicate `sql` entries")
+            )
+          } else if (httpTargets.size > 1) {
+            SqlValidated.invalid(
+              InvalidPluginConfig(s"smithplates.$languageId contains duplicate `http` entries")
+            )
+          } else {
+            SmithplatesLanguageConfiguration(
+              enableExternalTemplates = enableExternalTemplates,
+              sql = sqlTargets.headOption,
+              http = httpTargets.headOption
+            ).validNel
           }
-      }
+        }
+    }
   }
 }

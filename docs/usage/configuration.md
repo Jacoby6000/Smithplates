@@ -7,17 +7,23 @@ Smithplates settings live under the `smithplates` plugin key in `smithy-build.js
   "plugins": {
     "smithplates": {
       "<language>": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
-        "sql": {},
-        "http": {}
+        "sql": {
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
+        },
+        "http": {
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
+        }
       }
     }
   }
 }
 ```
 
-Each language entry requires `sourceOutputDir` and `testOutputDir` once at the language level. SQL and HTTP codegen for that language share those output roots. At least one language entry must contain `sql` or `http`. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
+`sourceOutputDir` and `testOutputDir` are configured **per output entry** inside the `outputs` arrays of each target (`http` and `sql`), not at the language level. At least one language entry must contain `sql` or `http`, and each `sql`/`http` target requires an `outputs` array with at least one entry. Settings validation accumulates errors and reports them at the Smithy build plugin boundary.
 
 ## Maven dependency
 
@@ -53,13 +59,14 @@ Use this when a project only wants database schema, repository protocols, dialec
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       }
     }
@@ -83,24 +90,26 @@ Use this when a project only wants generated FastAPI wiring and/or HTTP clients 
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "server": {
             "webFramework": "fastapi"
           },
           "client": {
             "httpLibrary": "httpx"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       },
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "client": {
             "httpLibrary": "fetch"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       }
     }
@@ -124,21 +133,25 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
             "migrationLocation": "db/migrations/sqlite"
           },
-          "rootNamespace": "generated"
+          "rootNamespace": "generated",
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         },
         "http": {
           "rootNamespace": "generated",
           "server": {
             "webFramework": "fastapi",
             "packageName": "generated.api"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       }
     }
@@ -146,15 +159,43 @@ Use the same language entry with both `sql` and `http`. Keep SQL and HTTP Smithy
 }
 ```
 
-## Language-level output directories
+## Language-level fields
+
+The language entry (`smithplates.<language>`) only carries `enableExternalTemplates` plus the `sql` and `http` target configs. Output directories are **not** set here — they live inside each target's `outputs` array (see [Output entry fields](#output-entry-fields)).
 
 | Field | Required | Meaning |
 |-------|----------|---------|
-| `sourceOutputDir` | Yes | Base output directory for generated source artifacts (SQL and HTTP). |
-| `testOutputDir` | Yes | Base output directory for generated test artifacts (SQL and HTTP). |
 | `enableExternalTemplates` | No; default `false` | When `true`, allows `additionalTemplatesDirectory` to reference SSP templates outside the bundled classpath (see [Custom outputs](#custom-codegen-outputs)). Emits a build warning because external SSP executes arbitrary Scala at build time. |
 
-Do not set `sourceOutputDir` or `testOutputDir` under `sql`, `http.server`, or `http.client`; configure them once on `smithplates.<language>`.
+Do not set `sourceOutputDir` or `testOutputDir` at the language level, under a dialect, or under `http.server`/`http.client`; configure them inside each target's `outputs` array.
+
+## Output entry fields
+
+Each `sql` and `http` target requires an `outputs` array with at least one entry. Every entry generates an independent output tree rooted at its own `sourceOutputDir`/`testOutputDir`.
+
+```json
+"http": {
+  "outputs": [
+    {
+      "sourceOutputDir": "src/generated",
+      "testOutputDir": "tests",
+      "services": ["com.example.inventory#InventoryService"],
+      "packageName": "generated.api"
+    }
+  ]
+}
+```
+
+| Field | Required | Meaning |
+|-------|----------|---------|
+| `sourceOutputDir` | Yes | Base output directory for generated source artifacts in this output tree. |
+| `testOutputDir` | Yes | Base output directory for generated test artifacts in this output tree. |
+| `services` | No; omit to generate all services | Filters this output tree to the listed service shape IDs (e.g. `com.example#MyService`). Omit to generate every service in the model. |
+| `packageName` | No | Override the derived import package for this output tree exactly (overrides `http.server.packageName` / `http.client.packageName` / `sql.packageName`). When omitted, packages include the Smithy service namespace. |
+
+When a model has multiple services and you want independent output trees (separate source roots, package names, or service filters), add multiple `outputs` entries each with its own `services` filter. A single entry without `services` generates all services into one tree.
+
+`migrationLocation` stays under the enabled dialect config inside `sql` (see [`smithplates.<language>.sql`](#smithplateslanguagesql)) — it is a runtime concept (where migration SQL files are written during build), not a codegen output path, so it is not part of `outputs`.
 
 ## `smithplates.<language>.sql`
 
@@ -162,12 +203,11 @@ SQL configuration has two independent concerns:
 
 - Dialect keys (`sqlite`, `postgres`) control build-time migration DDL and dialect-specific generated implementations.
 - `templateDirectory`, `rootNamespace`, and `packageName` control template selection and Python import packages for `@sqlService` artifacts in that language.
+- `outputs` (required) declares the per-tree codegen output roots and optional per-tree service filters — see [Output entry fields](#output-entry-fields).
 
 ```json
 {
   "python": {
-    "sourceOutputDir": "src/generated",
-    "testOutputDir": "tests",
     "sql": {
       "sqlite": {
         "enable": true,
@@ -177,7 +217,10 @@ SQL configuration has two independent concerns:
         "enable": true,
         "migrationLocation": "db/migrations/postgres"
       },
-      "rootNamespace": "generated"
+      "rootNamespace": "generated",
+      "outputs": [
+        { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+      ]
     }
   }
 }
@@ -191,18 +234,17 @@ SQL configuration has two independent concerns:
 | `packageName` | No | Override the derived SQL import package exactly (for example `generated.db`). When omitted, packages include the Smithy service namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root. Bundled Python uses the packaged templates by default. A custom root must also contain an [`outputs.json` output deck](custom-templates.md#output-deck-outputsjson) beside the templates. |
 | `additionalTemplatesDirectory` | No | Classpath (or external, with `enableExternalTemplates`) root containing an `outputs.json` deck appended to the bundled SQL deck. See [Custom outputs](configuration.md#custom-codegen-outputs). |
+| `outputs` | Yes | Array of output tree entries (`sourceOutputDir`, `testOutputDir`, optional `services`, optional `packageName`). See [Output entry fields](#output-entry-fields). |
 
-When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template.
+When a language `sql` block is configured with no enabled dialects, Smithplates renders only shared model and protocol artifacts. That shared output is dialect-free: it does not require a query renderer, DDL renderer, migration location, or dialect-specific template. `outputs` is still required.
 
 ## `smithplates.<language>.http`
 
-HTTP configuration lives beside SQL under the language entry and contains `server` and/or `client` objects:
+HTTP configuration lives beside SQL under the language entry and contains `server` and/or `client` objects plus the required `outputs` array:
 
 ```json
 {
   "python": {
-    "sourceOutputDir": "src/generated",
-    "testOutputDir": "tests",
     "http": {
       "server": {
         "webFramework": "fastapi",
@@ -211,7 +253,10 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
       "client": {
         "httpLibrary": "httpx",
         "packageName": "generated.api_client"
-      }
+      },
+      "outputs": [
+        { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+      ]
     }
   }
 }
@@ -221,7 +266,7 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 |-------|----------|---------|
 | `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled server today. |
 | `httpLibrary` | No; default `httpx` for Python | HTTP client library. Bundled values: `httpx` (Python), `fetch` or `axios` (TypeScript). |
-| `packageName` | No | Override the derived import package for server or client output exactly. When omitted, packages include the Smithy service namespace. |
+| `packageName` | No | Default derived import package for server or client output. Overridden per output tree by `outputs[].packageName`. When both are omitted, packages include the Smithy service namespace. |
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
 | `modelsPackageName` | No | Override the derived models import package exactly. When omitted, per-shape model packages include each shape's Smithy namespace. |
 | `templateDirectory` | Required for non-bundled languages | Classpath template root for custom HTTP templates. A custom root must also contain an [`outputs.json` output deck](custom-templates.md#output-deck-outputsjson) beside the templates. |
@@ -241,11 +286,12 @@ beside its templates — the same layout as bundled language template roots unde
 ```json
 {
   "python": {
-    "sourceOutputDir": "src/generated",
-    "testOutputDir": "tests",
     "sql": {
       "sqlite": { "enable": true, "migrationLocation": "db/migrations/sqlite" },
-      "additionalTemplatesDirectory": "classpath:my-templates/sql"
+      "additionalTemplatesDirectory": "classpath:my-templates/sql",
+      "outputs": [
+        { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+      ]
     }
   }
 }

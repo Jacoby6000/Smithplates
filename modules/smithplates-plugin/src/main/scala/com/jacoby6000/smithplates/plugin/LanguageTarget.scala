@@ -12,12 +12,20 @@ import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenDbArtifa
 import com.jacoby6000.smithplates.sql.service.renderer.SqlServiceCodegenSettings
 import io.circe.Json
 
+final case class SqlServiceOutputEntry(
+    services: Option[List[String]],
+    sourceOutputDir: String,
+    testOutputDir: String,
+    packageName: Option[String]
+)
+
 final case class LanguageTarget(
     dialects: Map[String, SqlDialectSettings],
     templateDirectory: Option[String],
     additionalTemplatesDirectory: Option[String] = None,
     rootNamespace: Option[String],
-    packageName: Option[String]
+    packageName: Option[String],
+    outputs: List[SqlServiceOutputEntry] = Nil
 ) {
   def enabledDialectKeys: List[String] =
     SmithplatesSqlSettings.OrderedDialectKeys.filter(key => dialects.get(key).exists(_.enabled))
@@ -29,7 +37,8 @@ final case class LanguageTarget(
       schemaDdlRenderers: Map[String, SqlSchemaDdlRenderer],
       migrationDirectories: Map[String, String],
       sourceOutputDir: String,
-      testOutputDir: String
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
   ): SqlValidated[SqlServiceCodegenSettings] = {
     val defaultDialectKey = enabledDialectKeys.headOption.getOrElse(SqlServiceCodegenSettings.SharedDialectKey)
     val templateDirectory = LanguageTargetTemplateValidator.resolveTemplateDirectory(this, languageId)
@@ -48,7 +57,8 @@ final case class LanguageTarget(
           testOutputDirectory = Some(testOutputDir),
           artifacts = artifacts,
           rootNamespace = rootNamespace,
-          packageNameOverride = packageName
+          packageNameOverride = packageName,
+          serviceFilter = serviceFilter
         )
       }
   }

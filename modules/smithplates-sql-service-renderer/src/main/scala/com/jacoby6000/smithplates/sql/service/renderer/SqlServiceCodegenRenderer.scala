@@ -55,7 +55,8 @@ final case class SqlServiceCodegenSettings(
     testOutputDirectory: Option[String] = None,
     artifacts: List[CodegenOutput],
     rootNamespace: Option[String],
-    packageNameOverride: Option[String] = None
+    packageNameOverride: Option[String] = None,
+    serviceFilter: Option[Set[String]] = None
 )
 
 object SqlServiceCodegenSettings {
@@ -73,6 +74,7 @@ object SqlServiceCodegenRenderer {
       internal.toSqlValidated(SqlCoreModelExtractor.extract(model)),
       internal.sqlCodegenSettings(settings)
     ).mapN((_, _)).andThen { case ((modelSet, services), codegenSettings) =>
+      val filteredServices = internal.filterServices(services, settings.serviceFilter)
       val templateRenderer =
         internal.SqlPlannerTemplateRenderer(model, schema, serviceIr, settings)
       internal
@@ -80,13 +82,13 @@ object SqlServiceCodegenRenderer {
           CodegenPlanner.plan(
             settings.artifacts,
             modelSet,
-            services,
+            filteredServices,
             codegenSettings,
             templateRenderer
           )
         )
         .andThen { artifacts =>
-          services
+          filteredServices
             .traverse(service =>
               internal.contextForService(
                 model,
@@ -124,6 +126,16 @@ object SqlServiceCodegenRenderer {
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
     val SkipArtifactContent: String = "__SMITHPLATES_SKIP_SQL_ARTIFACT__"
+
+    def filterServices[S, O](
+        services: List[ServiceModel[S, O]],
+        serviceFilter: Option[Set[String]]
+    ): List[ServiceModel[S, O]] =
+      serviceFilter match {
+        case None               => services
+        case Some(allowedNames) =>
+          services.filter(service => allowedNames.contains(service.id.name))
+      }
 
     final case class SqlPlannerTemplateRenderer(
         model: SmithyModel,

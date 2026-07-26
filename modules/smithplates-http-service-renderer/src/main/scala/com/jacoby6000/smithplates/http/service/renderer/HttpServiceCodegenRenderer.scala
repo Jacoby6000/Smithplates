@@ -32,8 +32,9 @@ object HttpServiceCodegenRenderer {
       internal.toHttpValidated(HttpCoreModelExtractor.extract(model)),
       internal.toHttpValidated(HttpCodegenLanguageConventions.codegenSettings(settings))
     ).mapN((_, _)).andThen { case ((modelSet, services), codegenSettings) =>
+      val filteredServices = internal.filterServices(services, settings.serviceFilter)
       val emittableModels  =
-        internal.emittableModelSet(modelSet, services)
+        internal.emittableModelSet(modelSet, filteredServices)
       val templateRenderer =
         internal.HttpPlannerTemplateRenderer(settings)
       internal
@@ -41,7 +42,7 @@ object HttpServiceCodegenRenderer {
           CodegenPlanner.plan(
             settings.artifacts,
             emittableModels,
-            services,
+            filteredServices,
             codegenSettings,
             templateRenderer,
             resolutionModels = Some(modelSet)
@@ -78,6 +79,16 @@ object HttpServiceCodegenRenderer {
       val emittedModelIds = services.flatMap(_.meta.feature.emittedModelIds).toSet
       ModelSet(modelSet.all.filter(model => emittedModelIds.contains(model.id)))
     }
+
+    def filterServices(
+        services: List[ServiceModel[HttpServiceMeta, HttpOperationMeta]],
+        serviceFilter: Option[Set[String]]
+    ): List[ServiceModel[HttpServiceMeta, HttpOperationMeta]] =
+      serviceFilter match {
+        case None              => services
+        case Some(allowedNames) =>
+          services.filter(service => allowedNames.contains(service.id.name))
+      }
 
     def renderNeutralTemplate[S, M](
         settings: HttpServiceCodegenSettings,
