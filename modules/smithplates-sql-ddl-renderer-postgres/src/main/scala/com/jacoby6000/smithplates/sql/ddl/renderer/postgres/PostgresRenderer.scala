@@ -30,7 +30,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
     )
     val isAutoIncrement = column.autoGeneration.contains(SqlAutoIncrement)
     if (isAutoIncrement) {
-      s"${column.name} INTEGER GENERATED ALWAYS AS IDENTITY"
+      s"${column.name} INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY"
     } else {
       SqlShared.renderColumnLine(
         column.name,

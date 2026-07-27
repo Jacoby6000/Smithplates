@@ -45,14 +45,12 @@ CREATE TABLE categories (
 
 -- petstore.db#OrderLine
 CREATE TABLE order_lines (
-    id UUID NOT NULL DEFAULT gen_random_uuid(),
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id UUID NOT NULL /* FK -> orders (id) */,
     pet_id TEXT NOT NULL,
     quantity INTEGER NOT NULL,
     unit_price_cents BIGINT NOT NULL,
-    fulfillment JSONB NOT NULL,
-
-    PRIMARY KEY (id)
+    fulfillment JSONB NOT NULL
 );
 
 -- petstore.db#Pet

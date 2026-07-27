@@ -6,13 +6,17 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "http": {
           "client": {
             "httpLibrary": "httpx",
             "packageName": "generated.warehouse_api_client"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

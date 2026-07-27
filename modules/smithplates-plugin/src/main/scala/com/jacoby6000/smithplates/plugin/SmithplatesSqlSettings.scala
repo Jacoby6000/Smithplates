@@ -28,7 +28,12 @@ final case class SmithplatesSqlSettings(
         .map(dialectKey -> _)
     }.toMap
 
-  def toCodegenSettings(languageId: String): SqlValidated[Option[SqlServiceCodegenSettings]] =
+  def toCodegenSettings(
+      languageId: String,
+      sourceOutputDir: String,
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
+  ): SqlValidated[Option[SqlServiceCodegenSettings]] =
     languageTargets.get(languageId) match {
       case None                 => Option.empty[SqlServiceCodegenSettings].validNel
       case Some(languageTarget) =>
@@ -40,8 +45,9 @@ final case class SmithplatesSqlSettings(
             queryRenderers = DialectRenderers.queryRenderersForKeys(enabledKeys),
             schemaDdlRenderers = DialectRenderers.schemaDdlRenderersForKeys(enabledKeys),
             migrationDirectories = dialectMigrationDirectories.view.filterKeys(enabledKeys.toSet).toMap,
-            sourceOutputDir = languageTarget.sourceOutputDir,
-            testOutputDir = languageTarget.testOutputDir
+            sourceOutputDir = sourceOutputDir,
+            testOutputDir = testOutputDir,
+            serviceFilter = serviceFilter
           )
           .map(Some(_))
     }

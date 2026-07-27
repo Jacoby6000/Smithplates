@@ -25,7 +25,8 @@ final case class HttpServerTarget(
       modelsPackageNameOverride: Option[String],
       emitModels: Boolean,
       sourceOutputDir: String,
-      testOutputDir: String
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
   ): SqlValidated[HttpServiceCodegenSettings] = {
     val _                       = routeGroupTags
     val serverTemplateDirectory =
@@ -55,7 +56,8 @@ final case class HttpServerTarget(
               sourceOutputDir = sourceOutputDir,
               testOutputDir = testOutputDir,
               artifacts = artifacts,
-              modelTemplateDirectory = Some(modelsTemplateDirectory)
+              modelTemplateDirectory = Some(modelsTemplateDirectory),
+              serviceFilter = serviceFilter
             )
           }
       }
@@ -75,7 +77,8 @@ final case class HttpClientTarget(
       modelsPackageNameOverride: Option[String],
       emitModels: Boolean,
       sourceOutputDir: String,
-      testOutputDir: String
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
   ): SqlValidated[HttpServiceCodegenSettings] = {
     val _                       = routeGroupTags
     val clientTemplateDirectory =
@@ -105,18 +108,27 @@ final case class HttpClientTarget(
               sourceOutputDir = sourceOutputDir,
               testOutputDir = testOutputDir,
               artifacts = artifacts,
-              modelTemplateDirectory = Some(modelsTemplateDirectory)
+              modelTemplateDirectory = Some(modelsTemplateDirectory),
+              serviceFilter = serviceFilter
             )
           }
       }
   }
 }
 
+final case class HttpServiceOutputEntry(
+    services: Option[List[String]],
+    sourceOutputDir: String,
+    testOutputDir: String,
+    packageName: Option[String]
+)
+
 final case class HttpLanguageTarget(
     server: Option[HttpServerTarget],
     client: Option[HttpClientTarget],
     rootNamespace: Option[String],
-    modelsPackageName: Option[String]
+    modelsPackageName: Option[String],
+    outputs: List[HttpServiceOutputEntry]
 )
 
 object HttpLanguageTarget {
@@ -127,15 +139,7 @@ object HttpLanguageTarget {
     import PluginConfigDecoders.given
     PluginConfigDecoding
       .decode[PluginConfigDecoders.internal.HttpLanguageTargetJson](languageId, "http", json)
-      .andThen { config =>
-        if (config.server.isEmpty && config.client.isEmpty) {
-          InvalidPluginConfig(
-            s"smithplates.$languageId.http requires `server` and/or `client`"
-          ).invalidNel
-        } else {
-          config.toDomain.validNel
-        }
-      }
+      .andThen(_.toDomain)
   }
 
   private[plugin] def buildCodegenSettings(
@@ -149,7 +153,8 @@ object HttpLanguageTarget {
       sourceOutputDir: String,
       testOutputDir: String,
       artifacts: List[CodegenOutput],
-      modelTemplateDirectory: Option[String]
+      modelTemplateDirectory: Option[String],
+      serviceFilter: Option[Set[String]] = None
   ): HttpServiceCodegenSettings =
     HttpServiceCodegenSettings(
       templateDirectory = templateDirectory,
@@ -162,7 +167,8 @@ object HttpLanguageTarget {
       packageNameOverride = packageNameOverride,
       modelsPackageNameOverride = modelsPackageNameOverride,
       emitModels = emitModels,
-      modelTemplateDirectory = modelTemplateDirectory
+      modelTemplateDirectory = modelTemplateDirectory,
+      serviceFilter = serviceFilter
     )
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */

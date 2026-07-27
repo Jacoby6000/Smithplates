@@ -19,9 +19,9 @@ Shared Smithy models live under [`example/petstore-smithy-spec/`](../../example/
 | TypeScript axios/fetch clients | TypeScript (`fetch`) | `templates/typescript/tests/http-*` |
 | Shared `HttpProblem` | Python + TypeScript | HTTP goldens |
 | `@websocket` | Python petstore (`PetEvents`) + generated TS client module | Python + TypeScript HTTP goldens; how-to: [HTTP plugin — WebSockets](http-plugin.md#websockets) |
-| `@sqlAutoIncrement` | Not in petstore Smithy | Python DB goldens |
-| `@nestedProperties` body binding | Not in petstore Smithy | Python + TypeScript HTTP goldens |
-| `additionalTemplatesDirectory` | Not in petstore | Golden cases under template test suites |
+| `@sqlAutoIncrement` | Python (`OrderLine.id`) | Python DB goldens |
+| `@nestedProperties` body binding | Python (`UpdatePet`) | Python + TypeScript HTTP goldens |
+| `additionalTemplatesDirectory` | Not in petstore | Golden cases under template test suites; tutorial: [Custom templates](custom-templates.md#tutorial-append-a-custom-artifact) |
 
 Prefer the petstore examples for end-to-end consumer layout. Prefer golden fixtures under [`templates/python/tests/`](../../templates/python/tests/) and [`templates/typescript/tests/`](../../templates/typescript/tests/) when inspecting newer trait or deck behavior.
 

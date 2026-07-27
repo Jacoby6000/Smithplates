@@ -58,6 +58,8 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 | **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes (`@websocket`), response helpers, and problem+json errors | Python |
 | **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) |
 
+**New consumer?** Start with [Getting started](docs/usage/getting-started.md).
+
 WebSockets: annotate an `@httpService` operation with `@websocket` (plus `@http` URI and `@tags`). See [HTTP plugin — WebSockets](docs/usage/http-plugin.md#websockets).
 
 
@@ -80,7 +82,7 @@ implementations without overwriting any generated outputs.  These tools never ou
 | **Users** (consume plugins in your Smithy project) | [`docs/usage/`](docs/usage/) |
 | **Contributors** (develop Smithplates) | [`docs/contributing/`](docs/contributing/) |
 
-**Usage:** [Getting started](docs/usage/getting-started.md) · [Configuration](docs/usage/configuration.md) · [SQL plugin](docs/usage/sql-plugin.md) · [HTTP plugin](docs/usage/http-plugin.md) · [Custom templates](docs/usage/custom-templates.md) · [Examples](docs/usage/examples.md) · [Limitations](docs/usage/limitations.md)
+**Usage:** [Getting started](docs/usage/getting-started.md) · [Configuration](docs/usage/configuration.md) · [SQL plugin](docs/usage/sql-plugin.md) · [HTTP plugin](docs/usage/http-plugin.md) · [Custom templates](docs/usage/custom-templates.md) · [Examples](docs/usage/examples.md) · [Limitations](docs/usage/limitations.md) · [Changelog](CHANGELOG.md)
 
 **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Getting started](docs/contributing/getting-started.md) · [Architecture](docs/contributing/architecture.md) · [Testing](docs/contributing/testing.md) · [Template authoring](docs/contributing/template-authoring.md)
 

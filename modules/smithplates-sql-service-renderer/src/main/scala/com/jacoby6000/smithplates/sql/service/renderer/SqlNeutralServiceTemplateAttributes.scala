@@ -627,13 +627,13 @@ object SqlNeutralServiceTemplateAttributes {
 
     def colReaderPartialPath(reader: String, dialectKey: String): Option[String] =
       reader match {
-        case "_read_bool_col" | "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
+        case "_read_bytes_col" | "_read_decimal_col" | "_read_float_col" | "_read_int_col" =>
           Some(s"fragments/row_readers/${reader.stripPrefix("_")}")
-        case "_read_datetime_col" | "_read_str_col"                                                           =>
+        case "_read_bool_col" | "_read_datetime_col" | "_read_str_col"                     =>
           Some(s"fragments/row_readers/${reader.stripPrefix("_")}_$dialectKey")
-        case "_read_epoch_seconds_col"                                                                        =>
+        case "_read_epoch_seconds_col"                                                     =>
           Some("fragments/row_readers/read_epoch_seconds_postgres_col")
-        case _                                                                                                =>
+        case _                                                                             =>
           None
       }
 

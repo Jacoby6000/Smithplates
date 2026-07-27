@@ -71,6 +71,7 @@ Class | Method | HTTP request | Description
 *DefaultApi* | [**get_order**](petstore_client/docs/DefaultApi.md#get_order) | **GET** /orders/{orderId} | 
 *DefaultApi* | [**get_pet**](petstore_client/docs/DefaultApi.md#get_pet) | **GET** /pets/{petId} | 
 *DefaultApi* | [**health_check**](petstore_client/docs/DefaultApi.md#health_check) | **GET** /health | 
+*DefaultApi* | [**pet_events**](petstore_client/docs/DefaultApi.md#pet_events) | **GET** /pets/events | 
 *DefaultApi* | [**place_order**](petstore_client/docs/DefaultApi.md#place_order) | **POST** /orders | 
 *DefaultApi* | [**resolve_pet_location**](petstore_client/docs/DefaultApi.md#resolve_pet_location) | **GET** /pets/{petId}/location | 
 *DefaultApi* | [**update_pet**](petstore_client/docs/DefaultApi.md#update_pet) | **PUT** /pets/{petId} | 
@@ -100,10 +101,17 @@ Class | Method | HTTP request | Description
  - [PetAttribute](petstore_client/docs/PetAttribute.md)
  - [PetAttributeValue](petstore_client/docs/PetAttributeValue.md)
  - [PetDetail](petstore_client/docs/PetDetail.md)
+ - [PetEventsRequestContent](petstore_client/docs/PetEventsRequestContent.md)
+ - [PetEventsResponseContent](petstore_client/docs/PetEventsResponseContent.md)
  - [PetNotFoundResponseContent](petstore_client/docs/PetNotFoundResponseContent.md)
+ - [PetPing](petstore_client/docs/PetPing.md)
+ - [PetPong](petstore_client/docs/PetPong.md)
  - [PetProfileSummary](petstore_client/docs/PetProfileSummary.md)
  - [PetSpecies](petstore_client/docs/PetSpecies.md)
  - [PetStatus](petstore_client/docs/PetStatus.md)
+ - [PetStatusChanged](petstore_client/docs/PetStatusChanged.md)
+ - [PetSubscription](petstore_client/docs/PetSubscription.md)
+ - [PetWelcome](petstore_client/docs/PetWelcome.md)
  - [PlaceOrderRequestContent](petstore_client/docs/PlaceOrderRequestContent.md)
  - [PlaceOrderResponseContent](petstore_client/docs/PlaceOrderResponseContent.md)
  - [PostalAddress](petstore_client/docs/PostalAddress.md)

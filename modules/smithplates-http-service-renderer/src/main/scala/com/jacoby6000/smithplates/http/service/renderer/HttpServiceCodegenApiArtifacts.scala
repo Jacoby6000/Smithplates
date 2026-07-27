@@ -68,7 +68,8 @@ final case class HttpServiceCodegenSettings(
     packageNameOverride: Option[String] = None,
     modelsPackageNameOverride: Option[String] = None,
     emitModels: Boolean = true,
-    modelTemplateDirectory: Option[String] = None
+    modelTemplateDirectory: Option[String] = None,
+    serviceFilter: Option[Set[String]] = None
 ) {
   def resolvedModelTemplateDirectory: String =
     modelTemplateDirectory.getOrElse(templateDirectory)

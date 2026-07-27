@@ -5,7 +5,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | **str** |  | 
+**id** | **float** |  | 
 **order_id** | **str** |  | 
 **pet_id** | **str** |  | 
 **quantity** | **float** |  | 

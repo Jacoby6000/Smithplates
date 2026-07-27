@@ -27,7 +27,7 @@ class OrderLineDetail(BaseModel):
     """
     OrderLineDetail
     """ # noqa: E501
-    id: StrictStr
+    id: Union[StrictFloat, StrictInt]
     order_id: StrictStr
     pet_id: StrictStr
     quantity: Union[StrictFloat, StrictInt]

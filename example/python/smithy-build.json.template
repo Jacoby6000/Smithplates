@@ -17,8 +17,6 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -28,7 +26,13 @@
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
           },
-          "rootNamespace": "generated"
+          "rootNamespace": "generated",
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
+          ]
         },
         "http": {
           "rootNamespace": "generated",
@@ -37,7 +41,13 @@
           },
           "client": {
             "httpLibrary": "httpx"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "tests"
+            }
+          ]
         }
       }
     }

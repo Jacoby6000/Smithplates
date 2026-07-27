@@ -13,6 +13,83 @@ There are two consumer extension modes:
 
 Filesystem (non-classpath) SSP directories also require language-level `enableExternalTemplates: true` and emit a build warning because SSP executes arbitrary Scala at build time. Full settings detail: [Configuration — Custom codegen outputs](configuration.md#custom-codegen-outputs).
 
+## Tutorial: append a custom artifact
+
+This walkthrough adds one extra file next to bundled SQL output without replacing the whole deck.
+
+### 1. Create a small template tree
+
+```text
+my-templates/sql/
+  outputs.json
+  EXTRA_README.md
+```
+
+`EXTRA_README.md` can be plain text — non-`.ssp` paths listed as `type: "template"` are copied verbatim:
+
+```markdown
+# Companion note
+
+This file was emitted by a consumer `additionalTemplatesDirectory` deck.
+```
+
+### 2. Declare the deck
+
+`my-templates/sql/outputs.json`:
+
+```json
+{
+  "shared": [
+    {
+      "id": "consumer.sql.extra_readme",
+      "artifactKind": "src",
+      "template": "EXTRA_README.md",
+      "outputPath": "{{smithyNamespaceDir}}/EXTRA_README.md",
+      "binding": { "type": "once" }
+    }
+  ]
+}
+```
+
+Pick a unique `id` that does not collide with bundled ids in [`templates/python/src/db/outputs.json`](../../templates/python/src/db/outputs.json). Use a `.ssp` template and a `service` / `model` binding when you need generated content from the IR — copy patterns from the bundled deck.
+
+### 3. Point the language SQL block at it
+
+Classpath packaging (JAR / Smithy resources):
+
+```json
+"sql": {
+  "sqlite": { "enable": true, "migrationLocation": "db/migrations/sqlite" },
+  "additionalTemplatesDirectory": "classpath:my-templates/sql"
+}
+```
+
+Filesystem path during local builds:
+
+```json
+"python": {
+  "enableExternalTemplates": true,
+  "sql": {
+    "sqlite": { "enable": true, "migrationLocation": "db/migrations/sqlite" },
+    "additionalTemplatesDirectory": "/absolute/or/repo-relative/my-templates/sql",
+    "outputs": [
+      { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+    ]
+  }
+}
+```
+
+`enableExternalTemplates: true` is required for non-classpath SSP and prints a security warning — SSP can run arbitrary Scala at build time. Verbatim non-`.ssp` copies still go through the same directory setting.
+
+### 4. Override a bundled file (optional)
+
+To replace an existing artifact, set `"overrides": "<bundled-id>"` on your output (for example `"python.sql.db.service_protocol"`). The bundled entry is dropped; yours is kept. Duplicate resolved output paths still fail at plan/render time.
+
+### 5. Full deck replacement
+
+When you need a new language or an entirely custom artifact set, set `templateDirectory` to a root that ships a **complete** `outputs.json` (not an append). Copy a bundled deck as a starting point and delete what you do not need.
+
+Golden coverage for append/override/external flows lives under `templates/python/tests/sql-additional-templates-*` and related HTTP cases.
 ## SQL templates
 
 Configure SQL templates per language target:
@@ -20,10 +97,11 @@ Configure SQL templates per language target:
 ```json
 {
   "python": {
-    "sourceOutputDir": "src/generated",
-    "testOutputDir": "tests",
     "sql": {
-      "templateDirectory": "classpath:custom-templates/python/src/db"
+      "templateDirectory": "classpath:custom-templates/python/src/db",
+      "outputs": [
+        { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+      ]
     }
   }
 }
@@ -45,13 +123,14 @@ Configure HTTP templates under each language's `server` (and/or `client`) settin
 ```json
 {
   "python": {
-    "sourceOutputDir": "src/generated",
-    "testOutputDir": "tests",
     "http": {
       "server": {
         "webFramework": "fastapi",
         "templateDirectory": "classpath:custom-templates/python/src/http/server"
-      }
+      },
+      "outputs": [
+        { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+      ]
     }
   }
 }

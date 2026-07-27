@@ -9,6 +9,7 @@ use smithy.api#httpHeader
 use smithy.api#httpLabel
 use smithy.api#httpPayload
 use smithy.api#idempotent
+use smithy.api#nestedProperties
 use smithy.api#readonly
 use smithy.api#required
 use smithy.api#suppress
@@ -193,6 +194,7 @@ structure UpdatePetInput {
     petId: String
 
     @httpPayload
+    @nestedProperties
     @required
     body: UpdatePetBody
 }
@@ -341,7 +343,7 @@ list OrderLineDetailList {
 
 structure OrderLineDetail {
     @required
-    id: String
+    id: Integer
     @required
     order_id: String
     @required

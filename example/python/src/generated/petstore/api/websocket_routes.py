@@ -32,13 +32,18 @@ def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
         await websocket.send_text(message.model_dump_json(exclude_none=True))
 
     @websocket_router.websocket("/pets/events")
-    async def _pet_events_websocket(websocket: WebSocket) -> None:
+    async def _pet_events_websocket(
+        websocket: WebSocket,
+    ) -> None:
         await websocket.accept()
         try:
             while True:
                 raw = await websocket.receive_text()
                 message = _pet_events_input_adapter.validate_python(json.loads(raw))
-                await handlers.handle_pet_events(websocket, message)
+                await handlers.handle_pet_events(
+                    websocket,
+                    message=message,
+                )
         except WebSocketDisconnect:
             return
 

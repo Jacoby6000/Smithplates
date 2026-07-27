@@ -10,7 +10,10 @@ final case class SmithplatesHttpSettings(
 ) {
   def toServerCodegenSettings(
       languageId: String,
-      serviceIr: HttpServiceIr
+      serviceIr: HttpServiceIr,
+      sourceOutputDir: String,
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
   ): SqlValidated[Option[HttpServiceCodegenSettings]] =
     languageTargets.get(languageId) match {
       case None                 => Option.empty[HttpServiceCodegenSettings].validNel
@@ -27,8 +30,9 @@ final case class SmithplatesHttpSettings(
                 rootNamespace = context.rootNamespace,
                 modelsPackageNameOverride = context.modelsPackageNameOverride,
                 emitModels = context.emitModels,
-                sourceOutputDir = languageTarget.sourceOutputDir,
-                testOutputDir = languageTarget.testOutputDir
+                sourceOutputDir = sourceOutputDir,
+                testOutputDir = testOutputDir,
+                serviceFilter = serviceFilter
               )
               .map(Some(_))
         }
@@ -36,7 +40,10 @@ final case class SmithplatesHttpSettings(
 
   def toClientCodegenSettings(
       languageId: String,
-      serviceIr: HttpServiceIr
+      serviceIr: HttpServiceIr,
+      sourceOutputDir: String,
+      testOutputDir: String,
+      serviceFilter: Option[Set[String]] = None
   ): SqlValidated[Option[HttpServiceCodegenSettings]] =
     languageTargets.get(languageId) match {
       case None                 => Option.empty[HttpServiceCodegenSettings].validNel
@@ -57,8 +64,9 @@ final case class SmithplatesHttpSettings(
                 rootNamespace = context.rootNamespace,
                 modelsPackageNameOverride = context.modelsPackageNameOverride,
                 emitModels = context.emitModels,
-                sourceOutputDir = languageTarget.sourceOutputDir,
-                testOutputDir = languageTarget.testOutputDir
+                sourceOutputDir = sourceOutputDir,
+                testOutputDir = testOutputDir,
+                serviceFilter = serviceFilter
               )
               .map(Some(_))
         }

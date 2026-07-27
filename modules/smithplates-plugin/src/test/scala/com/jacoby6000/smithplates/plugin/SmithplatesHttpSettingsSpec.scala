@@ -11,12 +11,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "packageName": "generated.rendering_pipeline_api"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -25,8 +26,10 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       case Validated.Valid(settings) =>
         assertEquals(settings.languageTargets.keySet, Set("python"))
         val languageTarget = settings.languageTargets("python")
-        assertEquals(languageTarget.sourceOutputDir, "src/generated")
-        assertEquals(languageTarget.testOutputDir, "tests")
+        val outputs        = languageTarget.target.outputs
+        assertEquals(outputs.length, 1)
+        assertEquals(outputs.head.sourceOutputDir, "src/generated")
+        assertEquals(outputs.head.testOutputDir, "tests")
         val target         = languageTarget.target
         assertEquals(target.server.map(_.webFramework), Some(None))
         assertEquals(target.client, None)
@@ -42,12 +45,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "packageName": "generated.warehouse_api_client"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -55,8 +59,10 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
       case Validated.Valid(settings) =>
         val languageTarget = settings.languageTargets("python")
-        assertEquals(languageTarget.sourceOutputDir, "src/generated")
-        assertEquals(languageTarget.testOutputDir, "tests")
+        val outputs        = languageTarget.target.outputs
+        assertEquals(outputs.length, 1)
+        assertEquals(outputs.head.sourceOutputDir, "src/generated")
+        assertEquals(outputs.head.testOutputDir, "tests")
         val target         = languageTarget.target
         assertEquals(target.server, None)
         assertEquals(target.client.map(_.httpLibrary), Some(None))
@@ -72,15 +78,16 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "packageName": "generated.api"
               },
               "client": {
                 "packageName": "generated.api_client"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -101,12 +108,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "sourceOutputDir": "src/generated"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -123,9 +131,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
-            "http": {}
+            "http": {
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
           }
         }
       """)
@@ -141,12 +151,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "webFramework": "flask"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -164,12 +175,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "httpLibrary": "aiohttp"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -187,12 +199,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "httpLibrary": "httpx"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -211,12 +224,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "webFramework": "fastapi"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -235,12 +249,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "kotlin": {
-            "sourceOutputDir": "src",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "templateDirectory": "classpath:python/src/http/client"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -267,7 +282,8 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .swap
         .toOption
         .getOrElse(fail("expected errors"))
-    assert(errors.exists(_.message.contains("requires `sourceOutputDir`")))
+    assert(errors.exists(_.message.contains("unknown key")))
+    assert(errors.exists(_.message.contains("python")))
   }
 
   test("loads additionalTemplatesDirectory deck and appends HTTP server outputs") {
@@ -275,12 +291,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -304,7 +321,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
               getClass.getClassLoader)
             .fold(errors => fail(errors.map(_.message).toList.mkString("; ")), identity)
         settings
-          .toServerCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          .toServerCodegenSettings(
+            "python",
+            com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil),
+            "src/generated",
+            "tests") match {
           case Validated.Valid(Some(codegenSettings)) =>
             assertEquals(codegenSettings.artifacts, ConsumerCodegenOutputs.compose(bundled, additional))
             assert(codegenSettings.artifacts.exists(_.id.value == "custom.http.server.once"))
@@ -322,12 +343,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-bad-binding"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -343,12 +365,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-override"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -366,7 +389,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         val overrideId = additional.headOption.flatMap(_.overrides).getOrElse(fail("expected override"))
         assertEquals(overrideId, OutputId("python.http.models.structure"))
         settings
-          .toServerCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          .toServerCodegenSettings(
+            "python",
+            com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil),
+            "src/generated",
+            "tests") match {
           case Validated.Valid(Some(_))  => ()
           case Validated.Valid(None)     => fail("expected codegen settings")
           case Validated.Invalid(errors) => fail(errors.map(_.message).toList.mkString("; "))
@@ -381,12 +408,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/client"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -396,7 +424,11 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         val client = settings.languageTargets("python").target.client.getOrElse(fail("expected client target"))
         assertEquals(client.additionalTemplatesDirectory, Some("classpath:additional-templates/python/src/http/client"))
         settings
-          .toClientCodegenSettings("python", com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil)) match {
+          .toClientCodegenSettings(
+            "python",
+            com.jacoby6000.smithplates.http.model.HttpServiceIr(Nil, Nil),
+            "src/generated",
+            "tests") match {
           case Validated.Valid(Some(codegenSettings)) =>
             assert(codegenSettings.artifacts.exists(_.id.value == "custom.http.client.once"))
           case Validated.Valid(None)                  => fail("expected codegen settings")
@@ -413,12 +445,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "outputs": []
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -434,11 +467,12 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "enableExternalTemplates": true,
             "http": {
-              "server": {}
+              "server": {},
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -457,12 +491,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/server"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -479,12 +514,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -501,12 +537,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:missing-additional-deck"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -523,12 +560,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -545,12 +583,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -567,12 +606,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -588,13 +628,14 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
       .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "enableExternalTemplates": true,
             "http": {
               "server": {
                 "additionalTemplatesDirectory": "templates/python/tests/http-additional-templates-external/additional-templates"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -609,12 +650,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-bad-binding"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -631,12 +673,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:custom-templates/python/src/http/client"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -653,12 +696,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-unknown-override"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -675,12 +719,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-duplicate-id"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -697,12 +742,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "additionalTemplatesDirectory": "classpath:additional-templates/python/src/http/server-missing-template"
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -719,12 +765,13 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .parseJson("""
         {
           "python": {
-            "sourceOutputDir": "src/generated",
-            "testOutputDir": "tests",
             "http": {
               "client": {
                 "outputs": []
-              }
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
             }
           }
         }
@@ -733,5 +780,145 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         .toOption
         .getOrElse(fail("expected errors"))
     assert(errors.exists(_.message.contains("http.client contains unknown key(s) 'outputs'")))
+  }
+
+  test("parses http.outputs array for per-service codegen scoping") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "server": { "webFramework": "fastapi" },
+              "outputs": [
+                {
+                  "services": ["ServerApi"],
+                  "sourceOutputDir": "src/generated/server",
+                  "testOutputDir": "tests/server",
+                  "packageName": "generated.server"
+                },
+                {
+                  "services": ["RunnerApi"],
+                  "sourceOutputDir": "src/generated/runner",
+                  "testOutputDir": "tests/runner"
+                }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val target  = settings.languageTargets("python").target
+        val outputs = target.outputs
+        assertEquals(outputs.length, 2)
+
+        val first = outputs.head
+        assertEquals(first.services, Some(List("ServerApi")))
+        assertEquals(first.sourceOutputDir, "src/generated/server")
+        assertEquals(first.testOutputDir, "tests/server")
+        assertEquals(first.packageName, Some("generated.server"))
+
+        val second = outputs(1)
+        assertEquals(second.services, Some(List("RunnerApi")))
+        assertEquals(second.sourceOutputDir, "src/generated/runner")
+        assertEquals(second.testOutputDir, "tests/runner")
+        assertEquals(second.packageName, None)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("withOutputEntryOverrides applies packageName overrides") {
+    val target = SmithplatesHttpLanguageTarget(
+      target = HttpLanguageTarget(
+        server = Some(
+          HttpServerTarget(
+            webFramework = Some("fastapi"),
+            templateDirectory = None,
+            additionalTemplatesDirectory = None,
+            packageName = Some("generated.default")
+          )),
+        client = None,
+        rootNamespace = None,
+        modelsPackageName = None,
+        outputs = Nil
+      ),
+      enableExternalTemplates = false
+    )
+
+    val overrides = HttpServiceOutputEntry(
+      services = Some(List("ServerApi")),
+      sourceOutputDir = "src/generated/server",
+      testOutputDir = "server/tests",
+      packageName = Some("generated.server")
+    )
+
+    val overridden = target.withOutputEntryOverrides(overrides)
+    assertEquals(overridden.target.server.getOrElse(fail("expected server")).packageName, Some("generated.server"))
+  }
+
+  test("empty services list is treated as None (all services)") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "server": {},
+              "outputs": [
+                { "services": [], "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val outputs = settings.languageTargets("python").target.outputs
+        assertEquals(outputs.head.services, None)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("services list with empty strings filters out blanks") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "server": {},
+              "outputs": [
+                { "services": ["", "ServerApi", ""], "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val outputs = settings.languageTargets("python").target.outputs
+        assertEquals(outputs.head.services, Some(List("ServerApi")))
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  test("rejects SQL outputs with empty outputs array") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+        {
+          "python": {
+            "sql": {
+              "rootNamespace": "generated",
+              "outputs": []
+            }
+          }
+        }
+      """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+    assert(errors.exists(_.message.contains("requires at least one entry in `outputs`")))
   }
 }

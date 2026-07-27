@@ -44,7 +44,7 @@ class TestGetOrderResponseContent(unittest.TestCase):
                     updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     lines = [
                         petstore_client.models.order_line_detail.OrderLineDetail(
-                            id = '', 
+                            id = 1.337, 
                             order_id = '', 
                             pet_id = '', 
                             quantity = 1.337, 
@@ -63,7 +63,7 @@ class TestGetOrderResponseContent(unittest.TestCase):
                     updated_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                     lines = [
                         petstore_client.models.order_line_detail.OrderLineDetail(
-                            id = '', 
+                            id = 1.337, 
                             order_id = '', 
                             pet_id = '', 
                             quantity = 1.337, 

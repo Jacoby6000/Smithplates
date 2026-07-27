@@ -2,6 +2,7 @@ $version: "2.0"
 namespace petstore.db
 
 use smithplates.codegen.sql#DerivedStruct
+use smithplates.codegen.sql#sqlAutoIncrement
 use smithplates.codegen.sql#sqlAutoUuid
 use smithplates.codegen.sql#sqlCreatedTimestamp
 use smithplates.codegen.sql#sqlForeignKey
@@ -128,8 +129,8 @@ structure Order {
 @sqlTable(name: "order_lines")
 structure OrderLine {
     @sqlPrimaryKey
-    @sqlAutoUuid
-    id: String
+    @sqlAutoIncrement
+    id: Integer
     @sqlForeignKey(references: "petstore.db#Order")
     @required
     order_id: String

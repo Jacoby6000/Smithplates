@@ -180,6 +180,33 @@
                 }
             }
         },
+        "/pets/events": {
+            "get": {
+                "description": "Bidirectional WebSocket endpoint delivering pet status events.",
+                "operationId": "PetEvents",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PetEventsRequestContent"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "PetEvents 200 response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/PetEventsResponseContent"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pets/{petId}": {
             "delete": {
                 "operationId": "DeletePet",
@@ -589,7 +616,7 @@
                 "type": "object",
                 "properties": {
                     "id": {
-                        "type": "string"
+                        "type": "number"
                     },
                     "order_id": {
                         "type": "string"
@@ -806,6 +833,31 @@
                     "updated_at"
                 ]
             },
+            "PetEventsRequestContent": {
+                "type": "object",
+                "properties": {
+                    "ping": {
+                        "$ref": "#/components/schemas/PetPing"
+                    },
+                    "subscribe": {
+                        "$ref": "#/components/schemas/PetSubscription"
+                    }
+                }
+            },
+            "PetEventsResponseContent": {
+                "type": "object",
+                "properties": {
+                    "welcome": {
+                        "$ref": "#/components/schemas/PetWelcome"
+                    },
+                    "pong": {
+                        "$ref": "#/components/schemas/PetPong"
+                    },
+                    "statusChanged": {
+                        "$ref": "#/components/schemas/PetStatusChanged"
+                    }
+                }
+            },
             "PetNotFoundResponseContent": {
                 "type": "object",
                 "description": "Requested pet was not found.",
@@ -816,6 +868,28 @@
                 },
                 "required": [
                     "message"
+                ]
+            },
+            "PetPing": {
+                "type": "object",
+                "properties": {
+                    "nonce": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "nonce"
+                ]
+            },
+            "PetPong": {
+                "type": "object",
+                "properties": {
+                    "nonce": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "nonce"
                 ]
             },
             "PetProfileSummary": {
@@ -852,6 +926,43 @@
                     "available",
                     "pending",
                     "sold"
+                ]
+            },
+            "PetStatusChanged": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/PetStatus"
+                    }
+                },
+                "required": [
+                    "pet_id",
+                    "status"
+                ]
+            },
+            "PetSubscription": {
+                "type": "object",
+                "properties": {
+                    "pet_id": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "pet_id"
+                ]
+            },
+            "PetWelcome": {
+                "type": "object",
+                "properties": {
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "message"
                 ]
             },
             "PlaceOrderRequestContent": {

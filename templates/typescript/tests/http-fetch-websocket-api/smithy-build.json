@@ -6,13 +6,17 @@
   "plugins": {
     "smithplates": {
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "http": {
           "client": {
             "httpLibrary": "fetch",
             "packageName": "generated.chatApiClient"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

@@ -6,6 +6,21 @@ Smithplates HTTP codegen turns Smithy `@httpService` models into:
 - **Python/httpx** and **TypeScript** (axios or fetch) HTTP clients from the same model;
 - shared API models and RFC 9457 problem-detail helpers.
 
+## Trait cheat sheet
+
+| Trait / shape | Apply to | Purpose |
+|---------------|----------|---------|
+| `@httpService` | service | Select the service for Smithplates HTTP codegen |
+| `@http` | operation | Method, URI, and success status (also required on `@websocket` ops for the path) |
+| `@tags` | operation | Route-group / client module grouping |
+| `@httpProblem` | error structure | RFC 9457 problem details (+ optional implied `@httpError`) |
+| `@httpStaticHeader` | output structure | Fixed response header binding |
+| `@websocket` | operation | Bidirectional WebSocket endpoint (skipped by REST generation) |
+| `@nestedProperties` | `@httpPayload` member | Flatten the payload target as the wire body |
+| Smithy `@httpLabel` / `@httpQuery` / `@httpHeader` / `@httpPayload` | members | Standard HTTP binding traits |
+
+Full trait tables: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).
+
 ## Modeling
 
 Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for codegen-specific behavior:
@@ -36,15 +51,13 @@ Group operations around API ownership, not persistence tables. A route group usu
 
 ## Configuration
 
-HTTP settings live under `smithplates.<language>.http`. Configure `server`, `client`, or both:
+HTTP settings live under `smithplates.<language>.http`. Configure `server`, `client`, or both. Every target must declare at least one `outputs` entry specifying where generated code is written:
 
 ```json
 {
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "rootNamespace": "generated",
           "server": {
@@ -52,17 +65,21 @@ HTTP settings live under `smithplates.<language>.http`. Configure `server`, `cli
           },
           "client": {
             "httpLibrary": "httpx"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       },
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "rootNamespace": "generated",
           "client": {
             "httpLibrary": "fetch"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       }
     }
@@ -80,6 +97,43 @@ Bundled targets today:
 Non-bundled languages or frameworks require an explicit `templateDirectory` with an `outputs.json` deck.
 
 Optional `rootNamespace` (default `generated` for bundled Python) prefixes Python import packages. Filesystem layout is `<sourceOutputDir>/<smithy namespace path>/` (for example `example` for a service in namespace `example`). When both `server` and `client` are enabled, the server pass emits models once; the client pass reuses them.
+
+### Output entries
+
+The `outputs` array is required — each entry controls one codegen pass. At minimum, every entry needs `sourceOutputDir` and `testOutputDir`. Omit `services` to generate all services in the model, or list specific service names to scope codegen to a subset:
+
+```json
+{
+  "http": {
+    "server": { "webFramework": "fastapi" },
+    "outputs": [
+      {
+        "services": ["ServerApi"],
+        "sourceOutputDir": "src/generated/server",
+        "testOutputDir": "server/tests",
+        "packageName": "generated.server"
+      },
+      {
+        "services": ["RunnerApi"],
+        "sourceOutputDir": "src/generated/runner",
+        "testOutputDir": "runner/tests",
+        "packageName": "generated.runner"
+      }
+    ]
+  }
+}
+```
+
+Each entry in `outputs` supports:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `sourceOutputDir` | Yes | Directory for generated source artifacts. |
+| `testOutputDir` | Yes | Directory for generated test artifacts. |
+| `services` | No | List of `@httpService` shape IDs to include. Accepts either the full shape ID (`com.example#MyService`) or just the shape name (`MyService`). An empty list is treated as omitted. |
+| `packageName` | No | Overrides `server.packageName` / `client.packageName` for this entry's output. |
+
+Each entry in `outputs` runs a full server + client codegen pass scoped to the listed services. A single entry without `services` generates all services into one tree.
 
 ## Generated server output
 

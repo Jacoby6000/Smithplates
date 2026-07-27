@@ -6,8 +6,6 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "http": {
           "server": {
             "webFramework": "fastapi",
@@ -16,7 +14,13 @@
           "client": {
             "httpLibrary": "httpx",
             "packageName": "generated.stream_api_client"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

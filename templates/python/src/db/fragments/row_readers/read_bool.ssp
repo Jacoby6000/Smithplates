@@ -3,4 +3,13 @@ def _read_bool(row: ${rowTypeName(dialectKey)}, index: int) -> bool:
     value = row[index]
     if isinstance(value, bool):
         return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        return bool(normalized)
     return bool(value)

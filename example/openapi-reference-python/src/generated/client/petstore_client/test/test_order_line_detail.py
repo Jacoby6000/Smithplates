@@ -35,7 +35,7 @@ class TestOrderLineDetail(unittest.TestCase):
         model = OrderLineDetail()
         if include_optional:
             return OrderLineDetail(
-                id = '',
+                id = 1.337,
                 order_id = '',
                 pet_id = '',
                 quantity = 1.337,
@@ -44,7 +44,7 @@ class TestOrderLineDetail(unittest.TestCase):
             )
         else:
             return OrderLineDetail(
-                id = '',
+                id = 1.337,
                 order_id = '',
                 pet_id = '',
                 quantity = 1.337,

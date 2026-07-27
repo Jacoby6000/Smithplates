@@ -6,8 +6,6 @@
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "test",
         "enableExternalTemplates": true,
         "sql": {
           "additionalTemplatesDirectory": "templates/python/tests/sql-additional-templates-external/additional-templates",
@@ -18,7 +16,13 @@
           "postgres": {
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
-          }
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
         }
       }
     }

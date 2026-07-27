@@ -19,8 +19,10 @@ petstore-smithy-spec/
     api/                     namespace petstore.api
       api-types.smithy       enums, errors, unions, shared HTTP value types
       api.smithy             HTTP operations (REST + `@websocket`), request/response shapes
+                             (`UpdatePet` uses `@nestedProperties` on `@httpPayload`)
       http-service.smithy    `@httpService` Petstore service
     db/                      namespace petstore.db
       db-types.smithy        SQL column/value types
       database.smithy        `@sqlTable` schema and `@sqlService` repositories
+                             (`OrderLine.id` uses `@sqlAutoIncrement`)
 ```

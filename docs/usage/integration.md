@@ -41,8 +41,6 @@ At least one language must contain `sql` or `http`. Full field documentation —
   "plugins": {
     "smithplates": {
       "python": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "sql": {
           "sqlite": {
             "enable": true,
@@ -52,7 +50,10 @@ At least one language must contain `sql` or `http`. Full field documentation —
             "enable": true,
             "migrationLocation": "db/migrations/postgres"
           },
-          "rootNamespace": "generated"
+          "rootNamespace": "generated",
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         },
         "http": {
           "rootNamespace": "generated",
@@ -61,17 +62,21 @@ At least one language must contain `sql` or `http`. Full field documentation —
           },
           "client": {
             "httpLibrary": "httpx"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       },
       "typescript": {
-        "sourceOutputDir": "src/generated",
-        "testOutputDir": "tests",
         "http": {
           "rootNamespace": "generated",
           "client": {
             "httpLibrary": "fetch"
-          }
+          },
+          "outputs": [
+            { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+          ]
         }
       }
     }

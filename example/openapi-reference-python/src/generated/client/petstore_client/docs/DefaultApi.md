@@ -10,6 +10,7 @@ Method | HTTP request | Description
 [**get_order**](DefaultApi.md#get_order) | **GET** /orders/{orderId} | 
 [**get_pet**](DefaultApi.md#get_pet) | **GET** /pets/{petId} | 
 [**health_check**](DefaultApi.md#health_check) | **GET** /health | 
+[**pet_events**](DefaultApi.md#pet_events) | **GET** /pets/events | 
 [**place_order**](DefaultApi.md#place_order) | **POST** /orders | 
 [**resolve_pet_location**](DefaultApi.md#resolve_pet_location) | **GET** /pets/{petId}/location | 
 [**update_pet**](DefaultApi.md#update_pet) | **PUT** /pets/{petId} | 
@@ -392,6 +393,72 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 **200** | HealthCheck 200 response |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **pet_events**
+> PetEventsResponseContent pet_events(pet_events_request_content=pet_events_request_content)
+
+Bidirectional WebSocket endpoint delivering pet status events.
+
+### Example
+
+
+```python
+import petstore_client
+from petstore_client.models.pet_events_request_content import PetEventsRequestContent
+from petstore_client.models.pet_events_response_content import PetEventsResponseContent
+from petstore_client.rest import ApiException
+from pprint import pprint
+
+# Defining the host is optional and defaults to http://localhost
+# See configuration.py for a list of all supported configuration parameters.
+configuration = petstore_client.Configuration(
+    host = "http://localhost"
+)
+
+
+# Enter a context with an instance of the API client
+async with petstore_client.ApiClient(configuration) as api_client:
+    # Create an instance of the API class
+    api_instance = petstore_client.DefaultApi(api_client)
+    pet_events_request_content = petstore_client.PetEventsRequestContent() # PetEventsRequestContent |  (optional)
+
+    try:
+        api_response = await api_instance.pet_events(pet_events_request_content=pet_events_request_content)
+        print("The response of DefaultApi->pet_events:\n")
+        pprint(api_response)
+    except Exception as e:
+        print("Exception when calling DefaultApi->pet_events: %s\n" % e)
+```
+
+
+
+### Parameters
+
+
+Name | Type | Description  | Notes
+------------- | ------------- | ------------- | -------------
+ **pet_events_request_content** | [**PetEventsRequestContent**](PetEventsRequestContent.md)|  | [optional] 
+
+### Return type
+
+[**PetEventsResponseContent**](PetEventsResponseContent.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+### HTTP response details
+
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+**200** | PetEvents 200 response |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
