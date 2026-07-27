@@ -45,7 +45,7 @@ CREATE TABLE categories (
 
 -- petstore.db#OrderLine
 CREATE TABLE order_lines (
-    id INTEGER GENERATED ALWAYS AS IDENTITY,
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_id UUID NOT NULL /* FK -> orders (id) */,
     pet_id TEXT NOT NULL,
     quantity INTEGER NOT NULL,

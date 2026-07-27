@@ -48,6 +48,9 @@ object SmithplatesBuildPlugin {
       * only detected across different entries. When the same path is written by a different entry with **identical
       * content** (e.g. shared `once`-bound artifacts like `conftest.py`), the duplicate write is silently skipped
       * rather than treated as an error; only differing content at the same path fails the build.
+      *
+      * Collision checks happen **before** writing to disk so that a differing-content collision throws before any file
+      * is overwritten, and identical-content dedup skips the write entirely.
       */
     final class PathCollisionTracker {
       private val committedPaths    = mutable.Map.empty[String, String]
@@ -70,25 +73,21 @@ object SmithplatesBuildPlugin {
         }
         entryPaths = entryPaths + relativePath
         entryPathContents = entryPathContents.updated(relativePath, content)
-        SmithplatesBuildPlugin.internal.writeArtifact(context, label, relativePath, content)
+        committedPaths.get(relativePath) match {
+          case Some(existingContent) if existingContent == content =>
+            return
+          case Some(_)                                             =>
+            throw new IllegalArgumentException(
+              s"smithplates plugin path collision: artifact '$relativePath' was already written by a previous outputs entry with different content; " +
+                s"ensure each output entry uses a distinct sourceOutputDir/testOutputDir or non-overlapping services"
+            )
+          case None                                                =>
+            SmithplatesBuildPlugin.internal.writeArtifact(context, label, relativePath, content)
+        }
       }
 
-      def finishEntry(): Unit = {
-        val collisions = entryPaths.filter { path =>
-          committedPaths.get(path) match {
-            case Some(existingContent) => existingContent != entryPathContents(path)
-            case None                  => false
-          }
-        }
-        if (collisions.nonEmpty) {
-          throw new IllegalArgumentException(
-            s"smithplates plugin path collision: artifact(s) ${collisions.toList.sorted.mkString(", ")} " +
-              s"were already written by a previous outputs entry with different content; " +
-              s"ensure each output entry uses a distinct sourceOutputDir/testOutputDir or non-overlapping services"
-          )
-        }
+      def finishEntry(): Unit =
         committedPaths ++= entryPathContents
-      }
     }
 
     def warnWhenExternalTemplatesEnabled(settings: SmithplatesSettings): Unit = {
