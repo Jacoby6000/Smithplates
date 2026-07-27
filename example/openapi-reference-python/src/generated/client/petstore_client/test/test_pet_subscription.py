@@ -14,10 +14,10 @@
 
 import unittest
 
-from petstore_client.models.order_line_detail import OrderLineDetail
+from petstore_client.models.pet_subscription import PetSubscription
 
-class TestOrderLineDetail(unittest.TestCase):
-    """OrderLineDetail unit test stubs"""
+class TestPetSubscription(unittest.TestCase):
+    """PetSubscription unit test stubs"""
 
     def setUp(self):
         pass
@@ -25,36 +25,26 @@ class TestOrderLineDetail(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def make_instance(self, include_optional) -> OrderLineDetail:
-        """Test OrderLineDetail
+    def make_instance(self, include_optional) -> PetSubscription:
+        """Test PetSubscription
             include_optional is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # uncomment below to create an instance of `OrderLineDetail`
+        # uncomment below to create an instance of `PetSubscription`
         """
-        model = OrderLineDetail()
+        model = PetSubscription()
         if include_optional:
-            return OrderLineDetail(
-                id = 1.337,
-                order_id = '',
-                pet_id = '',
-                quantity = 1.337,
-                unit_price_cents = 1.337,
-                fulfillment = None
+            return PetSubscription(
+                pet_id = ''
             )
         else:
-            return OrderLineDetail(
-                id = 1.337,
-                order_id = '',
+            return PetSubscription(
                 pet_id = '',
-                quantity = 1.337,
-                unit_price_cents = 1.337,
-                fulfillment = None,
         )
         """
 
-    def testOrderLineDetail(self):
-        """Test OrderLineDetail"""
+    def testPetSubscription(self):
+        """Test PetSubscription"""
         # inst_req_only = self.make_instance(include_optional=False)
         # inst_req_and_optional = self.make_instance(include_optional=True)
 

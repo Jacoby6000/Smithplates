@@ -78,7 +78,7 @@ WHERE orders.id = ?;""",
                 if joined_row[6] is not None:
                     order_lines.append(
                         OrderLine(
-                            id=_read_str(joined_row, 6),
+                            id=_read_int(joined_row, 6),
                             order_id=_read_str(joined_row, 7),
                             pet_id=_read_str(joined_row, 8),
                             quantity=_read_int(joined_row, 9),

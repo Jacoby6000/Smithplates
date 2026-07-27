@@ -8,7 +8,7 @@ from generated.petstore.api.fulfillment_state import FulfillmentState
 
 
 class OrderLineDetail(BaseModel):
-    id: str = Field(...)
+    id: int = Field(...)
     order_id: str = Field(...)
     pet_id: str = Field(...)
     quantity: int = Field(...)

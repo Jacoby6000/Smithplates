@@ -14,10 +14,10 @@
 
 import unittest
 
-from petstore_client.models.order_line_detail import OrderLineDetail
+from petstore_client.models.pet_status_changed import PetStatusChanged
 
-class TestOrderLineDetail(unittest.TestCase):
-    """OrderLineDetail unit test stubs"""
+class TestPetStatusChanged(unittest.TestCase):
+    """PetStatusChanged unit test stubs"""
 
     def setUp(self):
         pass
@@ -25,36 +25,28 @@ class TestOrderLineDetail(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def make_instance(self, include_optional) -> OrderLineDetail:
-        """Test OrderLineDetail
+    def make_instance(self, include_optional) -> PetStatusChanged:
+        """Test PetStatusChanged
             include_optional is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # uncomment below to create an instance of `OrderLineDetail`
+        # uncomment below to create an instance of `PetStatusChanged`
         """
-        model = OrderLineDetail()
+        model = PetStatusChanged()
         if include_optional:
-            return OrderLineDetail(
-                id = 1.337,
-                order_id = '',
+            return PetStatusChanged(
                 pet_id = '',
-                quantity = 1.337,
-                unit_price_cents = 1.337,
-                fulfillment = None
+                status = 'available'
             )
         else:
-            return OrderLineDetail(
-                id = 1.337,
-                order_id = '',
+            return PetStatusChanged(
                 pet_id = '',
-                quantity = 1.337,
-                unit_price_cents = 1.337,
-                fulfillment = None,
+                status = 'available',
         )
         """
 
-    def testOrderLineDetail(self):
-        """Test OrderLineDetail"""
+    def testPetStatusChanged(self):
+        """Test PetStatusChanged"""
         # inst_req_only = self.make_instance(include_optional=False)
         # inst_req_and_optional = self.make_instance(include_optional=True)
 

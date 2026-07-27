@@ -52,7 +52,7 @@ class Order:
 
 @dataclass
 class OrderLine:
-    id: str
+    id: int
     order_id: str
     pet_id: str
     quantity: int

@@ -17,23 +17,22 @@ import pprint
 import re  # noqa: F401
 import json
 
-from pydantic import BaseModel, ConfigDict, StrictFloat, StrictInt, StrictStr
-from typing import Any, ClassVar, Dict, List, Union
-from petstore_client.models.fulfillment_state import FulfillmentState
+from pydantic import BaseModel, ConfigDict, Field
+from typing import Any, ClassVar, Dict, List, Optional
+from petstore_client.models.pet_pong import PetPong
+from petstore_client.models.pet_status_changed import PetStatusChanged
+from petstore_client.models.pet_welcome import PetWelcome
 from typing import Optional, Set
 from typing_extensions import Self
 
-class OrderLineDetail(BaseModel):
+class PetEventsResponseContent(BaseModel):
     """
-    OrderLineDetail
+    PetEventsResponseContent
     """ # noqa: E501
-    id: Union[StrictFloat, StrictInt]
-    order_id: StrictStr
-    pet_id: StrictStr
-    quantity: Union[StrictFloat, StrictInt]
-    unit_price_cents: Union[StrictFloat, StrictInt]
-    fulfillment: FulfillmentState
-    __properties: ClassVar[List[str]] = ["id", "order_id", "pet_id", "quantity", "unit_price_cents", "fulfillment"]
+    welcome: Optional[PetWelcome] = None
+    pong: Optional[PetPong] = None
+    status_changed: Optional[PetStatusChanged] = Field(default=None, alias="statusChanged")
+    __properties: ClassVar[List[str]] = ["welcome", "pong", "statusChanged"]
 
     model_config = ConfigDict(
         populate_by_name=True,
@@ -53,7 +52,7 @@ class OrderLineDetail(BaseModel):
 
     @classmethod
     def from_json(cls, json_str: str) -> Optional[Self]:
-        """Create an instance of OrderLineDetail from a JSON string"""
+        """Create an instance of PetEventsResponseContent from a JSON string"""
         return cls.from_dict(json.loads(json_str))
 
     def to_dict(self) -> Dict[str, Any]:
@@ -74,14 +73,20 @@ class OrderLineDetail(BaseModel):
             exclude=excluded_fields,
             exclude_none=True,
         )
-        # override the default output from pydantic by calling `to_dict()` of fulfillment
-        if self.fulfillment:
-            _dict['fulfillment'] = self.fulfillment.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of welcome
+        if self.welcome:
+            _dict['welcome'] = self.welcome.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of pong
+        if self.pong:
+            _dict['pong'] = self.pong.to_dict()
+        # override the default output from pydantic by calling `to_dict()` of status_changed
+        if self.status_changed:
+            _dict['statusChanged'] = self.status_changed.to_dict()
         return _dict
 
     @classmethod
     def from_dict(cls, obj: Optional[Dict[str, Any]]) -> Optional[Self]:
-        """Create an instance of OrderLineDetail from a dict"""
+        """Create an instance of PetEventsResponseContent from a dict"""
         if obj is None:
             return None
 
@@ -89,12 +94,9 @@ class OrderLineDetail(BaseModel):
             return cls.model_validate(obj)
 
         _obj = cls.model_validate({
-            "id": obj.get("id"),
-            "order_id": obj.get("order_id"),
-            "pet_id": obj.get("pet_id"),
-            "quantity": obj.get("quantity"),
-            "unit_price_cents": obj.get("unit_price_cents"),
-            "fulfillment": FulfillmentState.from_dict(obj["fulfillment"]) if obj.get("fulfillment") is not None else None
+            "welcome": PetWelcome.from_dict(obj["welcome"]) if obj.get("welcome") is not None else None,
+            "pong": PetPong.from_dict(obj["pong"]) if obj.get("pong") is not None else None,
+            "statusChanged": PetStatusChanged.from_dict(obj["statusChanged"]) if obj.get("statusChanged") is not None else None
         })
         return _obj
 

@@ -8,6 +8,7 @@ import { parseGetOrderOutput as _parse_GetOrderOutput } from "generated/petstore
 import { parseGetPetOutput as _parse_GetPetOutput } from "generated/petstore/api/getPetOutput";
 import { parseHealthCheckOutput as _parse_HealthCheckOutput } from "generated/petstore/api/healthCheckOutput";
 import { parseOrderNotFound as _parse_OrderNotFound } from "generated/petstore/api/orderNotFound";
+import { parsePetEventsOutput as _parse_PetEventsOutput } from "generated/petstore/api/petEventsOutput";
 import { parsePetLocationRedirect as _parse_PetLocationRedirect } from "generated/petstore/api/petLocationRedirect";
 import { parsePetNotFound as _parse_PetNotFound } from "generated/petstore/api/petNotFound";
 import { parsePlaceOrderOutput as _parse_PlaceOrderOutput } from "generated/petstore/api/placeOrderOutput";
@@ -38,6 +39,7 @@ const _MODEL_PARSERS: Record<string, (value: unknown) => unknown> = {
   "GetPetOutput": _parse_GetPetOutput,
   "HealthCheckOutput": _parse_HealthCheckOutput,
   "OrderNotFound": _parse_OrderNotFound,
+  "PetEventsOutput": _parse_PetEventsOutput,
   "PetLocationRedirect": _parse_PetLocationRedirect,
   "PetNotFound": _parse_PetNotFound,
   "PlaceOrderOutput": _parse_PlaceOrderOutput,

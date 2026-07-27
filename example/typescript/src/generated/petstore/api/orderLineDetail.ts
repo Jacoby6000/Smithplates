@@ -2,7 +2,7 @@
 import { FulfillmentState } from "generated/petstore/api/fulfillmentState";
 
 export interface OrderLineDetail {
-  id: string;
+  id: number;
   order_id: string;
   pet_id: string;
   quantity: number;

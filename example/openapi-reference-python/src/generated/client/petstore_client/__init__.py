@@ -53,10 +53,17 @@ from petstore_client.models.pending import Pending
 from petstore_client.models.pet_attribute import PetAttribute
 from petstore_client.models.pet_attribute_value import PetAttributeValue
 from petstore_client.models.pet_detail import PetDetail
+from petstore_client.models.pet_events_request_content import PetEventsRequestContent
+from petstore_client.models.pet_events_response_content import PetEventsResponseContent
 from petstore_client.models.pet_not_found_response_content import PetNotFoundResponseContent
+from petstore_client.models.pet_ping import PetPing
+from petstore_client.models.pet_pong import PetPong
 from petstore_client.models.pet_profile_summary import PetProfileSummary
 from petstore_client.models.pet_species import PetSpecies
 from petstore_client.models.pet_status import PetStatus
+from petstore_client.models.pet_status_changed import PetStatusChanged
+from petstore_client.models.pet_subscription import PetSubscription
+from petstore_client.models.pet_welcome import PetWelcome
 from petstore_client.models.place_order_request_content import PlaceOrderRequestContent
 from petstore_client.models.place_order_response_content import PlaceOrderResponseContent
 from petstore_client.models.postal_address import PostalAddress

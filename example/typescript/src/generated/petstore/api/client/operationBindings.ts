@@ -307,6 +307,32 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
       404: "PetNotFound",
     },
   },
+  "petEvents": {
+    variantsByTypeName: {
+      "PetEventsOutput": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "PetEventsOutput",
+    },
+  },
+  "PetEvents": {
+    variantsByTypeName: {
+      "PetEventsOutput": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "PetEventsOutput",
+    },
+  },
   "resolvePetLocation": {
     variantsByTypeName: {
       "PetLocationRedirect": {
