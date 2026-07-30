@@ -14,6 +14,9 @@ from ${R.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 
 class ${R.protocolClassName(R.tag(ctx))}(Protocol):
+<% if (operations.isEmpty) { %>
+    ...
+<% } else { %>
 <% for (operation <- operations) { %>
     async def ${R.operationMethodName(ctx, operation.id.name)}(
         self,
@@ -28,4 +31,5 @@ class ${R.protocolClassName(R.tag(ctx))}(Protocol):
 <% } %>
     ) -> ${R.operationProtocolReturnType(operation)}:
         ${operation.meta.documentation.map(doc => s"""\"\"\"$doc\"\"\"""").getOrElse("...")}
+<% } %>
 <% } %>
