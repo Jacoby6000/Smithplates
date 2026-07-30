@@ -4,5 +4,5 @@
 
 <% val pkg = H.namespaceModuleDir(ctx) %>
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-export { ${H.clientClassName(tag)} } from "${pkg}/clients/${tsClientModuleName(tag)}";
+export { ${H.clientClassName(tag)} } from "${pkg}/clients/${ctx.conventions.memberName(tag)}Client";
 <% } %>

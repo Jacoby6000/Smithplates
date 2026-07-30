@@ -22,7 +22,4 @@ def tsMediaType(mediaType: Option[String]): String =
     case None     => "null"
     case Some(mt) => tsStringLiteral(mt)
   }
-
-def tsClientModuleName(tag: String): String =
-  tag + "Client"
 %>

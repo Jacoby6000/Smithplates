@@ -4,12 +4,12 @@
 
 <% val pkg = H.namespaceModuleDir(ctx) %>
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-import { ${H.clientClassName(tag)} } from "${pkg}/clients/${tsClientModuleName(tag)}";
+import { ${H.clientClassName(tag)} } from "${pkg}/clients/${ctx.conventions.memberName(tag)}Client";
 <% } %>
 
 export interface ApiClients {
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-  ${tsClientModuleName(tag)}: ${H.clientClassName(tag)};
+  ${ctx.conventions.memberName(tag)}Client: ${H.clientClassName(tag)};
 <% } %>
 }
 
@@ -20,7 +20,7 @@ export function createApiClients(
   const normalizedBaseUrl = baseUrl.replace(/\/+$/, "");
   return {
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-    ${tsClientModuleName(tag)}: new ${H.clientClassName(tag)}(normalizedBaseUrl, fetchFn),
+    ${ctx.conventions.memberName(tag)}Client: new ${H.clientClassName(tag)}(normalizedBaseUrl, fetchFn),
 <% } %>
   };
 }
