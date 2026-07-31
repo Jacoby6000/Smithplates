@@ -4,35 +4,35 @@
       "id": "typescript.http.client.model_validation",
       "artifactKind": "src",
       "template": "model_validation.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/modelValidation.ts",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/modelValidation.ts",
       "binding": { "type": "service" }
     },
     {
       "id": "typescript.http.client.operation_bindings",
       "artifactKind": "src",
       "template": "operation_bindings.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/client/operationBindings.ts",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/operationBindings.ts",
       "binding": { "type": "service" }
     },
     {
       "id": "typescript.http.client.client_response",
       "artifactKind": "src",
       "template": "client_response.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/client/clientResponse.ts",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/clientResponse.ts",
       "binding": { "type": "service" }
     },
     {
       "id": "typescript.http.client.clients_index",
       "artifactKind": "src",
       "template": "clients/index.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/clients/index.ts",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/index.ts",
       "binding": { "type": "service" }
     },
     {
       "id": "typescript.http.client.websocket_client",
       "artifactKind": "src",
       "template": "websocket_client.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/clients/websocketClient.ts",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/websocketClient.ts",
       "binding": { "type": "service" }
     }
   ],
@@ -42,14 +42,14 @@
         "id": "typescript.http.client.fetch.client_registry",
         "artifactKind": "src",
         "template": "fetch/client_registry.ssp",
-        "outputPath": "{{smithyNamespaceDir}}/client/clientRegistry.ts",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/clientRegistry.ts",
         "binding": { "type": "service" }
       },
       {
         "id": "typescript.http.client.fetch.route_group_client",
         "artifactKind": "src",
         "template": "fetch/route_group_client.ssp",
-        "outputPath": "{{smithyNamespaceDir}}/clients/{{tagName}}Client.ts",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/{{tagName}}Client.ts",
         "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
       }
     ],
@@ -58,14 +58,14 @@
         "id": "typescript.http.client.axios.client_registry",
         "artifactKind": "src",
         "template": "axios/client_registry.ssp",
-        "outputPath": "{{smithyNamespaceDir}}/client/clientRegistry.ts",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/clientRegistry.ts",
         "binding": { "type": "service" }
       },
       {
         "id": "typescript.http.client.axios.route_group_client",
         "artifactKind": "src",
         "template": "axios/route_group_client.ssp",
-        "outputPath": "{{smithyNamespaceDir}}/clients/{{tagName}}Client.ts",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/{{tagName}}Client.ts",
         "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
       }
     ]

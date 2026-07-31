@@ -51,9 +51,9 @@ from fastapi import (  # noqa: F401
 from datetime import datetime  # noqa: F401
 <% } %>
 
-from ${R.packageName(ctx)}.api_response import dispatch_api_response
-from ${R.packageName(ctx)}.operation_bindings import OPERATION_HTTP_BINDINGS
-from ${R.packageName(ctx)}.app_services import ApiServices, get_api_services
+from ${R.servicePackageName(ctx)}.api_response import dispatch_api_response
+from ${R.servicePackageName(ctx)}.operation_bindings import OPERATION_HTTP_BINDINGS
+from ${R.servicePackageName(ctx)}.app_services import ApiServices, get_api_services
 <% for (typeName <- operations.flatMap(operation => R.operationImportedModelNames(ctx, operation)).distinct.sorted) { %>
 from ${R.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>

@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import httpx
 
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-from ${H.packageName(ctx)}.clients.${H.clientModuleName(tag)} import ${H.clientClassName(tag)}
+from ${H.servicePackageName(ctx)}.clients.${H.clientModuleName(tag)} import ${H.clientClassName(tag)}
 <% } %>
 
 

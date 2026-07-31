@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from fastapi import HTTPException, Request
 
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-from ${H.packageName(ctx)}.apis.${H.apiModuleName(tag)}_base import ${H.protocolClassName(tag)}
+from ${H.servicePackageName(ctx)}.apis.${H.apiModuleName(tag)}_base import ${H.protocolClassName(tag)}
 <% } %>
 
 

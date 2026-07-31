@@ -4,42 +4,42 @@
       "id": "python.http.client.model_validation",
       "artifactKind": "src",
       "template": "model_validation.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/model_validation.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/model_validation.py",
       "binding": { "type": "service" }
     },
     {
       "id": "python.http.client.operation_bindings",
       "artifactKind": "src",
       "template": "operation_bindings.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/client/operation_bindings.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/operation_bindings.py",
       "binding": { "type": "service" }
     },
     {
       "id": "python.http.client.client_response",
       "artifactKind": "src",
       "template": "client_response.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/client/client_response.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/client_response.py",
       "binding": { "type": "service" }
     },
     {
       "id": "python.http.client.client_registry",
       "artifactKind": "src",
       "template": "client_registry.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/client/client_registry.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/client_registry.py",
       "binding": { "type": "service" }
     },
     {
       "id": "python.http.client.clients_init",
       "artifactKind": "src",
       "template": "clients/__init__.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/clients/__init__.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/__init__.py",
       "binding": { "type": "service" }
     },
     {
       "id": "python.http.client.websocket_client",
       "artifactKind": "src",
       "template": "websocket_client.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/clients/websocket_client.py",
+      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/websocket_client.py",
       "binding": { "type": "service" }
     }
   ],
@@ -49,7 +49,7 @@
         "id": "python.http.client.httpx.route_group_client",
         "artifactKind": "src",
         "template": "httpx/route_group_client.ssp",
-        "outputPath": "{{smithyNamespaceDir}}/clients/{{tagName}}_client.py",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/{{tagName}}_client.py",
         "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
       }
     ]

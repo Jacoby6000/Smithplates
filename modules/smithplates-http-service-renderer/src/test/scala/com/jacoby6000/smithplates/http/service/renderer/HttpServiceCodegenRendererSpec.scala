@@ -64,9 +64,9 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     HttpServiceCodegenRenderer.render(model, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
-        assert(paths.contains("src/generated/example/app_factory.py"))
-        assert(paths.contains("src/generated/example/apis/v1_widgets_api.py"))
-        assert(paths.contains("src/generated/example/apis/v1_widgets_api_base.py"))
+        assert(paths.contains("src/generated/example/widget_api/app_factory.py"))
+        assert(paths.contains("src/generated/example/widget_api/apis/v1_widgets_api.py"))
+        assert(paths.contains("src/generated/example/widget_api/apis/v1_widgets_api_base.py"))
         assert(paths.contains("src/generated/example/widget_output.py"))
       case Validated.Invalid(errors)  =>
         fail(errors.map(_.message).toList.mkString("; "))
@@ -133,8 +133,8 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     HttpServiceCodegenRenderer.render(model, settings) match {
       case Validated.Valid(artifacts) =>
         val paths = artifacts.map(_.relativePath).toSet
-        assert(paths.contains("src/generated/example/client/client_registry.py"))
-        assert(paths.contains("src/generated/example/clients/v1_widgets_client.py"))
+        assert(paths.contains("src/generated/example/widget_api/client/client_registry.py"))
+        assert(paths.contains("src/generated/example/widget_api/clients/v1_widgets_client.py"))
         assert(paths.contains("src/generated/example/widget_output.py"))
       case Validated.Invalid(errors)  =>
         fail(errors.map(_.message).toList.mkString("; "))
@@ -513,11 +513,11 @@ object HttpServiceCodegenRendererSpec {
 
     def renderFastApiProtocolBase(model: software.amazon.smithy.model.Model, routeGroupTag: String): String =
       renderFastApiArtifacts(model, routeGroupTag)
-        .find(_.relativePath == s"src/generated/example/apis/${routeGroupTag}_api_base.py")
+        .find(_.relativePath == s"src/generated/example/widget_api/apis/${routeGroupTag}_api_base.py")
         .map(_.content)
         .getOrElse(
           throw new IllegalStateException(
-            s"Missing generated protocol artifact at src/generated/example/apis/${routeGroupTag}_api_base.py"
+            s"Missing generated protocol artifact at src/generated/example/widget_api/apis/${routeGroupTag}_api_base.py"
           )
         )
 

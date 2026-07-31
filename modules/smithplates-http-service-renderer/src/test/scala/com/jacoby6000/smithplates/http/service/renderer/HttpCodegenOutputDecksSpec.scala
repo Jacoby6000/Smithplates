@@ -40,7 +40,7 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
     )
     assertEquals(
       outputPaths(outputs).get("python.http.server.fastapi.route_group_routes"),
-      Some("{{smithyNamespaceDir}}/apis/{{tagName}}_api.py")
+      Some("{{smithyNamespaceDir}}/{{serviceModuleName}}/apis/{{tagName}}_api.py")
     )
   }
 

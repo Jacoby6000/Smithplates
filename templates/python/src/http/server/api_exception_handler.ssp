@@ -14,9 +14,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ${H.httpProblemImportModule(ctx)} import ${H.httpProblemClassName}
-from ${H.packageName(ctx)}.api_exceptions import NotImplementedApiError
+from ${H.servicePackageName(ctx)}.api_exceptions import NotImplementedApiError
 <% for (error <- H.serviceErrors(ctx)) { %>
-from ${H.packageName(ctx)}.api_exceptions import ${H.serviceErrorExceptionName(error.name)}
+from ${H.servicePackageName(ctx)}.api_exceptions import ${H.serviceErrorExceptionName(error.name)}
 <% } %>
 
 LOGGER = logging.getLogger(__name__)

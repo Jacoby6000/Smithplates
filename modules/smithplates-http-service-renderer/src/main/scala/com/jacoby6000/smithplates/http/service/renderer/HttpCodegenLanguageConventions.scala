@@ -72,6 +72,9 @@ object HttpCodegenLanguageConventions {
 
           def rootNamespaceDir: String =
             delegate.rootNamespaceDir
+
+          def packageSeparator: String =
+            delegate.packageSeparator
         }
     }
 
@@ -111,6 +114,9 @@ object HttpCodegenLanguageConventions {
 
           def rootNamespaceDir: String =
             delegate.rootNamespaceDir
+
+          def packageSeparator: String =
+            delegate.packageSeparator
         }
     }
 }

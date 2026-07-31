@@ -40,3 +40,4 @@ Follow [`.cursor/rules/`](.cursor/rules/) — start with [`smithplates-build.mdc
 * **`@nestedProperties` body binding:** a single `@httpPayload` member with Smithy `@nestedProperties` becomes `HttpOperationBodyBinding.NestedDocument` — wire body is the payload target; the outer input shape is reconstructed for service dispatch.
 * Implementation helpers live in public nested `object internal` companions, not `private` (see `code-design.mdc`). Some legacy `private` helpers remain in codegen-core and related modules; prefer `object internal` for new code.
 * **Toolchain:** Scala/Java target **JDK 17** (`flake.nix` supplies `jdk17_headless`).
+* **`resolve-smithy-build-versions.sh`:** parse `sbtn print smithplatesPlugin/version` as a whole-line dynver string, including bare release semvers (`0.4.2` on an exact tag). Do not require a `-`/`+` suffix — that filter broke example CI whenever main landed on a release tag.

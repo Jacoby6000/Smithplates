@@ -16,9 +16,15 @@ SMITHPLATES_VERSION="$(
     | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
     | awk '{
         line = $0
-        sub(/^\[/, "", line)
-        if (match(line, /[0-9]+(\.[0-9]+){1,2}[-+][[:alnum:]._+-]+/)) {
-          version = substr(line, RSTART, RLENGTH)
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        sub(/^\[[^]]*\][[:space:]]+/, "", line)
+        # DESNOTE(jbarber, 2026-07-30): sbt-dynver on an exact release tag prints a
+        # bare semver (e.g. 0.4.2). Requiring a -/+ suffix rejected that form and
+        # broke example CI on tagged main commits. Match whole-line versions only
+        # so thin-client noise like "welcome to sbt 1.12.11" is ignored.
+        # See https://github.com/sbt/sbt-dynver
+        if (line ~ /^[0-9]+(\.[0-9]+){1,2}([-+][[:alnum:]._+-]+)?$/) {
+          version = line
         }
       } END { print version }'
 )"

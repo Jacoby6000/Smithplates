@@ -8,8 +8,8 @@ from __future__ import annotations
 import httpx
 from pydantic import BaseModel
 
-from ${H.packageName(ctx)}.client.operation_bindings import ClientOperationHttpBinding
-from ${H.packageName(ctx)}.model_validation import validate_api_model
+from ${H.servicePackageName(ctx)}.client.operation_bindings import ClientOperationHttpBinding
+from ${H.servicePackageName(ctx)}.model_validation import validate_api_model
 <% for (typeName <- responseTypes) { %>
 from ${H.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>

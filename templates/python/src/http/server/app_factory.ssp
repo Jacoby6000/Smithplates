@@ -8,14 +8,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from ${H.packageName(ctx)}.api_exception_handler import FallbackApiExceptionHandler
-from ${H.packageName(ctx)}.api_exceptions import NotImplementedApiError
+from ${H.servicePackageName(ctx)}.api_exception_handler import FallbackApiExceptionHandler
+from ${H.servicePackageName(ctx)}.api_exceptions import NotImplementedApiError
 <% for (error <- H.serviceErrors(ctx)) { %>
-from ${H.packageName(ctx)}.api_exceptions import ${H.serviceErrorExceptionName(error.name)}
+from ${H.servicePackageName(ctx)}.api_exceptions import ${H.serviceErrorExceptionName(error.name)}
 <% } %>
-from ${H.packageName(ctx)}.app_services import ApiServices
+from ${H.servicePackageName(ctx)}.app_services import ApiServices
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-from ${H.packageName(ctx)}.apis.${H.apiModuleName(tag)} import router as ${H.routerImportAlias(H.apiModuleName(tag))}
+from ${H.servicePackageName(ctx)}.apis.${H.apiModuleName(tag)} import router as ${H.routerImportAlias(H.apiModuleName(tag))}
 <% } %>
 
 
