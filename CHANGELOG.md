@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-07-30
+
+### Added
+
+- `{{serviceModuleName}}` placeholder now appears in all service-scoped output
+  paths. A single output entry with no `services` filter produces a per-service
+  subdirectory (e.g. `generated/example/http/stream_host/app_factory.py`)
+  naturally — eliminating the need for per-service `packageName` overrides in
+  `smithy-build.json` or post-generation directory merging.
+- `servicePackageName(ctx)` and `serviceModuleDir(ctx)` template helpers for
+  service-scoped package imports and module paths.
+- `packageSeparator` added to the `Conventions` trait (delegates to
+  `strategy.packageSeparator`).
+
+### Changed
+
+- All Python and TypeScript `outputs.json` files now include
+  `{{serviceModuleName}}/` in `binding: { type: "service" }` and
+  `binding: { type: "operation" }` output paths.
+- All SSP templates use `servicePackageName` / `serviceModuleDir` instead of
+  `packageName` / `namespaceModuleDir` for service-scoped artifacts. Model
+  artifacts (shared across services) still use `packageName` / `namespaceModuleDir`.
+
 ## [0.4.2] - 2026-07-30
 
 ### Fixed
