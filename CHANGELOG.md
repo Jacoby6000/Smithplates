@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-07-30
+
+### Fixed
+
+- TypeScript client import specifiers now use `ctx.conventions.memberName(tag)`
+  to match the camelCase output path binding (`{{tagName}}Client.ts`). Previously
+  the SSP helper `tsClientModuleName` returned `tag + "Client"` (raw snake_case
+  from the Smithy tag, e.g. `v1_analyticsClient`), which did not match the
+  generated filename (`v1AnalyticsClient.ts`). Consumers no longer need a
+  post-generation snake_case→camelCase import-specifier fixup script. The
+  `Client` suffix is now inline in the TypeScript templates, and the
+  language-neutral `clientModuleName` helper is unchanged.
+
+## [0.4.1] - 2026-07-30
+
+### Fixed
+
+- `route_group_protocol.ssp` now emits `...` for the Protocol body when a
+  service tag has only `@websocket` operations (no REST handlers). Previously
+  the generated Python `Protocol` class had an empty body, which is a syntax
+  error in Python 3.
+
 ## [0.4.0] - 2026-07-26
 
 ### Added
@@ -138,6 +160,8 @@ WebSockets, and related generated-output fixes.
 Previous stable release before the language-neutral codegen epic.
 See git history `v0.2.5` for the full 0.2.x line.
 
-[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/Jacoby6000/Smithplates/compare/v0.4.1...v0.4.2
+[0.4.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.4.0...v0.4.1
 [0.3.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/Jacoby6000/Smithplates/releases/tag/v0.2.5
