@@ -20,10 +20,10 @@ import pytest
 import uvicorn
 from httpx import AsyncClient
 
-from generated.petstore.api.clients.websocket_client import PetstoreWebsocketClient
 from generated.petstore.api.pet_events_input import PetEventsInput
 from generated.petstore.api.pet_ping import PetPing
 from generated.petstore.api.pet_subscription import PetSubscription
+from generated.petstore.api.petstore.clients.websocket_client import PetstoreWebsocketClient
 from server.app import build_app
 
 

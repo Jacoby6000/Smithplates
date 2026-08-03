@@ -4,6 +4,7 @@ namespace example
 use smithplates.codegen.http#httpService
 use smithy.api#http
 use smithy.api#httpPayload
+use smithy.api#httpQuery
 use smithy.api#tags
 
 @httpService
@@ -51,11 +52,18 @@ structure ItemDetails {
     @required
     name: String
 
+    description: String
+
+    tags: StringList
+
     @required
     package: PackageDetails
 }
 
 structure CreateShelfItemInput {
+    @httpHeader("content-type")
+    contentType: String
+
     @httpHeader("X-Idempotency-Key")
     idempotencyKey: String
 
@@ -81,7 +89,21 @@ structure AssignShelfSkuInput {
     shelfId: String
 
     @required
+    @httpQuery("tenant")
+    tenant: String
+
+    @httpQuery("preview")
+    preview: Boolean
+
+    @httpQuery("tag")
+    tags: StringList
+
+    @required
     sku: String
+}
+
+list StringList {
+    member: String
 }
 
 structure ShelfItemOutput {

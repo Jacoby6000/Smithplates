@@ -8,13 +8,13 @@ export interface CreatePetInput {
   status: PetStatus;
   species: PetSpecies;
   category_id: string;
-  owner_id: string | null;
+  owner_id?: string | null;
   tag_count: number;
   tags: string[];
   attributes: PetAttribute[];
-  photo: Uint8Array | null;
-  metadata: unknown | null;
-  adopted_at: string | null;
+  photo?: Uint8Array | null;
+  metadata?: unknown | null;
+  adopted_at?: string | null;
 }
 
 export function parseCreatePetInput(value: unknown): CreatePetInput {

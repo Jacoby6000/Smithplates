@@ -61,7 +61,7 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
     )
   }
 
-  test("bundled client deck composes the shared and httpx outputs") {
+  test("bundled client deck defaults to async httpx outputs") {
     val outputs = HttpClientCodegenApiArtifacts.forEnabledLibraries(ClientDir, List("httpx"))
     assertEquals(
       outputs.map(_.id.value),
@@ -69,10 +69,44 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
         "python.http.client.model_validation",
         "python.http.client.operation_bindings",
         "python.http.client.client_response",
-        "python.http.client.client_registry",
         "python.http.client.clients_init",
         "python.http.client.websocket_client",
+        "python.http.client.client_registry",
         "python.http.client.httpx.route_group_client"
+      )
+    )
+  }
+
+  test("bundled client deck can select sync httpx outputs") {
+    val outputs = HttpClientCodegenApiArtifacts.forEnabledLibraries(ClientDir, List("httpx.sync"))
+    assertEquals(
+      outputs.map(_.id.value),
+      List(
+        "python.http.client.model_validation",
+        "python.http.client.operation_bindings",
+        "python.http.client.client_response",
+        "python.http.client.clients_init",
+        "python.http.client.websocket_client",
+        "python.http.client.httpx.sync_client_registry",
+        "python.http.client.httpx.sync_route_group_client"
+      )
+    )
+  }
+
+  test("bundled client deck can compose async and sync httpx outputs") {
+    val outputs = HttpClientCodegenApiArtifacts.forEnabledLibraries(ClientDir, List("httpx", "httpx.sync"))
+    assertEquals(
+      outputs.map(_.id.value),
+      List(
+        "python.http.client.model_validation",
+        "python.http.client.operation_bindings",
+        "python.http.client.client_response",
+        "python.http.client.clients_init",
+        "python.http.client.websocket_client",
+        "python.http.client.client_registry",
+        "python.http.client.httpx.route_group_client",
+        "python.http.client.httpx.sync_client_registry",
+        "python.http.client.httpx.sync_route_group_client"
       )
     )
   }

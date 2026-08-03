@@ -13,19 +13,19 @@ export interface PetDetail {
   status: PetStatus;
   species: PetSpecies;
   category_id: string;
-  owner_id: string | null;
+  owner_id?: string | null;
   tag_count: number;
   tags: string[];
   attributes: PetAttribute[];
-  photo: Uint8Array | null;
-  metadata: unknown | null;
-  adopted_at: string | null;
+  photo?: Uint8Array | null;
+  metadata?: unknown | null;
+  adopted_at?: string | null;
   created_at: string;
   updated_at: string;
   category: CategorySummary;
   store: StoreSummary;
-  owner: OwnerSummary | null;
-  profile: PetProfileSummary | null;
+  owner?: OwnerSummary | null;
+  profile?: PetProfileSummary | null;
 }
 
 export function parsePetDetail(value: unknown): PetDetail {

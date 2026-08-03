@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import httpx
 from generated.example.item_details import ItemDetails
 from generated.example.shelf_item_output import ShelfItemOutput
@@ -9,6 +11,10 @@ from generated.example.shelf_sku_output import ShelfSkuOutput
 from generated.warehouse_api_client.warehouse_api.client.client_response import parse_client_response
 from generated.warehouse_api_client.warehouse_api.client.operation_bindings import OPERATION_HTTP_BINDINGS
 from pydantic import Field  # noqa: F401
+
+
+def _encode_path_label(value: object, *, greedy: bool = False) -> str:
+    return quote(str(value), safe="/" if greedy else "")
 
 
 class WarehouseApiClient:
@@ -26,9 +32,11 @@ class WarehouseApiClient:
         headers: dict[str, str] = {}
         if request_id is not None:
             headers["X-Request-Id"] = str(request_id)
+        _encoded_shelf_id = _encode_path_label(shelf_id)
+        request_url = f"{self._base_url}/shelves/{_encoded_shelf_id}/skus"
         response = await self._client.request(
             "POST",
-            f"{self._base_url}/shelves/{shelf_id}/skus",
+            request_url,
             headers=headers,
             json=sku,
         )
@@ -48,9 +56,12 @@ class WarehouseApiClient:
         headers: dict[str, str] = {}
         if idempotency_key is not None:
             headers["X-Idempotency-Key"] = str(idempotency_key)
+        _encoded_warehouse_id = _encode_path_label(warehouse_id)
+        _encoded_shelf_id = _encode_path_label(shelf_id)
+        request_url = f"{self._base_url}/warehouses/{_encoded_warehouse_id}/shelves/{_encoded_shelf_id}/items"
         response = await self._client.request(
             "POST",
-            f"{self._base_url}/warehouses/{warehouse_id}/shelves/{shelf_id}/items",
+            request_url,
             headers=headers,
             json=details.model_dump(mode="json", exclude_none=True),
         )

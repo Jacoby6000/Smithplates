@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from typing import Any, Self
+from urllib.parse import quote
 
 import websockets
 from generated.example.server_event import ServerEvent
@@ -15,7 +16,7 @@ class StreamApiWebsocketClient:
         self._base_url = base_url.rstrip("/")
 
     async def connect_stream_events(self, stream_id: str) -> StreamEventsConnection:
-        websocket = await websockets.connect(f"{self._base_url}/streams/{stream_id}/events/ws")
+        websocket = await websockets.connect(f"{self._base_url}/streams/{quote(str(stream_id), safe='')}/events/ws")
         return StreamEventsConnection(websocket)
 
 

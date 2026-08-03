@@ -4,6 +4,20 @@ import type { ClientMessage } from "generated/example/clientMessage";
 import { serializeClientMessage } from "generated/example/clientMessage";
 import type { ServerMessage } from "generated/example/serverMessage";
 import { parseServerMessage } from "generated/example/serverMessage";
+import type { Room } from "generated/example/room";
+
+function encodeRfc3986(value: string): string {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => "%" + character.charCodeAt(0).toString(16).toUpperCase(),
+  );
+}
+
+export interface SendRoomMessageInputMessage {
+  text: string;
+  tags?: string[] | null;
+  metadata?: Room | null;
+}
 
 export class ChatApiWebsocketClient {
   private readonly baseUrl: string;
@@ -16,6 +30,16 @@ export class ChatApiWebsocketClient {
     const socket = new WebSocket(`${this.baseUrl}/chat`);
     return new ChatStreamConnection(socket);
   }
+
+  connectSendRoomMessage(roomId: string): SendRoomMessageConnection {
+    const socket = new WebSocket(`${this.baseUrl}/rooms/${encodeRfc3986(String(roomId))}/send`);
+    return new SendRoomMessageConnection(socket);
+  }
+
+  connectWatchRoom(roomId: string): WatchRoomConnection {
+    const socket = new WebSocket(`${this.baseUrl}/rooms/${encodeRfc3986(String(roomId))}/watch`);
+    return new WatchRoomConnection(socket);
+  }
 }
 
 export class ChatStreamConnection {
@@ -27,6 +51,68 @@ export class ChatStreamConnection {
 
   send(message: ClientMessage): void {
     this.socket.send(JSON.stringify(serializeClientMessage(message)));
+  }
+
+  onMessage(handler: (message: ServerMessage) => void): () => void {
+    const listener = (event: MessageEvent) => {
+      const data =
+        typeof event.data === "string"
+          ? event.data
+          : new TextDecoder().decode(event.data);
+      handler(parseServerMessage(JSON.parse(data)));
+    };
+    this.socket.addEventListener("message", listener);
+    return () => this.socket.removeEventListener("message", listener);
+  }
+
+  onClose(handler: (event: { code: number; reason: string; wasClean: boolean }) => void): () => void {
+    this.socket.addEventListener("close", handler);
+    return () => this.socket.removeEventListener("close", handler);
+  }
+
+  close(): void {
+    this.socket.close();
+  }
+}
+
+export class SendRoomMessageConnection {
+  private readonly socket: WebSocket;
+
+  constructor(socket: WebSocket) {
+    this.socket = socket;
+  }
+
+  send(message: SendRoomMessageInputMessage): void {
+    this.socket.send(JSON.stringify(message));
+  }
+
+  onMessage(handler: (message: ServerMessage) => void): () => void {
+    const listener = (event: MessageEvent) => {
+      const data =
+        typeof event.data === "string"
+          ? event.data
+          : new TextDecoder().decode(event.data);
+      handler(parseServerMessage(JSON.parse(data)));
+    };
+    this.socket.addEventListener("message", listener);
+    return () => this.socket.removeEventListener("message", listener);
+  }
+
+  onClose(handler: (event: { code: number; reason: string; wasClean: boolean }) => void): () => void {
+    this.socket.addEventListener("close", handler);
+    return () => this.socket.removeEventListener("close", handler);
+  }
+
+  close(): void {
+    this.socket.close();
+  }
+}
+
+export class WatchRoomConnection {
+  private readonly socket: WebSocket;
+
+  constructor(socket: WebSocket) {
+    this.socket = socket;
   }
 
   onMessage(handler: (message: ServerMessage) => void): () => void {

@@ -24,7 +24,7 @@ export interface ${className}${problemBase} {
   ${fieldName}?: string | null;
 <% } %>
 <% for (field <- fields) { %>
-  ${H.fieldName(ctx, field)}: ${H.fieldType(ctx, field)};
+  ${H.fieldName(ctx, field)}${if (H.isOptional(field.tpe)) "?" else ""}: ${H.fieldType(ctx, field)};
 <% } %>
 }
 

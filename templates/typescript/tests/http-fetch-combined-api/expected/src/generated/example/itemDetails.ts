@@ -3,6 +3,8 @@ import { PackageDetails } from "generated/example/packageDetails";
 
 export interface ItemDetails {
   name: string;
+  description?: string | null;
+  tags?: string[] | null;
   package: PackageDetails;
 }
 

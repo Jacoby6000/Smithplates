@@ -241,6 +241,20 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
               None,
               required = false,
               HttpInputMemberBindingMeta.Header("X-Trace")
+            ),
+            HttpOperationInputMemberMeta(
+              "tenantId",
+              "String",
+              None,
+              required = true,
+              HttpInputMemberBindingMeta.Query("tenant")
+            ),
+            HttpOperationInputMemberMeta(
+              "preview",
+              "Boolean",
+              None,
+              required = false,
+              HttpInputMemberBindingMeta.Query("preview")
             )
           ),
           bodyBinding = HttpOperationBodyBindingMeta.Document("CreateWidgetInput"),
@@ -249,7 +263,13 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
       )
     val view         = routeGroupView(List(createWidget))
 
-    assertEquals(R.clientRequestUrlExpression(view, createWidget), """f"{self._base_url}/widgets/{region}"""")
+    assertEquals(
+      R.clientRequestUrlExpression(view, createWidget),
+      "f\"{self._base_url}/widgets/{_encoded_region}\""
+    )
+    assertEquals(
+      R.clientRequestPathLabelsBlock(view, createWidget),
+      "        _encoded_region = _encode_path_label(region)")
     assert(
       R.clientRequestHeadersBlock(view, createWidget)
         .contains(
@@ -260,6 +280,21 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
     assertEquals(
       R.clientRequestJsonArgument(view, createWidget),
       """, json=create_widget_input.model_dump(mode="json", exclude_none=True)"""
+    )
+    assertEquals(
+      R.clientRequestQueryParamsBlock(view, createWidget),
+      """        query_params: list[tuple[str, str]] = []
+        |        query_params.append(
+        |            ("tenant", _serialize_query_value(tenant_id))
+        |        )
+        |        if preview is not None:
+        |            query_params.append(
+        |                ("preview", _serialize_query_value(preview))
+        |            )
+        |        query_string = urlencode(query_params, quote_via=quote)
+        |        request_url = f"{self._base_url}/widgets/{_encoded_region}"
+        |        if query_string:
+        |            request_url = f"{request_url}?{query_string}"""".stripMargin
     )
   }
 

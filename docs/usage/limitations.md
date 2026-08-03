@@ -44,7 +44,7 @@ HTTP service generation targets server-side Python/FastAPI wiring (REST route gr
 
 HTTP client generation mirrors server-side route groups and wire bindings. Configure `smithplates.<language>.http.client` alongside or instead of `server`:
 
-- Python: `httpLibrary: "httpx"` (default).
+- Python: `httpLibrary: "httpx"` (default), with REST `mode: "async"`, `"sync"`, or `"both"` (default `"async"`). WebSocket clients remain asynchronous.
 - TypeScript: `httpLibrary: "fetch"` or `"axios"`.
 
 OpenAPI Generator remains useful for external consumers and languages without a bundled Smithplates client.

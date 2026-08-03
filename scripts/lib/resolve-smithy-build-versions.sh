@@ -8,11 +8,14 @@ if ! command -v sbtn >/dev/null 2>&1; then
   exit 1
 fi
 
-SMITHPLATES_VERSION_OUTPUT="$(
-  sbtn --no-colors 'print smithplatesPlugin/version' | tr -d '\r' || true
-)"
-SMITHPLATES_VERSION="$(
-  printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
+SMITHPLATES_VERSION_OUTPUT=""
+SMITHPLATES_VERSION=""
+for _resolve_attempt in 1 2 3; do
+  SMITHPLATES_VERSION_OUTPUT="$(
+    sbtn --no-colors 'print smithplatesPlugin/version' | tr -d '\r' || true
+  )"
+  SMITHPLATES_VERSION="$(
+    printf '%s\n' "${SMITHPLATES_VERSION_OUTPUT}" \
     | sed 's/\x1b\[[0-9;]*[[:alpha:]]//g' \
     | awk '{
         line = $0
@@ -27,7 +30,12 @@ SMITHPLATES_VERSION="$(
           version = line
         }
       } END { print version }'
-)"
+  )"
+  if [[ -n "${SMITHPLATES_VERSION}" ]]; then
+    break
+  fi
+  sleep 1
+done
 if [[ -z "${SMITHPLATES_VERSION}" ]]; then
   echo "error: could not resolve smithplatesPlugin/version via sbtn" >&2
   if [[ -n "${SMITHPLATES_VERSION_OUTPUT}" ]]; then

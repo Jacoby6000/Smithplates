@@ -7,6 +7,13 @@ import type { ItemDetails } from "generated/example/itemDetails";
 import type { ShelfItemOutput } from "generated/example/shelfItemOutput";
 import type { ShelfSkuOutput } from "generated/example/shelfSkuOutput";
 
+function encodeRfc3986(value: string): string {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => "%" + character.charCodeAt(0).toString(16).toUpperCase(),
+  );
+}
+
 export class WarehouseApiClient {
   private readonly baseUrl: string;
   private readonly fetchFn: typeof fetch;
@@ -19,15 +26,31 @@ export class WarehouseApiClient {
   async assignShelfSku(
     requestId: string | null,
     shelfId: string,
+    tenant: string,
+    preview: boolean | null,
+    tags: string[] | null,
     sku: string,
   ): Promise<ShelfSkuOutput> {
     const headers: Record<string, string> = {};
+    headers["Content-Type"] = "application/json";
     if (requestId !== null && requestId !== undefined) {
       headers["X-Request-Id"] = String(requestId);
     }
+    const queryParts: string[] = [];
+    queryParts.push(encodeRfc3986("tenant") + "=" + encodeRfc3986(String(tenant)));
+    if (preview !== null && preview !== undefined) {
+      queryParts.push(encodeRfc3986("preview") + "=" + encodeRfc3986(String(preview)));
+    }
+    if (tags !== null && tags !== undefined) {
+      for (const value of tags) {
+        queryParts.push(encodeRfc3986("tag") + "=" + encodeRfc3986(String(value)));
+      }
+    }
+    const queryString = queryParts.join("&");
+    const requestUrl = `${this.baseUrl}/shelves/${encodeRfc3986(String(shelfId))}/skus` + (queryString ? "?" + queryString : "");
     const requestBody = JSON.stringify(sku);
     const response = await this.fetchFn(
-      `${this.baseUrl}/shelves/${shelfId}/skus`,
+      requestUrl,
       {
         method: "POST",
         headers,
@@ -45,18 +68,25 @@ export class WarehouseApiClient {
   }
 
   async createShelfItem(
+    contentType: string | null,
     idempotencyKey: string | null,
     warehouseId: string,
     shelfId: string,
     details: ItemDetails,
   ): Promise<ShelfItemOutput> {
     const headers: Record<string, string> = {};
+    if (contentType !== null && contentType !== undefined) {
+      headers["content-type"] = String(contentType);
+    }
     if (idempotencyKey !== null && idempotencyKey !== undefined) {
       headers["X-Idempotency-Key"] = String(idempotencyKey);
     }
+    const queryParts: string[] = [];
+    const queryString = queryParts.join("&");
+    const requestUrl = `${this.baseUrl}/warehouses/${encodeRfc3986(String(warehouseId))}/shelves/${encodeRfc3986(String(shelfId))}/items` + (queryString ? "?" + queryString : "");
     const requestBody = JSON.stringify(dumpApiModel(details));
     const response = await this.fetchFn(
-      `${this.baseUrl}/warehouses/${warehouseId}/shelves/${shelfId}/items`,
+      requestUrl,
       {
         method: "POST",
         headers,

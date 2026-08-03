@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import httpx
 from generated.example.widget_create_request import WidgetCreateRequest
 from generated.example.widget_summary import WidgetSummary
 from generated.widget_client.widget_api.client.client_response import parse_client_response
 from generated.widget_client.widget_api.client.operation_bindings import OPERATION_HTTP_BINDINGS
 from pydantic import Field  # noqa: F401
+
+
+def _encode_path_label(value: object, *, greedy: bool = False) -> str:
+    return quote(str(value), safe="/" if greedy else "")
 
 
 class WidgetsApiClient:
@@ -20,9 +26,11 @@ class WidgetsApiClient:
         body: WidgetCreateRequest,
     ) -> WidgetSummary:
         headers: dict[str, str] | None = None
+
+        request_url = f"{self._base_url}/widgets"
         response = await self._client.request(
             "POST",
-            f"{self._base_url}/widgets",
+            request_url,
             headers=headers,
             json=body.model_dump(mode="json", exclude_none=True),
         )
@@ -36,9 +44,11 @@ class WidgetsApiClient:
         widget_id: str,
     ) -> WidgetSummary:
         headers: dict[str, str] | None = None
+        _encoded_widget_id = _encode_path_label(widget_id)
+        request_url = f"{self._base_url}/widgets/{_encoded_widget_id}"
         response = await self._client.request(
             "GET",
-            f"{self._base_url}/widgets/{widget_id}",
+            request_url,
             headers=headers,
         )
         return parse_client_response(

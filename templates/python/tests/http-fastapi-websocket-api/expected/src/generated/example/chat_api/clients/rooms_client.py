@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import httpx
 from generated.chat_api_client.chat_api.client.client_response import parse_client_response
 from generated.chat_api_client.chat_api.client.operation_bindings import OPERATION_HTTP_BINDINGS
 from generated.example.room_list_output import RoomListOutput
 from pydantic import Field  # noqa: F401
+
+
+def _encode_path_label(value: object, *, greedy: bool = False) -> str:
+    return quote(str(value), safe="/" if greedy else "")
 
 
 class RoomsApiClient:
@@ -18,9 +24,11 @@ class RoomsApiClient:
         self,
     ) -> RoomListOutput:
         headers: dict[str, str] | None = None
+
+        request_url = f"{self._base_url}/rooms"
         response = await self._client.request(
             "GET",
-            f"{self._base_url}/rooms",
+            request_url,
             headers=headers,
         )
         return parse_client_response(

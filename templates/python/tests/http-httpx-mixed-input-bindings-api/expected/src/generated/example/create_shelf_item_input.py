@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 
 class CreateShelfItemInput(BaseModel):
+    contentType: str | None = Field(default=None)
     idempotencyKey: str | None = Field(default=None)
     warehouseId: str = Field(...)
     shelfId: str = Field(...)

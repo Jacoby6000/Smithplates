@@ -77,7 +77,7 @@ object HttpSmithyTypeResolver {
         resolveShapeType(model, serviceShape, operationName, memberName, member, elementShape).map { elementType =>
           HttpMemberType(
             typeName = s"List[${elementType.typeName}]",
-            timestampFormat = None
+            timestampFormat = elementType.timestampFormat
           )
         }
       } else if (shape.isMapShape) {

@@ -9,6 +9,7 @@
         "http": {
           "client": {
             "httpLibrary": "httpx",
+            "mode": "sync",
             "packageName": "generated.warehouse_api_client"
           },
           "outputs": [

@@ -9,10 +9,10 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from generated.petstore.api.api_exception_handler import DefaultFallbackApiExceptionHandler
-from generated.petstore.api.app_factory import create_app
-from generated.petstore.api.app_services import ApiServices
-from generated.petstore.api.websocket_routes import build_websocket_router
+from generated.petstore.api.petstore.api_exception_handler import DefaultFallbackApiExceptionHandler
+from generated.petstore.api.petstore.app_factory import create_app
+from generated.petstore.api.petstore.app_services import ApiServices
+from generated.petstore.api.petstore.websocket_routes import build_websocket_router
 from server.api_adapters import (
     CategoriesApiService,
     HealthApiService,

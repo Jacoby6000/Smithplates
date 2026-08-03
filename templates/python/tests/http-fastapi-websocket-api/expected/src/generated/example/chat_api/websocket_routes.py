@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import json
-from typing import Protocol
+from typing import NotRequired, Protocol, Required
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from generated.example.client_message import ClientMessage
+from generated.example.room import Room
 from generated.example.server_message import ServerMessage
 from pydantic import TypeAdapter
+from typing_extensions import TypedDict
+
+
+class SendRoomMessageInputMessage(TypedDict):
+    text: Required[str]
+    tags: NotRequired[list[str] | None]
+    metadata: NotRequired[Room | None]
 
 
 class WebsocketHandlers(Protocol):
@@ -16,6 +24,12 @@ class WebsocketHandlers(Protocol):
         self,
         websocket: WebSocket,
         message: ClientMessage,
+    ) -> None: ...
+    async def handle_send_room_message(
+        self,
+        websocket: WebSocket,
+        room_id: str,
+        message: SendRoomMessageInputMessage,
     ) -> None: ...
 
 
@@ -41,6 +55,32 @@ def build_websocket_router(handlers: WebsocketHandlers) -> APIRouter:
                 message = _chat_stream_input_adapter.validate_python(json.loads(raw))
                 await handlers.handle_chat_stream(
                     websocket,
+                    message=message,
+                )
+        except WebSocketDisconnect:
+            return
+
+    _send_room_message_input_adapter = TypeAdapter(SendRoomMessageInputMessage)
+
+    async def send_send_room_message_message(
+        websocket: WebSocket,
+        message: ServerMessage,
+    ) -> None:
+        await websocket.send_text(message.model_dump_json(exclude_none=True))
+
+    @websocket_router.websocket("/rooms/{room_id}/send")
+    async def _send_room_message_websocket(
+        websocket: WebSocket,
+        room_id: str,
+    ) -> None:
+        await websocket.accept()
+        try:
+            while True:
+                raw = await websocket.receive_text()
+                message = _send_room_message_input_adapter.validate_python(json.loads(raw))
+                await handlers.handle_send_room_message(
+                    websocket,
+                    room_id=room_id,
                     message=message,
                 )
         except WebSocketDisconnect:

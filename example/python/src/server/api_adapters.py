@@ -6,10 +6,6 @@ import asyncio
 
 from fastapi import WebSocket
 
-from generated.petstore.api.apis.categories_api_base import CategoriesApiServiceProtocol
-from generated.petstore.api.apis.health_api_base import HealthApiServiceProtocol
-from generated.petstore.api.apis.orders_api_base import OrdersApiServiceProtocol
-from generated.petstore.api.apis.pets_api_base import PetsApiServiceProtocol
 from generated.petstore.api.category_not_found import CategoryNotFound
 from generated.petstore.api.create_pet_input import CreatePetInput
 from generated.petstore.api.create_pet_output import CreatePetOutput
@@ -25,11 +21,15 @@ from generated.petstore.api.pet_not_found import PetNotFound
 from generated.petstore.api.pet_pong import PetPong
 from generated.petstore.api.pet_status import PetStatus
 from generated.petstore.api.pet_status_changed import PetStatusChanged
+from generated.petstore.api.petstore.apis.categories_api_base import CategoriesApiServiceProtocol
+from generated.petstore.api.petstore.apis.health_api_base import HealthApiServiceProtocol
+from generated.petstore.api.petstore.apis.orders_api_base import OrdersApiServiceProtocol
+from generated.petstore.api.petstore.apis.pets_api_base import PetsApiServiceProtocol
+from generated.petstore.api.petstore.websocket_routes import WebsocketHandlers
 from generated.petstore.api.place_order_input import PlaceOrderInput
 from generated.petstore.api.place_order_output import PlaceOrderOutput
 from generated.petstore.api.update_pet_body import UpdatePetBody
 from generated.petstore.api.update_pet_output import UpdatePetOutput
-from generated.petstore.api.websocket_routes import WebsocketHandlers
 from server.repository_service import PetstoreRepositoryService
 
 

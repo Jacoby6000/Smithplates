@@ -22,13 +22,6 @@
       "binding": { "type": "service" }
     },
     {
-      "id": "python.http.client.client_registry",
-      "artifactKind": "src",
-      "template": "client_registry.ssp",
-      "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/client_registry.py",
-      "binding": { "type": "service" }
-    },
-    {
       "id": "python.http.client.clients_init",
       "artifactKind": "src",
       "template": "clients/__init__.ssp",
@@ -46,10 +39,33 @@
   "variants": {
     "httpx": [
       {
+        "id": "python.http.client.client_registry",
+        "artifactKind": "src",
+        "template": "client_registry.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/client_registry.py",
+        "binding": { "type": "service" }
+      },
+      {
         "id": "python.http.client.httpx.route_group_client",
         "artifactKind": "src",
         "template": "httpx/route_group_client.ssp",
         "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/{{tagName}}_client.py",
+        "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
+      }
+    ],
+    "httpx.sync": [
+      {
+        "id": "python.http.client.httpx.sync_client_registry",
+        "artifactKind": "src",
+        "template": "httpx/sync_client_registry.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/client/sync_client_registry.py",
+        "binding": { "type": "service" }
+      },
+      {
+        "id": "python.http.client.httpx.sync_route_group_client",
+        "artifactKind": "src",
+        "template": "httpx/sync_route_group_client.ssp",
+        "outputPath": "{{smithyNamespaceDir}}/{{serviceModuleName}}/clients/{{tagName}}_sync_client.py",
         "binding": { "type": "operation", "filters": ["tagged"], "groupBy": "tag" }
       }
     ]

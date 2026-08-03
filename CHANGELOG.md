@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python/httpx REST clients can now be generated in `async`, `sync`, or `both`
+  modes. Async remains the default, while synchronous clients use
+  `httpx.Client` and the same generated operation bindings and response parser.
+
+### Fixed
+
+- Python/httpx and TypeScript fetch/axios clients now serialize `@httpQuery`
+  members, preserve wire names, omit absent optional values, and encode values
+  using RFC 3986 percent encoding.
+- REST and WebSocket clients now percent-encode URI labels, including each
+  segment of greedy labels, and TypeScript WebSocket connect methods accept
+  modeled path-label arguments without retaining path-only inputs as messages.
+- TypeScript optional Smithy members are emitted as optional properties, fetch
+  clients set JSON content types unless explicitly modeled, and WebSocket
+  imports are deduplicated when operations share message types.
+
 ## [0.5.0] - 2026-07-30
 
 ### Added

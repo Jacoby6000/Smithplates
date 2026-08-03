@@ -5,6 +5,7 @@ from fastapi import (  # noqa: F401
     APIRouter,
     Body,
     Depends,
+    Path,
 )
 from generated.chat_api.chat_api.api_response import dispatch_api_response
 from generated.chat_api.chat_api.app_services import ApiServices, get_api_services

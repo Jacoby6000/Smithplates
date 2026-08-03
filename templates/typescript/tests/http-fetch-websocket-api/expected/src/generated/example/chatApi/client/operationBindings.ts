@@ -93,4 +93,56 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
       200: "RoomListOutput",
     },
   },
+  "sendRoomMessage": {
+    variantsByTypeName: {
+      "ServerMessage": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "ServerMessage",
+    },
+  },
+  "SendRoomMessage": {
+    variantsByTypeName: {
+      "ServerMessage": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "ServerMessage",
+    },
+  },
+  "watchRoom": {
+    variantsByTypeName: {
+      "ServerMessage": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "ServerMessage",
+    },
+  },
+  "WatchRoom": {
+    variantsByTypeName: {
+      "ServerMessage": {
+        statusCode: 200,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+    },
+    variantsByStatus: {
+      200: "ServerMessage",
+    },
+  },
 };

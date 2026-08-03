@@ -129,9 +129,9 @@ object ConsumerCodegenOutputValidator {
         val configPath              = s"smithplates.$languageId.http.client.additionalTemplatesDirectory"
         validateExternalDirectory(configPath, additionalDir, enableExternalTemplates).andThen(_ =>
           HttpLanguageTarget.internal
-            .resolveFrameworkKey(languageId, "http.client.httpLibrary", clientTemplateDirectory, target.httpLibrary)
+            .resolveClientLibraryKey(languageId, clientTemplateDirectory, target.httpLibrary)
             .andThen { libraryKey =>
-              val enabledKeys = if (libraryKey.isEmpty) Nil else List(libraryKey)
+              val enabledKeys = if (libraryKey.isEmpty) Nil else target.mode.variantKeys(libraryKey)
               (
                 internal.httpClientBundledDeck(clientTemplateDirectory, modelsTemplateDirectory, emitModels),
                 com.jacoby6000.smithplates.http.service.renderer.HttpClientCodegenApiArtifacts.libraryArtifacts(

@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
 class AssignShelfSkuInput(BaseModel):
     requestId: str | None = Field(default=None)
     shelfId: str = Field(...)
+    tenant: str = Field(...)
+    preview: bool | None = Field(default=None)
+    tags: list[str] | None = Field(default=None)
+    modifiedSince: datetime | None = Field(default=None)
+    windows: list[datetime] | None = Field(default=None)
     sku: str = Field(...)

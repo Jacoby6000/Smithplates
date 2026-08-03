@@ -9,14 +9,14 @@ from dataclasses import dataclass
 import httpx
 
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-from ${H.servicePackageName(ctx)}.clients.${H.clientModuleName(tag)} import ${H.clientClassName(tag)}
+from ${H.servicePackageName(ctx)}.clients.${H.clientModuleName(ctx, tag)} import ${H.clientClassName(tag)}
 <% } %>
 
 
 @dataclass(frozen=True)
 class ApiClients:
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-    ${H.clientModuleName(tag)}: ${H.clientClassName(tag)}
+    ${H.clientModuleName(ctx, tag)}: ${H.clientClassName(tag)}
 <% } %>
 
 
@@ -28,7 +28,7 @@ def create_api_clients(
     normalized_base_url = base_url.rstrip("/")
     return ApiClients(
 <% for (tag <- H.routeGroupTags(ctx)) { %>
-        ${H.clientModuleName(tag)}=${H.clientClassName(tag)}(
+        ${H.clientModuleName(ctx, tag)}=${H.clientClassName(tag)}(
             client,
             normalized_base_url,
         ),

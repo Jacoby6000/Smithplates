@@ -68,7 +68,8 @@ final case class HttpClientTarget(
     httpLibrary: Option[String],
     templateDirectory: Option[String],
     additionalTemplatesDirectory: Option[String] = None,
-    packageName: Option[String]
+    packageName: Option[String],
+    mode: HttpClientMode = HttpClientMode.Default
 ) {
   def toCodegenSettings(
       languageId: String,
@@ -86,13 +87,14 @@ final case class HttpClientTarget(
     val modelsTemplateDirectory =
       HttpLanguageTargetTemplateValidator.defaultModelsTemplateDirectory(languageId)
     HttpLanguageTarget.internal
-      .resolveFrameworkKey(languageId, "http.client.httpLibrary", clientTemplateDirectory, httpLibrary)
+      .resolveClientLibraryKey(languageId, clientTemplateDirectory, httpLibrary)
       .andThen { libraryKey =>
+        val variantKeys = if (libraryKey.isEmpty) Nil else mode.variantKeys(libraryKey)
         HttpLanguageTarget.internal
           .composedClientArtifacts(
             clientTemplateDirectory = clientTemplateDirectory,
             modelsTemplateDirectory = modelsTemplateDirectory,
-            libraryKeys = if (libraryKey.isEmpty) Nil else List(libraryKey),
+            libraryKeys = variantKeys,
             emitModels = emitModels,
             additionalTemplatesDirectory = additionalTemplatesDirectory
           )
@@ -194,6 +196,32 @@ object HttpLanguageTarget {
                     InvalidPluginConfig(
                       s"smithplates.$languageId.$configPath requires an explicit selection but multiple variants " +
                         s"are available: ${multiple.sorted.mkString(", ")}"
+                    )
+                  )
+              }
+            }
+      }
+
+    def resolveClientLibraryKey(
+        languageId: String,
+        templateDirectory: String,
+        explicit: Option[String]
+    ): SqlValidated[String] =
+      explicit match {
+        case Some(key) => key.validNel
+        case None      =>
+          CodegenOutputDeckLoader
+            .load(templateDirectory, getClass.getClassLoader)
+            .leftMap(_.map(error => InvalidPluginConfig(error.message)))
+            .andThen { deck =>
+              deck.variants.keys.filterNot(_.endsWith(".sync")).toList match {
+                case Nil           => "".validNel
+                case single :: Nil => single.validNel
+                case multiple      =>
+                  SqlValidated.invalid(
+                    InvalidPluginConfig(
+                      s"smithplates.$languageId.http.client.httpLibrary requires an explicit selection but multiple " +
+                        s"variants are available: ${multiple.sorted.mkString(", ")}"
                     )
                   )
               }

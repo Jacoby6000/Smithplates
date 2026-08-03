@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { OPERATION_HTTP_BINDINGS } from "generated/petstore/api/client/operationBindings";
-import { parseClientResponse } from "generated/petstore/api/client/clientResponse";
+import { OPERATION_HTTP_BINDINGS } from "generated/petstore/api/petstore/client/operationBindings";
+import { parseClientResponse } from "generated/petstore/api/petstore/client/clientResponse";
 
 const VARIABLE_PATTERN = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
 const SERVER_VARIABLE_PATTERN = /^\$\{server\.([a-zA-Z_][a-zA-Z0-9_]*)\}$/;

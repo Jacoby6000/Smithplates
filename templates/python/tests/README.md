@@ -39,11 +39,11 @@ HTTP golden cases use `@httpService` services and `smithplates.python.http.{serv
 | `http-fastapi-operation-httpproblem-errors-api` | Operation-level `@httpProblem` error unions |
 | `http-fastapi-output-bindings-api` | Output `@httpPayload` flattening, `@httpHeader` redirects, `@httpProblem` implied Content-Type |
 | `http-fastapi-string-alias-enum-imports-api` | String aliases and enum import closure |
-| `http-fastapi-httpx-combined-api` | Server + httpx client from one model |
-| `http-httpx-mixed-input-bindings-api` | httpx client with mixed input bindings |
+| `http-fastapi-httpx-combined-api` | Server + default async httpx client from one model |
+| `http-httpx-mixed-input-bindings-api` | Sync httpx client with mixed input bindings |
 | `http-fastapi-websocket-api` | `@websocket` server routes + client |
 | `http-fastapi-websocket-path-params-api` | WebSocket URI path labels |
-| `http-nested-properties-api` | Smithy `@nestedProperties` on `@httpPayload` body flattening |
+| `http-nested-properties-api` | Smithy `@nestedProperties` body flattening with both async and sync clients |
 | `http-union-list-member-api` | Unions and list members in HTTP models |
 | `http-additional-templates-append` | Consumer `additionalTemplatesDirectory` append |
 | `http-additional-templates-override` | Consumer deck `overrides` by bundled id |
