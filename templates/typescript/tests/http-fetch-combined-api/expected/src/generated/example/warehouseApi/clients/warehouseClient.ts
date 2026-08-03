@@ -3,7 +3,9 @@
 import { dumpApiModel } from "generated/example/warehouseApi/modelValidation";
 import { parseClientResponse } from "generated/example/warehouseApi/client/clientResponse";
 import { OPERATION_HTTP_BINDINGS } from "generated/example/warehouseApi/client/operationBindings";
+import type { Conflict } from "generated/example/conflict";
 import type { ItemDetails } from "generated/example/itemDetails";
+import type { ServiceUnavailable } from "generated/example/serviceUnavailable";
 import type { ShelfItemOutput } from "generated/example/shelfItemOutput";
 import type { ShelfSkuOutput } from "generated/example/shelfSkuOutput";
 
@@ -30,7 +32,7 @@ export class WarehouseApiClient {
     preview: boolean | null,
     tags: string[] | null,
     sku: string,
-  ): Promise<ShelfSkuOutput> {
+  ): Promise<ShelfSkuOutput | ServiceUnavailable> {
     const headers: Record<string, string> = {};
     headers["Content-Type"] = "application/json";
     if (requestId !== null && requestId !== undefined) {
@@ -64,7 +66,7 @@ export class WarehouseApiClient {
       json: async () => await response.json(),
     };
     const parsed = await parseClientResponse(normalized, OPERATION_HTTP_BINDINGS["assignShelfSku"]);
-    return parsed as ShelfSkuOutput;
+    return parsed as ShelfSkuOutput | ServiceUnavailable;
   }
 
   async createShelfItem(
@@ -73,7 +75,7 @@ export class WarehouseApiClient {
     warehouseId: string,
     shelfId: string,
     details: ItemDetails,
-  ): Promise<ShelfItemOutput> {
+  ): Promise<ShelfItemOutput | Conflict | ServiceUnavailable> {
     const headers: Record<string, string> = {};
     if (contentType !== null && contentType !== undefined) {
       headers["content-type"] = String(contentType);
@@ -100,6 +102,6 @@ export class WarehouseApiClient {
       json: async () => await response.json(),
     };
     const parsed = await parseClientResponse(normalized, OPERATION_HTTP_BINDINGS["createShelfItem"]);
-    return parsed as ShelfItemOutput;
+    return parsed as ShelfItemOutput | Conflict | ServiceUnavailable;
   }
 }

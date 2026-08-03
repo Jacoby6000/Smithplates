@@ -46,6 +46,11 @@ export class PetEventsConnection {
     return () => this.socket.removeEventListener("close", handler);
   }
 
+  onError(handler: (event: Event) => void): () => void {
+    this.socket.addEventListener("error", handler);
+    return () => this.socket.removeEventListener("error", handler);
+  }
+
   close(): void {
     this.socket.close();
   }

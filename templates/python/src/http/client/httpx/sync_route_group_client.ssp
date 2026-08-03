@@ -21,7 +21,7 @@ from pydantic import Field  # noqa: F401
 
 from ${R.servicePackageName(ctx)}.client.client_response import parse_client_response
 from ${R.servicePackageName(ctx)}.client.operation_bindings import OPERATION_HTTP_BINDINGS
-<% for (typeName <- operations.flatMap(operation => R.operationImportedModelNames(ctx, operation)).distinct.sorted) { %>
+<% for (typeName <- operations.flatMap(operation => R.clientOperationImportedModelNames(ctx, operation)).distinct.sorted) { %>
 from ${R.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
 <% if (R.routeGroupUsesPathBinding(ctx)) { %>
@@ -59,7 +59,7 @@ class ${R.clientClassName(R.tag(ctx))}:
 <% for (parameter <- R.clientMethodParameters(ctx, operation)) { %>
         ${parameter},
 <% } %>
-    ) -> ${R.clientMethodReturnType(operation)}:
+    ) -> ${R.clientMethodReturnType(ctx, operation)}:
 <% operation.meta.documentation.foreach { doc => %>
         """${doc}"""
 <% } %>

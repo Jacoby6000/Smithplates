@@ -307,7 +307,7 @@ Reference implementation: [`example/python/src/server/`](../../example/python/sr
 
 **Python** — construct `<Service>WebsocketClient(base_url=...)`, then `async with await client.connect_<operation>(...) as conn:` (path labels become method arguments). Use `await conn.send(...)`, `await conn.receive()`, `async for message in conn:`, and `await conn.close()`.
 
-**TypeScript** — construct `<Service>WebsocketClient({ baseUrl })`, then `client.connect<Operation>(...)`. The connection exposes `send`, `onMessage`, `onClose`, and `close`.
+**TypeScript** — construct `<Service>WebsocketClient({ baseUrl })`, then `client.connect<Operation>(...)`. The connection exposes `send`, `onMessage`, `onClose`, `onError`, and `close`. `onError` forwards the native browser `Event`; reconnect and close policy remain consumer-owned.
 
 Message payloads use the same generated models as the rest of the HTTP API (Pydantic in Python, typed models in TypeScript).
 

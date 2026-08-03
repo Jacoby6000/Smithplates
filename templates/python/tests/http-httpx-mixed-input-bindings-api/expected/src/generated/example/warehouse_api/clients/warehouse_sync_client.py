@@ -7,7 +7,9 @@ from email.utils import format_datetime
 from urllib.parse import quote, urlencode
 
 import httpx
+from generated.example.conflict import Conflict
 from generated.example.item_details import ItemDetails
+from generated.example.service_unavailable import ServiceUnavailable
 from generated.example.shelf_item_output import ShelfItemOutput
 from generated.example.shelf_sku_output import ShelfSkuOutput
 from generated.warehouse_api_client.warehouse_api.client.client_response import parse_client_response
@@ -48,7 +50,7 @@ class WarehouseApiClient:
         modified_since: datetime | None,
         windows: list[datetime] | None,
         sku: str,
-    ) -> ShelfSkuOutput:
+    ) -> ShelfSkuOutput | ServiceUnavailable:
         """POST with @httpHeader, one @httpLabel, and a primitive payload body member."""
         headers: dict[str, str] = {}
         if request_id is not None:
@@ -90,7 +92,7 @@ class WarehouseApiClient:
         warehouse_id: str,
         shelf_id: str,
         details: ItemDetails,
-    ) -> ShelfItemOutput:
+    ) -> ShelfItemOutput | Conflict | ServiceUnavailable:
         """POST with @httpHeader, @httpLabel path labels, and a nested structure @httpPayload body."""
         headers: dict[str, str] = {}
         if content_type is not None:

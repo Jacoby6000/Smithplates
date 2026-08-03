@@ -26,7 +26,7 @@ private[http] object HttpServiceExtractor {
         requireSupportedSerialization(service)
       ).mapN { (version, serialization) =>
         HttpServiceErrorExtractor
-          .extract(model, serviceShape, service.getErrorsSet.asScala.toList)
+          .extract(model, serviceShape, service.getErrorsSet.asScala.toList, serialization)
           .andThen { case (serviceErrors, serviceErrorWarnings) =>
             extractResources(model, service).andThen { resources =>
               val operationIds =

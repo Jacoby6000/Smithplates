@@ -70,6 +70,11 @@ export class ChatStreamConnection {
     return () => this.socket.removeEventListener("close", handler);
   }
 
+  onError(handler: (event: Event) => void): () => void {
+    this.socket.addEventListener("error", handler);
+    return () => this.socket.removeEventListener("error", handler);
+  }
+
   close(): void {
     this.socket.close();
   }
@@ -103,6 +108,11 @@ export class SendRoomMessageConnection {
     return () => this.socket.removeEventListener("close", handler);
   }
 
+  onError(handler: (event: Event) => void): () => void {
+    this.socket.addEventListener("error", handler);
+    return () => this.socket.removeEventListener("error", handler);
+  }
+
   close(): void {
     this.socket.close();
   }
@@ -130,6 +140,11 @@ export class WatchRoomConnection {
   onClose(handler: (event: { code: number; reason: string; wasClean: boolean }) => void): () => void {
     this.socket.addEventListener("close", handler);
     return () => this.socket.removeEventListener("close", handler);
+  }
+
+  onError(handler: (event: Event) => void): () => void {
+    this.socket.addEventListener("error", handler);
+    return () => this.socket.removeEventListener("error", handler);
   }
 
   close(): void {

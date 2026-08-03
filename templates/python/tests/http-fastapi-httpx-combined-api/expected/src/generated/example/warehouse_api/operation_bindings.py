@@ -65,6 +65,18 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 header_bindings=(),
                 static_headers=(),
             ),
+            "Conflict": ResponseVariantBinding(
+                status_code=409,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
         },
     ),
     "CreateShelfItem": OperationHttpBinding(
@@ -74,6 +86,18 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
                 media_type="application/json",
                 header_bindings=(),
                 static_headers=(),
+            ),
+            "Conflict": ResponseVariantBinding(
+                status_code=409,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
             ),
         },
     ),

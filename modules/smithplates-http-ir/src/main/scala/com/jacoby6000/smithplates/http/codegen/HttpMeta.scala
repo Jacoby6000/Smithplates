@@ -32,6 +32,7 @@ final case class HttpErrorMeta(
 final case class HttpServiceErrorMeta(
     id: ModelId,
     statusCode: Int,
+    responseVariant: HttpResponseVariantMeta,
     error: Option[HttpErrorMeta] = None
 ) {
   def name: String = id.name

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import httpx
+from generated.example.conflict import Conflict
+from generated.example.service_unavailable import ServiceUnavailable
 from generated.example.shelf_item_output import ShelfItemOutput
 from generated.example.shelf_sku_output import ShelfSkuOutput
 from generated.warehouse_api_client.warehouse_api.client.operation_bindings import ClientOperationHttpBinding
@@ -15,6 +17,8 @@ class ClientResponseError(Exception):
 
 
 _MODEL_TYPES: dict[str, type[object]] = {
+    "Conflict": Conflict,
+    "ServiceUnavailable": ServiceUnavailable,
     "ShelfItemOutput": ShelfItemOutput,
     "ShelfSkuOutput": ShelfSkuOutput,
 }

@@ -16,6 +16,7 @@ import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
@@ -130,6 +131,20 @@ object HttpNeutralServiceTemplateAttributes {
       .map(ref => ctx.conventions.className(ref.id))
       .distinct
       .sorted
+
+  def clientResponseModelTypeNames(ctx: ServiceView): List[String] =
+    operations(ctx)
+      .flatMap(operation => clientResponseVariants(ctx, operation))
+      .flatMap(_.modelShapeId)
+      .map(id => ctx.conventions.className(id))
+      .distinct
+      .sorted
+
+  def clientResponseVariants(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpResponseVariantMeta] =
+    internal.mergeResponseVariants(operation.meta.feature.responseVariants, serviceErrors(ctx))
 
   def modelTypeImportModule(ctx: ServiceView, typeName: String): String =
     internal
@@ -357,6 +372,14 @@ object HttpNeutralServiceTemplateAttributes {
 
     def serviceErrorModelRefs(ctx: ServiceView): List[ModelRef] =
       serviceErrors(ctx).map(error => ModelRef(error.id))
+
+    def mergeResponseVariants(
+        operationVariants: List[HttpResponseVariantMeta],
+        serviceErrors: List[HttpServiceErrorMeta]
+    ): List[HttpResponseVariantMeta] =
+      (operationVariants ++ serviceErrors.map(_.responseVariant)).distinctBy { variant =>
+        (variant.modelShapeId.map(_.toString).getOrElse(variant.variantTypeName), variant.statusCode)
+      }
 
     def modelsPackageName(ctx: ServiceView): String =
       s"${packageName(ctx)}.models"

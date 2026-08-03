@@ -2,6 +2,35 @@
 
 from __future__ import annotations
 
+from generated.smithplates.codegen.http.http_problem import HttpProblem
+
 
 class NotImplementedApiError(Exception):
     """Raised by stub service code; converted to 501 by fallback API exception handlers."""
+
+
+class ServiceUnavailableApiError(Exception):
+    """Raised for Smithy service error ServiceUnavailable (RFC 9457 problem)."""
+
+    _PROBLEM_TYPE: str = "https://example.com/errors/service-unavailable"
+    _PROBLEM_TITLE: str = "Service unavailable"
+    _PROBLEM_DETAIL: str | None = None
+
+    def __init__(
+        self,
+        *,
+        detail: str | None = None,
+        instance: str | None = None,
+    ) -> None:
+        self.detail = detail
+        self.instance = instance
+
+    def to_problem(self, status_code: int) -> HttpProblem:
+        resolved_detail = self.detail if self.detail is not None else self._PROBLEM_DETAIL
+        return HttpProblem(
+            type=self._PROBLEM_TYPE,
+            title=self._PROBLEM_TITLE,
+            status=status_code,
+            detail=resolved_detail,
+            instance=self.instance,
+        )

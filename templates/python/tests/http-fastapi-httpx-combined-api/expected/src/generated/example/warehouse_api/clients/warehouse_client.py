@@ -5,7 +5,9 @@ from __future__ import annotations
 from urllib.parse import quote
 
 import httpx
+from generated.example.conflict import Conflict
 from generated.example.item_details import ItemDetails
+from generated.example.service_unavailable import ServiceUnavailable
 from generated.example.shelf_item_output import ShelfItemOutput
 from generated.example.shelf_sku_output import ShelfSkuOutput
 from generated.warehouse_api_client.warehouse_api.client.client_response import parse_client_response
@@ -27,7 +29,7 @@ class WarehouseApiClient:
         request_id: str | None,
         shelf_id: str,
         sku: str,
-    ) -> ShelfSkuOutput:
+    ) -> ShelfSkuOutput | ServiceUnavailable:
         """POST with @httpHeader, one @httpLabel, and a primitive payload body member."""
         headers: dict[str, str] = {}
         if request_id is not None:
@@ -51,7 +53,7 @@ class WarehouseApiClient:
         warehouse_id: str,
         shelf_id: str,
         details: ItemDetails,
-    ) -> ShelfItemOutput:
+    ) -> ShelfItemOutput | Conflict | ServiceUnavailable:
         """POST with @httpHeader, @httpLabel path labels, and a nested structure @httpPayload body."""
         headers: dict[str, str] = {}
         if idempotency_key is not None:

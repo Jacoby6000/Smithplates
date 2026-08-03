@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Python/httpx and TypeScript fetch/axios operation response bindings now merge
+  service-level errors with operation-local errors and deduplicate repeated
+  shapes, preserving modeled status, media type, and response headers.
+- TypeScript WebSocket connections now expose native browser `error` events via
+  a typed `onError` listener without imposing reconnect behavior.
 - Python/httpx and TypeScript fetch/axios clients now serialize `@httpQuery`
   members, preserve wire names, omit absent optional values, and encode values
   using RFC 3986 percent encoding.

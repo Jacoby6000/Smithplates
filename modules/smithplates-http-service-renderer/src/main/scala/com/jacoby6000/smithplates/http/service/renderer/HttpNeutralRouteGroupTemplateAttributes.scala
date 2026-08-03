@@ -17,6 +17,7 @@ import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 
@@ -114,6 +115,24 @@ object HttpNeutralRouteGroupTemplateAttributes {
         .flatMap(member => internal.referencedModelNames(member.typeName, knownModelNames))
     (internal.operationBodyModelNames(feature) ++ variantTypes ++ inputMemberModelTypes).distinct.sorted
   }
+
+  def clientOperationImportedModelNames(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[String] = {
+    val operationModelNames = operationImportedModelNames(ctx, operation)
+    val clientVariantTypes  = clientResponseVariants(ctx, operation).map(_.variantTypeName).filterNot(_ == "__empty__")
+    (operationModelNames ++ clientVariantTypes).distinct.sorted
+  }
+
+  def clientResponseVariants(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpResponseVariantMeta] =
+    HttpNeutralServiceTemplateAttributes.internal.mergeResponseVariants(
+      operation.meta.feature.responseVariants,
+      ctx.subject.service.meta.feature.serviceErrors
+    )
 
   def httpMemberTypeAnnotation(
       ctx: RouteGroupView,
@@ -222,8 +241,14 @@ object HttpNeutralRouteGroupTemplateAttributes {
     routeParams ++ bodyParams
   }
 
-  def clientMethodReturnType(operation: OperationModel[HttpOperationMeta]): String =
-    operationProtocolReturnType(operation)
+  def clientMethodReturnType(ctx: RouteGroupView, operation: OperationModel[HttpOperationMeta]): String = {
+    val variants        = clientResponseVariants(ctx, operation)
+    val hasEmptySuccess = variants.exists(variant =>
+      variant.statusCode == operation.meta.feature.successStatus && variant.variantTypeName == "__empty__")
+    val types           = variants.map(_.variantTypeName).filterNot(_ == "__empty__").distinct
+    val allTypes        = if (hasEmptySuccess) types :+ "None" else types
+    if (allTypes.isEmpty) "None" else allTypes.mkString(" | ")
+  }
 
   def clientRequestUrlExpression(
       ctx: RouteGroupView,
