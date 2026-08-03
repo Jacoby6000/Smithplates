@@ -65,20 +65,22 @@ object HttpLanguageTargetTemplateValidator {
       .requireTemplateDirectoryForLanguage(languageId, "http.client", target.templateDirectory)
       .andThen(_ =>
         HttpLanguageTarget.internal
-          .resolveFrameworkKey(languageId, "http.client.httpLibrary", clientTemplateDirectory, target.httpLibrary)
-          .andThen(libraryKey =>
+          .resolveClientLibraryKey(languageId, clientTemplateDirectory, target.httpLibrary)
+          .andThen { libraryKey =>
+            val variantKeys = if (libraryKey.isEmpty) Nil else target.mode.variantKeys(libraryKey)
             internal.loadedArtifacts(
               (
                 HttpClientCodegenApiArtifacts.libraryArtifacts(
                   clientTemplateDirectory,
-                  if (libraryKey.isEmpty) Nil else List(libraryKey)
+                  variantKeys
                 ),
                 if (emitModels) {
                   HttpServiceCodegenApiArtifacts.modelArtifacts(defaultModelsTemplateDirectory(languageId))
                 } else {
                   List.empty[CodegenOutput].validNel
                 }
-              ).mapN(_ ++ _))))
+              ).mapN(_ ++ _))
+          })
       .andThen(artifacts =>
         internal.validateRequiredArtifactsExist(
           languageId = languageId,

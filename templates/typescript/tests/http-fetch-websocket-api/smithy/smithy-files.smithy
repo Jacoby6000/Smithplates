@@ -5,13 +5,14 @@ namespace example
 use smithplates.codegen.http#httpService
 use smithplates.codegen.http#websocket
 use smithy.api#http
+use smithy.api#httpLabel
 use smithy.api#tags
 use smithy.api#readonly
 
 @httpService
 service ChatApi {
     version: "1"
-    operations: [ListRooms, ChatStream]
+    operations: [ListRooms, ChatStream, WatchRoom, SendRoomMessage]
 }
 
 @tags(["rooms"])
@@ -27,6 +28,45 @@ operation ListRooms {
 operation ChatStream {
     input: ClientMessage
     output: ServerMessage
+}
+
+@tags(["rooms"])
+@http(method: "GET", uri: "/rooms/{roomId}/watch", code: 200)
+@websocket
+operation WatchRoom {
+    input: WatchRoomInput
+    output: ServerMessage
+}
+
+@tags(["rooms"])
+@http(method: "GET", uri: "/rooms/{roomId}/send", code: 200)
+@websocket
+operation SendRoomMessage {
+    input: SendRoomMessageInput
+    output: ServerMessage
+}
+
+structure WatchRoomInput {
+    @required
+    @httpLabel
+    roomId: String
+}
+
+structure SendRoomMessageInput {
+    @required
+    @httpLabel
+    roomId: String
+
+    @required
+    text: String
+
+    tags: StringList
+
+    metadata: Room
+}
+
+list StringList {
+    member: String
 }
 
 structure Room {

@@ -35,7 +35,7 @@ Smithy models live under [`../petstore-smithy-spec/`](../petstore-smithy-spec/) 
 | `@httpService`, `@http`, `@tags` | `Petstore` service in [`petstore-smithy-spec/petstore/api/http-service.smithy`](../petstore-smithy-spec/petstore/api/http-service.smithy) (`petstore.api`) |
 | `@websocket` | Chat-style bidirectional endpoint in `petstore.api` (generated `websocket_routes.py` + client) |
 | `@httpProblem` / shared `HttpProblem` | API error structures; base under `src/generated/smithplates/codegen/http/` |
-| Smithplates httpx HTTP client | `smithplates.python.http.client` → `src/generated/petstore/api/client/` |
+| Smithplates httpx HTTP client | `smithplates.python.http.client` → `src/generated/petstore/api/petstore/client/` |
 | String + int enums | `PetStatus`, `OrderStatus`, `PetSpecies`, `OrderPriority` |
 | Timestamps | `created_at`, `updated_at`, `adopted_at` |
 | `@sqlAutoUuid`, `@sqlVarchar`, indexes | `Pet`, `Store`, … |

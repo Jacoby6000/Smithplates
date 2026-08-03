@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Self
+from typing import Any, NotRequired, Required, Self
+from urllib.parse import quote
 
 import websockets
 from generated.example.client_message import ClientMessage
+from generated.example.room import Room
 from generated.example.server_message import ServerMessage
 from pydantic import TypeAdapter
+from typing_extensions import TypedDict
+
+
+class SendRoomMessageInputMessage(TypedDict):
+    text: Required[str]
+    tags: NotRequired[list[str] | None]
+    metadata: NotRequired[Room | None]
 
 
 class ChatApiWebsocketClient:
@@ -19,6 +28,10 @@ class ChatApiWebsocketClient:
         websocket = await websockets.connect(f"{self._base_url}/chat")
         return ChatStreamConnection(websocket)
 
+    async def connect_send_room_message(self, room_id: str) -> SendRoomMessageConnection:
+        websocket = await websockets.connect(f"{self._base_url}/rooms/{quote(str(room_id), safe='')}/send")
+        return SendRoomMessageConnection(websocket)
+
 
 class ChatStreamConnection:
     def __init__(self, websocket: Any) -> None:
@@ -27,6 +40,39 @@ class ChatStreamConnection:
 
     async def send(self, message: ClientMessage) -> None:
         await self._websocket.send(message.model_dump_json(exclude_none=True))
+
+    async def receive(self) -> ServerMessage:
+        raw = await self._websocket.recv()
+        return self._output_adapter.validate_python(json.loads(raw))
+
+    async def close(self) -> None:
+        await self._websocket.close()
+
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, exc_type: object, exc: object, tb: object) -> None:
+        await self.close()
+
+    def __aiter__(self) -> Self:
+        return self
+
+    async def __anext__(self) -> ServerMessage:
+        try:
+            return await self.receive()
+        except websockets.ConnectionClosed:
+            raise StopAsyncIteration from None
+
+
+class SendRoomMessageConnection:
+    def __init__(self, websocket: Any) -> None:
+        self._websocket = websocket
+        self._output_adapter: TypeAdapter[ServerMessage] = TypeAdapter(ServerMessage)
+        self._input_adapter: TypeAdapter[SendRoomMessageInputMessage] = TypeAdapter(SendRoomMessageInputMessage)
+
+    async def send(self, message: SendRoomMessageInputMessage) -> None:
+        payload = self._input_adapter.dump_json(message, exclude_none=True).decode()
+        await self._websocket.send(payload)
 
     async def receive(self) -> ServerMessage:
         raw = await self._websocket.recv()

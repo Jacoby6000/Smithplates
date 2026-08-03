@@ -8,4 +8,6 @@ from pydantic import BaseModel, Field
 
 class ItemDetails(BaseModel):
     name: str = Field(...)
+    description: str | None = Field(default=None)
+    tags: list[str] | None = Field(default=None)
     package: PackageDetails = Field(...)

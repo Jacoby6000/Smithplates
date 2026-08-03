@@ -68,9 +68,63 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         assertEquals(target.client.map(_.httpLibrary), Some(None))
         val client         = target.client.getOrElse(fail("expected client target"))
         assertEquals(client.packageName, Some("generated.warehouse_api_client"))
+        assertEquals(client.mode, HttpClientMode.Async)
       case Validated.Invalid(errors) =>
         fail(errors.map(_.message).toList.mkString("; "))
     }
+  }
+
+  test("parses async, sync, and both HTTP client modes") {
+    val modes = List(
+      "async" -> HttpClientMode.Async,
+      "sync"  -> HttpClientMode.Sync,
+      "both"  -> HttpClientMode.Both
+    )
+
+    modes.foreach { case (value, expected) =>
+      SmithplatesSettings
+        .parseJson(s"""
+          {
+            "python": {
+              "http": {
+                "client": { "mode": "$value" },
+                "outputs": [
+                  { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+                ]
+              }
+            }
+          }
+        """)
+        .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+        case Validated.Valid(settings) =>
+          val client = settings.languageTargets("python").target.client.getOrElse(fail("expected client target"))
+          assertEquals(client.mode, expected)
+        case Validated.Invalid(errors) =>
+          fail(errors.map(_.message).toList.mkString("; "))
+      }
+    }
+  }
+
+  test("rejects unsupported HTTP client mode") {
+    val errors =
+      SmithplatesSettings
+        .parseJson("""
+          {
+            "python": {
+              "http": {
+                "client": { "mode": "blocking" },
+                "outputs": [
+                  { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+                ]
+              }
+            }
+          }
+        """)
+        .swap
+        .toOption
+        .getOrElse(fail("expected errors"))
+
+    assert(errors.exists(_.message.contains("unsupported HTTP client mode 'blocking'")))
   }
 
   test("parses combined HTTP server and client targets") {

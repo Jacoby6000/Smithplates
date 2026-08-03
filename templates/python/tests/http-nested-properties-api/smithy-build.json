@@ -12,6 +12,7 @@
             "packageName": "generated.widget_api"
           },
           "client": {
+            "mode": "both",
             "packageName": "generated.widget_client"
           },
           "outputs": [

@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 import httpx
 from generated.example.stream_list_output import StreamListOutput
 from generated.stream_api_client.stream_api.client.client_response import parse_client_response
 from generated.stream_api_client.stream_api.client.operation_bindings import OPERATION_HTTP_BINDINGS
 from pydantic import Field  # noqa: F401
+
+
+def _encode_path_label(value: object, *, greedy: bool = False) -> str:
+    return quote(str(value), safe="/" if greedy else "")
 
 
 class StreamsApiClient:
@@ -18,9 +24,11 @@ class StreamsApiClient:
         self,
     ) -> StreamListOutput:
         headers: dict[str, str] | None = None
+
+        request_url = f"{self._base_url}/streams"
         response = await self._client.request(
             "GET",
-            f"{self._base_url}/streams",
+            request_url,
             headers=headers,
         )
         return parse_client_response(

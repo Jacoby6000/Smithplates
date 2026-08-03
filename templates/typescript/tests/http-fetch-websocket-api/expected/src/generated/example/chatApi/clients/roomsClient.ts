@@ -17,8 +17,11 @@ export class RoomsApiClient {
   async listRooms(
   ): Promise<RoomListOutput> {
     const headers: Record<string, string> = {};
+    const queryParts: string[] = [];
+    const queryString = queryParts.join("&");
+    const requestUrl = `${this.baseUrl}/rooms` + (queryString ? "?" + queryString : "");
     const response = await this.fetchFn(
-      `${this.baseUrl}/rooms`,
+      requestUrl,
       {
         method: "GET",
         headers,

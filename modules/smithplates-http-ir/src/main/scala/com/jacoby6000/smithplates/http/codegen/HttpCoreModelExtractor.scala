@@ -104,20 +104,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 documentation = operation.documentation,
                 inputMembers = operation.inputMembers.map(internal.toInputMemberMeta),
                 bodyBinding = internal.toBodyBindingMeta(operation.bodyBinding),
-                responseVariants = operation.responseBinding.allVariants.map { variant =>
-                  HttpResponseVariantMeta(
-                    variantTypeName = variant.variantTypeName,
-                    statusCode = variant.statusCode,
-                    mediaType = variant.mediaType,
-                    headerBindings = variant.headerBindings,
-                    staticHeaders = variant.staticHeaders,
-                    modelShapeId = if (variant.modelShapeId == HttpStructureExtractor.internal.UnitShapeId) {
-                      None
-                    } else {
-                      Some(ModelIds.fromShapeId(variant.modelShapeId))
-                    }
-                  )
-                },
+                responseVariants = operation.responseBinding.allVariants.map(internal.toResponseVariantMeta),
                 websocket = internal
                   .websocketMeta(model, operation.shapeId, operation.uri)
               )
@@ -172,7 +159,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                     title = Some(binding.title),
                     defaultDetail = binding.defaultDetail
                   )
-                }
+                },
+                responseVariant = internal.toResponseVariantMeta(error.responseVariant)
               )
             },
             modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds),
@@ -395,6 +383,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             meta = structure.meta.copy(
               feature = HttpMeta.HttpResponseMeta(
                 statusCode = error.statusCode,
+                staticHeaders = error.responseVariant.staticHeaders.toMap,
+                dynamicHeaderFields = error.responseVariant.headerBindings.toMap,
                 error = error.problemBinding.map { binding =>
                   HttpErrorMeta(
                     problemType = Some(binding.problemType),
@@ -406,6 +396,20 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             )
           )
       }
+
+    def toResponseVariantMeta(variant: HttpResponseVariant): HttpResponseVariantMeta =
+      HttpResponseVariantMeta(
+        variantTypeName = variant.variantTypeName,
+        statusCode = variant.statusCode,
+        mediaType = variant.mediaType,
+        headerBindings = variant.headerBindings,
+        staticHeaders = variant.staticHeaders,
+        modelShapeId = if (variant.modelShapeId == HttpStructureExtractor.internal.UnitShapeId) {
+          None
+        } else {
+          Some(ModelIds.fromShapeId(variant.modelShapeId))
+        }
+      )
 
     def modelMeta(model: SmithyModel, shapeId: ShapeId, feature: HttpMeta): ModelMeta[HttpMeta] = {
       val shape = model.expectShape(shapeId)

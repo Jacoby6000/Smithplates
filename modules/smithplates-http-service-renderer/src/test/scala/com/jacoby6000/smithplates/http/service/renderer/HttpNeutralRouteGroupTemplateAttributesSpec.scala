@@ -19,6 +19,7 @@ import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
 import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
+import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 import munit.FunSuite
@@ -46,7 +47,8 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
   private def routeGroupView(
       operations: List[OperationModel[HttpOperationMeta]],
       usedTypes: List[Model[HttpMeta]] = Nil,
-      modelNamespaces: Map[String, String] = Map.empty
+      modelNamespaces: Map[String, String] = Map.empty,
+      serviceErrors: List[HttpServiceErrorMeta] = Nil
   ): R.RouteGroupView =
     TemplateView(
       subject = CodegenPlanner.internal.OperationGroupSubject(
@@ -56,7 +58,7 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
           meta = ServiceMeta(
             None,
             Nil,
-            HttpServiceMeta(version = "1", modelNamespaces = modelNamespaces)
+            HttpServiceMeta(version = "1", serviceErrors = serviceErrors, modelNamespaces = modelNamespaces)
           ),
           operations = operations
         ),
@@ -216,7 +218,52 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
 
     assertEquals(R.responseTypeName(deleteWidget), "None")
     assertEquals(R.operationProtocolReturnType(deleteWidget), "WidgetNotFound | None")
-    assertEquals(R.clientMethodReturnType(deleteWidget), "WidgetNotFound | None")
+    assertEquals(R.clientMethodReturnType(routeGroupView(List(deleteWidget)), deleteWidget), "WidgetNotFound | None")
+  }
+
+  test("client response variants merge service and operation errors without duplicates") {
+    val serviceUnavailable =
+      HttpResponseVariantMeta(
+        "ServiceUnavailable",
+        503,
+        mediaType = Some("application/json"),
+        staticHeaders = List("Content-Type" -> "application/problem+json"),
+        modelShapeId = Some(ModelId("example", "ServiceUnavailable"))
+      )
+    val conflict           =
+      HttpResponseVariantMeta(
+        "Conflict",
+        409,
+        mediaType = Some("application/json"),
+        modelShapeId = Some(ModelId("example", "Conflict"))
+      )
+    val createWidget       =
+      operation(
+        "CreateWidget",
+        HttpOperationMeta(
+          method = "POST",
+          uriPattern = "/widgets",
+          successStatus = 201,
+          responseVariants = List(HttpResponseVariantMeta("Widget", 201), conflict, serviceUnavailable)
+        )
+      )
+    val view               =
+      routeGroupView(
+        List(createWidget),
+        serviceErrors = List(
+          HttpServiceErrorMeta(
+            ModelId("example", "ServiceUnavailable"),
+            503,
+            responseVariant = serviceUnavailable
+          )
+        )
+      )
+
+    assertEquals(
+      R.clientResponseVariants(view, createWidget),
+      List(HttpResponseVariantMeta("Widget", 201), conflict, serviceUnavailable)
+    )
+    assertEquals(R.clientMethodReturnType(view, createWidget), "Widget | Conflict | ServiceUnavailable")
   }
 
   test("client request helpers build URL, headers, and JSON arguments") {
@@ -241,6 +288,20 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
               None,
               required = false,
               HttpInputMemberBindingMeta.Header("X-Trace")
+            ),
+            HttpOperationInputMemberMeta(
+              "tenantId",
+              "String",
+              None,
+              required = true,
+              HttpInputMemberBindingMeta.Query("tenant")
+            ),
+            HttpOperationInputMemberMeta(
+              "preview",
+              "Boolean",
+              None,
+              required = false,
+              HttpInputMemberBindingMeta.Query("preview")
             )
           ),
           bodyBinding = HttpOperationBodyBindingMeta.Document("CreateWidgetInput"),
@@ -249,7 +310,13 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
       )
     val view         = routeGroupView(List(createWidget))
 
-    assertEquals(R.clientRequestUrlExpression(view, createWidget), """f"{self._base_url}/widgets/{region}"""")
+    assertEquals(
+      R.clientRequestUrlExpression(view, createWidget),
+      "f\"{self._base_url}/widgets/{_encoded_region}\""
+    )
+    assertEquals(
+      R.clientRequestPathLabelsBlock(view, createWidget),
+      "        _encoded_region = _encode_path_label(region)")
     assert(
       R.clientRequestHeadersBlock(view, createWidget)
         .contains(
@@ -260,6 +327,21 @@ class HttpNeutralRouteGroupTemplateAttributesSpec extends FunSuite {
     assertEquals(
       R.clientRequestJsonArgument(view, createWidget),
       """, json=create_widget_input.model_dump(mode="json", exclude_none=True)"""
+    )
+    assertEquals(
+      R.clientRequestQueryParamsBlock(view, createWidget),
+      """        query_params: list[tuple[str, str]] = []
+        |        query_params.append(
+        |            ("tenant", _serialize_query_value(tenant_id))
+        |        )
+        |        if preview is not None:
+        |            query_params.append(
+        |                ("preview", _serialize_query_value(preview))
+        |            )
+        |        query_string = urlencode(query_params, quote_via=quote)
+        |        request_url = f"{self._base_url}/widgets/{_encoded_region}"
+        |        if query_string:
+        |            request_url = f"{request_url}?{query_string}"""".stripMargin
     )
   }
 

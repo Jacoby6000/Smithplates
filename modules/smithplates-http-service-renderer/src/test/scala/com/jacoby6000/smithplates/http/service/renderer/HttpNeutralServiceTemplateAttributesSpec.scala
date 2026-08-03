@@ -101,7 +101,13 @@ class HttpNeutralServiceTemplateAttributesSpec extends FunSuite {
           HttpServiceErrorMeta(
             id = ModelId("example", "WidgetNotFound"),
             statusCode = 404,
-            error = Some(HttpErrorMeta(problemType = Some("about:blank"), title = Some("Not found")))
+            error = Some(HttpErrorMeta(problemType = Some("about:blank"), title = Some("Not found"))),
+            responseVariant = HttpResponseVariantMeta(
+              "WidgetNotFound",
+              404,
+              mediaType = Some("application/json"),
+              modelShapeId = Some(ModelId("example", "WidgetNotFound"))
+            )
           )
         )
       )

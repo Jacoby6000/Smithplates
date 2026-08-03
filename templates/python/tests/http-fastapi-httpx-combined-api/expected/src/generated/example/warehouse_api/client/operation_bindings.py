@@ -46,9 +46,16 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
                 header_bindings=(),
                 static_headers=(),
             ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
         },
         variants_by_status={
             201: "ShelfSkuOutput",
+            503: "ServiceUnavailable",
         },
     ),
     "AssignShelfSku": ClientOperationHttpBinding(
@@ -59,9 +66,16 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
                 header_bindings=(),
                 static_headers=(),
             ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
         },
         variants_by_status={
             201: "ShelfSkuOutput",
+            503: "ServiceUnavailable",
         },
     ),
     "create_shelf_item": ClientOperationHttpBinding(
@@ -72,9 +86,23 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
                 header_bindings=(),
                 static_headers=(),
             ),
+            "Conflict": ResponseVariantBinding(
+                status_code=409,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
         },
         variants_by_status={
             201: "ShelfItemOutput",
+            409: "Conflict",
+            503: "ServiceUnavailable",
         },
     ),
     "CreateShelfItem": ClientOperationHttpBinding(
@@ -85,9 +113,23 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
                 header_bindings=(),
                 static_headers=(),
             ),
+            "Conflict": ResponseVariantBinding(
+                status_code=409,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+            "ServiceUnavailable": ResponseVariantBinding(
+                status_code=503,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(("Content-Type", "application/problem+json"),),
+            ),
         },
         variants_by_status={
             201: "ShelfItemOutput",
+            409: "Conflict",
+            503: "ServiceUnavailable",
         },
     ),
 }

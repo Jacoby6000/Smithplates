@@ -11,7 +11,8 @@ final case class HttpServiceError(
     shapeId: ShapeId,
     name: String,
     statusCode: Int,
-    problemBinding: Option[HttpProblemBinding] = None
+    problemBinding: Option[HttpProblemBinding],
+    responseVariant: HttpResponseVariant
 )
 
 final case class HttpStructureMember(

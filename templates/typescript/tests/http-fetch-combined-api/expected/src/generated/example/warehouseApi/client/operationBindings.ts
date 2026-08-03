@@ -49,9 +49,16 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
         headerBindings: [],
         staticHeaders: [],
       },
+      "ServiceUnavailable": {
+        statusCode: 503,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [["Content-Type", "application/problem+json"]],
+      },
     },
     variantsByStatus: {
       201: "ShelfSkuOutput",
+      503: "ServiceUnavailable",
     },
   },
   "AssignShelfSku": {
@@ -62,9 +69,16 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
         headerBindings: [],
         staticHeaders: [],
       },
+      "ServiceUnavailable": {
+        statusCode: 503,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [["Content-Type", "application/problem+json"]],
+      },
     },
     variantsByStatus: {
       201: "ShelfSkuOutput",
+      503: "ServiceUnavailable",
     },
   },
   "createShelfItem": {
@@ -75,9 +89,23 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
         headerBindings: [],
         staticHeaders: [],
       },
+      "Conflict": {
+        statusCode: 409,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+      "ServiceUnavailable": {
+        statusCode: 503,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [["Content-Type", "application/problem+json"]],
+      },
     },
     variantsByStatus: {
       201: "ShelfItemOutput",
+      409: "Conflict",
+      503: "ServiceUnavailable",
     },
   },
   "CreateShelfItem": {
@@ -88,9 +116,23 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
         headerBindings: [],
         staticHeaders: [],
       },
+      "Conflict": {
+        statusCode: 409,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [],
+      },
+      "ServiceUnavailable": {
+        statusCode: 503,
+        mediaType: "application/json",
+        headerBindings: [],
+        staticHeaders: [["Content-Type", "application/problem+json"]],
+      },
     },
     variantsByStatus: {
       201: "ShelfItemOutput",
+      409: "Conflict",
+      503: "ServiceUnavailable",
     },
   },
 };

@@ -4,9 +4,18 @@ import axios, { type AxiosInstance } from "axios";
 import { dumpApiModel } from "generated/example/warehouseApi/modelValidation";
 import { parseClientResponse } from "generated/example/warehouseApi/client/clientResponse";
 import { OPERATION_HTTP_BINDINGS } from "generated/example/warehouseApi/client/operationBindings";
+import type { Conflict } from "generated/example/conflict";
 import type { ItemDetails } from "generated/example/itemDetails";
+import type { ServiceUnavailable } from "generated/example/serviceUnavailable";
 import type { ShelfItemOutput } from "generated/example/shelfItemOutput";
 import type { ShelfSkuOutput } from "generated/example/shelfSkuOutput";
+
+function encodeRfc3986(value: string): string {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (character) => "%" + character.charCodeAt(0).toString(16).toUpperCase(),
+  );
+}
 
 export class WarehouseApiClient {
   private readonly baseUrl: string;
@@ -20,15 +29,30 @@ export class WarehouseApiClient {
   async assignShelfSku(
     requestId: string | null,
     shelfId: string,
+    tenant: string,
+    preview: boolean | null,
+    tags: string[] | null,
     sku: string,
-  ): Promise<ShelfSkuOutput> {
+  ): Promise<ShelfSkuOutput | ServiceUnavailable> {
     const headers: Record<string, string> = {};
     if (requestId !== null && requestId !== undefined) {
       headers["X-Request-Id"] = String(requestId);
     }
+    const queryParts: string[] = [];
+    queryParts.push(encodeRfc3986("tenant") + "=" + encodeRfc3986(String(tenant)));
+    if (preview !== null && preview !== undefined) {
+      queryParts.push(encodeRfc3986("preview") + "=" + encodeRfc3986(String(preview)));
+    }
+    if (tags !== null && tags !== undefined) {
+      for (const value of tags) {
+        queryParts.push(encodeRfc3986("tag") + "=" + encodeRfc3986(String(value)));
+      }
+    }
+    const queryString = queryParts.join("&");
+    const requestUrl = `${this.baseUrl}/shelves/${encodeRfc3986(String(shelfId))}/skus` + (queryString ? "?" + queryString : "");
     const response = await this.axiosInstance.request({
       method: "POST",
-      url: `${this.baseUrl}/shelves/${shelfId}/skus`,
+      url: requestUrl,
       headers,
       data: sku,
     });
@@ -40,22 +64,29 @@ export class WarehouseApiClient {
       json: async () => response.data,
     };
     const parsed = await parseClientResponse(normalized, OPERATION_HTTP_BINDINGS["assignShelfSku"]);
-    return parsed as ShelfSkuOutput;
+    return parsed as ShelfSkuOutput | ServiceUnavailable;
   }
 
   async createShelfItem(
+    contentType: string | null,
     idempotencyKey: string | null,
     warehouseId: string,
     shelfId: string,
     details: ItemDetails,
-  ): Promise<ShelfItemOutput> {
+  ): Promise<ShelfItemOutput | Conflict | ServiceUnavailable> {
     const headers: Record<string, string> = {};
+    if (contentType !== null && contentType !== undefined) {
+      headers["content-type"] = String(contentType);
+    }
     if (idempotencyKey !== null && idempotencyKey !== undefined) {
       headers["X-Idempotency-Key"] = String(idempotencyKey);
     }
+    const queryParts: string[] = [];
+    const queryString = queryParts.join("&");
+    const requestUrl = `${this.baseUrl}/warehouses/${encodeRfc3986(String(warehouseId))}/shelves/${encodeRfc3986(String(shelfId))}/items` + (queryString ? "?" + queryString : "");
     const response = await this.axiosInstance.request({
       method: "POST",
-      url: `${this.baseUrl}/warehouses/${warehouseId}/shelves/${shelfId}/items`,
+      url: requestUrl,
       headers,
       data: dumpApiModel(details),
     });
@@ -67,6 +98,6 @@ export class WarehouseApiClient {
       json: async () => response.data,
     };
     const parsed = await parseClientResponse(normalized, OPERATION_HTTP_BINDINGS["createShelfItem"]);
-    return parsed as ShelfItemOutput;
+    return parsed as ShelfItemOutput | Conflict | ServiceUnavailable;
   }
 }

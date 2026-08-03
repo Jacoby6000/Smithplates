@@ -10,7 +10,7 @@ from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from generated.smithplates.codegen.http.http_problem import HttpProblem
-from generated.warehouse_api.warehouse_api.api_exceptions import NotImplementedApiError
+from generated.warehouse_api.warehouse_api.api_exceptions import NotImplementedApiError, ServiceUnavailableApiError
 from pydantic import BaseModel
 
 LOGGER = logging.getLogger(__name__)
@@ -21,6 +21,12 @@ class FallbackApiExceptionHandler(Protocol):
         self,
         request: Request,
         exc: NotImplementedApiError,
+    ) -> JSONResponse: ...
+
+    async def handle_service_unavailable_api_error(
+        self,
+        request: Request,
+        exc: ServiceUnavailableApiError,
     ) -> JSONResponse: ...
 
     async def handle_validation_error(
@@ -61,6 +67,13 @@ class DefaultFallbackApiExceptionHandler:
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return problem_json_response(501, HttpProblem(title="Not implemented", status=501))
+
+    async def handle_service_unavailable_api_error(
+        self,
+        request: Request,
+        exc: ServiceUnavailableApiError,
+    ) -> JSONResponse:
+        return problem_json_response(503, exc.to_problem(503))
 
     async def handle_validation_error(
         self,

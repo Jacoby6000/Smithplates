@@ -17,6 +17,7 @@ import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
 import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 
@@ -114,6 +115,24 @@ object HttpNeutralRouteGroupTemplateAttributes {
         .flatMap(member => internal.referencedModelNames(member.typeName, knownModelNames))
     (internal.operationBodyModelNames(feature) ++ variantTypes ++ inputMemberModelTypes).distinct.sorted
   }
+
+  def clientOperationImportedModelNames(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[String] = {
+    val operationModelNames = operationImportedModelNames(ctx, operation)
+    val clientVariantTypes  = clientResponseVariants(ctx, operation).map(_.variantTypeName).filterNot(_ == "__empty__")
+    (operationModelNames ++ clientVariantTypes).distinct.sorted
+  }
+
+  def clientResponseVariants(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpResponseVariantMeta] =
+    HttpNeutralServiceTemplateAttributes.internal.mergeResponseVariants(
+      operation.meta.feature.responseVariants,
+      ctx.subject.service.meta.feature.serviceErrors
+    )
 
   def httpMemberTypeAnnotation(
       ctx: RouteGroupView,
@@ -222,8 +241,14 @@ object HttpNeutralRouteGroupTemplateAttributes {
     routeParams ++ bodyParams
   }
 
-  def clientMethodReturnType(operation: OperationModel[HttpOperationMeta]): String =
-    operationProtocolReturnType(operation)
+  def clientMethodReturnType(ctx: RouteGroupView, operation: OperationModel[HttpOperationMeta]): String = {
+    val variants        = clientResponseVariants(ctx, operation)
+    val hasEmptySuccess = variants.exists(variant =>
+      variant.statusCode == operation.meta.feature.successStatus && variant.variantTypeName == "__empty__")
+    val types           = variants.map(_.variantTypeName).filterNot(_ == "__empty__").distinct
+    val allTypes        = if (hasEmptySuccess) types :+ "None" else types
+    if (allTypes.isEmpty) "None" else allTypes.mkString(" | ")
+  }
 
   def clientRequestUrlExpression(
       ctx: RouteGroupView,
@@ -233,9 +258,73 @@ object HttpNeutralRouteGroupTemplateAttributes {
       operation.meta.feature.inputMembers.filter(member => internal.isPathLabelBinding(member))
     val interpolatedUri =
       pathMembers.foldLeft(operation.meta.feature.uriPattern) { case (uri, member) =>
-        uri.replace("{" + member.name + "}", "{" + routeParameterName(ctx, member.name) + "}")
+        val parameter = routeParameterName(ctx, member.name)
+        uri
+          .replace("{" + member.name + "+}", "{_encoded_" + parameter + "}")
+          .replace("{" + member.name + "}", "{_encoded_" + parameter + "}")
       }
     s"f\"{self._base_url}$interpolatedUri\""
+  }
+
+  def clientRequestPathLabelsBlock(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String =
+    operation.meta.feature.inputMembers
+      .filter(member => internal.isPathLabelBinding(member))
+      .map { member =>
+        val parameter = routeParameterName(ctx, member.name)
+        val greedy    = operation.meta.feature.uriPattern.contains("{" + member.name + "+}")
+        val argument  = if (greedy) s"$parameter, greedy=True" else parameter
+        s"        _encoded_$parameter = _encode_path_label($argument)"
+      }
+      .mkString("\n")
+
+  def clientRequestQueryParamsBlock(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String = {
+    val queryMembers = operation.meta.feature.inputMembers.filter(member => internal.isQueryBinding(member))
+    if (queryMembers.isEmpty) {
+      return s"        request_url = ${clientRequestUrlExpression(ctx, operation)}"
+    }
+    val lines        = queryMembers.flatMap { member =>
+      val wireName                          = member.binding match {
+        case HttpInputMemberBindingMeta.Query(name) => name
+        case _                                      => member.name
+      }
+      val parameter                         = routeParameterName(ctx, member.name)
+      def serialized(value: String): String = member.timestampFormat match {
+        case Some(HttpTimestampFormat.EpochSeconds) =>
+          s"_serialize_query_value($value, timestamp_format=\"epoch-seconds\")"
+        case Some(HttpTimestampFormat.HttpDate)     => s"_serialize_query_value($value, timestamp_format=\"http-date\")"
+        case _                                      => s"_serialize_query_value($value)"
+      }
+      val append                            =
+        if (member.typeName.startsWith("List[")) {
+          List(
+            s"        for value in $parameter:",
+            s"            query_params.append((\"$wireName\", ${serialized("value")}))"
+          )
+        } else {
+          List(
+            "        query_params.append(",
+            s"            (\"$wireName\", ${serialized(parameter)})",
+            "        )"
+          )
+        }
+      if (member.required) append else s"        if $parameter is not None:" +: append.map("    " + _)
+    }
+    (
+      List("        query_params: list[tuple[str, str]] = []") ++
+        lines ++
+        List(
+          "        query_string = urlencode(query_params, quote_via=quote)",
+          s"        request_url = ${clientRequestUrlExpression(ctx, operation)}",
+          "        if query_string:",
+          "            request_url = f\"{request_url}?{query_string}\""
+        )
+    ).mkString("\n")
   }
 
   def clientRequestHeadersBlock(

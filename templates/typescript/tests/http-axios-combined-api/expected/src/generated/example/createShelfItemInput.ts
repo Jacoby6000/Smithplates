@@ -2,7 +2,8 @@
 import { ItemDetails } from "generated/example/itemDetails";
 
 export interface CreateShelfItemInput {
-  idempotencyKey: string | null;
+  contentType?: string | null;
+  idempotencyKey?: string | null;
   warehouseId: string;
   shelfId: string;
   details: ItemDetails;

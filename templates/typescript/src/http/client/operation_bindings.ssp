@@ -47,7 +47,7 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
 <% for (bindingKey <- H.operationBindingKeys(ctx, operation)) { %>
   ${tsStringLiteral(bindingKey)}: {
     variantsByTypeName: {
-<% for (variant <- operation.meta.feature.responseVariants) { %>
+<% for (variant <- H.clientResponseVariants(ctx, operation)) { %>
       ${tsStringLiteral(variant.variantTypeName)}: {
         statusCode: ${variant.statusCode},
         mediaType: ${tsMediaType(variant.mediaType)},
@@ -57,7 +57,7 @@ export const OPERATION_HTTP_BINDINGS: Record<string, ClientOperationHttpBinding>
 <% } %>
     },
     variantsByStatus: {
-<% for (variant <- operation.meta.feature.responseVariants) { %>
+<% for (variant <- H.clientResponseVariants(ctx, operation)) { %>
       ${variant.statusCode}: ${tsStringLiteral(variant.variantTypeName)},
 <% } %>
     },

@@ -1,17 +1,25 @@
 package com.jacoby6000.smithplates.http.service.renderer
 
 import com.jacoby6000.smithplates.codegen.core.ModelId
-import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
+import com.jacoby6000.smithplates.codegen.core.ModelSet
+import com.jacoby6000.smithplates.codegen.core.NeutralType
+import com.jacoby6000.smithplates.codegen.core.NeutralType.*
 import com.jacoby6000.smithplates.codegen.core.OperationModel
 import com.jacoby6000.smithplates.codegen.core.ServiceModel
+import com.jacoby6000.smithplates.codegen.core.TimestampFormat
+import com.jacoby6000.smithplates.codegen.core.TypeResolver
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
+import com.jacoby6000.smithplates.codegen.core.strategy.RenderContext
+import com.jacoby6000.smithplates.http.HttpSmithyTypeResolver
 import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceErrorMeta
 import com.jacoby6000.smithplates.http.codegen.HttpServiceMeta
+import com.jacoby6000.smithplates.http.model.HttpTimestampFormat
 
 /** Neutral [[TemplateView]] helpers for HTTP service-scoped SSP templates. */
 object HttpNeutralServiceTemplateAttributes {
@@ -111,12 +119,32 @@ object HttpNeutralServiceTemplateAttributes {
   def clientModuleName(tag: String): String =
     s"${tag}_client"
 
+  def clientModuleName(ctx: ServiceView, tag: String): String =
+    clientModuleName(ctx.conventions.memberName(tag))
+
+  def syncClientModuleName(ctx: ServiceView, tag: String): String =
+    s"${ctx.conventions.memberName(tag)}_sync_client"
+
   def responseModelTypeNames(ctx: ServiceView): List[String] =
     internal
       .responseModelRefs(ctx)
       .map(ref => ctx.conventions.className(ref.id))
       .distinct
       .sorted
+
+  def clientResponseModelTypeNames(ctx: ServiceView): List[String] =
+    operations(ctx)
+      .flatMap(operation => clientResponseVariants(ctx, operation))
+      .flatMap(_.modelShapeId)
+      .map(id => ctx.conventions.className(id))
+      .distinct
+      .sorted
+
+  def clientResponseVariants(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[HttpResponseVariantMeta] =
+    internal.mergeResponseVariants(operation.meta.feature.responseVariants, serviceErrors(ctx))
 
   def modelTypeImportModule(ctx: ServiceView, typeName: String): String =
     internal
@@ -127,6 +155,11 @@ object HttpNeutralServiceTemplateAttributes {
         ctx.usedTypes
           .find(model => ctx.conventions.className(model.id) == typeName)
           .map(model => ModelRef(model.id))
+      )
+      .orElse(
+        ctx.subject.meta.feature.modelNamespaces
+          .get(typeName)
+          .map(namespace => ModelRef(ModelId(namespace, typeName)))
       )
       .map(ref => ctx.conventions.modulePath(ref.id))
       .getOrElse {
@@ -175,11 +208,52 @@ object HttpNeutralServiceTemplateAttributes {
       path.replace(label, pythonLabel)
     }
 
+  def websocketPythonClientPath(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String =
+    websocketPathLabels(operation).foldLeft(websocketPath(operation)) { case (path, member) =>
+      val parameter = websocketPathLabelName(ctx, member)
+      path
+        .replace("{" + member.name + "+}", "{quote(str(" + parameter + "), safe=\"/\")}")
+        .replace("{" + member.name + "}", "{quote(str(" + parameter + "), safe=\"\")}")
+    }
+
   /** Whether the websocket operation has client-to-server message content (body members). Path-label-only inputs define
     * routing parameters, not messages.
     */
   def websocketHasInputMessages(operation: OperationModel[HttpOperationMeta]): Boolean =
     operation.meta.feature.bodyBinding != HttpOperationBodyBindingMeta.None
+
+  def websocketBodyMembers(operation: OperationModel[HttpOperationMeta]): List[HttpOperationInputMemberMeta] =
+    operation.meta.feature.bodyBinding match {
+      case HttpOperationBodyBindingMeta.Members(members) => members
+      case _                                             => Nil
+    }
+
+  def websocketUsesMemberMessage(operation: OperationModel[HttpOperationMeta]): Boolean =
+    websocketBodyMembers(operation).nonEmpty
+
+  def websocketMemberMessageTypeName(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): String =
+    s"${ctx.conventions.className(operation.id)}InputMessage"
+
+  def websocketMemberName(ctx: ServiceView, member: HttpOperationInputMemberMeta): String =
+    ctx.conventions.memberName(member.name)
+
+  def websocketMemberTypeAnnotation(ctx: ServiceView, member: HttpOperationInputMemberMeta): String =
+    internal.renderMemberType(ctx, member)
+
+  def websocketMemberModelImports(
+      ctx: ServiceView,
+      operation: OperationModel[HttpOperationMeta]
+  ): List[(String, String)] =
+    websocketBodyMembers(operation)
+      .flatMap(member => internal.referencedModelTypeNames(member.typeName))
+      .map(typeName => typeName -> modelTypeImportModule(ctx, typeName))
+      .distinct
 
   def websocketHandlerName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): String =
     s"handle_${ctx.conventions.functionName(operation.id.name)}"
@@ -194,13 +268,27 @@ object HttpNeutralServiceTemplateAttributes {
     operation.output
 
   def websocketInputTypeName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
-    operation.input.map(ref => ctx.conventions.className(ref.id))
+    operation.meta.feature.bodyBinding match {
+      case HttpOperationBodyBindingMeta.None                     => None
+      case HttpOperationBodyBindingMeta.Document(inputShapeName) => Some(inputShapeName)
+      case HttpOperationBodyBindingMeta.Members(_ :: _)          => Some(websocketMemberMessageTypeName(ctx, operation))
+      case HttpOperationBodyBindingMeta.Members(Nil)             => None
+      case nested: HttpOperationBodyBindingMeta.NestedDocument   => Some(nested.payloadTargetShapeName)
+    }
+
+  def websocketInputModelTypeName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
+    operation.meta.feature.bodyBinding match {
+      case HttpOperationBodyBindingMeta.None                   => None
+      case HttpOperationBodyBindingMeta.Document(name)         => Some(name)
+      case HttpOperationBodyBindingMeta.Members(_)             => None
+      case nested: HttpOperationBodyBindingMeta.NestedDocument => Some(nested.payloadTargetShapeName)
+    }
 
   def websocketOutputTypeName(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
     operation.output.map(ref => ctx.conventions.className(ref.id))
 
   def websocketInputModule(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
-    operation.input.map(ref => ctx.conventions.modulePath(ref.id))
+    websocketInputModelTypeName(ctx, operation).map(modelTypeImportModule(ctx, _))
 
   def websocketOutputModule(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
     operation.output.map(ref => ctx.conventions.modulePath(ref.id))
@@ -218,10 +306,57 @@ object HttpNeutralServiceTemplateAttributes {
     operation.output.map(ref => internal.parseFunctionName(ctx, ref))
 
   def websocketInputSerializeFunction(ctx: ServiceView, operation: OperationModel[HttpOperationMeta]): Option[String] =
-    operation.input.map(ref => internal.serializeFunctionName(ctx, ref))
+    websocketInputModelTypeName(ctx, operation).map(typeName => s"serialize$typeName")
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def referencedModelTypeNames(typeName: String): List[String] =
+      if (typeName.startsWith("List[")) {
+        referencedModelTypeNames(typeName.substring(5, typeName.length - 1))
+      } else if (typeName.startsWith("Map[String, ")) {
+        referencedModelTypeNames(typeName.substring(12, typeName.length - 1))
+      } else if (HttpSmithyTypeResolver.isStructureTypeName(typeName)) {
+        List(typeName)
+      } else {
+        Nil
+      }
+
+    def renderMemberType(ctx: ServiceView, member: HttpOperationInputMemberMeta): String =
+      if (member.typeName == "Unit") {
+        "None"
+      } else {
+        val tpe = toNeutralType(member.typeName, member.timestampFormat)
+        ctx.typeRenderer.render(tpe, RenderContext(TypeResolver.fromModelSet(ModelSet(ctx.usedTypes)), ctx.conventions))
+      }
+
+    def toNeutralType(typeName: String, timestampFormat: Option[HttpTimestampFormat]): NeutralType =
+      if (typeName.startsWith("List[")) {
+        val inner = typeName.substring(5, typeName.length - 1)
+        ListT(toNeutralType(inner, None))
+      } else if (typeName.startsWith("Map[String, ")) {
+        val inner = typeName.substring(12, typeName.length - 1)
+        MapT(StringT, toNeutralType(inner, None))
+      } else {
+        typeName match {
+          case "String"     => StringT
+          case "Integer"    => IntegerT
+          case "Long"       => LongT
+          case "BigInteger" => BigIntegerT
+          case "Float"      => FloatT
+          case "Double"     => DoubleT
+          case "BigDecimal" => BigDecimalT
+          case "Boolean"    => BooleanT
+          case "Blob"       => BytesT
+          case "Document"   => DocumentT
+          case "Timestamp"  =>
+            TimestampT(timestampFormat match {
+              case Some(HttpTimestampFormat.EpochSeconds) => TimestampFormat.EpochSeconds
+              case _                                      => TimestampFormat.DateTime
+            })
+          case other        => ModelRef(ModelId("", other))
+        }
+      }
+
     def responseModelRefs(ctx: ServiceView): List[ModelRef] = {
       val successRefs =
         ctx.subject.operations.flatMap { operation =>
@@ -237,6 +372,14 @@ object HttpNeutralServiceTemplateAttributes {
 
     def serviceErrorModelRefs(ctx: ServiceView): List[ModelRef] =
       serviceErrors(ctx).map(error => ModelRef(error.id))
+
+    def mergeResponseVariants(
+        operationVariants: List[HttpResponseVariantMeta],
+        serviceErrors: List[HttpServiceErrorMeta]
+    ): List[HttpResponseVariantMeta] =
+      (operationVariants ++ serviceErrors.map(_.responseVariant)).distinctBy { variant =>
+        (variant.modelShapeId.map(_.toString).getOrElse(variant.variantTypeName), variant.statusCode)
+      }
 
     def modelsPackageName(ctx: ServiceView): String =
       s"${packageName(ctx)}.models"

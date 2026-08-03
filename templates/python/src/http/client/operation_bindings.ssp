@@ -43,7 +43,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
 <% for (bindingKey <- H.operationBindingKeys(ctx, operation)) { %>
     "${bindingKey}": ClientOperationHttpBinding(
         variants_by_type_name={
-<% for (variant <- operation.meta.feature.responseVariants) { %>
+<% for (variant <- H.clientResponseVariants(ctx, operation)) { %>
             "${variant.variantTypeName}": ResponseVariantBinding(
                 status_code=${variant.statusCode},
                 media_type=${H.responseVariantMediaType(variant.mediaType)},
@@ -53,7 +53,7 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
 <% } %>
         },
         variants_by_status={
-<% for (variant <- operation.meta.feature.responseVariants) { %>
+<% for (variant <- H.clientResponseVariants(ctx, operation)) { %>
             ${variant.statusCode}: "${variant.variantTypeName}",
 <% } %>
         },

@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from generated.warehouse_api.warehouse_api.api_exception_handler import FallbackApiExceptionHandler
-from generated.warehouse_api.warehouse_api.api_exceptions import NotImplementedApiError
+from generated.warehouse_api.warehouse_api.api_exceptions import NotImplementedApiError, ServiceUnavailableApiError
 from generated.warehouse_api.warehouse_api.apis.warehouse_api import router as WarehouseApiRouter
 from generated.warehouse_api.warehouse_api.app_services import ApiServices
 
@@ -21,6 +21,13 @@ def configure_fallback_exception_handlers(
         exc: NotImplementedApiError,
     ) -> JSONResponse:
         return await fallback_exception_handler.handle_not_implemented(request, exc)
+
+    @app.exception_handler(ServiceUnavailableApiError)
+    async def on_service_unavailable_api_error(
+        request: Request,
+        exc: ServiceUnavailableApiError,
+    ) -> JSONResponse:
+        return await fallback_exception_handler.handle_service_unavailable_api_error(request, exc)
 
     @app.exception_handler(RequestValidationError)
     async def on_validation_error(

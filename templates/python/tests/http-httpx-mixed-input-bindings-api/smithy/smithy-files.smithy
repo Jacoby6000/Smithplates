@@ -2,14 +2,20 @@ $version: "2.0"
 namespace example
 
 use smithplates.codegen.http#httpService
+use smithplates.codegen.http#httpProblem
+use smithy.api#error
 use smithy.api#http
+use smithy.api#httpError
 use smithy.api#httpPayload
+use smithy.api#httpQuery
 use smithy.api#tags
+use smithy.api#timestampFormat
 
 @httpService
 service WarehouseApi {
     version: "1"
     operations: [CreateShelfItem, AssignShelfSku]
+    errors: [ServiceUnavailable]
 }
 
 /// POST with @httpHeader, @httpLabel path labels, and a nested structure @httpPayload body.
@@ -18,6 +24,7 @@ service WarehouseApi {
 operation CreateShelfItem {
     input: CreateShelfItemInput
     output: ShelfItemOutput
+    errors: [Conflict, ServiceUnavailable]
 }
 
 /// POST with @httpHeader, one @httpLabel, and a primitive payload body member.
@@ -51,11 +58,18 @@ structure ItemDetails {
     @required
     name: String
 
+    description: String
+
+    tags: StringList
+
     @required
     package: PackageDetails
 }
 
 structure CreateShelfItemInput {
+    @httpHeader("content-type")
+    contentType: String
+
     @httpHeader("X-Idempotency-Key")
     idempotencyKey: String
 
@@ -81,7 +95,33 @@ structure AssignShelfSkuInput {
     shelfId: String
 
     @required
+    @httpQuery("tenant")
+    tenant: String
+
+    @httpQuery("preview")
+    preview: Boolean
+
+    @httpQuery("tag")
+    tags: StringList
+
+    @timestampFormat("http-date")
+    @httpQuery("if-modified-since")
+    modifiedSince: Timestamp
+
+    @timestampFormat("http-date")
+    @httpQuery("window")
+    windows: TimestampList
+
+    @required
     sku: String
+}
+
+list StringList {
+    member: String
+}
+
+list TimestampList {
+    member: Timestamp
 }
 
 structure ShelfItemOutput {
@@ -98,4 +138,20 @@ structure ShelfSkuOutput {
 
     @required
     sku: String
+}
+
+@httpProblem(
+    type: "https://example.com/errors/service-unavailable"
+    title: "Service unavailable"
+    code: 503
+)
+@error("server")
+structure ServiceUnavailable {
+    message: String
+}
+
+@httpError(409)
+@error("client")
+structure Conflict {
+    message: String
 }

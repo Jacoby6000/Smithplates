@@ -90,4 +90,30 @@ OPERATION_HTTP_BINDINGS: dict[str, ClientOperationHttpBinding] = {
             200: "RoomListOutput",
         },
     ),
+    "send_room_message": ClientOperationHttpBinding(
+        variants_by_type_name={
+            "ServerMessage": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+        variants_by_status={
+            200: "ServerMessage",
+        },
+    ),
+    "SendRoomMessage": ClientOperationHttpBinding(
+        variants_by_type_name={
+            "ServerMessage": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+        variants_by_status={
+            200: "ServerMessage",
+        },
+    ),
 }

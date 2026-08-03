@@ -4,9 +4,9 @@ import { PetStatusChanged } from "generated/petstore/api/petStatusChanged";
 import { PetWelcome } from "generated/petstore/api/petWelcome";
 
 export interface PetEventsOutput {
-  welcome: PetWelcome | null;
-  pong: PetPong | null;
-  statusChanged: PetStatusChanged | null;
+  welcome?: PetWelcome | null;
+  pong?: PetPong | null;
+  statusChanged?: PetStatusChanged | null;
 }
 
 export function parsePetEventsOutput(value: unknown): PetEventsOutput {

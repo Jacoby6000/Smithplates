@@ -46,6 +46,8 @@ async def assign_shelf_sku(
     "/warehouses/{warehouseId}/shelves/{shelfId}/items",
     responses={
         201: {"description": "Response"},
+        409: {"description": "Response"},
+        503: {"description": "Response"},
     },
     response_model_by_alias=True,
 )

@@ -2,6 +2,7 @@ package com.jacoby6000.smithplates.plugin.config
 
 import cats.syntax.all.*
 import com.jacoby6000.smithplates.codegen.core.json.StrictJsonDecoding.makeStrict
+import com.jacoby6000.smithplates.plugin.HttpClientMode
 import com.jacoby6000.smithplates.plugin.HttpClientTarget
 import com.jacoby6000.smithplates.plugin.HttpLanguageTarget
 import com.jacoby6000.smithplates.plugin.HttpServerTarget
@@ -17,6 +18,8 @@ import io.circe.generic.semiauto.deriveDecoder
 
 /** Circe decoders for smithplates plugin configuration JSON. */
 object PluginConfigDecoders {
+  given Decoder[HttpClientMode] = Decoder.decodeString.emap(HttpClientMode.parse)
+
   given Decoder[internal.SqlDialectJson] =
     deriveDecoder[internal.SqlDialectJson].makeStrict
 
@@ -147,14 +150,16 @@ object PluginConfigDecoders {
         httpLibrary: Option[String] = None,
         templateDirectory: Option[String] = None,
         additionalTemplatesDirectory: Option[String] = None,
-        packageName: Option[String] = None
+        packageName: Option[String] = None,
+        mode: Option[HttpClientMode] = None
     ) {
       def toDomain: HttpClientTarget =
         HttpClientTarget(
           httpLibrary = httpLibrary,
           templateDirectory = templateDirectory,
           additionalTemplatesDirectory = additionalTemplatesDirectory,
-          packageName = packageName
+          packageName = packageName,
+          mode = mode.getOrElse(HttpClientMode.Default)
         )
     }
 

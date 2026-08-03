@@ -77,4 +77,24 @@ OPERATION_HTTP_BINDINGS: dict[str, OperationHttpBinding] = {
             ),
         },
     ),
+    "send_room_message": OperationHttpBinding(
+        variants_by_type_name={
+            "ServerMessage": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
+    "SendRoomMessage": OperationHttpBinding(
+        variants_by_type_name={
+            "ServerMessage": ResponseVariantBinding(
+                status_code=200,
+                media_type="application/json",
+                header_bindings=(),
+                static_headers=(),
+            ),
+        },
+    ),
 }

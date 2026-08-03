@@ -3,8 +3,8 @@ import { PetPing } from "generated/petstore/api/petPing";
 import { PetSubscription } from "generated/petstore/api/petSubscription";
 
 export interface PetEventsInput {
-  ping: PetPing | null;
-  subscribe: PetSubscription | null;
+  ping?: PetPing | null;
+  subscribe?: PetSubscription | null;
 }
 
 export function parsePetEventsInput(value: unknown): PetEventsInput {
