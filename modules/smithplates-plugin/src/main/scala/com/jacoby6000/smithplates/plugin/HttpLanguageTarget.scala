@@ -188,16 +188,20 @@ object HttpLanguageTarget {
             .load(templateDirectory, getClass.getClassLoader)
             .leftMap(_.map(error => InvalidPluginConfig(error.message)))
             .andThen { deck =>
-              deck.variants.keys.toList match {
-                case Nil           => "".validNel
-                case single :: Nil => single.validNel
-                case multiple      =>
-                  SqlValidated.invalid(
-                    InvalidPluginConfig(
-                      s"smithplates.$languageId.$configPath requires an explicit selection but multiple variants " +
-                        s"are available: ${multiple.sorted.mkString(", ")}"
-                    )
-                  )
+              deck.defaultVariant match {
+                case Some(key) => key.validNel
+                case None      =>
+                  deck.variants.keys.toList match {
+                    case Nil           => "".validNel
+                    case single :: Nil => single.validNel
+                    case multiple      =>
+                      SqlValidated.invalid(
+                        InvalidPluginConfig(
+                          s"smithplates.$languageId.$configPath requires an explicit selection but multiple variants " +
+                            s"are available: ${multiple.sorted.mkString(", ")}"
+                        )
+                      )
+                  }
               }
             }
       }
@@ -214,16 +218,20 @@ object HttpLanguageTarget {
             .load(templateDirectory, getClass.getClassLoader)
             .leftMap(_.map(error => InvalidPluginConfig(error.message)))
             .andThen { deck =>
-              deck.variants.keys.filterNot(_.endsWith(".sync")).toList match {
-                case Nil           => "".validNel
-                case single :: Nil => single.validNel
-                case multiple      =>
-                  SqlValidated.invalid(
-                    InvalidPluginConfig(
-                      s"smithplates.$languageId.http.client.httpLibrary requires an explicit selection but multiple " +
-                        s"variants are available: ${multiple.sorted.mkString(", ")}"
-                    )
-                  )
+              deck.defaultVariant match {
+                case Some(key) => key.validNel
+                case None      =>
+                  deck.variants.keys.filterNot(_.endsWith(".sync")).toList match {
+                    case Nil           => "".validNel
+                    case single :: Nil => single.validNel
+                    case multiple      =>
+                      SqlValidated.invalid(
+                        InvalidPluginConfig(
+                          s"smithplates.$languageId.http.client.httpLibrary requires an explicit selection but multiple " +
+                            s"variants are available: ${multiple.sorted.mkString(", ")}"
+                        )
+                      )
+                  }
               }
             }
       }

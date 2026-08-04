@@ -149,6 +149,7 @@ The output deck is a language-neutral JSON file that lists the artifacts a featu
 ```jsonc
 {
   "shared":   [ /* outputs emitted for every enabled configuration */ ],
+  "defaultVariant": "fastapi",          // optional; used when selection is omitted
   "variants": {                       // optional; default {}
     "fastapi": [ /* emitted only when the "fastapi" web framework is enabled */ ],
     "sqlite":  [ /* emitted only when the "sqlite" dialect is enabled */ ]
@@ -157,7 +158,8 @@ The output deck is a language-neutral JSON file that lists the artifacts a featu
 ```
 
 - `shared` (optional, default `[]`) — always emitted.
-- `variants` (optional, default `{}`) — keyed by the enabled framework/library/dialect (`fastapi`, `httpx`, `fetch`, `axios`, `sqlite`, `postgres`, …). The emitted set is `shared` plus every enabled variant.
+- `defaultVariant` (optional) — variant selected when the consumer omits the corresponding framework or library setting. It must name a key in `variants`.
+- `variants` (optional, default `{}`) — keyed by the enabled framework/library/dialect (`fastapi`, `httpx`, `httpx2`, `fetch`, `axios`, `sqlite`, `postgres`, …). The emitted set is `shared` plus every enabled variant.
 
 ### Output objects
 

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python REST clients can target HTTPX2 with `httpLibrary: "httpx2"` in
+  `async`, `sync`, or `both` mode. HTTPX remains the default for compatibility.
+- Codegen output decks can declare `defaultVariant`, preserving implicit
+  framework or client-library selection when a bundled deck offers multiple
+  variants.
+
+### Changed
+
+- `CodegenOutputDeck` now exposes the optional `defaultVariant` field. This is
+  a public case-class shape change for codegen-extension authors upgrading to
+  the next minor release.
+
 ## [0.5.1] - 2026-08-03
 
 ### Added

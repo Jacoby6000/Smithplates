@@ -7,13 +7,15 @@ import com.jacoby6000.smithplates.codegen.core.json.JsonDecoding
 import com.jacoby6000.smithplates.codegen.core.json.StrictJsonDecoding
 import com.jacoby6000.smithplates.codegen.core.planning.CodegenOutput
 import io.circe.Decoder
+import io.circe.DecodingFailure
 
 /** A language-neutral bundle of [[CodegenOutput]]s loaded from a JSON resource. `shared` outputs are always emitted;
   * each `variants` entry is composed in only when its key (e.g. a framework or library) is enabled.
   */
 final case class CodegenOutputDeck(
     shared: List[CodegenOutput],
-    variants: Map[String, List[CodegenOutput]]
+    variants: Map[String, List[CodegenOutput]],
+    defaultVariant: Option[String] = None
 ) {
   def variant(key: String): Option[List[CodegenOutput]] =
     variants.get(key)
@@ -45,10 +47,16 @@ object CodegenOutputDeck {
     import CodegenOutputDecoders.given
     Decoder.instance { cursor =>
       for {
-        _        <- StrictJsonDecoding.rejectExtraKeys(cursor, Set("shared", "variants"))
-        shared   <- cursor.getOrElse[List[CodegenOutput]]("shared")(Nil)
-        variants <- cursor.getOrElse[Map[String, List[CodegenOutput]]]("variants")(Map.empty)
-      } yield CodegenOutputDeck(shared, variants)
+        _              <- StrictJsonDecoding.rejectExtraKeys(cursor, Set("shared", "variants", "defaultVariant"))
+        shared         <- cursor.getOrElse[List[CodegenOutput]]("shared")(Nil)
+        variants       <- cursor.getOrElse[Map[String, List[CodegenOutput]]]("variants")(Map.empty)
+        defaultVariant <- cursor.get[Option[String]]("defaultVariant")
+        _              <- defaultVariant match {
+                            case Some(key) if !variants.contains(key) =>
+                              Left(DecodingFailure(s"defaultVariant '$key' is not present in variants", cursor.history))
+                            case _                                    => Right(())
+                          }
+      } yield CodegenOutputDeck(shared, variants, defaultVariant)
     }
   }
 

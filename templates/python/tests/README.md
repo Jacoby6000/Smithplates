@@ -41,6 +41,7 @@ HTTP golden cases use `@httpService` services and `smithplates.python.http.{serv
 | `http-fastapi-string-alias-enum-imports-api` | String aliases and enum import closure |
 | `http-fastapi-httpx-combined-api` | Server + default async httpx client from one model |
 | `http-httpx-mixed-input-bindings-api` | Sync httpx client with mixed input bindings |
+| `http-httpx2-client-api` | Async and sync HTTPX2 clients |
 | `http-fastapi-websocket-api` | `@websocket` server routes + client |
 | `http-fastapi-websocket-path-params-api` | WebSocket URI path labels |
 | `http-nested-properties-api` | Smithy `@nestedProperties` body flattening with both async and sync clients |

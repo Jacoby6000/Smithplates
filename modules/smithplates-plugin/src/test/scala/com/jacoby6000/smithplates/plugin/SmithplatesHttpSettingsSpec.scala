@@ -74,6 +74,17 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
     }
   }
 
+  test("resolves the bundled Python client default when multiple libraries are available") {
+    HttpLanguageTarget.internal.resolveClientLibraryKey(
+      languageId = "python",
+      templateDirectory = "classpath:python/src/http/client",
+      explicit = None
+    ) match {
+      case Validated.Valid(library)  => assertEquals(library, "httpx")
+      case Validated.Invalid(errors) => fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
   test("parses async, sync, and both HTTP client modes") {
     val modes = List(
       "async" -> HttpClientMode.Async,
@@ -102,6 +113,33 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         case Validated.Invalid(errors) =>
           fail(errors.map(_.message).toList.mkString("; "))
       }
+    }
+  }
+
+  test("parses an explicit httpx2 client target") {
+    SmithplatesSettings
+      .parseJson("""
+        {
+          "python": {
+            "http": {
+              "client": {
+                "httpLibrary": "httpx2",
+                "mode": "both"
+              },
+              "outputs": [
+                { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
+              ]
+            }
+          }
+        }
+      """)
+      .map(_.http.getOrElse(fail("expected HTTP settings"))) match {
+      case Validated.Valid(settings) =>
+        val client = settings.languageTargets("python").target.client.getOrElse(fail("expected client target"))
+        assertEquals(client.httpLibrary, Some("httpx2"))
+        assertEquals(client.mode, HttpClientMode.Both)
+      case Validated.Invalid(errors) =>
+        fail(errors.map(_.message).toList.mkString("; "))
     }
   }
 

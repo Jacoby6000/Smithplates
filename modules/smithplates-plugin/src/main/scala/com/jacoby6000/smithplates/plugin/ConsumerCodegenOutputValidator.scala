@@ -173,7 +173,8 @@ object ConsumerCodegenOutputValidator {
         HttpServiceCodegenApiArtifacts.internal.deck(modelsTemplateDirectory).map { modelsDeck =>
           CodegenOutputDeck(
             shared = serverDeck.shared ++ modelsDeck.shared,
-            variants = serverDeck.variants ++ modelsDeck.variants
+            variants = serverDeck.variants ++ modelsDeck.variants,
+            defaultVariant = serverDeck.defaultVariant
           )
         }
       }
@@ -192,7 +193,8 @@ object ConsumerCodegenOutputValidator {
               modelsDeck =>
                 CodegenOutputDeck(
                   shared = clientDeck.shared ++ modelsDeck.shared,
-                  variants = clientDeck.variants ++ modelsDeck.variants
+                  variants = clientDeck.variants ++ modelsDeck.variants,
+                  defaultVariant = clientDeck.defaultVariant
                 )
             )
         } else {

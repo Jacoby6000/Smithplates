@@ -98,7 +98,14 @@ object HttpServiceCodegenRenderer {
         templatePath: String,
         view: TemplateView[S, M]
     ): CodegenValidated[String] =
-      renderTemplateAttributes(settings, templatePath, Map("ctx" -> view))
+      renderTemplateAttributes(
+        settings,
+        templatePath,
+        Map(
+          "ctx"         -> view,
+          "httpLibrary" -> settings.defaultFrameworkKey
+        )
+      )
 
     def renderTemplateAttributes(
         settings: HttpServiceCodegenSettings,

@@ -33,6 +33,7 @@ class CodegenOutputDeckSpec extends FunSuite {
     """)
 
     assertEquals(deck.variants, Map.empty[String, List[CodegenOutput]])
+    assertEquals(deck.defaultVariant, None)
     assertEquals(
       deck.shared,
       List(
@@ -46,6 +47,34 @@ class CodegenOutputDeckSpec extends FunSuite {
         )
       )
     )
+  }
+
+  test("loadJson decodes a default variant") {
+    val deck = loadValid("""
+      {
+        "shared": [],
+        "defaultVariant": "httpx",
+        "variants": {
+          "httpx": [],
+          "httpx2": []
+        }
+      }
+    """)
+
+    assertEquals(deck.defaultVariant, Some("httpx"))
+  }
+
+  test("loadJson rejects a default variant that is not declared") {
+    CodegenOutputDeck.loadJson("""
+      {
+        "defaultVariant": "httpx",
+        "variants": { "httpx2": [] }
+      }
+    """) match {
+      case Validated.Invalid(errors) =>
+        assert(errors.exists(_.message.contains("defaultVariant 'httpx' is not present in variants")))
+      case Validated.Valid(_)        => fail("expected missing default variant to fail")
+    }
   }
 
   test("loadJson decodes operation and model bindings with filters and groups") {

@@ -111,6 +111,24 @@ class HttpCodegenOutputDecksSpec extends FunSuite {
     )
   }
 
+  test("bundled client deck can compose async and sync httpx2 outputs") {
+    val outputs = HttpClientCodegenApiArtifacts.forEnabledLibraries(ClientDir, List("httpx2", "httpx2.sync"))
+    assertEquals(
+      outputs.map(_.id.value),
+      List(
+        "python.http.client.model_validation",
+        "python.http.client.operation_bindings",
+        "python.http.client.client_response",
+        "python.http.client.clients_init",
+        "python.http.client.websocket_client",
+        "python.http.client.client_registry",
+        "python.http.client.httpx2.route_group_client",
+        "python.http.client.httpx2.sync_client_registry",
+        "python.http.client.httpx2.sync_route_group_client"
+      )
+    )
+  }
+
   test("http_problem deck entry emits once at the trait namespace") {
     HttpServiceCodegenApiArtifacts.sharedModels(ModelsDir).find(_.id.value == "python.http.models.http_problem") match {
       case Some(template: CodegenOutput.CodegenTemplateBindingOutput) =>

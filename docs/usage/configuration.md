@@ -279,8 +279,8 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 | Field | Required | Meaning |
 |-------|----------|---------|
 | `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled server today. |
-| `httpLibrary` | No; default `httpx` for Python | HTTP client library. Bundled values: `httpx` (Python), `fetch` or `axios` (TypeScript). |
-| `mode` | No; default `async` | REST client mode: `async`, `sync`, or `both`. Bundled synchronous output is available for Python/httpx; generated WebSocket clients remain asynchronous. |
+| `httpLibrary` | No; default `httpx` for Python | HTTP client library. Bundled values: `httpx` or `httpx2` (Python), `fetch` or `axios` (TypeScript). |
+| `mode` | No; default `async` | REST client mode: `async`, `sync`, or `both`. Both bundled Python libraries support synchronous output; generated WebSocket clients remain asynchronous. |
 | `packageName` | No | Default derived import package for server or client output. Overridden per output tree by `outputs[].packageName`. When both are omitted, packages include the Smithy service namespace. |
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
 | `modelsPackageName` | No | Override the derived models import package exactly. When omitted, per-shape model packages include each shape's Smithy namespace. |

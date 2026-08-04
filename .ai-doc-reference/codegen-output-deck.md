@@ -48,6 +48,7 @@ Bundled reference decks (Python):
 ```jsonc
 {
   "shared":   [ /* CodegenOutput, always emitted */ ],
+  "defaultVariant": "httpx",         // optional
   "variants": {                      // optional; default {}
     "<key>": [ /* CodegenOutput, emitted only when <key> is enabled */ ]
   }
@@ -55,8 +56,9 @@ Bundled reference decks (Python):
 ```
 
 - `shared` (optional, default `[]`): outputs emitted for every enabled configuration.
+- `defaultVariant` (optional): variant selected when a consumer omits an explicit framework or library. The value must be a key in `variants`.
 - `variants` (optional, default `{}`): keyed groups. A caller enables keys
-  (framework/library/dialect, e.g. `"fastapi"`, `"httpx"`, `"sqlite"`, `"postgres"`);
+  (framework/library/dialect, e.g. `"fastapi"`, `"httpx"`, `"httpx2"`, `"sqlite"`, `"postgres"`);
   composition = `shared ++ (enabled variants, in the order requested)`.
 - Enabling a key with no matching variant → `unknown deck variant '<key>' (available: …)`.
 

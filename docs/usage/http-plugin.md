@@ -3,7 +3,7 @@
 Smithplates HTTP codegen turns Smithy `@httpService` models into:
 
 - **Python/FastAPI** server wiring (route groups, protocols, app factory, WebSockets);
-- **Python/httpx** and **TypeScript** (axios or fetch) HTTP clients from the same model;
+- **Python/HTTPX or HTTPX2** and **TypeScript** (axios or fetch) HTTP clients from the same model;
 - shared API models and RFC 9457 problem-detail helpers.
 
 ## Trait cheat sheet
@@ -92,12 +92,12 @@ Bundled targets today:
 
 | Language | Server | Client libraries |
 |----------|--------|------------------|
-| `python` | FastAPI (`webFramework: "fastapi"`) | `httpx` |
+| `python` | FastAPI (`webFramework: "fastapi"`) | `httpx` (default) or `httpx2` |
 | `typescript` | — (client-only) | `fetch` or `axios` |
 
 Non-bundled languages or frameworks require an explicit `templateDirectory` with an `outputs.json` deck.
 
-Python/httpx REST clients support `mode: "async"`, `"sync"`, or `"both"`. The default is `async`, preserving the original generated API. WebSocket clients remain asynchronous in every mode.
+Python HTTPX and HTTPX2 REST clients support `mode: "async"`, `"sync"`, or `"both"`. HTTPX is the default client library and async is the default mode, preserving the original generated API. WebSocket clients remain asynchronous in every mode.
 
 Optional `rootNamespace` (default `generated` for bundled Python) prefixes Python import packages. Filesystem layout is `<sourceOutputDir>/<smithy namespace path>/` (for example `example` for a service in namespace `example`). When both `server` and `client` are enabled, the server pass emits models once; the client pass reuses them.
 
@@ -160,9 +160,9 @@ Generated route modules depend on generated protocol base classes. Application c
 
 ## Generated client output
 
-### Python / httpx
+### Python / HTTPX or HTTPX2
 
-For bundled httpx templates, Smithplates emits files such as:
+For either bundled Python HTTP client library, Smithplates emits files such as:
 
 ```text
 <sourceOutputDir>/<smithy namespace>/client/client_registry.py
@@ -177,15 +177,15 @@ For bundled httpx templates, Smithplates emits files such as:
 
 `websocket_client.py` is emitted only when the service declares `@websocket` operations (see [WebSockets](#websockets)).
 
-The async files are emitted for `mode: "async"` or `"both"`; the `_sync_` files are emitted for `mode: "sync"` or `"both"`. Generated client modules serialize request inputs from Smithy HTTP bindings, issue HTTP requests through httpx, and deserialize responses into the shared models at the namespace root.
+The async files are emitted for `mode: "async"` or `"both"`; the `_sync_` files are emitted for `mode: "sync"` or `"both"`. Generated client modules serialize request inputs from Smithy HTTP bindings, issue requests through the selected library, and deserialize responses into the shared models at the namespace root.
 
-**REST client wiring (Python / httpx):**
+**REST client wiring (Python):**
 
-1. Create an `httpx.AsyncClient` (or reuse an existing client).
+1. Create an `httpx.AsyncClient` or `httpx2.AsyncClient` matching `httpLibrary`.
 2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
 3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
 
-For synchronous wiring, create an `httpx.Client`, call `create_sync_api_clients(client, base_url=...)`, and invoke the same route-group methods without `await`.
+For synchronous wiring, create the matching `httpx.Client` or `httpx2.Client`, call `create_sync_api_clients(client, base_url=...)`, and invoke the same route-group methods without `await`. HTTPX and HTTPX2 types are distinct; do not mix clients, responses, transports, or exceptions between them.
 
 ### TypeScript / fetch or axios
 

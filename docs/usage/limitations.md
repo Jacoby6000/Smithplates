@@ -10,7 +10,7 @@ See [Getting started — Common pitfalls](getting-started.md#common-pitfalls) fo
 
 - Bundled SQL service templates are Python-only.
 - Bundled HTTP **server** templates are Python/FastAPI-only (including `@websocket` route wiring).
-- Bundled HTTP **client** templates: Python/httpx and TypeScript (axios or fetch), including WebSocket clients when the service declares `@websocket` operations.
+- Bundled HTTP **client** templates: Python/HTTPX or HTTPX2 and TypeScript (axios or fetch), including WebSocket clients when the service declares `@websocket` operations.
 - Non-bundled languages and frameworks require an explicit `templateDirectory` that ships its own `outputs.json` deck.
 
 ## Migrations
@@ -44,7 +44,7 @@ HTTP service generation targets server-side Python/FastAPI wiring (REST route gr
 
 HTTP client generation mirrors server-side route groups and wire bindings. Configure `smithplates.<language>.http.client` alongside or instead of `server`:
 
-- Python: `httpLibrary: "httpx"` (default), with REST `mode: "async"`, `"sync"`, or `"both"` (default `"async"`). WebSocket clients remain asynchronous.
+- Python: `httpLibrary: "httpx"` (default) or `"httpx2"`, with REST `mode: "async"`, `"sync"`, or `"both"` (default `"async"`). WebSocket clients remain asynchronous.
 - TypeScript: `httpLibrary: "fetch"` or `"axios"`.
 
 OpenAPI Generator remains useful for external consumers and languages without a bundled Smithplates client.

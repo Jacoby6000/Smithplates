@@ -57,7 +57,7 @@ Transform changes should be tested both as direct model transforms and through O
 Bundled templates currently target:
 
 - Python/FastAPI servers (REST + `@websocket`);
-- Python/httpx clients;
+- Python/HTTPX and HTTPX2 clients;
 - TypeScript clients (`fetch` or `axios`).
 
 Typical changes:
@@ -93,7 +93,7 @@ They are exercised by `CodegenTemplateTestSuite`. Example-level HTTP behavior is
 | Add or change an HTTP trait | `smithplates-http-ir` | HTTP IR tests, HTTP golden case |
 | Change OpenAPI compatibility transforms | `smithplates-http-ir` transforms | transform tests, OpenAPI projection example |
 | Change generated FastAPI output | `smithplates-http-service-renderer`, `templates/python/src/http/server` | HTTP golden case, example HTTP tests |
-| Change generated httpx client output | `smithplates-http-service-renderer`, `templates/python/src/http/client` | HTTP client golden case |
+| Change generated Python HTTP client output | `smithplates-http-service-renderer`, `templates/python/src/http/client` | HTTP client golden case |
 | Change generated TypeScript client output | `smithplates-http-service-renderer`, `templates/typescript/src/http` | TypeScript golden cases, example/typescript |
 | Change HTTP plugin settings | `smithplates-plugin` HTTP settings | plugin settings specs, HTTP golden case |
 | Add another HTTP framework | HTTP renderer deck composition, templates, validators | new golden variant and example coverage |

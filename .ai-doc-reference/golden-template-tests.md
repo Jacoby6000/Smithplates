@@ -18,7 +18,7 @@ SSP codegen template golden tests live under
 Languages today:
 
 * [`templates/python/tests/`](../templates/python/tests/) — SQL DB + FastAPI server +
-  httpx client (+ WebSockets, consumer decks). See the case table in
+  HTTPX/HTTPX2 client (+ WebSockets, consumer decks). See the case table in
   [`templates/python/tests/README.md`](../templates/python/tests/README.md).
 * [`templates/typescript/tests/`](../templates/typescript/tests/) — HTTP client only
   (fetch/axios + WebSocket client). See

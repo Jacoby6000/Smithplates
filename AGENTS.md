@@ -1,7 +1,7 @@
 # Smithplates
 
 Smithy codegen plugin for SQL schema/migration and HTTP service/client output.
-Bundled templates today: **Python** (SQL + FastAPI server + httpx client) and
+Bundled templates today: **Python** (SQL + FastAPI server + HTTPX/HTTPX2 client) and
 **TypeScript** (HTTP client via axios or fetch).
 
 ## Conventions
@@ -35,6 +35,7 @@ Follow [`.cursor/rules/`](.cursor/rules/) — start with [`smithplates-build.mdc
 * **Artifact decks are JSON, not Scala (HTTP and SQL service artifacts):** every bundled output deck is an `outputs.json` resource sitting beside that language's templates (`templates/python/src/http/{server,client,models}/outputs.json`, `templates/python/src/db/outputs.json`, `templates/typescript/src/http/**/outputs.json`), decoded by `planning/config/CodegenOutputDecoders` + `CodegenOutputDeck` in codegen-core. Deck composers load JSON rather than hardcoding per-language artifact tables; `CodegenOutputDeckLoader.load(templateDirectory, classLoader)` derives the resource path from the (language-encoding) template directory (`<dir>/outputs.json`), and the default template dir comes from `languageId`. A missing deck is a validation error ("missing codegen output deck: …"); a present deck whose referenced `.ssp` templates are absent is a separate "missing required templates" error. Copy-verbatim resources are identified language-neutrally by *not* ending in `.ssp`. A custom `templateDirectory` must ship its own `outputs.json` deck. **Caveat:** SQL string/int enum files remain outside the deck (see SQL cutover note above).
 * **HTTP `@httpProblem` base model:** smithplates emits one shared `HttpProblem` model under `{rootNamespace}/smithplates/codegen/http/` (Python `http_problem.py`, TypeScript `httpProblem.ts`; Smithy namespace `smithplates.codegen.http`, aligned with the trait). `@httpProblem` error structures extend it; consumer structures named `Problem` are allowed when unrelated.
 * **TypeScript HTTP clients:** bundled under `templates/typescript/` with `httpLibrary` `fetch` or `axios`. Client-only — no bundled TypeScript SQL or HTTP server. See `example/typescript/` and golden cases under `templates/typescript/tests/`.
+* **Python HTTP clients:** bundled `httpLibrary` values are `httpx` (default) and `httpx2`; both support `async`, `sync`, and `both` modes. Templates render the selected package name directly, so client, response, exception, and transport objects must come from the same library.
 * **WebSockets (`@websocket`):** bidirectional endpoints on `@httpService` operations (requires `@http` URI + `@tags`). Python FastAPI emits `websocket_routes.py`; Python and TypeScript clients emit websocket client modules. REST route/client generation skips `@websocket` operations.
 * **`@sqlAutoIncrement`:** Integer table members map to SQLite `INTEGER PRIMARY KEY AUTOINCREMENT` / Postgres `GENERATED ALWAYS AS IDENTITY`; omitted from derived inserts; synthesized PRIMARY KEY clauses skip columns that already declare PK inline.
 * **`@nestedProperties` body binding:** a single `@httpPayload` member with Smithy `@nestedProperties` becomes `HttpOperationBodyBinding.NestedDocument` — wire body is the payload target; the outer input shape is reconstructed for service dispatch.

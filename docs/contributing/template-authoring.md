@@ -56,7 +56,7 @@ Bundled HTTP templates live under:
 templates/python/src/http/
 ```
 
-These render FastAPI route modules (including WebSocket routers), protocol base classes, app wiring, response helpers, problem-detail helpers, httpx clients, and model artifacts.
+These render FastAPI route modules (including WebSocket routers), protocol base classes, app wiring, response helpers, problem-detail helpers, HTTPX/HTTPX2 clients, and model artifacts.
 
 | Artifact area | Template responsibility |
 |---------------|-------------------------|
