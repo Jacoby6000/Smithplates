@@ -2,7 +2,7 @@
 <% val R = com.jacoby6000.smithplates.http.service.renderer.HttpNeutralRouteGroupTemplateAttributes %>
 <% val operations = R.restOperations(ctx) %>
 <% val hasBodyBinding = R.routeGroupHasBody(ctx) %>
-<% val typingSymbols = List("Annotated") %>
+<% val typingSymbols = List("Annotated") ++ Option.when(R.serviceConfiguresAuth(ctx))("cast") %>
 <% import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta %>
 <%
 def fastapiParameterBinding(member: com.jacoby6000.smithplates.http.codegen.HttpOperationInputMemberMeta): String =
@@ -37,6 +37,9 @@ from fastapi import (  # noqa: F401
     Body,
 <% } %>
     Depends,
+<% if (R.routeGroupUsesAuth(ctx)) { %>
+    Request,
+<% } %>
 <% if (R.routeGroupUsesHeaderBinding(ctx)) { %>
     Header,
 <% } %>
@@ -53,7 +56,20 @@ from datetime import datetime  # noqa: F401
 
 from ${R.servicePackageName(ctx)}.api_response import dispatch_api_response
 from ${R.servicePackageName(ctx)}.operation_bindings import OPERATION_HTTP_BINDINGS
+<% if (R.routeGroupUsesAuth(ctx)) { %>
+from ${R.servicePackageName(ctx)}.operation_bindings import (
+    OPERATION_AUTH_BINDINGS,
+    authenticate_optional_request,
+    authenticate_required_request,
+)
+from ${R.servicePackageName(ctx)}.app_services import (
+    ApiServices,
+    get_api_services,
+    get_auth_verifier,
+)
+<% } else { %>
 from ${R.servicePackageName(ctx)}.app_services import ApiServices, get_api_services
+<% } %>
 <% for (typeName <- operations.flatMap(operation => R.operationImportedModelNames(ctx, operation)).distinct.sorted) { %>
 from ${R.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
@@ -73,6 +89,9 @@ router = APIRouter()
 )
 async def ${R.operationMethodName(ctx, operation.id.name)}(
     services: Annotated[ApiServices, Depends(get_api_services)],
+<% if (R.operationUsesAuth(operation)) { %>
+    request: Request,
+<% } %>
 <% for (member <- operation.meta.feature.inputMembers.filter(R.isRouteParameter)) { %>
     ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)} = ${fastapiParameterBinding(member)},
 <% } %>
@@ -83,8 +102,25 @@ async def ${R.operationMethodName(ctx, operation.id.name)}(
     ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)} = ${fastapiParameterBinding(member)},
 <% } %>
 ) -> ${R.responseTypeName(operation)}:
+<% if (R.operationUsesAuth(operation)) { %>
+    auth = await ${R.operationAuthenticateFunction(operation)}(
+        request,
+        OPERATION_AUTH_BINDINGS["${R.operationMethodName(ctx, operation.id.name)}"],
+        get_auth_verifier(request),
+    )
+<% } %>
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+    return cast(
+        ${R.responseTypeName(operation)},
+        dispatch_api_response(
+            ${R.operationServiceCallExpression(ctx, operation)},
+            OPERATION_HTTP_BINDINGS["${R.operationMethodName(ctx, operation.id.name)}"],
+        ),
+    )
+<% } else { %>
     return dispatch_api_response(
         ${R.operationServiceCallExpression(ctx, operation)},
         OPERATION_HTTP_BINDINGS["${R.operationMethodName(ctx, operation.id.name)}"],
     )
+<% } %>
 <% } %>

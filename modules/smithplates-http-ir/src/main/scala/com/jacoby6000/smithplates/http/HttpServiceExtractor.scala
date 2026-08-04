@@ -23,8 +23,9 @@ private[http] object HttpServiceExtractor {
       val serviceShape = service.getId
       (
         requireServiceVersion(service),
-        requireSupportedSerialization(service)
-      ).mapN { (version, serialization) =>
+        requireSupportedSerialization(service),
+        HttpAuthExtractor.extractService(model, service)
+      ).mapN { (version, serialization, serviceAuth) =>
         HttpServiceErrorExtractor
           .extract(model, serviceShape, service.getErrorsSet.asScala.toList, serialization)
           .andThen { case (serviceErrors, serviceErrorWarnings) =>
@@ -33,7 +34,14 @@ private[http] object HttpServiceExtractor {
                 (service.getOperations.asScala.toList ++ HttpResourceExtractor.collectOperationIds(resources)).distinct
               operationIds
                 .traverse(operationId =>
-                  HttpOperationExtractor.extract(model, serviceShape, operationId, resources, serialization))
+                  HttpOperationExtractor.extract(
+                    model,
+                    serviceShape,
+                    operationId,
+                    resources,
+                    serialization,
+                    serviceAuth
+                  ))
                 .andThen { operationResults =>
                   val operations = operationResults.map(_._1)
                   val warnings   = serviceErrorWarnings ++ operationResults.flatMap(_._2)
@@ -64,7 +72,8 @@ private[http] object HttpServiceExtractor {
                             structures = extractedShapes.structures,
                             unions = extractedShapes.unions,
                             stringEnums = stringEnums,
-                            intEnums = intEnums
+                            intEnums = intEnums,
+                            authSchemes = serviceAuth.schemes
                           ),
                           warnings
                         )

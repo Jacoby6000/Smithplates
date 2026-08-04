@@ -14,7 +14,7 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
         "python",
         Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant))
 
-    assertEquals(cases.size, 43)
+    assertEquals(cases.size, 45)
     val sqlCases = cases.filterNot(_.name.startsWith("http-"))
     assertEquals(sqlCases.size, 22)
     assert(
@@ -57,6 +57,23 @@ class CodegenTemplateTestDiscoverySpec extends FunSuite {
           .getOrElse(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant, Nil)
           .map(_.relativePath),
         List("src/generated/example/sqlite/sample_repository_aiosqlite.py")
+      )
+    } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
+  }
+
+  test("ignores non-fixture directories under the tests root") {
+    val tempRoot = Files.createTempDirectory("language-template-tests")
+    try {
+      val testsRoot = tempRoot.resolve("templates/python/tests")
+      Files.createDirectories(testsRoot.resolve("__pycache__"))
+
+      assertEquals(
+        CodegenTemplateTestDiscovery.discover(
+          tempRoot,
+          "python",
+          Set(CodegenTemplateTestDiscoverySpec.internal.sqliteVariant)
+        ),
+        Nil
       )
     } finally CodegenTemplateTestDiscoverySpec.internal.deleteRecursively(tempRoot)
   }

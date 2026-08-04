@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "sources": ["smithy"],
+  "plugins": {
+    "smithplates": {
+      "python": {
+        "http": {
+          "client": {
+            "httpLibrary": "httpx2",
+            "mode": "both"
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

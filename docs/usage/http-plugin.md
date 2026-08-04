@@ -17,6 +17,9 @@ Smithplates HTTP codegen turns Smithy `@httpService` models into:
 | `@httpStaticHeader` | output structure | Fixed response header binding |
 | `@websocket` | operation | Bidirectional WebSocket endpoint (skipped by REST generation) |
 | `@nestedProperties` | `@httpPayload` member | Flatten the payload target as the wire body |
+| Smithy `@auth` / `@optionalAuth` | service / operation | Select ordered authentication alternatives and optional authentication |
+| Smithy `@httpBearerAuth` / `@httpApiKeyAuth` | service | Configure bearer or header/query API-key authentication |
+| `@httpCookieAuth` | service | Configure a named browser or HTTP-client cookie authentication scheme |
 | Smithy `@httpLabel` / `@httpQuery` / `@httpHeader` / `@httpPayload` | members | Standard HTTP binding traits |
 
 Full trait tables: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).
@@ -34,6 +37,64 @@ Use Smithy HTTP traits for the wire contract and Smithplates HTTP traits for cod
 - `@websocket` promotes an operation into a bidirectional WebSocket endpoint (see [WebSockets](#websockets)).
 
 Keep HTTP shapes in a namespace dedicated to the API contract. Do not reuse SQL table shapes as HTTP request or response shapes; map between generated API and database models in hand-written application code.
+
+### Authentication
+
+Smithplates implements Smithy 2.0 authentication alternatives for generated
+FastAPI servers, Python HTTPX/HTTPX2 REST clients, and TypeScript fetch clients.
+Apply authentication definitions to the service, use `@auth` to select their
+priority, override the selection on individual operations, and use
+`@optionalAuth` when an operation supports both identified and anonymous calls:
+
+```smithy
+use smithplates.codegen.http#httpCookieAuth
+use smithy.api#auth
+use smithy.api#httpBearerAuth
+use smithy.api#optionalAuth
+
+@httpBearerAuth
+@httpCookieAuth(name: "__Host-session")
+@auth([httpBearerAuth, httpCookieAuth])
+service DashboardApi {
+    version: "1"
+    operations: [Profile, PublicStats]
+}
+
+@optionalAuth
+operation Profile { /* ... */ }
+
+@auth([])
+operation PublicStats { /* ... */ }
+```
+
+Supported schemes are Smithy `@httpBearerAuth`, Smithy `@httpApiKeyAuth`, and
+Smithplates `@httpCookieAuth`. Header names are matched case-insensitively;
+query names are case-sensitive. Codegen rejects unsupported auth schemes,
+unconfigured operation references, invalid API-key combinations, and conflicts
+between authentication locations and modeled HTTP input bindings.
+
+Generated FastAPI applications require an `AuthVerifier` when their service
+configures authentication. The verifier receives an `AuthCredential` and
+returns an application-owned identity or `None`. Protected protocol methods
+receive `AuthContext`; optional-auth methods receive `AuthContext | None`.
+Missing or invalid required credentials are rejected before service dispatch,
+and malformed credentials do not silently become anonymous on optional-auth
+operations.
+
+Python client registries accept an optional `AuthProvider` that resolves a
+credential for each modeled scheme in priority order. Required operations fail
+before network I/O when no usable credential exists. TypeScript fetch clients
+use the same provider contract for bearer and API-key auth. Cookie auth remains
+compatible with `HttpOnly`: fetch clients never read or synthesize the cookie
+and instead set `credentials: "include"`; Python clients can provide a cookie
+credential explicitly.
+
+Authenticated WebSocket operations, authenticated axios clients, and custom
+template roots without an explicit Smithplates auth implementation are not yet
+supported. Smithplates rejects those combinations rather than generating an
+unauthenticated transport. Consumer templates that override bundled artifacts
+are also rejected for authenticated services. Mark a WebSocket operation with
+`@auth([])` only when it is intentionally public.
 
 ### Route groups
 
@@ -185,6 +246,10 @@ The async files are emitted for `mode: "async"` or `"both"`; the `_sync_` files 
 2. Call `create_api_clients(client, base_url=...)` from the generated client registry.
 3. Invoke generated route-group client methods such as `clients.warehouse_api.create_shelf_item(...)`.
 
+For authenticated services, also implement the generated `AuthProvider` and
+pass it as `auth_provider=...` to `create_api_clients` or
+`create_sync_api_clients`.
+
 For synchronous wiring, create the matching `httpx.Client` or `httpx2.Client`, call `create_sync_api_clients(client, base_url=...)`, and invoke the same route-group methods without `await`. HTTPX and HTTPX2 types are distinct; do not mix clients, responses, transports, or exceptions between them.
 
 ### TypeScript / fetch or axios
@@ -203,7 +268,7 @@ For bundled TypeScript clients (`httpLibrary: "fetch"` or `"axios"`), Smithplate
 
 `websocketClient.ts` and `httpProblem.ts` appear when the model uses `@websocket` / `@httpProblem` respectively (see [WebSockets](#websockets)).
 
-**REST client wiring (TypeScript):** construct the generated client registry with your `baseUrl` (and axios instance when using axios), then call the typed route-group client methods.
+**REST client wiring (TypeScript):** construct the generated client registry with your `baseUrl` (and axios instance when using axios), then call the typed route-group client methods. Authenticated fetch services accept a generated `AuthProvider` as the final `createApiClients` argument.
 
 See [`example/typescript/`](../../example/typescript/) for a petstore fetch-client reference.
 

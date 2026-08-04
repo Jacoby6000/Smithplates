@@ -5,14 +5,42 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+from typing import TYPE_CHECKING, Protocol, cast
+<% } %>
 
 from fastapi import HTTPException, Request
 
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+if TYPE_CHECKING:
+<% for (tag <- H.routeGroupTags(ctx)) { %>
+    from ${H.servicePackageName(ctx)}.apis.${H.apiModuleName(tag)}_base import ${H.protocolClassName(tag)}
+<% } %>
+<% } else { %>
 <% for (tag <- H.routeGroupTags(ctx)) { %>
 from ${H.servicePackageName(ctx)}.apis.${H.apiModuleName(tag)}_base import ${H.protocolClassName(tag)}
 <% } %>
+<% } %>
 
 
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+@dataclass(frozen=True)
+class AuthCredential:
+    scheme_id: str
+    value: str
+
+
+@dataclass(frozen=True)
+class AuthContext:
+    scheme_id: str
+    identity: object
+
+
+class AuthVerifier(Protocol):
+    async def verify(self, credential: AuthCredential) -> object | None: ...
+
+
+<% } %>
 @dataclass(frozen=True)
 class ApiServices:
 <% for (tag <- H.routeGroupTags(ctx)) { %>
@@ -25,3 +53,12 @@ def get_api_services(request: Request) -> ApiServices:
     if not isinstance(services, ApiServices):
         raise HTTPException(status_code=500, detail="API services are not configured")
     return services
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+
+
+def get_auth_verifier(request: Request) -> AuthVerifier | None:
+    return cast(
+        "AuthVerifier | None",
+        getattr(request.app.state, "auth_verifier", None),
+    )
+<% } %>

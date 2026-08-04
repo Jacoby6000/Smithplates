@@ -37,18 +37,20 @@ object HttpServiceCodegenRenderer {
         internal.emittableModelSet(modelSet, filteredServices)
       val templateRenderer =
         internal.HttpPlannerTemplateRenderer(settings)
-      internal
-        .toHttpValidated(
-          CodegenPlanner.plan(
-            settings.artifacts,
-            emittableModels,
-            filteredServices,
-            codegenSettings,
-            templateRenderer,
-            resolutionModels = Some(modelSet)
+      internal.validateAuthCapabilities(filteredServices, settings).andThen { _ =>
+        internal
+          .toHttpValidated(
+            CodegenPlanner.plan(
+              settings.artifacts,
+              emittableModels,
+              filteredServices,
+              codegenSettings,
+              templateRenderer,
+              resolutionModels = Some(modelSet)
+            )
           )
-        )
-        .map(_.map(internal.httpArtifact))
+          .map(_.map(internal.httpArtifact))
+      }
     }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
@@ -92,6 +94,55 @@ object HttpServiceCodegenRenderer {
             allowedNames.contains(service.id.name) || allowedNames.contains(fullName)
           }
       }
+
+    def validateAuthCapabilities(
+        services: List[ServiceModel[HttpServiceMeta, HttpOperationMeta]],
+        settings: HttpServiceCodegenSettings
+    ): HttpValidated[Unit] = {
+      val errors = services.flatMap { service =>
+        val authenticatedWebsockets = service.operations.filter(operation =>
+          operation.meta.feature.websocket.isDefined &&
+            HttpNeutralServiceTemplateAttributes.operationAuthSchemeIds(operation).nonEmpty)
+        val websocketErrors         = authenticatedWebsockets.map { operation =>
+          InvalidHttpService(
+            ShapeId.from(s"${service.id.namespace}#${service.id.name}"),
+            s"authenticated WebSocket operation '${operation.id.name}' is not supported; declare @auth([]) or remove @websocket"
+          )
+        }
+        val targetErrors            =
+          if (supportsRestAuthentication(settings)) {
+            Nil
+          } else {
+            val authenticatedRestOperations = service.operations.filter(operation =>
+              operation.meta.feature.websocket.isEmpty &&
+                HttpNeutralServiceTemplateAttributes.operationAuthSchemeIds(operation).nonEmpty)
+            authenticatedRestOperations.map { operation =>
+              InvalidHttpService(
+                ShapeId.from(s"${service.id.namespace}#${service.id.name}"),
+                s"authenticated REST operation '${operation.id.name}' is not supported by HTTP target " +
+                  s"'${settings.defaultFrameworkKey}' from '${settings.templateDirectory}'"
+              )
+            }
+          }
+        websocketErrors ++ targetErrors
+      }
+      errors match {
+        case Nil          => ().validNel
+        case head :: tail => cats.data.Validated.Invalid(cats.data.NonEmptyList(head, tail))
+      }
+    }
+
+    def supportsRestAuthentication(settings: HttpServiceCodegenSettings): Boolean = {
+      val templateDirectory = settings.templateDirectory.stripPrefix("classpath:").stripPrefix("/")
+      val bundledTarget     = (templateDirectory, settings.defaultFrameworkKey) match {
+        case ("python/src/http/server", "fastapi")   => true
+        case ("python/src/http/client", "httpx")     => true
+        case ("python/src/http/client", "httpx2")    => true
+        case ("typescript/src/http/client", "fetch") => true
+        case _                                       => false
+      }
+      bundledTarget && !settings.artifacts.exists(_.overrides.nonEmpty)
+    }
 
     def renderNeutralTemplate[S, M](
         settings: HttpServiceCodegenSettings,

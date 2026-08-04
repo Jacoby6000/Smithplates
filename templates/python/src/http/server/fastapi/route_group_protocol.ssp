@@ -6,6 +6,9 @@
 from typing import ${typingSymbols.mkString(", ")}, Protocol  # noqa: F401
 
 from pydantic import Field  # noqa: F401
+<% if (R.routeGroupUsesAuth(ctx)) { %>
+from ${R.servicePackageName(ctx)}.app_services import AuthContext
+<% } %>
 <% if (R.routeGroupNeedsDatetimeImport(ctx)) { %>
 from datetime import datetime  # noqa: F401
 <% } %>
@@ -20,6 +23,9 @@ class ${R.protocolClassName(R.tag(ctx))}(Protocol):
 <% for (operation <- operations) { %>
     async def ${R.operationMethodName(ctx, operation.id.name)}(
         self,
+<% if (R.operationUsesAuth(operation)) { %>
+        auth: ${R.operationAuthTypeAnnotation(operation)},
+<% } %>
 <% for (member <- operation.meta.feature.inputMembers.filter(R.isRouteParameter)) { %>
         ${R.memberName(ctx, member.name)}: ${R.httpMemberTypeAnnotation(ctx, member, member.required)},
 <% } %>

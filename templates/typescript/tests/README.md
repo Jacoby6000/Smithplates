@@ -2,6 +2,8 @@
 
 Golden cases live under `templates/typescript/tests/<case-name>/`. Each case runs `smithy build` via the same [`SmithyBuildTemplateRunner`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/SmithyBuildTemplateRunner.scala) / [`CodegenTemplateTestSuite`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/CodegenTemplateTestSuite.scala) path as Python goldens. Fixture `smithy-build.json` files omit `maven.dependencies`; the runner loads the plugin from the sbt test classpath.
 
+Fixtures with a `tsconfig.json` are type-checked by the TypeScript language harness; root `*.test.ts` files are also executed with `tsx` during normal template validation.
+
 Bundled TypeScript templates are **HTTP client + models only** (axios or fetch). There is no TypeScript SQL or HTTP server golden suite today.
 
 ## Layout

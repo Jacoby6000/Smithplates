@@ -34,3 +34,16 @@ run_variant_tests() {
 }
 
 foreach_python_variant run_variant_tests
+
+run_http_case_tests() {
+  local case_name="$1"
+  local case_dir="$2"
+  local src_root="${case_dir}expected/src"
+
+  export PYTHONPATH="${src_root}"
+  export PYTHONDONTWRITEBYTECODE=1
+  echo "==> pytest ${case_name} / http"
+  uv run pytest "${common_args[@]}" --confcutdir="${case_dir}" "${case_dir}"/test_*.py
+}
+
+foreach_python_http_case run_http_case_tests

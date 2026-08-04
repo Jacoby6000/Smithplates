@@ -5,6 +5,121 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+from typing import Protocol
+<% } %>
+
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+
+@dataclass(frozen=True)
+class AuthCredential:
+    scheme_id: str
+    value: str
+
+
+class AuthProvider(Protocol):
+    def resolve_auth(self, scheme_id: str) -> AuthCredential | None: ...
+
+
+@dataclass(frozen=True)
+class AuthSchemeBinding:
+    scheme_id: str
+    location: str
+    name: str
+    prefix: str | None
+
+
+@dataclass(frozen=True)
+class OperationAuthBinding:
+    alternatives: tuple[str, ...]
+    allows_anonymous: bool
+
+
+AUTH_SCHEME_BINDINGS: dict[str, AuthSchemeBinding] = {
+<% for (scheme <- H.serviceAuthSchemes(ctx)) { %>
+    ${pythonStringLiteral(H.authSchemeId(scheme))}: AuthSchemeBinding(
+        scheme_id=${pythonStringLiteral(H.authSchemeId(scheme))},
+        location=${pythonStringLiteral(H.authSchemeLocation(scheme))},
+        name=${pythonStringLiteral(H.authSchemeName(scheme))},
+        prefix=<% H.authSchemePrefix(scheme) match { case Some(prefix) => %>${pythonStringLiteral(prefix)}<% case None => %>None<% } %>,
+    ),
+<% } %>
+}
+
+
+OPERATION_AUTH_BINDINGS: dict[str, OperationAuthBinding] = {
+<% for (operation <- H.restOperations(ctx)) { %>
+<% for (bindingKey <- H.operationBindingKeys(ctx, operation)) { %>
+    ${pythonStringLiteral(bindingKey)}: OperationAuthBinding(
+        alternatives=(
+<% for (alternative <- H.operationAuthAlternatives(operation)) { %>
+            ${pythonStringLiteral(H.modelIdValue(alternative.schemeId))},
+<% } %>
+        ),
+        allows_anonymous=${if (H.operationAllowsAnonymous(operation)) "True" else "False"},
+    ),
+<% } %>
+<% } %>
+}
+
+
+def _set_header(headers: dict[str, str], name: str, value: str) -> None:
+    existing_key = next((key for key in headers if key.lower() == name.lower()), None)
+    if existing_key is not None and existing_key != name:
+        del headers[existing_key]
+    headers[name] = value
+
+
+def apply_operation_auth(
+    binding: OperationAuthBinding,
+    auth_provider: AuthProvider | None,
+    headers: dict[str, str],
+    query_params: list[tuple[str, str]],
+) -> None:
+    allowed_scheme_ids = {
+        scheme_id for scheme_id in binding.alternatives if scheme_id != "smithy.api#noAuth"
+    }
+    for scheme_id in binding.alternatives:
+        if scheme_id == "smithy.api#noAuth":
+            return
+        if auth_provider is None:
+            continue
+        credential = auth_provider.resolve_auth(scheme_id)
+        if credential is None:
+            continue
+        if credential.scheme_id not in allowed_scheme_ids:
+            msg = f"Auth provider returned scheme {credential.scheme_id!r}, which is not allowed by the operation"
+            raise ValueError(msg)
+        if credential.scheme_id != scheme_id:
+            msg = f"Auth provider returned scheme {credential.scheme_id!r} while resolving {scheme_id!r}"
+            raise ValueError(msg)
+        if not credential.value:
+            continue
+
+        scheme = AUTH_SCHEME_BINDINGS[credential.scheme_id]
+        value = f"{scheme.prefix} {credential.value}" if scheme.prefix else credential.value
+        if scheme.location == "header":
+            _set_header(headers, scheme.name, value)
+        elif scheme.location == "query":
+            query_params.append((scheme.name, value))
+        elif scheme.location == "cookie":
+            if any(ord(character) < 0x21 or ord(character) > 0x7E or character in '\\",;' for character in value):
+                raise ValueError("Cookie authentication credential contains an invalid character")
+            cookie = f"{scheme.name}={value}"
+            existing_cookie_key = next((key for key in headers if key.lower() == "cookie"), None)
+            if existing_cookie_key is None:
+                headers["Cookie"] = cookie
+            else:
+                headers[existing_cookie_key] = f"{headers[existing_cookie_key]}; {cookie}"
+        else:
+            msg = f"Unsupported auth location {scheme.location!r}"
+            raise ValueError(msg)
+        return
+
+    if not binding.allows_anonymous:
+        raise RuntimeError("No usable authentication credential is available for the operation")
+
+<% } %>
 
 @dataclass(frozen=True)
 class ResponseVariantBinding:

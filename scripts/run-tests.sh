@@ -47,19 +47,30 @@ run_template_golden_tests() {
   ./scripts/run-template-golden-tests.sh
 }
 
-run_template_pytest() {
-  echo "==> Python template tests (uv required; Docker required for postgres variants)"
-  ./language-test-harnesses/python/run-tests.sh
+run_template_language_tests() {
+  local found=0
+  shopt -s nullglob
+  for runner in language-test-harnesses/*/run-tests.sh; do
+    found=1
+    local language
+    language="$(basename "$(dirname "${runner}")")"
+    echo "==> ${language} template tests"
+    "${runner}"
+  done
+  if [[ ${found} -eq 0 ]]; then
+    echo "error: no language-test-harnesses/*/run-tests.sh scripts found" >&2
+    exit 1
+  fi
 }
 
 run_template_tests() {
   run_template_golden_tests
-  run_template_pytest
+  run_template_language_tests
 }
 
 run_all() {
   run_scala_tests
-  run_template_pytest
+  run_template_language_tests
 }
 
 mode="${1:-all}"

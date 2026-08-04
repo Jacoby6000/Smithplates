@@ -12,6 +12,9 @@ import com.jacoby6000.smithplates.codegen.core.planning.CodegenPlanner
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.RenderContext
 import com.jacoby6000.smithplates.http.HttpSmithyTypeResolver
+import com.jacoby6000.smithplates.http.codegen.HttpApiKeyLocationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpAuthAlternativeMeta
+import com.jacoby6000.smithplates.http.codegen.HttpAuthSchemeMeta
 import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
@@ -42,6 +45,53 @@ object HttpNeutralRouteGroupTemplateAttributes {
 
   def websocketOperations(ctx: RouteGroupView): List[OperationModel[HttpOperationMeta]] =
     operations(ctx).filter(_.meta.feature.websocket.isDefined)
+
+  def operationAuthAlternatives(operation: OperationModel[HttpOperationMeta]): List[HttpAuthAlternativeMeta] =
+    HttpNeutralServiceTemplateAttributes.operationAuthAlternatives(operation)
+
+  def operationIsPublic(operation: OperationModel[HttpOperationMeta]): Boolean =
+    HttpNeutralServiceTemplateAttributes.operationIsPublic(operation)
+
+  def operationHasOptionalAuth(operation: OperationModel[HttpOperationMeta]): Boolean =
+    HttpNeutralServiceTemplateAttributes.operationHasOptionalAuth(operation)
+
+  def operationRequiresAuth(operation: OperationModel[HttpOperationMeta]): Boolean =
+    HttpNeutralServiceTemplateAttributes.operationRequiresAuth(operation)
+
+  def operationUsesAuth(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operationHasOptionalAuth(operation) || operationRequiresAuth(operation)
+
+  def routeGroupUsesAuth(ctx: RouteGroupView): Boolean =
+    restOperations(ctx).exists(operation => operationUsesAuth(operation))
+
+  def serviceConfiguresAuth(ctx: RouteGroupView): Boolean =
+    ctx.subject.service.meta.feature.authSchemes.nonEmpty
+
+  def operationSupportsCookieAuth(
+      ctx: RouteGroupView,
+      operation: OperationModel[HttpOperationMeta]
+  ): Boolean = {
+    val cookieSchemeIds = ctx.subject.service.meta.feature.authSchemes.collect {
+      case scheme: HttpAuthSchemeMeta.Cookie =>
+        HttpNeutralServiceTemplateAttributes.authSchemeId(scheme)
+    }.toSet
+    HttpNeutralServiceTemplateAttributes.operationAuthSchemeIds(operation).exists(cookieSchemeIds.contains)
+  }
+
+  def routeGroupAuthUsesQuery(ctx: RouteGroupView): Boolean = {
+    val querySchemeIds = ctx.subject.service.meta.feature.authSchemes.collect {
+      case HttpAuthSchemeMeta.ApiKey(id, _, HttpApiKeyLocationMeta.Query, _) =>
+        HttpNeutralServiceTemplateAttributes.modelIdValue(id)
+    }.toSet
+    restOperations(ctx).exists(operation =>
+      HttpNeutralServiceTemplateAttributes.operationAuthSchemeIds(operation).exists(querySchemeIds.contains))
+  }
+
+  def operationAuthTypeAnnotation(operation: OperationModel[HttpOperationMeta]): String =
+    if (operationHasOptionalAuth(operation)) "AuthContext | None" else "AuthContext"
+
+  def operationAuthenticateFunction(operation: OperationModel[HttpOperationMeta]): String =
+    if (operationHasOptionalAuth(operation)) "authenticate_optional_request" else "authenticate_required_request"
 
   def packageName(ctx: RouteGroupView): String =
     ctx.conventions.packageName(ctx.subject.service.id.namespace)
@@ -285,7 +335,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
       operation: OperationModel[HttpOperationMeta]
   ): String = {
     val queryMembers = operation.meta.feature.inputMembers.filter(member => internal.isQueryBinding(member))
-    if (queryMembers.isEmpty) {
+    if (queryMembers.isEmpty && !operationUsesAuth(operation)) {
       return s"        request_url = ${clientRequestUrlExpression(ctx, operation)}"
     }
     val lines        = queryMembers.flatMap { member =>
@@ -315,9 +365,23 @@ object HttpNeutralRouteGroupTemplateAttributes {
         }
       if (member.required) append else s"        if $parameter is not None:" +: append.map("    " + _)
     }
+    val authLines    =
+      if (operationUsesAuth(operation)) {
+        List(
+          "        apply_operation_auth(",
+          s"            OPERATION_AUTH_BINDINGS[\"${operationMethodName(ctx, operation.id.name)}\"],",
+          "            self._auth_provider,",
+          "            headers,",
+          "            query_params,",
+          "        )"
+        )
+      } else {
+        Nil
+      }
     (
       List("        query_params: list[tuple[str, str]] = []") ++
         lines ++
+        authLines ++
         List(
           "        query_string = urlencode(query_params, quote_via=quote)",
           s"        request_url = ${clientRequestUrlExpression(ctx, operation)}",
@@ -333,7 +397,7 @@ object HttpNeutralRouteGroupTemplateAttributes {
   ): String = {
     val headerMembers =
       operation.meta.feature.inputMembers.filter(member => internal.isHeaderBinding(member))
-    if (headerMembers.isEmpty) {
+    if (headerMembers.isEmpty && !operationUsesAuth(operation)) {
       "        headers: dict[str, str] | None = None"
     } else {
       val assignmentLines =
@@ -468,7 +532,8 @@ object HttpNeutralRouteGroupTemplateAttributes {
         case HttpOperationBodyBindingMeta.None                     =>
           Nil
       }
-      routeArgs ++ bodyArgs
+      val authArgs  = if (operationUsesAuth(operation)) List("auth=auth") else Nil
+      authArgs ++ routeArgs ++ bodyArgs
     }
 
     def renderMemberType(ctx: RouteGroupView, member: HttpOperationInputMemberMeta): String =

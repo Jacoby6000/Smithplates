@@ -38,6 +38,7 @@ Smithy trait IDL is packaged into the published plugin dependency graph from [`.
 | Trait | Target | Maps to |
 |-------|--------|---------|
 | `@httpService(serialization: HttpSerializationFormat = "json")` | `service` | HTTP API service selected for Smithplates HTTP codegen |
+| `@httpCookieAuth(name: String)` | `service` | Smithy authentication definition for a named HTTP cookie; supported by FastAPI, HTTPX/HTTPX2, and fetch REST generation |
 | `@httpStaticHeader(name: String, value: String)` | `structure` | Fixed response header binding for generated HTTP output handling |
 | `@httpProblem(type: String = "about:blank", title: String, detail: String?, code: Integer?)` | `structure[trait|error]` | RFC 9457 problem detail exception and response handling; `code` implies `@httpError` |
 | `@websocket` | `operation` | Bidirectional WebSocket endpoint (requires `@http` URI + `@tags`); dedicated server/client templates |

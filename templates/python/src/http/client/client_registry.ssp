@@ -8,6 +8,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import ${httpLibrary}
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+from ${H.servicePackageName(ctx)}.client.operation_bindings import AuthProvider
+<% } %>
 
 <% for (tag <- H.routeGroupTags(ctx)) { %>
 from ${H.servicePackageName(ctx)}.clients.${H.clientModuleName(ctx, tag)} import ${H.clientClassName(tag)}
@@ -25,6 +28,9 @@ def create_api_clients(
     client: ${httpLibrary}.AsyncClient,
     *,
     base_url: str,
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+    auth_provider: AuthProvider | None = None,
+<% } %>
 ) -> ApiClients:
     normalized_base_url = base_url.rstrip("/")
     return ApiClients(
@@ -32,6 +38,9 @@ def create_api_clients(
         ${H.clientModuleName(ctx, tag)}=${H.clientClassName(tag)}(
             client,
             normalized_base_url,
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+            auth_provider,
+<% } %>
         ),
 <% } %>
     )

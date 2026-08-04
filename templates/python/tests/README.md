@@ -2,6 +2,8 @@
 
 Golden cases live under `templates/python/tests/<case-name>/`. Each case runs `smithy build` via [`SmithyBuildTemplateRunner`](../../../modules/smithplates-plugin/src/test/scala/com/jacoby6000/smithplates/plugin/codegentest/SmithyBuildTemplateRunner.scala) as its own munit test (`build - <case-name>`), then compares rendered output to files under `expected/` per dialect variant. Fixture `smithy-build.json` files intentionally omit `maven.dependencies`; the runner loads the plugin from the sbt test classpath. The [Python petstore reference](../../../example/python/) shows the consumer Maven layout. Build progress is logged via log4j to stdout as `[template-build] build - <case-name>: … (<elapsed>ms)` (see `modules/smithplates-plugin/src/test/resources/log4j2.xml`; plugin tests set `Test / logBuffered := false` so lines stream during long builds).
 
+Executable HTTP fixtures place `test_*.py` and `mypy-files.txt` at the case root. The Python language harness lints the complete generated tree, type-checks the listed auth-sensitive files, and runs those tests alongside the derived-SQL suites.
+
 ## Layout
 
 ```

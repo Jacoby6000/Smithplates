@@ -11,6 +11,9 @@ import com.jacoby6000.smithplates.codegen.core.TypeResolver
 import com.jacoby6000.smithplates.codegen.core.planning.TemplateView
 import com.jacoby6000.smithplates.codegen.core.strategy.RenderContext
 import com.jacoby6000.smithplates.http.HttpSmithyTypeResolver
+import com.jacoby6000.smithplates.http.codegen.HttpApiKeyLocationMeta
+import com.jacoby6000.smithplates.http.codegen.HttpAuthAlternativeMeta
+import com.jacoby6000.smithplates.http.codegen.HttpAuthSchemeMeta
 import com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta
 import com.jacoby6000.smithplates.http.codegen.HttpMeta
 import com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta
@@ -58,6 +61,60 @@ object HttpNeutralServiceTemplateAttributes {
   def serviceErrors(ctx: ServiceView): List[HttpServiceErrorMeta] =
     ctx.subject.meta.feature.serviceErrors
 
+  def serviceAuthSchemes(ctx: ServiceView): List[HttpAuthSchemeMeta] =
+    ctx.subject.meta.feature.authSchemes
+
+  def serviceConfiguresAuth(ctx: ServiceView): Boolean =
+    serviceAuthSchemes(ctx).nonEmpty
+
+  def authSchemeId(scheme: HttpAuthSchemeMeta): String =
+    modelIdValue(scheme.id)
+
+  def authSchemeLocation(scheme: HttpAuthSchemeMeta): String =
+    scheme match {
+      case HttpAuthSchemeMeta.Bearer(_)                 => "header"
+      case HttpAuthSchemeMeta.ApiKey(_, _, location, _) =>
+        location match {
+          case HttpApiKeyLocationMeta.Header => "header"
+          case HttpApiKeyLocationMeta.Query  => "query"
+        }
+      case HttpAuthSchemeMeta.Cookie(_, _)              => "cookie"
+    }
+
+  def authSchemeName(scheme: HttpAuthSchemeMeta): String =
+    scheme match {
+      case HttpAuthSchemeMeta.Bearer(_)             => "Authorization"
+      case HttpAuthSchemeMeta.ApiKey(_, name, _, _) => name
+      case HttpAuthSchemeMeta.Cookie(_, name)       => name
+    }
+
+  def authSchemePrefix(scheme: HttpAuthSchemeMeta): Option[String] =
+    scheme match {
+      case HttpAuthSchemeMeta.Bearer(_)               => Some("Bearer")
+      case HttpAuthSchemeMeta.ApiKey(_, _, _, prefix) => prefix
+      case HttpAuthSchemeMeta.Cookie(_, _)            => None
+    }
+
+  def operationAuthAlternatives(operation: OperationModel[HttpOperationMeta]): List[HttpAuthAlternativeMeta] =
+    operation.meta.feature.authAlternatives
+
+  def operationAuthSchemeIds(operation: OperationModel[HttpOperationMeta]): List[String] =
+    operationAuthAlternatives(operation)
+      .filterNot(alternative => internal.isNoAuth(alternative))
+      .map(alternative => modelIdValue(alternative.schemeId))
+
+  def operationAllowsAnonymous(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operationAuthAlternatives(operation).exists(alternative => internal.isNoAuth(alternative))
+
+  def operationIsPublic(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operationAllowsAnonymous(operation) && operationAuthSchemeIds(operation).isEmpty
+
+  def operationHasOptionalAuth(operation: OperationModel[HttpOperationMeta]): Boolean =
+    operationAllowsAnonymous(operation) && operationAuthSchemeIds(operation).nonEmpty
+
+  def operationRequiresAuth(operation: OperationModel[HttpOperationMeta]): Boolean =
+    !operationAllowsAnonymous(operation) && operationAuthSchemeIds(operation).nonEmpty
+
   def serviceErrorsNeedProblemImport(ctx: ServiceView): Boolean =
     serviceErrors(ctx).exists(_.error.isDefined)
 
@@ -92,6 +149,9 @@ object HttpNeutralServiceTemplateAttributes {
   def operations(ctx: ServiceView): List[OperationModel[HttpOperationMeta]] =
     ctx.subject.operations
 
+  def restOperations(ctx: ServiceView): List[OperationModel[HttpOperationMeta]] =
+    operations(ctx).filterNot(_.meta.feature.websocket.isDefined)
+
   def operationMethodName(ctx: ServiceView, operationName: String): String =
     ctx.conventions.functionName(operationName)
 
@@ -103,6 +163,9 @@ object HttpNeutralServiceTemplateAttributes {
       List(methodName, operation.id.name)
     }
   }
+
+  def modelIdValue(id: ModelId): String =
+    s"${id.namespace}#${id.name}"
 
   def responseVariantMediaType(mediaType: Option[String]): String =
     mediaType.map(value => s"'$value'").getOrElse("None")
@@ -310,6 +373,11 @@ object HttpNeutralServiceTemplateAttributes {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    private val NoAuthId = ModelId("smithy.api", "noAuth")
+
+    def isNoAuth(alternative: HttpAuthAlternativeMeta): Boolean =
+      alternative.schemeId == NoAuthId
+
     def referencedModelTypeNames(typeName: String): List[String] =
       if (typeName.startsWith("List[")) {
         referencedModelTypeNames(typeName.substring(5, typeName.length - 1))

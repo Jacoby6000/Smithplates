@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-08-04
+
+### Added
+
+- Smithy 2.0 `@auth` and `@optionalAuth` lowering with ordered bearer,
+  header/query API-key, and Smithplates `@httpCookieAuth` alternatives.
+- Generated FastAPI credential extraction, application-supplied identity
+  verification, and typed auth context injection for protected and
+  optional-auth handlers.
+- Generated authentication providers for Python HTTPX/HTTPX2 sync and async
+  REST clients and TypeScript fetch clients. Browser cookie auth uses
+  `credentials: "include"` without exposing `HttpOnly` cookie values.
+
+### Security
+
+- Authentication extraction and generation fail closed for unsupported or
+  unconfigured schemes, invalid API-key settings, conflicting HTTP bindings,
+  authenticated WebSockets, and authenticated axios clients.
+
 ## [0.6.0] - 2026-08-03
 
 ### Added
@@ -224,7 +243,8 @@ WebSockets, and related generated-output fixes.
 Previous stable release before the language-neutral codegen epic.
 See git history `v0.2.5` for the full 0.2.x line.
 
-[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.5.1...v0.6.0
 [0.5.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.4.2...v0.5.0

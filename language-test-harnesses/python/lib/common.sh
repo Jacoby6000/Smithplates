@@ -210,3 +210,28 @@ foreach_python_variant() {
     return 1
   fi
 }
+
+foreach_python_http_case() {
+  local callback="$1"
+  local failures=0
+
+  if [[ "${SMITHYSTACHE_PYTHON_SERVICE_TYPE:-all}" == "db" ]]; then
+    return 0
+  fi
+
+  shopt -s nullglob
+  local case_dir
+  for case_dir in "${TESTS_ROOT}"/http-*/; do
+    if [[ ! -f "${case_dir}mypy-files.txt" ]]; then
+      continue
+    fi
+    if ! "${callback}" "$(basename "${case_dir}")" "${case_dir}"; then
+      failures=$((failures + 1))
+    fi
+  done
+
+  if [[ ${failures} -gt 0 ]]; then
+    echo "${failures} HTTP case(s) failed" >&2
+    return 1
+  fi
+}

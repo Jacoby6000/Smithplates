@@ -28,6 +28,7 @@ object CodegenTemplateTestDiscovery {
       .iterator()
       .asScala
       .filter(Files.isDirectory(_))
+      .filter(path => Files.isRegularFile(path.resolve(SmithyDirectoryName).resolve(SmithyFileName)))
       .map(_.getFileName.toString)
       .filterNot(_ == ExpectedDirectoryName)
       .toList

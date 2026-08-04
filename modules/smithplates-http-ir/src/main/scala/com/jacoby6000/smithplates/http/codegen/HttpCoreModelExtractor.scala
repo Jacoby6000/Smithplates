@@ -106,7 +106,9 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                 bodyBinding = internal.toBodyBindingMeta(operation.bodyBinding),
                 responseVariants = operation.responseBinding.allVariants.map(internal.toResponseVariantMeta),
                 websocket = internal
-                  .websocketMeta(model, operation.shapeId, operation.uri)
+                  .websocketMeta(model, operation.shapeId, operation.uri),
+                authAlternatives = operation.authAlternatives.map(alternative =>
+                  HttpAuthAlternativeMeta(ModelIds.fromShapeId(alternative.schemeId)))
               )
             ),
             input = if (operation.inputShape == HttpStructureExtractor.internal.UnitShapeId) {
@@ -164,7 +166,8 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
               )
             },
             modelNamespaces = internal.modelNamespaces(httpService, extraStructureIds),
-            emittedModelIds = internal.emittedModelIds(httpService, extraStructureIds)
+            emittedModelIds = internal.emittedModelIds(httpService, extraStructureIds),
+            authSchemes = httpService.authSchemes.map(internal.toAuthSchemeMeta)
           )
         ),
         operations = operations
@@ -410,6 +413,24 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
           Some(ModelIds.fromShapeId(variant.modelShapeId))
         }
       )
+
+    def toAuthSchemeMeta(scheme: HttpAuthScheme): HttpAuthSchemeMeta =
+      scheme match {
+        case HttpAuthScheme.Bearer(id)                       =>
+          HttpAuthSchemeMeta.Bearer(ModelIds.fromShapeId(id))
+        case HttpAuthScheme.ApiKey(id, name, location, auth) =>
+          HttpAuthSchemeMeta.ApiKey(
+            id = ModelIds.fromShapeId(id),
+            name = name,
+            location = location match {
+              case HttpApiKeyLocation.Header => HttpApiKeyLocationMeta.Header
+              case HttpApiKeyLocation.Query  => HttpApiKeyLocationMeta.Query
+            },
+            scheme = auth
+          )
+        case HttpAuthScheme.Cookie(id, name)                 =>
+          HttpAuthSchemeMeta.Cookie(ModelIds.fromShapeId(id), name)
+      }
 
     def modelMeta(model: SmithyModel, shapeId: ShapeId, feature: HttpMeta): ModelMeta[HttpMeta] = {
       val shape = model.expectShape(shapeId)

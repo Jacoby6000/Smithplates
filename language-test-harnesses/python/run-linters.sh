@@ -23,3 +23,25 @@ run_variant_linters() {
 }
 
 foreach_python_variant run_variant_linters
+
+run_http_case_linters() {
+  local case_name="$1"
+  local case_dir="$2"
+  local src_root="${case_dir}expected/src"
+  local label="${case_name} / http"
+
+  mapfile -t python_files < <(find "${src_root}" -name '*.py' -type f; find "${case_dir}" -maxdepth 1 -name 'test_*.py' -type f)
+  mapfile -t mypy_files < <(while IFS= read -r path; do printf '%s\n' "${case_dir}${path}"; done < "${case_dir}mypy-files.txt")
+  export PYTHONPATH="${src_root}"
+  export PYTHONDONTWRITEBYTECODE=1
+  export MYPYPATH="${src_root}"
+
+  echo "==> ${label} ruff check"
+  uv run ruff check --config "${PYPROJECT}" "${python_files[@]}"
+  echo "==> ${label} ruff format --check"
+  uv run ruff format --check --config "${PYPROJECT}" "${python_files[@]}"
+  echo "==> ${label} mypy"
+  uv run mypy --strict --explicit-package-bases --config-file "${PYPROJECT}" "${mypy_files[@]}"
+}
+
+foreach_python_http_case run_http_case_linters

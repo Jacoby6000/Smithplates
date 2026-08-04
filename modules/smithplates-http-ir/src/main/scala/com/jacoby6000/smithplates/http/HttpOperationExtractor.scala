@@ -17,7 +17,8 @@ private[http] object HttpOperationExtractor {
       serviceShape: ShapeId,
       operationId: ShapeId,
       serviceResources: List[HttpResource],
-      serialization: HttpSerialization
+      serialization: HttpSerialization,
+      serviceAuth: HttpAuthExtractor.ServiceAuth
   ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] =
     model.getShape(operationId).toScala.flatMap(_.asOperationShape.toScala) match {
       case None            =>
@@ -27,7 +28,7 @@ private[http] object HttpOperationExtractor {
           s"operation '${operationId.toString}' is not defined in the model"
         ).invalidNel
       case Some(operation) =>
-        internal.extractOperation(model, serviceShape, operation, serviceResources, serialization)
+        internal.extractOperation(model, serviceShape, operation, serviceResources, serialization, serviceAuth)
     }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
@@ -37,7 +38,8 @@ private[http] object HttpOperationExtractor {
         serviceShape: ShapeId,
         operation: OperationShape,
         serviceResources: List[HttpResource],
-        serialization: HttpSerialization
+        serialization: HttpSerialization,
+        serviceAuth: HttpAuthExtractor.ServiceAuth
     ): HttpValidated[(HttpOperation, List[HttpSchemaWarning])] = {
       val operationName = operation.getId.getName
       val isWebsocket   = operation.getTrait(classOf[WebsocketTrait]).toScala.isDefined
@@ -46,67 +48,73 @@ private[http] object HttpOperationExtractor {
         requireRouteTag(serviceShape, operationName, operation),
         requireInputShape(serviceShape, operationName, operation),
         validateOutputShape(operation),
-        validateErrorShapes(model, serviceShape, operation)
-      ).mapN { (http, tag, inputShape, outputShape, errorShapeIds) =>
+        validateErrorShapes(model, serviceShape, operation),
+        HttpAuthExtractor.extractOperation(model, serviceShape, operation, serviceAuth)
+      ).mapN { (http, tag, inputShape, outputShape, errorShapeIds, authAlternatives) =>
         HttpOperationInputMemberExtractor
           .extract(model, serviceShape, operation, inputShape, serviceResources, isWebsocket)
           .andThen { inputMembers =>
-            val uri            = http.getUri.toString
-            val warnings       =
-              HttpInputMemberOrdering
-                .lintInputMemberOrder(serviceShape, operationName, inputShape, uri, inputMembers)
-                .toList
-            val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
-            val bodyBinding    =
-              if (isWebsocket && orderedMembers.isEmpty && inputShape != ShapeId.from("smithy.api#Unit")) {
-                // Websocket operations with union-typed inputs have no extracted input members
-                // (unions aren't structures). The entire input shape is the message body.
-                HttpOperationBodyBinding.Document(inputShape)
-              } else {
-                HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
-              }
-            (
-              HttpOperationOutputMemberExtractor
-                .extract(model, serviceShape, operationName, outputShape, isWebsocket),
-              HttpOperationErrorExtractor.extract(model, serviceShape, operationName, errorShapeIds)
-            ).mapN { (outputMembers, operationErrors) =>
-              HttpResponseVariantResolver
-                .resolveOperationBinding(
-                  model = model,
-                  serviceShape = serviceShape,
-                  operationName = operationName,
-                  successStatusCode = http.getCode,
-                  outputShape = outputShape,
-                  outputMembers = outputMembers,
-                  operationErrors = operationErrors,
-                  serialization = serialization
-                )
-                .map { responseBinding =>
-                  (
-                    HttpOperation(
-                      shapeId = operation.getId,
-                      name = operationName,
-                      method = http.getMethod,
-                      uri = uri,
+            HttpAuthExtractor
+              .validateOperationBindings(serviceShape, operation, serviceAuth, authAlternatives, inputMembers)
+              .andThen { _ =>
+                val uri            = http.getUri.toString
+                val warnings       =
+                  HttpInputMemberOrdering
+                    .lintInputMemberOrder(serviceShape, operationName, inputShape, uri, inputMembers)
+                    .toList
+                val orderedMembers = HttpInputMemberOrdering.orderInputMembers(uri, inputMembers)
+                val bodyBinding    =
+                  if (isWebsocket && orderedMembers.isEmpty && inputShape != ShapeId.from("smithy.api#Unit")) {
+                    // Websocket operations with union-typed inputs have no extracted input members
+                    // (unions aren't structures). The entire input shape is the message body.
+                    HttpOperationBodyBinding.Document(inputShape)
+                  } else {
+                    HttpInputBodyBindingResolver.resolve(inputShape, orderedMembers)
+                  }
+                (
+                  HttpOperationOutputMemberExtractor
+                    .extract(model, serviceShape, operationName, outputShape, isWebsocket),
+                  HttpOperationErrorExtractor.extract(model, serviceShape, operationName, errorShapeIds)
+                ).mapN { (outputMembers, operationErrors) =>
+                  HttpResponseVariantResolver
+                    .resolveOperationBinding(
+                      model = model,
+                      serviceShape = serviceShape,
+                      operationName = operationName,
                       successStatusCode = http.getCode,
-                      readonly = operation.readonlyOperation,
-                      documentation = operation.documentationText,
-                      inputShape = inputShape,
-                      inputBoundResource = HttpOperationInputMemberExtractor
-                        .inputBoundResource(model, inputShape, operation.getId, serviceResources),
-                      inputMembers = orderedMembers,
-                      bodyBinding = bodyBinding,
                       outputShape = outputShape,
                       outputMembers = outputMembers,
                       operationErrors = operationErrors,
-                      responseBinding = responseBinding,
-                      tags = List(tag),
-                      websocket = isWebsocket
-                    ),
-                    warnings
-                  )
+                      serialization = serialization
+                    )
+                    .map { responseBinding =>
+                      (
+                        HttpOperation(
+                          shapeId = operation.getId,
+                          name = operationName,
+                          method = http.getMethod,
+                          uri = uri,
+                          successStatusCode = http.getCode,
+                          readonly = operation.readonlyOperation,
+                          documentation = operation.documentationText,
+                          inputShape = inputShape,
+                          inputBoundResource = HttpOperationInputMemberExtractor
+                            .inputBoundResource(model, inputShape, operation.getId, serviceResources),
+                          inputMembers = orderedMembers,
+                          bodyBinding = bodyBinding,
+                          outputShape = outputShape,
+                          outputMembers = outputMembers,
+                          operationErrors = operationErrors,
+                          responseBinding = responseBinding,
+                          tags = List(tag),
+                          websocket = isWebsocket,
+                          authAlternatives = authAlternatives
+                        ),
+                        warnings
+                      )
+                    }
                 }
-            }
+              }
           }
       }.andThen(identity)
         .andThen(identity)

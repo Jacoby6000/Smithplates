@@ -501,15 +501,249 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
         fail(errors.map(_.message).toList.mkString("; "))
     }
   }
+
+  test("HttpServiceCodegenRenderer renders FastAPI REST authentication") {
+    val model                         = HttpTestModelLoader.assemble(
+      "auth.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpCookieAuth
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#auth
+          |use smithy.api#http
+          |use smithy.api#httpApiKeyAuth
+          |use smithy.api#httpBearerAuth
+          |use smithy.api#optionalAuth
+          |use smithy.api#tags
+          |
+          |@httpService
+          |@httpBearerAuth
+          |@httpApiKeyAuth(name: "X-API-Key", in: "header", scheme: "ApiKey")
+          |@httpCookieAuth(name: "session")
+          |@auth([httpBearerAuth, httpApiKeyAuth, httpCookieAuth])
+          |service WidgetApi {
+          |    version: "1"
+          |    operations: [Required, Optional, Public]
+          |}
+          |
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/required", code: 204)
+          |operation Required {}
+          |
+          |@optionalAuth
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/optional", code: 204)
+          |operation Optional {}
+          |
+          |@auth([])
+          |@tags(["v1_widgets"])
+          |@http(method: "GET", uri: "/public", code: 204)
+          |operation Public {}
+          |""".stripMargin
+    )
+    val artifacts                     = HttpServiceCodegenRendererSpec.internal.renderFastApiArtifacts(model)
+    def content(path: String): String =
+      artifacts.find(_.relativePath.endsWith(path)).map(_.content).getOrElse(fail(s"missing generated $path"))
+
+    val services = content("/app_services.py")
+    val factory  = content("/app_factory.py")
+    val bindings = content("/operation_bindings.py")
+    val protocol = content("/apis/v1_widgets_api_base.py")
+    val routes   = content("/apis/v1_widgets_api.py")
+
+    assert(clue(services).contains("class AuthCredential:"))
+    assert(clue(services).contains("class AuthContext:"))
+    assert(clue(services).contains("class AuthVerifier(Protocol):"))
+    assert(clue(factory).contains("auth_verifier: AuthVerifier"))
+    assert(clue(factory).contains("app.state.auth_verifier = auth_verifier"))
+    assert(clue(bindings).contains("location=\"header\""))
+    assert(clue(bindings).contains("prefix=\"ApiKey\""))
+    assert(clue(bindings).contains("\"smithy.api#httpBearerAuth\","))
+    assert(clue(bindings).contains("allows_anonymous=True"))
+    assert(clue(protocol).contains("auth: AuthContext,"))
+    assert(clue(protocol).contains("auth: AuthContext | None,"))
+    assert(clue(routes).contains("authenticate_required_request("))
+    assert(clue(routes).contains("authenticate_optional_request("))
+    assert(!clue(routes).contains("async def public(\n    services:" + "\n    request: Request,"))
+  }
+
+  test("HttpServiceCodegenRenderer renders Python and TypeScript REST client authentication") {
+    val model = HttpTestModelLoader.assemble("auth.smithy" -> HttpServiceCodegenRendererSpec.internal.authModel)
+
+    val python                                                              = HttpServiceCodegenRendererSpec.internal.renderClientArtifacts(model, "python", "httpx2")
+    val typescript                                                          = HttpServiceCodegenRendererSpec.internal.renderClientArtifacts(model, "typescript", "fetch")
+    def content(artifacts: List[HttpCodegenArtifact], path: String): String =
+      artifacts.find(_.relativePath.endsWith(path)).map(_.content).getOrElse(fail(s"missing generated $path"))
+
+    val pythonBindings = content(python, "/client/operation_bindings.py")
+    val pythonClient   = content(python, "/clients/auth_client.py")
+    val pythonRegistry = content(python, "/client/client_registry.py")
+    assert(clue(pythonBindings).contains("class AuthProvider(Protocol):"))
+    assert(clue(pythonBindings).contains("def apply_operation_auth("))
+    assert(clue(pythonBindings).contains("location=\"cookie\""))
+    assert(clue(pythonClient).contains("auth_provider: AuthProvider | None = None"))
+    assert(clue(pythonClient).contains("apply_operation_auth("))
+    assert(clue(pythonRegistry).contains("auth_provider: AuthProvider | None = None"))
+
+    val typescriptBindings = content(typescript, "/client/operationBindings.ts")
+    val typescriptClient   = content(typescript, "/clients/authClient.ts")
+    val typescriptRegistry = content(typescript, "/client/clientRegistry.ts")
+    assert(clue(typescriptBindings).contains("export interface AuthProvider"))
+    assert(clue(typescriptBindings).contains("export function applyOperationAuth("))
+    assert(clue(typescriptClient).contains("authProvider?: AuthProvider"))
+    assert(clue(typescriptClient).contains("credentials: \"include\""))
+    assert(clue(typescriptRegistry).contains("authProvider?: AuthProvider"))
+  }
+
+  test("HttpServiceCodegenRenderer rejects authenticated axios and WebSocket operations") {
+    val authModel     = HttpTestModelLoader.assemble("auth.smithy" -> HttpServiceCodegenRendererSpec.internal.authModel)
+    val axiosSettings = HttpServiceCodegenRendererSpec.internal.clientSettings("typescript", "axios")
+    HttpServiceCodegenRenderer.render(authModel, axiosSettings) match {
+      case Validated.Valid(_)        => fail("expected authenticated axios generation to fail")
+      case Validated.Invalid(errors) =>
+        assert(errors.exists(_.message.contains("not supported by HTTP target 'axios'")))
+    }
+
+    val customSettings = HttpServiceCodegenRendererSpec.internal
+      .clientSettings("typescript", "fetch")
+      .copy(templateDirectory = "classpath:typescript/custom-http-templates")
+    HttpServiceCodegenRenderer.render(authModel, customSettings) match {
+      case Validated.Valid(_)        => fail("expected custom authenticated target generation to fail")
+      case Validated.Invalid(errors) =>
+        assert(errors.exists(_.message.contains("not supported by HTTP target 'fetch'")))
+    }
+
+    val websocketModel = HttpTestModelLoader.assemble(
+      "websocket-auth.smithy" -> HttpServiceCodegenRendererSpec.internal.authenticatedWebsocketModel
+    )
+    val fetchSettings  = HttpServiceCodegenRendererSpec.internal.clientSettings("typescript", "fetch")
+    HttpServiceCodegenRenderer.render(websocketModel, fetchSettings) match {
+      case Validated.Valid(_)        => fail("expected authenticated WebSocket generation to fail")
+      case Validated.Invalid(errors) =>
+        assert(errors.exists(_.message.contains("authenticated WebSocket operation 'Stream' is not supported")))
+    }
+
+    val publicWebsocket = HttpTestModelLoader.assemble(
+      "public-websocket.smithy" -> HttpServiceCodegenRendererSpec.internal.authenticatedWebsocketModel
+        .replace("@websocket\n", "@auth([])\n@websocket\n")
+    )
+    assert(HttpServiceCodegenRenderer.render(publicWebsocket, fetchSettings).isValid)
+  }
 }
 object HttpServiceCodegenRendererSpec {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
-    val PythonServerTemplateDirectory = "classpath:python/src/http/server"
-    val PythonClientTemplateDirectory = "classpath:python/src/http/client"
-    val PythonModelsTemplateDirectory = "classpath:python/src/http/models"
-    val RootNamespace                 = Some("generated")
+    val PythonServerTemplateDirectory     = "classpath:python/src/http/server"
+    val PythonClientTemplateDirectory     = "classpath:python/src/http/client"
+    val PythonModelsTemplateDirectory     = "classpath:python/src/http/models"
+    val TypeScriptClientTemplateDirectory = "classpath:typescript/src/http/client"
+    val TypeScriptModelsTemplateDirectory = "classpath:typescript/src/http/models"
+    val RootNamespace                     = Some("generated")
+
+    val authModel: String =
+      """$version: "2.0"
+        |namespace example
+        |
+        |use smithplates.codegen.http#httpCookieAuth
+        |use smithplates.codegen.http#httpService
+        |use smithy.api#auth
+        |use smithy.api#http
+        |use smithy.api#httpApiKeyAuth
+        |use smithy.api#httpBearerAuth
+        |use smithy.api#optionalAuth
+        |use smithy.api#tags
+        |
+        |@httpService
+        |@httpBearerAuth
+        |@httpApiKeyAuth(name: "api_key", in: "query")
+        |@httpCookieAuth(name: "session")
+        |@auth([httpBearerAuth, httpApiKeyAuth, httpCookieAuth])
+        |service AuthApi {
+        |    version: "1"
+        |    operations: [Required, Optional, Public]
+        |}
+        |
+        |@tags(["auth"])
+        |@http(method: "GET", uri: "/required", code: 204)
+        |operation Required {}
+        |
+        |@optionalAuth
+        |@tags(["auth"])
+        |@http(method: "GET", uri: "/optional", code: 204)
+        |operation Optional {}
+        |
+        |@auth([])
+        |@tags(["auth"])
+        |@http(method: "GET", uri: "/public", code: 204)
+        |operation Public {}
+        |""".stripMargin
+
+    val authenticatedWebsocketModel: String =
+      """$version: "2.0"
+        |namespace example
+        |
+        |use smithplates.codegen.http#httpService
+        |use smithplates.codegen.http#websocket
+        |use smithy.api#auth
+        |use smithy.api#http
+        |use smithy.api#httpBearerAuth
+        |use smithy.api#tags
+        |
+        |@httpService
+        |@httpBearerAuth
+        |@auth([httpBearerAuth])
+        |service StreamApi {
+        |    version: "1"
+        |    operations: [Stream]
+        |}
+        |
+        |@websocket
+        |@tags(["stream"])
+        |@http(method: "GET", uri: "/stream", code: 200)
+        |operation Stream {
+        |    input: StreamMessage
+        |    output: StreamMessage
+        |}
+        |
+        |structure StreamMessage {
+        |    value: String
+        |}
+        |""".stripMargin
+
+    def clientSettings(language: String, library: String): HttpServiceCodegenSettings = {
+      val (clientDirectory, modelsDirectory) = language match {
+        case "python"     => PythonClientTemplateDirectory     -> PythonModelsTemplateDirectory
+        case "typescript" => TypeScriptClientTemplateDirectory -> TypeScriptModelsTemplateDirectory
+        case other        => throw new IllegalArgumentException(s"unsupported test language $other")
+      }
+      HttpServiceCodegenSettings(
+        templateDirectory = clientDirectory,
+        defaultFrameworkKey = library,
+        enabledFrameworkKeys = List(library),
+        sourceOutputDirectory = Some("src/generated"),
+        testOutputDirectory = Some("tests"),
+        artifacts = HttpClientCodegenApiArtifacts.forEnabledLibraries(clientDirectory, List(library)) ++
+          HttpServiceCodegenApiArtifacts.sharedModels(modelsDirectory),
+        rootNamespace = RootNamespace,
+        packageNameOverride = None,
+        modelsPackageNameOverride = None,
+        emitModels = true,
+        modelTemplateDirectory = Some(modelsDirectory)
+      )
+    }
+
+    def renderClientArtifacts(
+        model: software.amazon.smithy.model.Model,
+        language: String,
+        library: String
+    ): List[HttpCodegenArtifact] =
+      HttpServiceCodegenRenderer.render(model, clientSettings(language, library)) match {
+        case Validated.Valid(artifacts) => artifacts
+        case Validated.Invalid(errors)  =>
+          throw new IllegalStateException(errors.map(_.message).toList.mkString("; "))
+      }
 
     def renderFastApiProtocolBase(model: software.amazon.smithy.model.Model, routeGroupTag: String): String =
       renderFastApiArtifacts(model, routeGroupTag)

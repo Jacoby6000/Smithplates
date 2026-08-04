@@ -5,7 +5,10 @@ description = "Execute generated Python integration tests from templates/python/
 requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.20",
+    "fastapi>=0.116",
+    "httpx2>=1.0.0",
     "mypy>=1.13",
+    "pydantic>=2.10",
     "psycopg[binary]>=3.2",
     "pytest>=8.3",
     "pytest-asyncio>=0.24",

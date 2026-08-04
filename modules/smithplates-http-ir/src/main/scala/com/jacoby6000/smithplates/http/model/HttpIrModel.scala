@@ -52,7 +52,8 @@ final case class HttpService(
     structures: List[HttpStructure],
     unions: List[HttpUnion],
     stringEnums: List[HttpStringEnum],
-    intEnums: List[HttpIntEnum]
+    intEnums: List[HttpIntEnum],
+    authSchemes: List[HttpAuthScheme] = Nil
 )
 
 final case class HttpResource(
@@ -91,5 +92,6 @@ final case class HttpOperation(
     operationErrors: List[HttpOperationError],
     responseBinding: HttpOperationResponseBinding,
     tags: List[String],
-    websocket: Boolean = false
+    websocket: Boolean = false,
+    authAlternatives: List[HttpAuthAlternative] = Nil
 )

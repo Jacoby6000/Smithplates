@@ -44,8 +44,33 @@ final case class HttpServiceMeta(
     version: String = "",
     serviceErrors: List[HttpServiceErrorMeta] = Nil,
     modelNamespaces: Map[String, String] = Map.empty,
-    emittedModelIds: Set[ModelId] = Set.empty
+    emittedModelIds: Set[ModelId] = Set.empty,
+    authSchemes: List[HttpAuthSchemeMeta] = Nil
 )
+
+sealed trait HttpAuthSchemeMeta {
+  def id: ModelId
+}
+
+object HttpAuthSchemeMeta {
+  final case class Bearer(id: ModelId) extends HttpAuthSchemeMeta
+
+  final case class ApiKey(
+      id: ModelId,
+      name: String,
+      location: HttpApiKeyLocationMeta,
+      scheme: Option[String]
+  ) extends HttpAuthSchemeMeta
+
+  final case class Cookie(id: ModelId, name: String) extends HttpAuthSchemeMeta
+}
+
+enum HttpApiKeyLocationMeta {
+  case Header
+  case Query
+}
+
+final case class HttpAuthAlternativeMeta(schemeId: ModelId)
 
 sealed trait HttpInputMemberBindingMeta
 
@@ -115,5 +140,6 @@ final case class HttpOperationMeta(
     inputMembers: List[HttpOperationInputMemberMeta] = Nil,
     bodyBinding: HttpOperationBodyBindingMeta = HttpOperationBodyBindingMeta.None,
     responseVariants: List[HttpResponseVariantMeta] = Nil,
-    websocket: Option[HttpWebsocketMeta] = None
+    websocket: Option[HttpWebsocketMeta] = None,
+    authAlternatives: List[HttpAuthAlternativeMeta] = Nil
 )

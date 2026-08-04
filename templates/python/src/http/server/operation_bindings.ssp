@@ -6,7 +6,162 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+from fastapi import HTTPException, Request
+<% } %>
 from pydantic import BaseModel
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+
+from ${H.servicePackageName(ctx)}.app_services import (
+    AuthContext,
+    AuthCredential,
+    AuthVerifier,
+)
+<% } %>
+
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+
+@dataclass(frozen=True)
+class AuthSchemeBinding:
+    scheme_id: str
+    location: str
+    name: str
+    prefix: str | None
+
+    def extract(self, request: Request) -> tuple[bool, AuthCredential | None]:
+        if self.location == "header":
+            values = request.headers.getlist(self.name)
+        elif self.location == "query":
+            values = request.query_params.getlist(self.name)
+        elif self.location == "cookie":
+            values = []
+            for cookie_header in request.headers.getlist("cookie"):
+                for part in cookie_header.split(";"):
+                    cookie_name, separator, cookie_value = part.strip().partition("=")
+                    if separator and cookie_name == self.name:
+                        values.append(cookie_value)
+        else:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unknown auth credential location: {self.location}",
+            )
+
+        if not values:
+            return False, None
+        if len(values) != 1:
+            raise HTTPException(status_code=401, detail="Ambiguous authentication credential")
+        value = values[0]
+        if self.prefix is not None:
+            supplied_prefix, separator, credential_value = value.partition(" ")
+            if (
+                not separator
+                or supplied_prefix.casefold() != self.prefix.casefold()
+                or not credential_value
+            ):
+                return True, None
+            value = credential_value
+        elif not value:
+            return True, None
+        return True, AuthCredential(scheme_id=self.scheme_id, value=value)
+
+
+@dataclass(frozen=True)
+class OperationAuthBinding:
+    scheme_ids: tuple[str, ...]
+    allows_anonymous: bool
+
+
+AUTH_SCHEME_BINDINGS: dict[str, AuthSchemeBinding] = {
+<% for (scheme <- H.serviceAuthSchemes(ctx)) { %>
+    ${pythonStringLiteral(H.authSchemeId(scheme))}: AuthSchemeBinding(
+        scheme_id=${pythonStringLiteral(H.authSchemeId(scheme))},
+        location=${pythonStringLiteral(H.authSchemeLocation(scheme))},
+        name=${pythonStringLiteral(H.authSchemeName(scheme))},
+        prefix=${pythonOptionalStringLiteral(H.authSchemePrefix(scheme))},
+    ),
+<% } %>
+}
+
+
+OPERATION_AUTH_BINDINGS: dict[str, OperationAuthBinding] = {
+<% for (operation <- H.operations(ctx)) { %>
+<% for (bindingKey <- H.operationBindingKeys(ctx, operation)) { %>
+    ${pythonStringLiteral(bindingKey)}: OperationAuthBinding(
+        scheme_ids=(
+<% for (schemeId <- H.operationAuthSchemeIds(operation)) { %>
+            ${pythonStringLiteral(schemeId)},
+<% } %>
+        ),
+        allows_anonymous=${if (H.operationAllowsAnonymous(operation)) "True" else "False"},
+    ),
+<% } %>
+<% } %>
+}
+
+
+async def _authenticate_request(
+    request: Request,
+    binding: OperationAuthBinding,
+    verifier: AuthVerifier | None,
+) -> AuthContext | None:
+    if not binding.scheme_ids:
+        if binding.allows_anonymous:
+            return None
+        raise HTTPException(status_code=500, detail="Operation has no authentication alternatives")
+
+    schemes: list[AuthSchemeBinding] = []
+    for scheme_id in binding.scheme_ids:
+        scheme = AUTH_SCHEME_BINDINGS.get(scheme_id)
+        if scheme is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Unknown authentication scheme: {scheme_id}",
+            )
+        schemes.append(scheme)
+
+    supplied_credentials: list[AuthCredential] = []
+    credential_was_supplied = False
+    for scheme in schemes:
+        supplied, credential = scheme.extract(request)
+        credential_was_supplied = credential_was_supplied or supplied
+        if credential is not None:
+            supplied_credentials.append(credential)
+
+    if verifier is None and (credential_was_supplied or not binding.allows_anonymous):
+        raise HTTPException(status_code=500, detail="Authentication verifier is not configured")
+
+    if verifier is not None:
+        for credential in supplied_credentials:
+            identity = await verifier.verify(credential)
+            if identity is not None:
+                return AuthContext(
+                    scheme_id=credential.scheme_id,
+                    identity=identity,
+                )
+
+    if credential_was_supplied or not binding.allows_anonymous:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return None
+
+
+async def authenticate_required_request(
+    request: Request,
+    binding: OperationAuthBinding,
+    verifier: AuthVerifier | None,
+) -> AuthContext:
+    auth = await _authenticate_request(request, binding, verifier)
+    if auth is None:
+        raise HTTPException(status_code=500, detail="Required authentication resolved anonymously")
+    return auth
+
+
+async def authenticate_optional_request(
+    request: Request,
+    binding: OperationAuthBinding,
+    verifier: AuthVerifier | None,
+) -> AuthContext | None:
+    return await _authenticate_request(request, binding, verifier)
+<% } %>
 
 
 @dataclass(frozen=True)

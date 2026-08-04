@@ -1,0 +1,11 @@
+expected/src/generated/example/auth_api/client/client_registry.py
+expected/src/generated/example/auth_api/client/operation_bindings.py
+expected/src/generated/example/auth_api/client/sync_client_registry.py
+expected/src/generated/example/auth_api/clients/auth_client.py
+expected/src/generated/example/auth_api/clients/auth_sync_client.py
+expected/src/generated/example/query_auth_api/client/client_registry.py
+expected/src/generated/example/query_auth_api/client/operation_bindings.py
+expected/src/generated/example/query_auth_api/client/sync_client_registry.py
+expected/src/generated/example/query_auth_api/clients/query_auth_client.py
+expected/src/generated/example/query_auth_api/clients/query_auth_sync_client.py
+test_auth_client_runtime.py

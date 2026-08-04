@@ -1,0 +1,6 @@
+expected/src/generated/example/auth_api/app_factory.py
+expected/src/generated/example/auth_api/app_services.py
+expected/src/generated/example/auth_api/apis/auth_api.py
+expected/src/generated/example/auth_api/apis/auth_api_base.py
+expected/src/generated/example/auth_api/operation_bindings.py
+test_auth_runtime.py

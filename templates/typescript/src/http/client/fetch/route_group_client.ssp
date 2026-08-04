@@ -20,6 +20,12 @@ val usesPathOrQuery = operations.exists(operation =>
 import { dumpApiModel } from "${pkg}/modelValidation";
 import { parseClientResponse } from "${pkg}/client/clientResponse";
 import { OPERATION_HTTP_BINDINGS } from "${pkg}/client/operationBindings";
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+import type { AuthProvider } from "${pkg}/client/operationBindings";
+<% } %>
+<% if (R.routeGroupUsesAuth(ctx)) { %>
+import { OPERATION_AUTH_BINDINGS, applyOperationAuth } from "${pkg}/client/operationBindings";
+<% } %>
 <% for (typeName <- operations.flatMap(operation => R.clientOperationImportedModelNames(ctx, operation)).distinct.sorted) { %>
 import type { ${typeName} } from "${R.modelTypeImportModule(ctx, typeName)}";
 <% } %>
@@ -36,10 +42,16 @@ function encodeRfc3986(value: string): string {
 export class ${R.clientClassName(R.tag(ctx))} {
   private readonly baseUrl: string;
   private readonly fetchFn: typeof fetch;
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+  private readonly authProvider: AuthProvider | undefined;
+<% } %>
 
-  constructor(baseUrl: string, fetchFn: typeof fetch = fetch) {
+  constructor(baseUrl: string, fetchFn: typeof fetch = fetch<% if (R.serviceConfiguresAuth(ctx)) { %>, authProvider?: AuthProvider<% } %>) {
     this.baseUrl = baseUrl.replace(/\/+$/, "");
     this.fetchFn = fetchFn;
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+    this.authProvider = authProvider;
+<% } %>
   }
 <% for (operation <- operations) { %>
 <% val feature = operation.meta.feature %>
@@ -171,6 +183,14 @@ val params = tsParams(operation)
     }
 <% } %>
 <% } %>
+<% if (R.operationUsesAuth(operation)) { %>
+    applyOperationAuth(
+      OPERATION_AUTH_BINDINGS[${tsStringLiteral(methodName)}],
+      this.authProvider,
+      headers,
+      queryParts,
+    );
+<% } %>
     const queryString = queryParts.join("&");
     const requestUrl = ${tsUrl(operation)} + (queryString ? "?" + queryString : "");
 <% bodyExpr.foreach { expr => %>
@@ -181,6 +201,9 @@ val params = tsParams(operation)
       {
         method: "${feature.method.toUpperCase}",
         headers,
+<% if (R.operationSupportsCookieAuth(ctx, operation)) { %>
+        credentials: "include",
+<% } %>
 <% if (bodyExpr.isDefined) { %>
         body: requestBody,
 <% } %>

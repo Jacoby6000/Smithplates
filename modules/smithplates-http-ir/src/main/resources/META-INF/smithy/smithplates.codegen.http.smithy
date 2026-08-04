@@ -3,6 +3,7 @@ $version: "2.0"
 namespace smithplates.codegen.http
 
 use smithy.api#documentation
+use smithy.api#authDefinition
 use smithy.api#trait
 
 @documentation("HTTP payload serialization format for @httpService.")
@@ -19,6 +20,17 @@ Smithy resources; nested resource inputs may bind identifiers via `structure ...
 structure httpService {
     @documentation("Wire serialization format for HTTP payloads. Defaults to JSON.")
     serialization: HttpSerializationFormat = "json"
+}
+
+@documentation("Authenticates HTTP requests using a named cookie.")
+@trait(selector: "service")
+@authDefinition
+structure httpCookieAuth {
+    @documentation("HTTP cookie name that contains the authentication credential.")
+    @required
+    @length(min: 1)
+    @pattern("^[!#$%&'*+.^_`|~A-Za-z0-9-]+$")
+    name: String
 }
 
 @documentation("""

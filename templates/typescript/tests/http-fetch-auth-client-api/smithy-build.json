@@ -1,0 +1,22 @@
+{
+  "version": "1.0",
+  "sources": ["smithy"],
+  "plugins": {
+    "smithplates": {
+      "typescript": {
+        "http": {
+          "client": {
+            "httpLibrary": "fetch",
+            "packageName": "generated.authClient"
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

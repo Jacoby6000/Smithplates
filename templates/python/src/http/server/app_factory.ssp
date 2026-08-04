@@ -13,7 +13,11 @@ from ${H.servicePackageName(ctx)}.api_exceptions import NotImplementedApiError
 <% for (error <- H.serviceErrors(ctx)) { %>
 from ${H.servicePackageName(ctx)}.api_exceptions import ${H.serviceErrorExceptionName(error.name)}
 <% } %>
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+from ${H.servicePackageName(ctx)}.app_services import ApiServices, AuthVerifier
+<% } else { %>
 from ${H.servicePackageName(ctx)}.app_services import ApiServices
+<% } %>
 <% for (tag <- H.routeGroupTags(ctx)) { %>
 from ${H.servicePackageName(ctx)}.apis.${H.apiModuleName(tag)} import router as ${H.routerImportAlias(H.apiModuleName(tag))}
 <% } %>
@@ -51,8 +55,19 @@ def configure_fallback_exception_handlers(
         return await fallback_exception_handler.handle_unexpected(request, exc)
 
 
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+def configure_services(
+    app: FastAPI,
+    services: ApiServices,
+    auth_verifier: AuthVerifier,
+) -> None:
+<% } else { %>
 def configure_services(app: FastAPI, services: ApiServices) -> None:
+<% } %>
     app.state.api_services = services
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+    app.state.auth_verifier = auth_verifier
+<% } %>
 <% for (tag <- H.routeGroupTags(ctx)) { %>
     app.include_router(${H.routerImportAlias(H.apiModuleName(tag))})
 <% } %>
@@ -61,12 +76,19 @@ def configure_services(app: FastAPI, services: ApiServices) -> None:
 def create_app(
     services: ApiServices,
     fallback_exception_handler: FallbackApiExceptionHandler,
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+    auth_verifier: AuthVerifier,
+<% } %>
 ) -> FastAPI:
     app = FastAPI(
         title=${pythonStringLiteral(H.serviceTitle(ctx))},
         description=${pythonOptionalStringLiteral(H.serviceDocumentation(ctx))},
         version=${pythonStringLiteral(H.serviceVersion(ctx))},
     )
+<% if (H.serviceConfiguresAuth(ctx)) { %>
+    configure_services(app, services, auth_verifier)
+<% } else { %>
     configure_services(app, services)
+<% } %>
     configure_fallback_exception_handlers(app, fallback_exception_handler)
     return app

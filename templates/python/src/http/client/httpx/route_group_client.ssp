@@ -6,14 +6,17 @@
 
 from __future__ import annotations
 
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+from typing import cast
+<% } %>
 <% if (R.routeGroupNeedsDatetimeImport(ctx) || R.routeGroupUsesQueryBinding(ctx)) { %>
 from datetime import datetime, timezone  # noqa: F401
 from email.utils import format_datetime
 <% } %>
-<% if (R.routeGroupUsesPathBinding(ctx) || R.routeGroupUsesQueryBinding(ctx)) { %>
+<% if (R.routeGroupUsesPathBinding(ctx) || R.routeGroupUsesQueryBinding(ctx) || R.routeGroupAuthUsesQuery(ctx)) { %>
 from urllib.parse import quote
 <% } %>
-<% if (R.routeGroupUsesQueryBinding(ctx)) { %>
+<% if (R.routeGroupUsesQueryBinding(ctx) || R.routeGroupAuthUsesQuery(ctx)) { %>
 from urllib.parse import urlencode
 <% } %>
 
@@ -22,6 +25,12 @@ from pydantic import Field  # noqa: F401
 
 from ${R.servicePackageName(ctx)}.client.client_response import parse_client_response
 from ${R.servicePackageName(ctx)}.client.operation_bindings import OPERATION_HTTP_BINDINGS
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+from ${R.servicePackageName(ctx)}.client.operation_bindings import AuthProvider
+<% } %>
+<% if (R.routeGroupUsesAuth(ctx)) { %>
+from ${R.servicePackageName(ctx)}.client.operation_bindings import OPERATION_AUTH_BINDINGS, apply_operation_auth
+<% } %>
 <% for (typeName <- operations.flatMap(operation => R.clientOperationImportedModelNames(ctx, operation)).distinct.sorted) { %>
 from ${R.modelTypeImportModule(ctx, typeName)} import ${typeName}
 <% } %>
@@ -50,9 +59,12 @@ def _serialize_query_value(value: object, *, timestamp_format: str = "date-time"
 
 
 class ${R.clientClassName(R.tag(ctx))}:
-    def __init__(self, client: ${httpLibrary}.AsyncClient, base_url: str) -> None:
+    def __init__(self, client: ${httpLibrary}.AsyncClient, base_url: str<% if (R.serviceConfiguresAuth(ctx)) { %>, auth_provider: AuthProvider | None = None<% } %>) -> None:
         self._client = client
         self._base_url = base_url.rstrip("/")
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+        self._auth_provider = auth_provider
+<% } %>
 
 <% for (operation <- operations) { %>
     async def ${R.operationMethodName(ctx, operation.id.name)}(
@@ -72,9 +84,19 @@ ${R.clientRequestQueryParamsBlock(ctx, operation)}
             request_url,
             headers=headers${R.clientRequestJsonArgument(ctx, operation)},
         )
+<% if (R.serviceConfiguresAuth(ctx)) { %>
+        return cast(
+            ${R.clientMethodReturnType(ctx, operation)},
+            parse_client_response(
+                response,
+                OPERATION_HTTP_BINDINGS["${R.operationMethodName(ctx, operation.id.name)}"],
+            ),
+        )
+<% } else { %>
         return parse_client_response(
             response,
             OPERATION_HTTP_BINDINGS["${R.operationMethodName(ctx, operation.id.name)}"],
         )
+<% } %>
 
 <% } %>
