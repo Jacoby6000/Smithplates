@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-04
+
+### Fixed
+
+- Python HTTPX/HTTPX2 clients now import URL encoding helpers when authentication
+  requires a query-parameter collection but the operation has no modeled query
+  bindings, fixing bearer-, header-, and cookie-authenticated requests at runtime.
+
 ## [0.7.0] - 2026-08-04
 
 ### Added

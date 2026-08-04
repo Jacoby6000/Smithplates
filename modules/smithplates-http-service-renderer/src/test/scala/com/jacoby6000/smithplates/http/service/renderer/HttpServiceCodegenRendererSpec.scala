@@ -596,6 +596,42 @@ class HttpServiceCodegenRendererSpec extends FunSuite {
     assert(clue(typescriptRegistry).contains("authProvider?: AuthProvider"))
   }
 
+  test("Python authenticated clients import query encoding for header-only auth") {
+    val model   = HttpTestModelLoader.assemble(
+      "bearer-auth.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#auth
+          |use smithy.api#http
+          |use smithy.api#httpBearerAuth
+          |use smithy.api#tags
+          |
+          |@httpService
+          |@httpBearerAuth
+          |@auth([httpBearerAuth])
+          |service BearerApi {
+          |    version: "1"
+          |    operations: [Secured]
+          |}
+          |
+          |@tags(["bearer"])
+          |@http(method: "POST", uri: "/secured", code: 204)
+          |operation Secured {}
+          |""".stripMargin
+    )
+    val python  = HttpServiceCodegenRendererSpec.internal.renderClientArtifacts(model, "python", "httpx2")
+    val clients = python.filter(_.relativePath.contains("/clients/bearer_"))
+
+    assertEquals(clients.size, 1)
+    clients.foreach { client =>
+      assert(clue(client.content).contains("from urllib.parse import quote"))
+      assert(clue(client.content).contains("from urllib.parse import urlencode"))
+      assert(clue(client.content).contains("query_string = urlencode(query_params, quote_via=quote)"))
+    }
+  }
+
   test("HttpServiceCodegenRenderer rejects authenticated axios and WebSocket operations") {
     val authModel     = HttpTestModelLoader.assemble("auth.smithy" -> HttpServiceCodegenRendererSpec.internal.authModel)
     val axiosSettings = HttpServiceCodegenRendererSpec.internal.clientSettings("typescript", "axios")
