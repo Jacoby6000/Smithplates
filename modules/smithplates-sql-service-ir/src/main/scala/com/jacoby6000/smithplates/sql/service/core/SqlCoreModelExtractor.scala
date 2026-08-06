@@ -109,6 +109,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
             meta = OperationMeta(
               documentation = None,
               tags = Nil,
+              traits = SmithyAppliedTraits.fromShape(model.expectShape(operation.shapeId)),
               feature = SqlOperationMeta(
                 name = operation.shapeId.getName,
                 hasSql = false,
@@ -132,6 +133,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         meta = ServiceMeta(
           documentation = None,
           tags = Nil,
+          traits = SmithyAppliedTraits.fromShape(model.expectShape(sqlService.shapeId)),
           feature = SqlServiceMeta(
             serviceName = sqlService.shapeId.getName,
             serviceShapeId = sqlService.shapeId.toString,
@@ -228,7 +230,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
                     role = "structure"
                   )
                 )
-                .map(Field(memberName, _))
+                .map(tpe => Field(memberName, tpe, SmithyAppliedTraits.fromShape(member)))
             }
             .map { fields =>
               CodegenModel.Structure(
@@ -261,7 +263,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
                     role = "union"
                   )
                 )
-                .map(Variant(memberName, _))
+                .map(tpe => Variant(memberName, tpe, SmithyAppliedTraits.fromShape(member)))
             }
             .map { members =>
               CodegenModel.Union(
@@ -282,7 +284,11 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         case Some(enumShape) =>
           val values =
             enumShape.getEnumValues.asScala.toList.sortBy(_._1).map { case (name, value) =>
-              EnumValue(name = name, value = PrimitiveLiteral.StringValue(value))
+              EnumValue(
+                name = name,
+                value = PrimitiveLiteral.StringValue(value),
+                traits = enumShape.getMember(name).toScala.map(SmithyAppliedTraits.fromShape).getOrElse(Nil)
+              )
             }
           CodegenValidated.valid(
             CodegenModel.EnumModel(
@@ -301,7 +307,11 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
         case Some(enumShape) =>
           val values =
             enumShape.getEnumValues.asScala.toList.sortBy(_._1).map { case (name, value) =>
-              EnumValue(name = name, value = PrimitiveLiteral.IntValue(value.longValue))
+              EnumValue(
+                name = name,
+                value = PrimitiveLiteral.IntValue(value.longValue),
+                traits = enumShape.getMember(name).toScala.map(SmithyAppliedTraits.fromShape).getOrElse(Nil)
+              )
             }
           CodegenValidated.valid(
             CodegenModel.EnumModel(
@@ -333,6 +343,7 @@ object SqlCoreModelExtractor extends SmithyModelExtractor[SqlMeta, SqlServiceMet
       ModelMeta(
         documentation = Option(shape.getTrait(classOf[DocumentationTrait]).orElse(null)).map(_.getValue),
         tags = Option(shape.getTrait(classOf[TagsTrait]).orElse(null)).map(_.getValues.asScala.toList).getOrElse(Nil),
+        traits = SmithyAppliedTraits.fromShape(shape),
         feature = feature
       )
     }

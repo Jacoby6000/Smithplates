@@ -10,7 +10,8 @@ renderers.
 closed `#34` epic (`#35`–`#42`). It owns:
 
 * **Domain ADTs** — `NeutralType`, `Model[A]`, `ModelSet[A]`, `ServiceModel`,
-  `OperationModel`, metadata wrappers (`ModelMeta`, `ServiceMeta`, `OperationMeta`)
+  `OperationModel`, metadata wrappers (`ModelMeta`, `ServiceMeta`, `OperationMeta`),
+  and domain-neutral applied Smithy traits (`AppliedTrait`, `SmithyNodeValue`)
 * **Type analysis** — `TypeResolver` (alias chasing), `TypeUsageAnalyzer`
   (deterministic `usedTypes` for imports)
 * **Planning** — `CodegenOutput` decks, `CodegenPlanner`, `PathTemplate`,
@@ -22,6 +23,13 @@ closed `#34` epic (`#35`–`#42`). It owns:
 
 No target-language syntax, no Smithy SDK types, and no dependency on SQL/HTTP
 renderer modules.
+
+Effective traits for every represented service, operation, model, field, union
+variant, and enum value are lowered through `SmithyAppliedTraits` into the
+recursive `SmithyNodeValue` ADT. This lets consumer SSP inspect custom traits
+without adding those traits to Smithplates. The surface covers shapes represented
+by the existing HTTP/SQL extraction closures; it is not the complete assembled
+Smithy model.
 
 ## Data flow (current cutover state)
 

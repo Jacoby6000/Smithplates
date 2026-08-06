@@ -90,6 +90,35 @@ To replace an existing artifact, set `"overrides": "<bundled-id>"` on your outpu
 When you need a new language or an entirely custom artifact set, set `templateDirectory` to a root that ships a **complete** `outputs.json` (not an append). Copy a bundled deck as a starting point and delete what you do not need.
 
 Golden coverage for append/override/external flows lives under `templates/python/tests/sql-additional-templates-*` and related HTTP cases.
+
+## Inspect applied Smithy traits
+
+SSP templates can inspect effective traits on every service, operation, model,
+and model member represented by the HTTP or SQL neutral IR. Unknown consumer
+traits do not need a Smithplates trait class.
+
+```scala
+<%@ import val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpNeutralServiceTemplateAttributes.ServiceView %>
+<%
+val customTrait = ctx.subject.meta.traits.find { applied =>
+  applied.id.namespace == "example.codegen" && applied.id.name == "custom"
+}
+%>
+```
+
+`AppliedTrait` exposes the full trait `ModelId`, a `synthetic` flag, and a
+recursive `SmithyNodeValue`. Object members and applied traits have deterministic
+ordering; arrays retain Smithy order and numbers are exposed as canonical Smithy
+number strings. Model templates can inspect `ctx.subject.meta.traits`, while
+structure fields, union variants, and enum values expose their own `traits`
+collections.
+
+This surface contains effective traits returned by Smithy `getAllTraits`,
+including mixins and external `apply` statements. It is limited to shapes and
+members represented by the selected HTTP or SQL extraction closure; named
+collections and other shapes flattened into `NeutralType` are not separately
+available to templates.
+
 ## SQL templates
 
 Configure SQL templates per language target:

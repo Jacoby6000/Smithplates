@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Consumer SSP templates can inspect domain-neutral effective Smithy traits on
+  represented services, operations, models, structure fields, union variants,
+  and enum values through `AppliedTrait` and `SmithyNodeValue`.
+
 ## [0.7.1] - 2026-08-04
 
 ### Fixed
