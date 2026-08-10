@@ -13,7 +13,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
           "python": {
             "http": {
               "server": {
-                "packageName": "generated.rendering_pipeline_api"
+                "packageName": "generated.warehouse_api"
               },
               "outputs": [
                 { "sourceOutputDir": "src/generated", "testOutputDir": "tests" }
@@ -34,7 +34,7 @@ class SmithplatesHttpSettingsSpec extends FunSuite {
         assertEquals(target.server.map(_.webFramework), Some(None))
         assertEquals(target.client, None)
         val server         = target.server.getOrElse(fail("expected server target"))
-        assertEquals(server.packageName, Some("generated.rendering_pipeline_api"))
+        assertEquals(server.packageName, Some("generated.warehouse_api"))
       case Validated.Invalid(errors) =>
         fail(errors.map(_.message).toList.mkString("; "))
     }

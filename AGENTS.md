@@ -8,6 +8,8 @@ Bundled templates today: **Python** (SQL + FastAPI server + HTTPX/HTTPX2 client)
 
 Follow [`.cursor/rules/`](.cursor/rules/) — start with [`smithplates-build.mdc`](.cursor/rules/smithplates-build.mdc) and [`code-design.mdc`](.cursor/rules/code-design.mdc). Update user docs under [`docs/usage/`](docs/usage/) and contributor docs under [`docs/contributing/`](docs/contributing/) when behavior or integration steps change.
 
+Keep Smithplates self-contained and domain-neutral. Do not reference downstream repositories, their names, or their issue/PR numbers in Smithplates code, tests, documentation, changelogs, commit messages, or pull requests; describe motivations and examples as generic consumer requirements instead.
+
 ## Reference docs (fetch on demand)
 
 * [`module-layout.md`](.ai-doc-reference/module-layout.md) — `modules/` responsibilities, precompilation summary, template roots; read when adding or moving code
