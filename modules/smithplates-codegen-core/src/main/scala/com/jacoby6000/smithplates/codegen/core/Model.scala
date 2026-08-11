@@ -5,13 +5,13 @@ import cats.Order
 import cats.derived.semiauto
 import com.jacoby6000.smithplates.codegen.core.NeutralType.ModelRef
 
-final case class Field(name: String, tpe: NeutralType)
+final case class Field(name: String, tpe: NeutralType, traits: List[AppliedTrait] = Nil)
 
 object Field {
   given Eq[Field] = semiauto.eq
 }
 
-final case class Variant(name: String, tpe: NeutralType)
+final case class Variant(name: String, tpe: NeutralType, traits: List[AppliedTrait] = Nil)
 
 object Variant {
   given Eq[Variant] = semiauto.eq
@@ -26,7 +26,7 @@ object PrimitiveLiteral {
   given Eq[PrimitiveLiteral] = semiauto.eq
 }
 
-final case class EnumValue(name: String, value: PrimitiveLiteral)
+final case class EnumValue(name: String, value: PrimitiveLiteral, traits: List[AppliedTrait] = Nil)
 
 object EnumValue {
   given Eq[EnumValue] = semiauto.eq

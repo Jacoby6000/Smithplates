@@ -10,6 +10,62 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlCoreModelExtractorSpec extends FunSuite {
+  test("core extraction exposes effective traits on services operations models and members") {
+    val model  = SqlTestModelBuilder.assemble(
+      """
+        |use smithplates.codegen.sql#sqlPrimaryKey
+        |use smithplates.codegen.sql#sqlService
+        |use smithplates.codegen.sql#sqlTable
+        |use smithy.api#trait
+        |
+        |@trait(selector: "*")
+        |structure marker {}
+        |
+        |@marker
+        |@sqlTable(name: "items")
+        |structure Item {
+        |    @marker
+        |    @sqlPrimaryKey
+        |    id: String
+        |}
+        |
+        |structure GetItemInput {
+        |    id: String
+        |}
+        |
+        |operation GetItem {
+        |    input: GetItemInput
+        |    output: Item
+        |}
+        |
+        |apply GetItem @marker
+        |
+        |@marker
+        |@sqlService
+        |service ItemRepository {
+        |    version: "1"
+        |    operations: [GetItem]
+        |}
+        |""".stripMargin
+    )
+    val marker = ModelId("example", "marker")
+
+    SqlCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val service = services.head
+          val item    = modelSet.structures.find(_.id.name == "Item").getOrElse(fail("missing Item"))
+
+          assert(service.meta.traits.exists(_.id == marker))
+          assert(service.operations.head.meta.traits.exists(_.id == marker))
+          assert(item.meta.traits.exists(_.id == marker))
+          assert(item.fields.head.traits.exists(_.id == marker))
+        }
+      )
+  }
+
   test("SqlCoreModelExtractor produces table structures with SqlTableMeta and alias closure") {
     val model = SqlServiceExtractorSpec.internal.assembleServiceModel(
       """

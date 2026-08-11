@@ -12,6 +12,83 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 class HttpCoreModelExtractorSpec extends FunSuite {
+  test("core extraction exposes effective traits on services operations models and members") {
+    val model  = HttpTestModelLoader.assemble(
+      "traits.smithy" ->
+        """$version: "2.0"
+          |namespace example
+          |
+          |use smithplates.codegen.http#httpService
+          |use smithy.api#http
+          |use smithy.api#required
+          |use smithy.api#tags
+          |use smithy.api#trait
+          |
+          |@trait(selector: "*")
+          |structure marker {}
+          |
+          |@marker
+          |@httpService
+          |service ExampleService {
+          |    version: "1"
+          |    operations: [GetExample]
+          |}
+          |
+          |@marker
+          |@tags(["v1_examples"])
+          |@http(method: "GET", uri: "/examples", code: 200)
+          |operation GetExample {
+          |    input: ExampleInput
+          |    output: ExampleOutput
+          |}
+          |
+          |@marker
+          |structure ExampleInput {
+          |    @marker
+          |    query: String
+          |}
+          |
+          |structure ExampleOutput {
+          |    @required
+          |    result: ExampleResult
+          |    @required
+          |    state: ExampleState
+          |}
+          |
+          |union ExampleResult {
+          |    @marker
+          |    text: String
+          |}
+          |
+          |enum ExampleState {
+          |    @marker
+          |    ACTIVE = "active"
+          |}
+          |""".stripMargin
+    )
+    val marker = ModelId("example", "marker")
+
+    HttpCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (modelSet, services) =>
+          val service   = services.head
+          val operation = service.operations.head
+          val input     = modelSet.structures.find(_.id.name == "ExampleInput").getOrElse(fail("missing input"))
+          val union     = modelSet.unions.find(_.id.name == "ExampleResult").getOrElse(fail("missing union"))
+          val enumModel = modelSet.enums.find(_.id.name == "ExampleState").getOrElse(fail("missing enum"))
+
+          assert(service.meta.traits.exists(_.id == marker))
+          assert(operation.meta.traits.exists(_.id == marker))
+          assert(input.meta.traits.exists(_.id == marker))
+          assert(input.fields.head.traits.exists(_.id == marker))
+          assert(union.members.head.traits.exists(_.id == marker))
+          assert(enumModel.values.head.traits.exists(_.id == marker))
+        }
+      )
+  }
+
   test("HttpCoreModelExtractor produces structures with NeutralType members and alias closure") {
     val model = widgetServiceModel(includeOptionalNote = false)
 

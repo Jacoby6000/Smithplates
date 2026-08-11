@@ -97,6 +97,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
             meta = OperationMeta(
               documentation = operation.documentation,
               tags = operation.tags,
+              traits = SmithyAppliedTraits.fromShape(model.expectShape(operation.shapeId)),
               feature = HttpOperationMeta(
                 method = operation.method,
                 uriPattern = operation.uri,
@@ -148,6 +149,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         meta = ServiceMeta(
           documentation = httpService.documentation,
           tags = Nil,
+          traits = SmithyAppliedTraits.fromShape(model.expectShape(httpService.shapeId)),
           feature = HttpServiceMeta(
             title = httpService.title,
             version = httpService.version,
@@ -282,7 +284,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                     role = "structure"
                   )
                 )
-                .map(Field(memberName, _))
+                .map(tpe => Field(memberName, tpe, SmithyAppliedTraits.fromShape(member)))
             }
             .map { fields =>
               CodegenModel.Structure(
@@ -317,7 +319,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                     role = "union"
                   )
                 )
-                .map(Variant(memberName, _))
+                .map(tpe => Variant(memberName, tpe, SmithyAppliedTraits.fromShape(member)))
             }
             .map { members =>
               CodegenModel.Union(
@@ -335,7 +337,11 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         case Some(enumShape) =>
           val values =
             enumShape.getEnumValues.asScala.toList.sortBy(_._1).map { case (name, value) =>
-              EnumValue(name = name, value = PrimitiveLiteral.StringValue(value))
+              EnumValue(
+                name = name,
+                value = PrimitiveLiteral.StringValue(value),
+                traits = enumShape.getMember(name).toScala.map(SmithyAppliedTraits.fromShape).getOrElse(Nil)
+              )
             }
           CodegenValidated.valid(
             CodegenModel.EnumModel(
@@ -354,7 +360,11 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
         case Some(enumShape) =>
           val values =
             enumShape.getEnumValues.asScala.toList.sortBy(_._1).map { case (name, value) =>
-              EnumValue(name = name, value = PrimitiveLiteral.IntValue(value.longValue))
+              EnumValue(
+                name = name,
+                value = PrimitiveLiteral.IntValue(value.longValue),
+                traits = enumShape.getMember(name).toScala.map(SmithyAppliedTraits.fromShape).getOrElse(Nil)
+              )
             }
           CodegenValidated.valid(
             CodegenModel.EnumModel(
@@ -437,6 +447,7 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
       ModelMeta(
         documentation = shape.documentationText,
         tags = shape.tags,
+        traits = SmithyAppliedTraits.fromShape(shape),
         feature = feature
       )
     }

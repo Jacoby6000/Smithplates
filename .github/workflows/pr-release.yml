@@ -132,13 +132,15 @@ jobs:
         if: steps.gate.outputs.proceed == 'true'
         id: version
         run: |
-          VERSION=$(sbtn --no-colors 'print smithplatesPlugin/version')
-          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          source scripts/lib/resolve-smithy-build-versions.sh "$GITHUB_WORKSPACE"
+          echo "value=$SMITHPLATES_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish snapshot
         if: steps.gate.outputs.proceed == 'true'
-        run: sbtn smithplatesPlugin/publish
+        run: sbtn ci-release
         env:
+          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+          PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
 
