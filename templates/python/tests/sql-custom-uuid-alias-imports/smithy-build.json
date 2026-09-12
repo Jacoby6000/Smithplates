@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "sources": [
+    "smithy"
+  ],
+  "plugins": {
+    "smithplates": {
+      "python": {
+        "sql": {
+          "sqlite": {
+            "enable": true,
+            "migrationLocation": "db/migrations/sqlite"
+          },
+          "postgres": {
+            "enable": true,
+            "migrationLocation": "db/migrations/postgres"
+          },
+          "outputs": [
+            {
+              "sourceOutputDir": "src/generated",
+              "testOutputDir": "test"
+            }
+          ]
+        }
+      }
+    }
+  }
+}

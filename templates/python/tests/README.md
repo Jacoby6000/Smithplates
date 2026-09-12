@@ -78,6 +78,7 @@ Shared pytest fixtures for postgres integration tests live in [`conftest.py`](co
 
 | Case | What it validates |
 |------|-------------------|
+| `sql-custom-uuid-alias-imports` | Deterministic custom `@sqlUuid` alias declarations and repository imports |
 | `sql-derived-crud-auto-managed-columns` | `@sqlAutoUuid` / timestamps / `@sqlAutoIncrement` insert omission |
 | `sql-enums` | Smithy `enum` / `intEnum` DDL + models |
 | `sql-self-referential-foreign-key` | Self-FK inline in `CREATE TABLE` |

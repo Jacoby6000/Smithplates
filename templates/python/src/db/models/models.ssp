@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
-<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (sqlAttrs.uuidTypeNames(ctx).exists(name => pythonTypeName(name) == name)) { %>
-<% for (uuidTypeName <- sqlAttrs.uuidTypeNames(ctx).filter(name => pythonTypeName(name) == name)) { %>
+<% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (customUuidTypeNames(ctx).nonEmpty) { %>
+<% for (uuidTypeName <- customUuidTypeNames(ctx).toList.sorted) { %>
 ${uuidTypeName} = str
 <% } %>
 <% } %><% if (sqlAttrs.unions(ctx).nonEmpty) { %>

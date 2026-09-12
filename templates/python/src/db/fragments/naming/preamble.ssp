@@ -96,6 +96,9 @@ def structureTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
 def unionTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
   sqlAttrs.unionTypeNames(ctx)
 
+def customUuidTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
+  sqlAttrs.uuidTypeNames(ctx).filter(name => pythonTypeName(name) == name)
+
 def mapValueExpression(
     typeName: String,
     valueExpr: String,
@@ -283,14 +286,14 @@ def referencedEnumTypeNames(ctx: sqlAttrs.ServiceView): Set[String] = {
 }
 
 def protocolReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[String]) = {
-  val tableModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet
-  val unionNames      = sqlAttrs.unions(ctx).map(_.id.name).toSet
-  val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
-  val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
+  val repositoryModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet ++ customUuidTypeNames(ctx)
+  val unionNames           = sqlAttrs.unions(ctx).map(_.id.name).toSet
+  val referencedTable      = scala.collection.mutable.LinkedHashSet.empty[String]
+  val referencedUnion      = scala.collection.mutable.LinkedHashSet.empty[String]
 
   def reference(typeName: String): Unit =
     referencedTypeNames(typeName).foreach { candidate =>
-      if (tableModelNames.contains(candidate)) {
+      if (repositoryModelNames.contains(candidate)) {
         referencedTable += candidate
       }
       if (unionNames.contains(candidate)) {
@@ -309,14 +312,14 @@ def protocolReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[Stri
 }
 
 def serviceReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[String]) = {
-  val tableModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet
-  val unionNames      = sqlAttrs.unions(ctx).map(_.id.name).toSet
-  val referencedTable = scala.collection.mutable.LinkedHashSet.empty[String]
-  val referencedUnion = scala.collection.mutable.LinkedHashSet.empty[String]
+  val repositoryModelNames = sqlAttrs.models(ctx).map(_.id.name).toSet ++ customUuidTypeNames(ctx)
+  val unionNames           = sqlAttrs.unions(ctx).map(_.id.name).toSet
+  val referencedTable      = scala.collection.mutable.LinkedHashSet.empty[String]
+  val referencedUnion      = scala.collection.mutable.LinkedHashSet.empty[String]
 
   def reference(typeName: String): Unit =
     referencedTypeNames(typeName).foreach { candidate =>
-      if (tableModelNames.contains(candidate)) {
+      if (repositoryModelNames.contains(candidate)) {
         referencedTable += candidate
       }
       if (unionNames.contains(candidate)) {
@@ -346,14 +349,7 @@ def serviceReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[Strin
   val jsonClosureModels = sqlAttrs.jsonStructureClosure(ctx)
   jsonClosureModels.foreach(model => referencedTable += model.id.name)
   jsonClosureModels.foreach { model =>
-    model.fields.foreach { field =>
-      val typeName = sqlAttrs.memberTypeName(ctx, field)
-      sqlAttrs.uuidTypeNames(ctx).foreach { uuidName =>
-        if (typeName == uuidName || typeName.startsWith(s"$uuidName[") || typeName.contains(s"$uuidName")) {
-          referencedTable += uuidName
-        }
-      }
-    }
+    model.fields.foreach(field => reference(sqlAttrs.memberTypeName(ctx, field)))
   }
 
   (referencedTable.toList.sorted, referencedUnion.toList.sorted)

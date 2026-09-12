@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-09-12
+
+### Fixed
+
+- Python SQL repository protocols and SQLite/PostgreSQL implementations now
+  import custom `@sqlUuid` aliases used in generated method annotations.
+
 ## [0.8.0] - 2026-08-11
 
 ### Added
@@ -259,7 +266,8 @@ WebSockets, and related generated-output fixes.
 Previous stable release before the language-neutral codegen epic.
 See git history `v0.2.5` for the full 0.2.x line.
 
-[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.6.0...v0.7.0
