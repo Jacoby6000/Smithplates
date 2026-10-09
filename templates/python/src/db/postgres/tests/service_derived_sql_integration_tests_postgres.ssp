@@ -9,7 +9,6 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from testcontainers.postgres import PostgresContainer
 <% if (integrationTestLocalImportBlock(test, ctx) != "") { %>
 ${integrationTestLocalImportBlock(test, ctx)}
 <% } %>
@@ -20,15 +19,9 @@ MIGRATIONS_DIRECTORY = ${migrationsDirectoryFromTestFile(sqlAttrs.serviceShapeId
 
 @pytest_asyncio.fixture
 async def ${serviceFixtureName(sqlAttrs.serviceModuleName(ctx))}(
-    postgres_container: PostgresContainer,
+    postgres_dsn: str,
 ) -> AsyncIterator[${implementationClassName(sqlAttrs.serviceName(ctx), sqlAttrs.dialectKey(ctx))}]:
-    connection = await psycopg.AsyncConnection.connect(
-        host=postgres_container.get_container_host_ip(),
-        port=int(postgres_container.get_exposed_port(5432)),
-        user=postgres_container.username,
-        password=postgres_container.password,
-        dbname=postgres_container.dbname,
-    )
+    connection = await psycopg.AsyncConnection.connect(postgres_dsn)
     migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
 <% for (statement <- test.setupSqlStatements) { %>

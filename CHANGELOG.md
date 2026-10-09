@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Generated PostgreSQL integration tests accept `SMITHPLATES_TEST_POSTGRES_DSN`
+  for an existing test server, with a disposable database per module and a
+  Testcontainers fallback when omitted.
 - Bundled Rust async reqwest JSON HTTP clients and serde models, with typed
   status-directed errors, credential providers, bounded responses, per-call
   timeouts, and a locked Rust compile/wire-test harness. This initial target is
