@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Generated PostgreSQL integration tests accept `SMITHPLATES_TEST_POSTGRES_DSN`
+  for an existing test server, with a disposable database per module and a
+  Testcontainers fallback when omitted.
 - Bundled Rust async reqwest JSON HTTP clients and serde models, with typed
   status-directed errors, credential providers, bounded responses, per-call
   timeouts, and a locked Rust compile/wire-test harness. This initial target is
@@ -20,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PostgreSQL date-time timestamps use `TIMESTAMPTZ` to preserve Smithy instant
   semantics across session time zones. Existing `TIMESTAMP` columns need an
   explicit migration using the time zone in which their old values were stored.
+- Python SQL joined reads emit scalar decoders needed by nested records, even
+  when no root field uses the same scalar type.
 - Rust clients preserve static request headers when input/output structures are
   reused, and reject response payload wrappers even when response headers are present.
 - Rust clients resolve service-error and aliased response headers, allow omitted

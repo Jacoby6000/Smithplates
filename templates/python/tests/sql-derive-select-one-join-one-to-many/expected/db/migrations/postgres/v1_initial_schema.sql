@@ -11,6 +11,7 @@ CREATE TABLE order_lines (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     order_id UUID /* FK -> orders (id) */,
     sku TEXT,
+    fulfilled BOOLEAN,
 
     PRIMARY KEY (id)
 );

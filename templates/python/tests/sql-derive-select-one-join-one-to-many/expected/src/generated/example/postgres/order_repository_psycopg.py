@@ -48,7 +48,7 @@ class OrderRepositoryPsycopgService(OrderRepositoryServiceProtocol[psycopg.Async
     ) -> GetOrderResult | None:
         async def execute() -> GetOrderResult | None:
             cur = await self._connection.execute(
-                """SELECT orders.id, orders.label, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.sku AS ol_sku
+                """SELECT orders.id, orders.label, ol.id AS ol_id, ol.order_id AS ol_order_id, ol.sku AS ol_sku, ol.fulfilled AS ol_fulfilled
 FROM orders AS orders
 LEFT JOIN order_lines AS ol ON orders.id = ol.order_id
 WHERE orders.id = %s;""",
@@ -66,6 +66,7 @@ WHERE orders.id = %s;""",
                             id=_read_str(joined_row, 2),
                             order_id=None if joined_row[3] is None else _read_str(joined_row, 3),
                             sku=None if joined_row[4] is None else _read_str(joined_row, 4),
+                            fulfilled=None if joined_row[5] is None else _read_bool(joined_row, 5),
                         )
                     )
             return GetOrderResult(
@@ -75,6 +76,22 @@ WHERE orders.id = %s;""",
             )
 
         return await run(self._connection, transaction, execute)
+
+
+def _read_bool(row: tuple[object, ...], index: int) -> bool:
+    value = row[index]
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"0", "false", "no", "off"}:
+            return False
+        if normalized in {"1", "true", "yes", "on"}:
+            return True
+        return bool(normalized)
+    return bool(value)
 
 
 def _read_str(row: tuple[object, ...], index: int) -> str:

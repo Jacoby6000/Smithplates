@@ -8,6 +8,14 @@ legacy `TIMESTAMP` column, use an explicit conversion with the actual historical
 storage zone (for example `USING occurred_at AT TIME ZONE 'UTC'` only when old
 values were stored in UTC); do not rely on the migration session's default zone.
 
+Generated Python PostgreSQL integration tests can use an existing test server
+through `SMITHPLATES_TEST_POSTGRES_DSN`. The role must be allowed to create and
+drop databases: each test module owns a uniquely named disposable database and
+never migrates the database in the supplied DSN. When the variable is omitted,
+the fixture starts a disposable PostgreSQL Testcontainers server instead. This
+lets CI service containers run tests without requiring access to Docker's
+published host ports. Use a dedicated test server, not a production DSN.
+
 Maven coordinate: `com.jacoby6000:smithplates-plugin:<version>` (from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate)
 
 Smithy build plugin (`smithplates`) and trait namespace for relational schema and repository codegen from Smithy models.
