@@ -19,6 +19,7 @@ function Invoke-SmithplatesValidateRunLintForTarget {
       break
     }
     'plugin' { & ./scripts/run-linters.sh scala; break }
+    'rust' { & ./language-test-harnesses/rust/run-linters.sh; break }
     { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
       & ./scripts/run-linters.sh templates
       break
@@ -48,6 +49,12 @@ function Invoke-SmithplatesValidateRunTestForTarget {
       break
     }
     'plugin' { & ./scripts/run-tests.sh plugin; break }
+    'rust' {
+      & ./scripts/run-template-golden-tests.sh
+      if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      & ./language-test-harnesses/rust/run-tests.sh
+      break
+    }
     { $_ -in @('python', 'python/db', 'python/db/sqlite', 'python/db/postgres') } {
       & ./scripts/run-tests.sh templates
       break

@@ -7,6 +7,7 @@ Targets (--target):
   all                 full repo (default)
   plugin              Scala plugin modules only
   python              all Python service types (discovered)
+  rust                Rust HTTP client harness
   python/db           db service type only
   python/db/sqlite    db sqlite dialect + shared db files
   python/db/postgres  db postgres dialect + shared db files
@@ -23,6 +24,7 @@ smithystache_validate_normalize_target() {
     all|"") echo all ;;
     plugin) echo plugin ;;
     python) echo python ;;
+    rust) echo rust ;;
     python/db) echo python/db ;;
     python/db/sqlite) echo python/db/sqlite ;;
     python/db/postgres) echo python/db/postgres ;;

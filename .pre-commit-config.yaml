@@ -5,6 +5,14 @@ default_install_hook_types: [pre-commit]
 repos:
   - repo: local
     hooks:
+      - id: rust-client-harness
+        name: Rust client rustfmt and clippy
+        entry: language-test-harnesses/rust/run-linters.sh
+        language: script
+        files: '^(templates/rust/.*\.rs|language-test-harnesses/rust/)'
+        pass_filenames: false
+  - repo: local
+    hooks:
       - id: scala-fmt
         name: Scala format (scalafmt)
         entry: scripts/pre-commit-scala.sh fmt
