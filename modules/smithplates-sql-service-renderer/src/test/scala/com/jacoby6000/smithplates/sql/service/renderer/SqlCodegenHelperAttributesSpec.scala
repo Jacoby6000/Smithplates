@@ -40,8 +40,11 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
       |}
       |""".stripMargin
 
-  private def buildServiceView(dialectKey: String): SqlNeutralServiceTemplateAttributes.ServiceView = {
-    val model      = SqlTestModelBuilder.assemble(documentRecordSmithy)
+  def buildServiceView(
+      dialectKey: String,
+      smithy: String = documentRecordSmithy
+  ): SqlNeutralServiceTemplateAttributes.ServiceView = {
+    val model      = SqlTestModelBuilder.assemble(smithy)
     val extraction = SqlModelExtractor.extractOrThrow(model)
     val backend    =
       dialectKey match {
@@ -86,11 +89,68 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
     assert(SqlNeutralServiceTemplateAttributes.documentUsedAsJsonCol(view))
   }
 
+  test("collection-only JSON imports and scalar helpers are discovered before Python formatting") {
+    val smithy   = documentRecordSmithy
+      .replace(
+        "use smithplates.codegen.sql#sqlTable",
+        "use smithplates.codegen.sql#sqlTable\nuse smithplates.codegen.sql#sqlJson")
+      .replace("payload: Document", "@sqlJson\n    payload: Instants") + "\nlist Instants { member: Timestamp }\n"
+    val postgres = buildServiceView("postgres", smithy)
+    val sqlite   = buildServiceView("sqlite", smithy)
+    assert(!SqlNeutralServiceTemplateAttributes.importRequirements(postgres).needsJsonImport)
+    assert(SqlNeutralServiceTemplateAttributes.importRequirements(sqlite).needsJsonImport)
+    assert(SqlNeutralServiceTemplateAttributes.importRequirements(postgres).needsDatetimeImports)
+    assert(SqlNeutralServiceTemplateAttributes.jsonMappingUsesTimestamp(postgres))
+    val imports  = ScalateSspTemplateEngine.renderClasspathPartial(
+      SspFragmentsSpec.internal.templateRoot,
+      "fragments/helpers/imports_postgres",
+      Map("ctx" -> postgres)
+    )
+    assert(imports.contains("from psycopg.types.json import Jsonb"))
+    assert(!imports.contains("import json"))
+  }
+
   test("documentUsedAsJson - false when no Document JSON columns are used") {
     val view = SspFragmentsSpec.internal.minimalServiceView
 
     assert(!SqlNeutralServiceTemplateAttributes.documentUsedAsJson(view))
     assert(!SqlNeutralServiceTemplateAttributes.documentUsedAsJsonCol(view))
+  }
+
+  List(
+    ("map of structures", "map Values { key: String, value: Leaf }", "dict[str, Leaf]"),
+    (
+      "nested collections",
+      "list Leaves { member: Leaf }\nmap Values { key: String, value: Leaves }",
+      "dict[str, list[Leaf]]"),
+    ("list of unions", "union Choice { leaf: Leaf }\nlist Values { member: Choice }", "list[Choice]")
+  ).foreach { case (label, definitions, annotation) =>
+    test(s"collection-only $label retain helper and protocol imports before formatting") {
+      val smithy = documentRecordSmithy
+        .replace(
+          "use smithplates.codegen.sql#sqlTable",
+          "use smithplates.codegen.sql#sqlTable\nuse smithplates.codegen.sql#sqlJson")
+        .replace("payload: Document", "@sqlJson\n    payload: Values") +
+        "\nstructure Leaf { @required text: String }\n" + definitions
+      List("sqlite", "postgres").foreach { dialect =>
+        val view      = buildServiceView(dialect, smithy)
+        assert(SqlNeutralServiceTemplateAttributes.importRequirements(view).needsJsonImport)
+        val imports   = ScalateSspTemplateEngine.renderClasspathPartial(
+          SspFragmentsSpec.internal.templateRoot,
+          s"fragments/helpers/imports_$dialect",
+          Map("ctx" -> view)
+        )
+        assert(imports.contains("import json"))
+        val protocol  = ScalateSspTemplateEngine.renderClasspathPartial(
+          SspFragmentsSpec.internal.templateRoot,
+          "service_protocol",
+          Map("ctx" -> view)
+        )
+        assert(protocol.contains(annotation))
+        val modelName = if (label == "list of unions") "Choice" else "Leaf"
+        assert(protocol.contains(s"    $modelName,"), s"missing $modelName import: $protocol")
+      }
+    }
   }
 
   test("row reader helpers - emit Document JSON bind and read helpers for sqlite and postgres") {

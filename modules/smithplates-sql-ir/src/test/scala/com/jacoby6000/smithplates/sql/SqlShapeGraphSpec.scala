@@ -4,6 +4,25 @@ import munit.FunSuite
 import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlShapeGraphSpec extends FunSuite {
+  test("SqlShapeIrExtractor closes nested collections and transitively referenced unions") {
+    val model                = SqlTestModelBuilder.assemble(
+      """
+        |structure Root { @required values: OuterList }
+        |list OuterList { member: ValueMap }
+        |map ValueMap { key: String, value: OuterChoice }
+        |union OuterChoice { text: String, nested: InnerChoice }
+        |union InnerChoice { text: String, value: Leaf }
+        |structure Leaf { @required text: String }
+        |""".stripMargin
+    )
+    val (structures, unions) = SqlShapeGraph.referencedShapes(model, List(ShapeId.from("example#Root")))
+    assertEquals(structures.map(_.getName).toSet, Set("Root", "Leaf"))
+    assertEquals(unions.map(_.getName).toSet, Set("OuterChoice", "InnerChoice"))
+    val extracted            = SqlShapeIrExtractor.extract(model, List(ShapeId.from("example#Root"))).toOption.get
+    assertEquals(extracted.structures.map(_.name).toSet, Set("Root", "Leaf"))
+    assertEquals(extracted.unions.map(_.name).toSet, Set("OuterChoice", "InnerChoice"))
+  }
+
   test("SqlShapeGraph discovers union member structures through referencedShapes") {
     val model = SqlTestModelBuilder.assemble(
       """

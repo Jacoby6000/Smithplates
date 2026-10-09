@@ -277,10 +277,14 @@ object SqlNeutralServiceTemplateAttributes {
         operations(ctx).exists(op => internal.usesDictRowFactory(sqlBodyKind(op)))
     ImportRequirements(
       needsCastImport = rowReadersSet.nonEmpty || rowReadersColSet.nonEmpty || usesJson,
-      needsJsonImport = usesJson,
+      needsJsonImport = usesJson && (dialect == "sqlite" ||
+        modelsUsedAsJson(ctx).nonEmpty || modelsUsedAsJsonCol(ctx).nonEmpty ||
+        unionsUsedAsJson(ctx).nonEmpty || unionsUsedAsJsonCol(ctx).nonEmpty ||
+        (usedJsonTypeNames(ctx) ++ usedJsonTypeNamesCol(ctx)).exists(t =>
+          !t.startsWith("List[") && !t.startsWith("Map["))),
       needsDecimalImport = internal.needsDecimalImport(dialect, rowReadersSet, timestampBindsSet) ||
         rowReadersColSet.contains("_read_decimal_col") ||
-        rowReadersColSet.contains("_read_epoch_seconds_col"),
+        rowReadersColSet.contains("_read_epoch_seconds_col") || jsonMappingUsesType(ctx, "Decimal"),
       needsDatetimeImports = internal.needsDatetimeImports(rowReadersSet, timestampBindsSet) ||
         rowReadersColSet.contains("_read_datetime_col") ||
         rowReadersColSet.contains("_read_epoch_seconds_col") ||
@@ -299,23 +303,29 @@ object SqlNeutralServiceTemplateAttributes {
   }
 
   def unionsUsedAsJson(ctx: ServiceView): List[Model.Union[SqlMeta]] =
-    unions(ctx).filter(union => usedJsonTypeNames(ctx).contains(union.id.name))
+    unions(ctx).filter(union => internal.jsonElementTypeNames(usedJsonTypeNames(ctx)).contains(union.id.name))
 
   def modelsUsedAsJson(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
-    models(ctx).filter(model => usedJsonTypeNames(ctx).contains(model.id.name))
+    models(ctx).filter(model => internal.jsonElementTypeNames(usedJsonTypeNames(ctx)).contains(model.id.name))
 
   def unionsUsedAsJsonCol(ctx: ServiceView): List[Model.Union[SqlMeta]] =
-    unions(ctx).filter(union => usedJsonTypeNamesCol(ctx).contains(union.id.name))
+    unions(ctx).filter(union => internal.jsonElementTypeNames(usedJsonTypeNamesCol(ctx)).contains(union.id.name))
 
   def modelsUsedAsJsonCol(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
-    models(ctx).filter(model => usedJsonTypeNamesCol(ctx).contains(model.id.name))
+    models(ctx).filter(model => internal.jsonElementTypeNames(usedJsonTypeNamesCol(ctx)).contains(model.id.name))
 
   /** Transitive closure of structures reachable from `@sqlJson` columns: the structures directly used as JSON columns,
     * plus every structure transitively referenced by their fields or by JSON-union members. These all need `_dump_` /
     * `_map_to_` helpers because the union / structure dump helpers dispatch to leaf structure helpers via
     * `dumpValueExpression` / `mapValueExpression`.
     */
-  def jsonStructureClosure(ctx: ServiceView): List[Model.Structure[SqlMeta]] = {
+  def jsonStructureClosure(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
+    models(ctx).filter(m => jsonModelClosureNames(ctx).contains(m.id.name)).sortBy(_.id.name)
+
+  def jsonUnionClosure(ctx: ServiceView): List[Model.Union[SqlMeta]] =
+    unions(ctx).filter(m => jsonModelClosureNames(ctx).contains(m.id.name)).sortBy(_.id.name)
+
+  def jsonModelClosureNames(ctx: ServiceView): Set[String] = {
     val allModels          = models(ctx)
     val allModelNames      = allModels.map(_.id.name).toSet
     val allUnions          = unions(ctx)
@@ -343,7 +353,7 @@ object SqlNeutralServiceTemplateAttributes {
           unionMembers.flatMap(m => referencedStructureNames(m.tpe))).toSet -- visited
       frontier = nextRefs
     }
-    allModels.filter(m => visited.contains(m.id.name)).sortBy(_.id.name)
+    visited
   }
 
   def documentUsedAsJson(ctx: ServiceView): Boolean =
@@ -358,12 +368,19 @@ object SqlNeutralServiceTemplateAttributes {
   def unionTypeNames(ctx: ServiceView): Set[String] =
     unions(ctx).map(_.id.name).toSet
 
-  def jsonMappingUsesTimestamp(ctx: ServiceView): Boolean = {
-    val closureModels = jsonStructureClosure(ctx)
-    val jsonUnions    = unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)
+  def jsonMappingUsesTimestamp(ctx: ServiceView): Boolean = jsonMappingUsesType(ctx, "datetime")
 
-    closureModels.exists(_.fields.exists(field => memberTypeName(ctx, field) == "datetime")) ||
-    jsonUnions.exists(_.members.exists(member => internal.typeName(ctx, member.tpe) == "datetime"))
+  def jsonMappingUsesType(ctx: ServiceView, typeName: String): Boolean = {
+    val closureModels = jsonStructureClosure(ctx)
+    val jsonUnions    = jsonUnionClosure(ctx)
+
+    val names = (usedJsonTypeNames(ctx) ++ usedJsonTypeNamesCol(ctx)) ++
+      closureModels.flatMap(_.fields.map(field => renderType(ctx, field.tpe))) ++
+      jsonUnions.flatMap(_.members.map(member => renderType(ctx, member.tpe)))
+    internal.jsonElementTypeNames(names).exists { name =>
+      name == typeName || (typeName == "datetime" && name == "Timestamp") ||
+      (typeName == "Decimal" && name == "BigDecimal")
+    }
   }
 
   final case class ClassRowFactorySpec(
@@ -413,6 +430,15 @@ object SqlNeutralServiceTemplateAttributes {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def jsonElementTypeNames(typeNames: Set[String]): Set[String] =
+      typeNames.flatMap { name =>
+        if (name.contains("[") || name.contains(" | ")) {
+          name.split("[\\[\\], |]+").toSet
+        } else {
+          Set(name)
+        }
+      }
+
     def enrichFromContext(
         context: SqlCodegenServiceContext
     ): (SqlServiceMeta, Map[String, SqlOperationMeta]) = {

@@ -122,3 +122,15 @@ Lint and run pytest against golden `expected/` trees:
 ```
 
 Postgres variants require Docker. See [`language-test-harnesses/python/README.md`](../../../language-test-harnesses/python/README.md).
+
+## SQL JSON scalar collections
+
+`sql-json-model-collections` covers collection-only structure and union helpers,
+map-only value model imports, nested map/list protocol annotations, and both
+dialects' CRUD and transaction boundaries. Raw renderer assertions separately
+check helper imports before golden formatting can remove or hide unused imports.
+
+`sql-json-scalar-collections` covers timestamp, decimal, and blob list/map values,
+nested collections, nullable columns, and SQLite/PostgreSQL CRUD. Its additional
+runtime tests exercise exact decimal precision, arbitrary binary bytes, unusual
+map keys, timezone offsets, and NULL/empty/nonempty collection transitions.

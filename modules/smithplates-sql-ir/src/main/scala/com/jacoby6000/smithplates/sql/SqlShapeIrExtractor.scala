@@ -12,10 +12,7 @@ import scala.jdk.OptionConverters.*
 
 object SqlShapeIrExtractor {
   def extract(model: Model, rootShapeIds: Iterable[ShapeId]): SqlValidated[SqlShapeIr] = {
-    val structureIds =
-      rootShapeIds.toList.flatMap(SqlShapeGraph.referencedStructureIds(model, _)).distinct
-    val unionIds     =
-      SqlShapeGraph.referencedUnionIds(model, rootShapeIds).distinct
+    val (structureIds, unionIds) = SqlShapeGraph.referencedShapes(model, rootShapeIds)
     extractDiscovered(model, structureIds, unionIds)
   }
 

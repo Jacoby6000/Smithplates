@@ -27,6 +27,7 @@ collect_python_files() {
     find "${namespace_root}/${impl}" -name '*.py' -type f
   fi
   find "${test_dir}" -maxdepth 1 -name 'test_*.py' -type f
+  find "${test_dir}/../../../.." -maxdepth 1 -name 'test_*.py' -type f
 }
 
 configure_case_env() {
@@ -41,6 +42,9 @@ configure_case_env() {
   local mypy_path="${src_root}"
   if [[ -d "${test_dir}/stubs" ]]; then
     mypy_path="${test_dir}/stubs:${mypy_path}"
+  fi
+  if [[ -d "${test_dir}/../../../../stubs" ]]; then
+    mypy_path="${test_dir}/../../../../stubs:${mypy_path}"
   fi
   export MYPYPATH="${mypy_path}"
 }

@@ -20,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Python SQL singleton unions round-trip through JSON collection columns using
+  the same discriminator validation as multi-member unions.
+- Example Python builds synchronize the generated root SQL test fixture, so
+  generated PostgreSQL tests use the disposable `postgres_dsn` contract.
+- Python SQL list/map JSON columns emit valid collection bind/read helpers,
+  use native Psycopg JSONB adaptation, and serialize SQLite values as JSON text.
+  Nullable collections preserve SQL NULL and collection element structures get
+  their transitive dump/map helpers.
+- Python SQL JSON helpers discover nested union/collection dependencies, preserve
+  nullable nested members, and round-trip timestamp, decimal, and blob collections.
+- Python SQL collection-only structure/union helpers retain their required JSON
+  import, and protocol annotations import models reached only through maps or
+  nested collections without adding unused JSON imports to scalar-only services.
 - PostgreSQL date-time timestamps use `TIMESTAMPTZ` to preserve Smithy instant
   semantics across session time zones. Existing `TIMESTAMP` columns need an
   explicit migration using the time zone in which their old values were stored.

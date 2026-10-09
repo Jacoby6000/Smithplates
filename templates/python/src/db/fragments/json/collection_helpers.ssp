@@ -1,0 +1,21 @@
+<%@ val typeName: String %>
+<%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%@ val dialectKey: String %>
+def _json_bind_${jsonHelperTypeName(typeName)}(value: ${pythonTypeName(typeName)} | None) -> <% if (dialectKey == "postgres") { %>Jsonb<% } else { %>str<% } %> | None:
+    if value is None:
+        return None
+<% if (dialectKey == "postgres") { %>    return Jsonb(${dumpValueExpression(typeName, "value", ctx)})
+<% } else { %>    return json.dumps(${dumpValueExpression(typeName, "value", ctx)})
+<% } %>
+
+
+def _read_${jsonHelperTypeName(typeName)}(row: ${rowTypeName(dialectKey)}, index: int) -> ${pythonTypeName(typeName)}:
+<% if (dialectKey == "postgres") { %>    data = row[index]
+<% } else { %>    data = json.loads(cast(str, row[index]))
+<% } %>    return ${mapValueExpression(typeName, "data", ctx)}
+
+
+def _read_${jsonHelperTypeName(typeName)}_col(row: dict[str, object], column: str) -> ${pythonTypeName(typeName)}:
+<% if (dialectKey == "postgres") { %>    data = row[column]
+<% } else { %>    data = json.loads(cast(str, row[column]))
+<% } %>    return ${mapValueExpression(typeName, "data", ctx)}

@@ -3,6 +3,9 @@
 <% render("fragments/row_factories/sqlite_class_row_factory", Map("factory" -> classRowFactory, "ctx" -> ctx)) +%>
 <% } %>
 <% render("fragments/type_mapping/json_type_mappers", Map("ctx" -> ctx)) +%>
+<% for (typeName <- sqlAttrs.usedJsonTypeNames(ctx).toList.sorted if typeName.startsWith("List[") || typeName.startsWith("Map[")) { %>
+<% render("fragments/json/collection_helpers", Map("typeName" -> typeName, "ctx" -> ctx, "dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
+<% } %>
 <% for (partial <- helperPartialPaths(ctx)) { %>
 <% render(partial, Map("dialectKey" -> sqlAttrs.dialectKey(ctx))) +%>
 <% } %>

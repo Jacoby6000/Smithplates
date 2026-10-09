@@ -1,5 +1,7 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
 <%@ val imports: com.jacoby6000.smithplates.sql.service.renderer.ImportRequirements = importRequirements(ctx) %>
+<% if (sqlAttrs.usedJsonTypeNames(ctx).exists(t => t.startsWith("List[") || t.startsWith("Map["))) { %>from psycopg.types.json import Jsonb
+<% } %>
 <% if (imports.needsJsonImport) { %>import json
 <% } %><% if (imports.needsUuidImport) { %>import uuid
 <% } %><% if (imports.needsDatetimeImports) { %>from datetime import datetime<% if (imports.needsTimezoneImport) { %>, timezone<% } +%>
