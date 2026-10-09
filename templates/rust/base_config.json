@@ -1,0 +1,37 @@
+{
+  "commentPrefix": "//",
+  "namingStrategy": {
+    "fileNames": { "style": "snake_case", "suffix": ".rs" },
+    "packageSeparator": "::",
+    "classNames": { "style": "pascal_case" },
+    "packageNames": { "style": "snake_case" },
+    "valueNames": { "style": "snake_case" },
+    "constantNames": { "style": "screaming_snake_case" },
+    "functionNames": { "style": "snake_case" },
+    "illegalCharRemaps": {},
+    "reservedKeywordRemaps": {
+      "as": "as_", "async": "async_", "await": "await_", "break": "break_",
+      "const": "const_", "continue": "continue_", "crate": "crate_", "dyn": "dyn_",
+      "else": "else_", "enum": "enum_", "extern": "extern_", "false": "false_",
+      "fn": "fn_", "for": "for_", "if": "if_", "impl": "impl_", "in": "in_",
+      "let": "let_", "loop": "loop_", "match": "match_", "mod": "mod_", "move": "move_",
+      "mut": "mut_", "pub": "pub_", "ref": "ref_", "return": "return_", "self": "self_",
+      "Self": "Self_", "static": "static_", "struct": "struct_", "super": "super_",
+      "trait": "trait_", "true": "true_", "type": "type_", "unsafe": "unsafe_",
+      "use": "use_", "where": "where_", "while": "while_", "abstract": "abstract_",
+      "become": "become_", "box": "box_", "do": "do_", "final": "final_", "gen": "gen_",
+      "macro": "macro_", "override": "override_", "priv": "priv_", "try": "try_",
+      "typeof": "typeof_", "unsized": "unsized_", "virtual": "virtual_", "yield": "yield_"
+    }
+  },
+  "typeSyntax": {
+    "primitives": {
+      "boolean": "bool", "integer": "i32", "long": "i64", "bigInteger": "i128",
+      "float": "f32", "double": "f64", "bigDecimal": "serde_json::Value",
+      "string": "String", "bytes": "Vec<u8>", "document": "serde_json::Value"
+    },
+    "timestamp": { "dateTime": "String", "epochSeconds": "i64" },
+    "optional": "Option<{inner}>", "list": "Vec<{element}>",
+    "map": "std::collections::BTreeMap<{key}, {value}>", "modelRef": "{name}"
+  }
+}

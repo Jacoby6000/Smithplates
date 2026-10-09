@@ -6,6 +6,26 @@ import com.jacoby6000.smithplates.http.service.renderer.HttpServiceCodegenApiArt
 import munit.FunSuite
 
 class SmithplatesHttpSettingsSpec extends FunSuite {
+  test("bundled Rust defaults to async reqwest without consumer template configuration") {
+    val parsed = SmithplatesSettings.parseJson("""{
+      "rust": { "http": { "client": {}, "outputs": [{"sourceOutputDir":"src/generated","testOutputDir":"test"}] } }
+    }""")
+    assert(parsed.isValid)
+    HttpLanguageTarget.internal.resolveClientLibraryKey("rust", "classpath:rust/src/http/client", None) match {
+      case Validated.Valid(library)  => assertEquals(library, "reqwest")
+      case Validated.Invalid(errors) => fail(errors.map(_.message).toList.mkString("; "))
+    }
+  }
+
+  for (mode <- List("sync", "both"))
+    test(s"bundled Rust rejects $mode during configuration validation") {
+      val parsed = SmithplatesSettings.parseJson(s"""{
+        "rust": { "http": { "client": {"mode":"$mode"}, "outputs": [{"sourceOutputDir":"src/generated","testOutputDir":"test"}] } }
+      }""")
+      assert(parsed.isInvalid)
+      assert(parsed.swap.toOption.toList.flatMap(_.toList).exists(_.message.contains("reqwest.sync")))
+    }
+
   test("parses language-first HTTP server target with web framework resolved from bundled deck") {
     SmithplatesSettings
       .parseJson("""
