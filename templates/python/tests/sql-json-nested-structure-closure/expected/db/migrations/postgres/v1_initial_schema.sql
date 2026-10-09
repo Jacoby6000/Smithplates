@@ -8,7 +8,7 @@ CREATE TABLE customers (
     contact_map JSONB NOT NULL,
     alternate_labels JSONB,
     collection_only JSONB NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id)
 );

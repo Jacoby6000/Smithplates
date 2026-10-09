@@ -4,7 +4,7 @@ CREATE TABLE shipments (
     label TEXT NOT NULL,
     destination JSONB NOT NULL,
     state JSONB NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     PRIMARY KEY (id)
 );

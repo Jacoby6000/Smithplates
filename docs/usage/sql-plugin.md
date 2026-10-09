@@ -6,6 +6,14 @@ binds collections through Psycopg's native `Jsonb` adapter. An absent nullable
 collection remains SQL NULL rather than a JSON `null` document. Generated
 integration tests exercise collection insert/read/update round trips.
 
+PostgreSQL date-time Timestamp members are stored as `TIMESTAMPTZ`: Smithy
+timestamps represent instants, not local wall-clock times. PostgreSQL returns
+timezone-aware datetimes and changes only their displayed offset when a session
+time zone changes. Epoch-seconds storage remains numeric. When upgrading a
+legacy `TIMESTAMP` column, use an explicit conversion with the actual historical
+storage zone (for example `USING occurred_at AT TIME ZONE 'UTC'` only when old
+values were stored in UTC); do not rely on the migration session's default zone.
+
 Generated Python PostgreSQL integration tests can use an existing test server
 through `SMITHPLATES_TEST_POSTGRES_DSN`. The role must be allowed to create and
 drop databases: each test module owns a uniquely named disposable database and

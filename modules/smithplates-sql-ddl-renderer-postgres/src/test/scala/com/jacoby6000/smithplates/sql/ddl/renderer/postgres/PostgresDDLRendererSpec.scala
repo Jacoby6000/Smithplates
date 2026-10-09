@@ -64,7 +64,7 @@ final class PostgresDDLRendererSpec extends FunSuite {
         |    name VARCHAR(128),
         |    size_bytes BIGINT,
         |    payload JSONB,
-        |    created_at TIMESTAMP,
+         |    created_at TIMESTAMPTZ,
         |
         |    PRIMARY KEY (id)
         |);
