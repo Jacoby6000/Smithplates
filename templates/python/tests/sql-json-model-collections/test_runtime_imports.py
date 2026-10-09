@@ -7,29 +7,53 @@ from typing import get_type_hints
 import aiosqlite
 import psycopg
 import pytest
-from generated.example.models.record_repository_models import Branch, Choice, ChoiceBranch, Leaf
+from generated.example.models.record_repository_models import (
+    Branch,
+    Choice,
+    ChoiceBranch,
+    Leaf,
+    SingletonChoice,
+    SingletonChoiceLeaf,
+)
 from generated.example.postgres import record_repository_psycopg as postgres
 from generated.example.record_repository_protocol import RecordRepositoryServiceProtocol
 from generated.example.sqlite import record_repository_aiosqlite as sqlite
 from testcontainers.postgres import PostgresContainer
 
 
-async def exercise(service: sqlite.RecordRepositoryAiosqliteService | postgres.RecordRepositoryPsycopgService) -> None:
+async def exercise(
+    service: sqlite.RecordRepositoryAiosqliteService | postgres.RecordRepositoryPsycopgService,
+) -> None:
     hints = get_type_hints(RecordRepositoryServiceProtocol.create_record)
     assert hints["leaves"] == dict[str, Leaf]
     assert hints["choices"] == list[Choice]
+    assert hints["singleton_choices"] == list[SingletonChoice]
     assert hints["groups"] == dict[str, list[Branch]] | None
     leaves = {'odd/"key ☃': Leaf(text="leaf")}
     choices: list[Choice] = [ChoiceBranch(branch=Branch(count=42))]
     groups = {"empty": [], "branches": [Branch(count=7)]}
-    identifier = await service.create_record(leaves=leaves, choices=choices, groups=None)
+    singleton_choices: list[SingletonChoice] = [SingletonChoiceLeaf(leaf=Leaf(text="singleton"))]
+    identifier = await service.create_record(
+        leaves=leaves, choices=choices, singleton_choices=singleton_choices, groups=None
+    )
     for value in (groups, {}, None):
-        assert await service.update_record(id=identifier, leaves=leaves, choices=choices, groups=value)
+        assert await service.update_record(
+            id=identifier,
+            leaves=leaves,
+            choices=choices,
+            singleton_choices=singleton_choices,
+            groups=value,
+        )
         row = await service.get_record(id=identifier)
         assert row is not None
         assert row.leaves == leaves
         assert row.choices == choices
+        assert row.singleton_choices == singleton_choices
         assert row.groups == value
+    assert await service.update_record(id=identifier, leaves=leaves, choices=choices, singleton_choices=[], groups=None)
+    row = await service.get_record(id=identifier)
+    assert row is not None
+    assert row.singleton_choices == []
 
 
 @pytest.mark.asyncio

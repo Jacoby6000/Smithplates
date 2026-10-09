@@ -8,6 +8,7 @@ from generated.example.models.record_repository_models import (
     Choice,
     Leaf,
     Record,
+    SingletonChoice,
 )
 
 T = TypeVar("T", contravariant=True)
@@ -18,6 +19,7 @@ class RecordRepositoryServiceProtocol(Protocol[T]):
         self,
         leaves: dict[str, Leaf],
         choices: list[Choice],
+        singleton_choices: list[SingletonChoice],
         groups: dict[str, list[Branch]] | None,
         *,
         transaction: T | None = None,
@@ -32,6 +34,7 @@ class RecordRepositoryServiceProtocol(Protocol[T]):
         self,
         leaves: dict[str, Leaf],
         choices: list[Choice],
+        singleton_choices: list[SingletonChoice],
         groups: dict[str, list[Branch]] | None,
         id: str,
         *,

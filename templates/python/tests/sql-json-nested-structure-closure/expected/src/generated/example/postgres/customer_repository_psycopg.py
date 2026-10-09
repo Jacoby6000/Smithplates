@@ -248,7 +248,7 @@ def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
 
 
 def _map_to_InnerChoice(data: dict[str, object]) -> InnerChoice:
-    present = [key for key in ("contacts", "timestamp") if key in data]
+    present = [key for key in ["contacts", "timestamp"] if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown InnerChoice discriminator: {sorted(data.keys())}")
     if "contacts" in data:
@@ -274,7 +274,7 @@ def _dump_InnerChoice(value: InnerChoice) -> dict[str, object]:
 
 
 def _map_to_NestedChoice(data: dict[str, object]) -> NestedChoice:
-    present = [key for key in ("text", "deeper") if key in data]
+    present = [key for key in ["text", "deeper"] if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown NestedChoice discriminator: {sorted(data.keys())}")
     if "text" in data:

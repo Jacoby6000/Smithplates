@@ -17,6 +17,8 @@ map Leaves { key: String, value: Leaf }
 structure Branch { @required count: Integer }
 union Choice { branch: Branch, text: String }
 list Choices { member: Choice }
+union SingletonChoice { leaf: Leaf }
+list SingletonChoices { member: SingletonChoice }
 list Branches { member: Branch }
 map BranchGroups { key: String, value: Branches }
 
@@ -31,6 +33,9 @@ structure Record {
     @required
     @sqlJson
     choices: Choices
+    @required
+    @sqlJson
+    singleton_choices: SingletonChoices
     @sqlJson
     groups: BranchGroups
 }

@@ -18,10 +18,19 @@ Choice = ChoiceBranch | ChoiceText
 
 
 @dataclass
+class SingletonChoiceLeaf:
+    leaf: Leaf
+
+
+SingletonChoice = SingletonChoiceLeaf
+
+
+@dataclass
 class Record:
     id: str
     leaves: dict[str, Leaf]
     choices: list[Choice]
+    singleton_choices: list[SingletonChoice]
     groups: dict[str, list[Branch]] | None
 
 

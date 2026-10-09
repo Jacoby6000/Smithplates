@@ -143,6 +143,9 @@ sync_smithplates_output() {
   if [[ -d "${build_root}/tests/petstore" ]]; then
     cp -a "${build_root}/tests/petstore" "${example_dir}/tests/"
   fi
+  if [[ -f "${build_root}/tests/conftest.py" ]]; then
+    cp -a "${build_root}/tests/conftest.py" "${example_dir}/tests/conftest.py"
+  fi
 
   if [[ -d "${build_root}/db" ]]; then
     mkdir -p "${example_dir}/db"
@@ -256,47 +259,53 @@ build_openapi_reference_example() {
     --additional-properties generateSourceCodeOnly=true,library=asyncio,hideGenerationTimestamp=true
 }
 
-if [[ "${SMITHYSTACHE_EXAMPLE_BUILD_DONE:-}" == "1" ]]; then
-  echo "==> example build skipped (already completed)"
-  exit 0
-fi
+main() {
+  if [[ "${SMITHYSTACHE_EXAMPLE_BUILD_DONE:-}" == "1" ]]; then
+    echo "==> example build skipped (already completed)"
+    return 0
+  fi
 
-if [[ $# -ne 1 ]]; then
-  usage
-fi
-
-enter_nix_shell_if_available "$@"
-
-require_sbtn
-require_coursier
-echo "==> publishM2"
-sbtn publishM2
-
-# shellcheck source=lib/resolve-smithy-build-versions.sh
-source "${ROOT}/scripts/lib/resolve-smithy-build-versions.sh" "${ROOT}"
-
-case "$1" in
-  all)
-    "${ROOT}/scripts/render-smithy-build.sh" all
-    build_python_example
-    build_typescript_example
-    build_openapi_reference_example
-    ;;
-  python)
-    "${ROOT}/scripts/render-smithy-build.sh" example/python
-    build_python_example
-    ;;
-  typescript)
-    "${ROOT}/scripts/render-smithy-build.sh" example/typescript
-    build_typescript_example
-    ;;
-  openapi-reference-python)
-    "${ROOT}/scripts/render-smithy-build.sh" example/openapi-reference-python
-    build_openapi_reference_example
-    ;;
-  *)
+  if [[ $# -ne 1 ]]; then
     usage
-    ;;
-esac
+  fi
 
-export SMITHYSTACHE_EXAMPLE_BUILD_DONE=1
+  enter_nix_shell_if_available "$@"
+
+  require_sbtn
+  require_coursier
+  echo "==> publishM2"
+  sbtn publishM2
+
+  # shellcheck source=lib/resolve-smithy-build-versions.sh
+  source "${ROOT}/scripts/lib/resolve-smithy-build-versions.sh" "${ROOT}"
+
+  case "$1" in
+    all)
+      "${ROOT}/scripts/render-smithy-build.sh" all
+      build_python_example
+      build_typescript_example
+      build_openapi_reference_example
+      ;;
+    python)
+      "${ROOT}/scripts/render-smithy-build.sh" example/python
+      build_python_example
+      ;;
+    typescript)
+      "${ROOT}/scripts/render-smithy-build.sh" example/typescript
+      build_typescript_example
+      ;;
+    openapi-reference-python)
+      "${ROOT}/scripts/render-smithy-build.sh" example/openapi-reference-python
+      build_openapi_reference_example
+      ;;
+    *)
+      usage
+      ;;
+  esac
+
+  export SMITHYSTACHE_EXAMPLE_BUILD_DONE=1
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

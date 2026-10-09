@@ -136,7 +136,7 @@ def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
 
 
 def _map_to_DeliveryState(data: dict[str, object]) -> DeliveryState:
-    present = [key for key in ("pending", "delivered") if key in data]
+    present = [key for key in ["pending", "delivered"] if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown DeliveryState discriminator: {sorted(data.keys())}")
     if "pending" in data:

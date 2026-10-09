@@ -42,6 +42,11 @@ bash scripts/render-smithy-build.sh all
 
 The render script filters `sbtn` output to avoid recording thin-client log lines as Maven versions. End-to-end example regeneration: `./scripts/run-example-build.sh all`.
 
+Python example regeneration synchronizes the generated root `tests/conftest.py`
+with the generated SQL tests. This fixture owns the disposable PostgreSQL test
+database contract; keep example-specific HTTP setup in its test modules rather
+than adding it to the generator-owned root fixture.
+
 ## Secrets
 
 Release workflows require Central Portal and PGP credentials configured in GitHub Actions. See [Getting started — GitHub Actions secrets](getting-started.md#github-actions-secrets) for the current secret names and operational details.

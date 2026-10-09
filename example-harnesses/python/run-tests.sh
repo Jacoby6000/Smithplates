@@ -10,6 +10,9 @@ ensure_example_env
 configure_example_env
 cd "${EXAMPLE_ROOT}"
 
+echo "==> example/python pytest (generated output sync)"
+uv run pytest tests/test_codegen_sync.py
+
 echo "==> example/python pytest (API smoke)"
 uv run pytest tests/test_api.py
 

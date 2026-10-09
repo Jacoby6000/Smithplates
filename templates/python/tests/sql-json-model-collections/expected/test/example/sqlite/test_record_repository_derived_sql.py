@@ -12,6 +12,7 @@ from generated.example.models.record_repository_models import (
     ChoiceBranch,
     Leaf,
     Record,
+    SingletonChoiceLeaf,
 )
 from generated.example.sqlite.record_repository_aiosqlite import RecordRepositoryAiosqliteService
 from generated.example.sqlite.sqlite_migrations import SqliteMigrationService
@@ -38,6 +39,7 @@ async def test_derived_sql_methods_lifecycle(record_repository_service: RecordRe
     entity_id_result = await record_repository_service.create_record(
         leaves={"integration-key": Leaf(text="integration-text")},
         choices=[ChoiceBranch(branch=Branch(count=42))],
+        singleton_choices=[SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))],
         groups=None,
     )
     entity_id = entity_id_result
@@ -48,11 +50,13 @@ async def test_derived_sql_methods_lifecycle(record_repository_service: RecordRe
     assert isinstance(fetched, Record)
     assert fetched.leaves == {"integration-key": Leaf(text="integration-text")}
     assert fetched.choices == [ChoiceBranch(branch=Branch(count=42))]
+    assert fetched.singleton_choices == [SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))]
     assert fetched.groups is None
 
     updated = await record_repository_service.update_record(
         leaves={"integration-key": Leaf(text="integration-updated-text")},
         choices=[ChoiceBranch(branch=Branch(count=84))],
+        singleton_choices=[SingletonChoiceLeaf(leaf=Leaf(text="integration-updated-text"))],
         groups=None,
         id=entity_id,
     )
@@ -62,6 +66,7 @@ async def test_derived_sql_methods_lifecycle(record_repository_service: RecordRe
     assert isinstance(fetched_after_update, Record)
     assert fetched_after_update.leaves == {"integration-key": Leaf(text="integration-updated-text")}
     assert fetched_after_update.choices == [ChoiceBranch(branch=Branch(count=84))]
+    assert fetched_after_update.singleton_choices == [SingletonChoiceLeaf(leaf=Leaf(text="integration-updated-text"))]
     assert fetched_after_update.groups is None
 
     deleted = await record_repository_service.delete_record(id=entity_id)
@@ -83,6 +88,7 @@ async def test_derived_sql_methods_transaction_commit(
         entity_id_result = await record_repository_service.create_record(
             leaves={"integration-key": Leaf(text="integration-text")},
             choices=[ChoiceBranch(branch=Branch(count=42))],
+            singleton_choices=[SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))],
             groups=None,
             transaction=connection,
         )
@@ -94,6 +100,7 @@ async def test_derived_sql_methods_transaction_commit(
         assert isinstance(fetched, Record)
         assert fetched.leaves == {"integration-key": Leaf(text="integration-text")}
         assert fetched.choices == [ChoiceBranch(branch=Branch(count=42))]
+        assert fetched.singleton_choices == [SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))]
         assert fetched.groups is None
         await connection.commit()
     except BaseException:
@@ -104,6 +111,7 @@ async def test_derived_sql_methods_transaction_commit(
     assert isinstance(fetched_after_commit, Record)
     assert fetched_after_commit.leaves == {"integration-key": Leaf(text="integration-text")}
     assert fetched_after_commit.choices == [ChoiceBranch(branch=Branch(count=42))]
+    assert fetched_after_commit.singleton_choices == [SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))]
     assert fetched_after_commit.groups is None
 
 
@@ -118,6 +126,7 @@ async def test_derived_sql_methods_transaction_rollback(
     entity_id_result = await record_repository_service.create_record(
         leaves={"integration-key": Leaf(text="integration-text")},
         choices=[ChoiceBranch(branch=Branch(count=42))],
+        singleton_choices=[SingletonChoiceLeaf(leaf=Leaf(text="integration-text"))],
         groups=None,
         transaction=connection,
     )

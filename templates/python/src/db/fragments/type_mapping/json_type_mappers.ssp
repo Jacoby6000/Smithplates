@@ -40,7 +40,7 @@ def _dump_${model.id.name}(value: ${model.id.name}) -> dict[str, object]:
 
 
 def _map_to_${union.id.name}(data: dict[str, object]) -> ${union.id.name}:
-    present = [key for key in (${unionDiscriminatorKeys(union.members)}) if key in data]
+    present = [key for key in [${unionDiscriminatorKeys(union.members)}] if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown ${union.id.name} discriminator: {sorted(data.keys())}")
 <% for (member <- union.members) { %>
