@@ -47,6 +47,28 @@ structure ContactInfo {
     address: PostalAddress
 }
 
+list Labels {
+    member: String
+}
+
+list Contacts {
+    member: ContactInfo
+}
+
+map ContactMap {
+    key: String
+    value: ContactInfo
+}
+
+structure CollectionOnlyValue {
+    @required
+    label: String
+}
+
+list CollectionOnlyValues {
+    member: CollectionOnlyValue
+}
+
 @sqlTable(name: "customers")
 structure Customer {
     @sqlPrimaryKey
@@ -57,6 +79,20 @@ structure Customer {
     @required
     @sqlJson
     contact: ContactInfo
+    @sqlJson
+    @required
+    labels: Labels
+    @sqlJson
+    @required
+    contacts: Contacts
+    @sqlJson
+    @required
+    contact_map: ContactMap
+    @sqlJson
+    alternate_labels: Labels
+    @sqlJson
+    @required
+    collection_only: CollectionOnlyValues
     @sqlCreatedTimestamp
     created_at: Timestamp
 }

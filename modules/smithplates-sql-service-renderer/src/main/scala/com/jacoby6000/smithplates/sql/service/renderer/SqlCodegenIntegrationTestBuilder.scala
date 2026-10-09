@@ -524,6 +524,9 @@ object SqlCodegenIntegrationTestBuilder {
         case other if typeName.startsWith("List[")           =>
           val inner = typeName.substring(5, typeName.length - 1)
           s"[${sampleLiteral(context, inner, variant, seed, enumSamples)}]"
+        case other if typeName.startsWith("Map[String, ")    =>
+          val inner = typeName.substring(12, typeName.length - 1)
+          s"{\"integration-key\": ${sampleLiteral(context, inner, variant, seed, enumSamples)}}"
         case other                                           =>
           throw new IllegalArgumentException(s"Unsupported integration test sample type: $other")
       }

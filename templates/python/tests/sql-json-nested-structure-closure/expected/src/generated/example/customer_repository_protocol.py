@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Protocol, TypeVar
 
 from generated.example.models.customer_repository_models import (
+    CollectionOnlyValue,
     ContactInfo,
     Customer,
 )
@@ -16,6 +17,11 @@ class CustomerRepositoryServiceProtocol(Protocol[T]):
         self,
         name: str,
         contact: ContactInfo,
+        labels: list[str],
+        contacts: list[ContactInfo],
+        contact_map: dict[str, ContactInfo],
+        alternate_labels: list[str] | None,
+        collection_only: list[CollectionOnlyValue],
         *,
         transaction: T | None = None,
     ) -> str: ...
@@ -29,6 +35,11 @@ class CustomerRepositoryServiceProtocol(Protocol[T]):
         self,
         name: str,
         contact: ContactInfo,
+        labels: list[str],
+        contacts: list[ContactInfo],
+        contact_map: dict[str, ContactInfo],
+        alternate_labels: list[str] | None,
+        collection_only: list[CollectionOnlyValue],
         id: str,
         *,
         transaction: T | None = None,

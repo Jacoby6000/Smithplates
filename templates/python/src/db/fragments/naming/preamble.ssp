@@ -99,6 +99,13 @@ def unionTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
 def customUuidTypeNames(ctx: sqlAttrs.ServiceView): Set[String] =
   sqlAttrs.uuidTypeNames(ctx).filter(name => pythonTypeName(name) == name)
 
+def jsonHelperTypeName(typeName: String): String =
+  if (typeName.startsWith("List[") || typeName.startsWith("Map[")) {
+    "collection_" + typeName.getBytes("UTF-8").map(b => f"${b & 0xff}%02x").mkString
+  } else {
+    typeName
+  }
+
 def mapValueExpression(
     typeName: String,
     valueExpr: String,

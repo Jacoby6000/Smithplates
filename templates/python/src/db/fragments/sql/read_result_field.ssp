@@ -32,9 +32,9 @@ def columnAccess: String =
 def primitiveReadExpression: String = {
   if (isJson) {
     if (readMode == "col") {
-      s"_read_${typeName}_col(${rowVar}, ${columnNameLiteral})"
+      s"_read_${jsonHelperTypeName(typeName)}_col(${rowVar}, ${columnNameLiteral})"
     } else {
-      s"_read_${typeName}(${rowVar}, ${columnIndex})"
+      s"_read_${jsonHelperTypeName(typeName)}(${rowVar}, ${columnIndex})"
     }
   } else {
     val reader = rowReaderName(readTypeName, timestampFormat)

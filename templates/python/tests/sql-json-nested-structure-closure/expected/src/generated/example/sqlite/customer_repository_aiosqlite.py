@@ -9,6 +9,7 @@ from typing import cast, override
 import aiosqlite
 from generated.example.customer_repository_protocol import CustomerRepositoryServiceProtocol
 from generated.example.models.customer_repository_models import (
+    CollectionOnlyValue,
     ContactInfo,
     Customer,
     GeoCoordinates,
@@ -27,13 +28,26 @@ class CustomerRepositoryAiosqliteService(CustomerRepositoryServiceProtocol[aiosq
         self,
         name: str,
         contact: ContactInfo,
+        labels: list[str],
+        contacts: list[ContactInfo],
+        contact_map: dict[str, ContactInfo],
+        alternate_labels: list[str] | None,
+        collection_only: list[CollectionOnlyValue],
         *,
         transaction: aiosqlite.Connection | None = None,
     ) -> str:
         async def execute(conn: aiosqlite.Connection) -> str:
             cursor = await conn.execute(
-                """INSERT INTO customers (name, contact) VALUES (?, ?) RETURNING id;""",
-                (name, _json_bind_ContactInfo(contact)),
+                """INSERT INTO customers (name, contact, labels, contacts, contact_map, alternate_labels, collection_only) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id;""",
+                (
+                    name,
+                    _json_bind_ContactInfo(contact),
+                    _json_bind_collection_4c6973745b537472696e675d(labels),
+                    _json_bind_collection_4c6973745b436f6e74616374496e666f5d(contacts),
+                    _json_bind_collection_4d61705b537472696e672c20436f6e74616374496e666f5d(contact_map),
+                    _json_bind_collection_4c6973745b537472696e675d(alternate_labels),
+                    _json_bind_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d(collection_only),
+                ),
             )
             row = await cursor.fetchone()
             if row is None:
@@ -51,7 +65,7 @@ class CustomerRepositoryAiosqliteService(CustomerRepositoryServiceProtocol[aiosq
     ) -> Customer | None:
         async def execute(conn: aiosqlite.Connection) -> Customer | None:
             cursor = await conn.execute(
-                """SELECT customers.id, customers.name, customers.contact, customers.created_at
+                """SELECT customers.id, customers.name, customers.contact, customers.labels, customers.contacts, customers.contact_map, customers.alternate_labels, customers.collection_only, customers.created_at
 FROM customers
 WHERE id = ?;""",
                 (id,),
@@ -64,6 +78,17 @@ WHERE id = ?;""",
                 id=_read_str_col(named_row, "id"),
                 name=_read_str_col(named_row, "name"),
                 contact=_read_ContactInfo_col(named_row, "contact"),
+                labels=_read_collection_4c6973745b537472696e675d_col(named_row, "labels"),
+                contacts=_read_collection_4c6973745b436f6e74616374496e666f5d_col(named_row, "contacts"),
+                contact_map=_read_collection_4d61705b537472696e672c20436f6e74616374496e666f5d_col(
+                    named_row, "contact_map"
+                ),
+                alternate_labels=None
+                if named_row["alternate_labels"] is None
+                else _read_collection_4c6973745b537472696e675d_col(named_row, "alternate_labels"),
+                collection_only=_read_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d_col(
+                    named_row, "collection_only"
+                ),
                 created_at=_read_datetime_col(named_row, "created_at"),
             )
 
@@ -74,6 +99,11 @@ WHERE id = ?;""",
         self,
         name: str,
         contact: ContactInfo,
+        labels: list[str],
+        contacts: list[ContactInfo],
+        contact_map: dict[str, ContactInfo],
+        alternate_labels: list[str] | None,
+        collection_only: list[CollectionOnlyValue],
         id: str,
         *,
         transaction: aiosqlite.Connection | None = None,
@@ -81,9 +111,18 @@ WHERE id = ?;""",
         async def execute(conn: aiosqlite.Connection) -> bool:
             cursor = await conn.execute(
                 """UPDATE customers
-SET name = ?, contact = ?
+SET name = ?, contact = ?, labels = ?, contacts = ?, contact_map = ?, alternate_labels = ?, collection_only = ?
 WHERE id = ?;""",
-                (name, _json_bind_ContactInfo(contact), id),
+                (
+                    name,
+                    _json_bind_ContactInfo(contact),
+                    _json_bind_collection_4c6973745b537472696e675d(labels),
+                    _json_bind_collection_4c6973745b436f6e74616374496e666f5d(contacts),
+                    _json_bind_collection_4d61705b537472696e672c20436f6e74616374496e666f5d(contact_map),
+                    _json_bind_collection_4c6973745b537472696e675d(alternate_labels),
+                    _json_bind_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d(collection_only),
+                    id,
+                ),
             )
             return cursor.rowcount > 0
 
@@ -115,6 +154,18 @@ def _map_json_timestamp(value: object) -> datetime:
 
 def _dump_json_timestamp(value: datetime) -> str:
     return value.isoformat()
+
+
+def _map_to_CollectionOnlyValue(data: dict[str, object]) -> CollectionOnlyValue:
+    return CollectionOnlyValue(
+        label=cast(str, data["label"]),
+    )
+
+
+def _dump_CollectionOnlyValue(value: CollectionOnlyValue) -> dict[str, object]:
+    return {
+        "label": value.label,
+    }
 
 
 def _map_to_ContactInfo(data: dict[str, object]) -> ContactInfo:
@@ -163,6 +214,90 @@ def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
     }
 
 
+def _json_bind_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d(
+    value: list[CollectionOnlyValue] | None,
+) -> str | None:
+    if value is None:
+        return None
+    return json.dumps([_dump_CollectionOnlyValue(item) for item in value])
+
+
+def _read_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d(
+    row: tuple[object, ...] | sqlite3.Row, index: int
+) -> list[CollectionOnlyValue]:
+    data = json.loads(cast(str, row[index]))
+    return [_map_to_CollectionOnlyValue(cast(dict[str, object], item)) for item in cast(list[object], data)]
+
+
+def _read_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d_col(
+    row: dict[str, object], column: str
+) -> list[CollectionOnlyValue]:
+    data = json.loads(cast(str, row[column]))
+    return [_map_to_CollectionOnlyValue(cast(dict[str, object], item)) for item in cast(list[object], data)]
+
+
+def _json_bind_collection_4c6973745b436f6e74616374496e666f5d(value: list[ContactInfo] | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps([_dump_ContactInfo(item) for item in value])
+
+
+def _read_collection_4c6973745b436f6e74616374496e666f5d(
+    row: tuple[object, ...] | sqlite3.Row, index: int
+) -> list[ContactInfo]:
+    data = json.loads(cast(str, row[index]))
+    return [_map_to_ContactInfo(cast(dict[str, object], item)) for item in cast(list[object], data)]
+
+
+def _read_collection_4c6973745b436f6e74616374496e666f5d_col(row: dict[str, object], column: str) -> list[ContactInfo]:
+    data = json.loads(cast(str, row[column]))
+    return [_map_to_ContactInfo(cast(dict[str, object], item)) for item in cast(list[object], data)]
+
+
+def _json_bind_collection_4c6973745b537472696e675d(value: list[str] | None) -> str | None:
+    if value is None:
+        return None
+    return json.dumps([item for item in value])
+
+
+def _read_collection_4c6973745b537472696e675d(row: tuple[object, ...] | sqlite3.Row, index: int) -> list[str]:
+    data = json.loads(cast(str, row[index]))
+    return [cast(str, item) for item in cast(list[object], data)]
+
+
+def _read_collection_4c6973745b537472696e675d_col(row: dict[str, object], column: str) -> list[str]:
+    data = json.loads(cast(str, row[column]))
+    return [cast(str, item) for item in cast(list[object], data)]
+
+
+def _json_bind_collection_4d61705b537472696e672c20436f6e74616374496e666f5d(
+    value: dict[str, ContactInfo] | None,
+) -> str | None:
+    if value is None:
+        return None
+    return json.dumps({key: _dump_ContactInfo(mapped_value) for key, mapped_value in value.items()})
+
+
+def _read_collection_4d61705b537472696e672c20436f6e74616374496e666f5d(
+    row: tuple[object, ...] | sqlite3.Row, index: int
+) -> dict[str, ContactInfo]:
+    data = json.loads(cast(str, row[index]))
+    return {
+        str(key): _map_to_ContactInfo(cast(dict[str, object], mapped_value))
+        for key, mapped_value in cast(dict[str, object], data).items()
+    }
+
+
+def _read_collection_4d61705b537472696e672c20436f6e74616374496e666f5d_col(
+    row: dict[str, object], column: str
+) -> dict[str, ContactInfo]:
+    data = json.loads(cast(str, row[column]))
+    return {
+        str(key): _map_to_ContactInfo(cast(dict[str, object], mapped_value))
+        for key, mapped_value in cast(dict[str, object], data).items()
+    }
+
+
 def _as_sqlite_named_row(
     cursor: sqlite3.Cursor | aiosqlite.Cursor,
     row: tuple[object, ...] | sqlite3.Row,
@@ -176,6 +311,15 @@ def _as_sqlite_named_row(
 
 def _read_str(row: tuple[object, ...] | sqlite3.Row, index: int) -> str:
     return cast(str, row[index])
+
+
+def _json_bind_CollectionOnlyValue(value: CollectionOnlyValue) -> str:
+    return json.dumps(_dump_CollectionOnlyValue(value))
+
+
+def _read_CollectionOnlyValue(row: tuple[object, ...] | sqlite3.Row, index: int) -> CollectionOnlyValue:
+    data = cast(dict[str, object], json.loads(_read_str(row, index)))
+    return _map_to_CollectionOnlyValue(data)
 
 
 def _json_bind_ContactInfo(value: ContactInfo) -> str:
@@ -203,6 +347,11 @@ def _read_datetime_col(row: dict[str, object], column: str) -> datetime:
 
 def _read_str_col(row: dict[str, object], column: str) -> str:
     return cast(str, row[column])
+
+
+def _read_CollectionOnlyValue_col(row: dict[str, object], column: str) -> CollectionOnlyValue:
+    data = cast(dict[str, object], json.loads(_read_str_col(row, column)))
+    return _map_to_CollectionOnlyValue(data)
 
 
 def _read_ContactInfo_col(row: dict[str, object], column: str) -> ContactInfo:

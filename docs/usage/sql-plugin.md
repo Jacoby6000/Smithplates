@@ -1,5 +1,11 @@
 # SQL plugin
 
+Python SQL `@sqlJson` columns support lists and string-keyed maps, including
+structure elements and nullable collections. SQLite stores JSON text; PostgreSQL
+binds collections through Psycopg's native `Jsonb` adapter. An absent nullable
+collection remains SQL NULL rather than a JSON `null` document. Generated
+integration tests exercise collection insert/read/update round trips.
+
 Maven coordinate: `com.jacoby6000:smithplates-plugin:<version>` (from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate)
 
 Smithy build plugin (`smithplates`) and trait namespace for relational schema and repository codegen from Smithy models.

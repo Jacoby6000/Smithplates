@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Python SQL list/map JSON columns emit valid collection bind/read helpers,
+  use native Psycopg JSONB adaptation, and serialize SQLite values as JSON text.
+  Nullable collections preserve SQL NULL and collection element structures get
+  their transitive dump/map helpers.
+
 ## [0.8.1] - 2026-09-12
 
 ### Fixed

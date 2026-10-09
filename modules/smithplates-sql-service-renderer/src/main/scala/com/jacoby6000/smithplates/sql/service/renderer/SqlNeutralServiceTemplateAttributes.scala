@@ -299,16 +299,16 @@ object SqlNeutralServiceTemplateAttributes {
   }
 
   def unionsUsedAsJson(ctx: ServiceView): List[Model.Union[SqlMeta]] =
-    unions(ctx).filter(union => usedJsonTypeNames(ctx).contains(union.id.name))
+    unions(ctx).filter(union => internal.jsonElementTypeNames(usedJsonTypeNames(ctx)).contains(union.id.name))
 
   def modelsUsedAsJson(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
-    models(ctx).filter(model => usedJsonTypeNames(ctx).contains(model.id.name))
+    models(ctx).filter(model => internal.jsonElementTypeNames(usedJsonTypeNames(ctx)).contains(model.id.name))
 
   def unionsUsedAsJsonCol(ctx: ServiceView): List[Model.Union[SqlMeta]] =
-    unions(ctx).filter(union => usedJsonTypeNamesCol(ctx).contains(union.id.name))
+    unions(ctx).filter(union => internal.jsonElementTypeNames(usedJsonTypeNamesCol(ctx)).contains(union.id.name))
 
   def modelsUsedAsJsonCol(ctx: ServiceView): List[Model.Structure[SqlMeta]] =
-    models(ctx).filter(model => usedJsonTypeNamesCol(ctx).contains(model.id.name))
+    models(ctx).filter(model => internal.jsonElementTypeNames(usedJsonTypeNamesCol(ctx)).contains(model.id.name))
 
   /** Transitive closure of structures reachable from `@sqlJson` columns: the structures directly used as JSON columns,
     * plus every structure transitively referenced by their fields or by JSON-union members. These all need `_dump_` /
@@ -413,6 +413,15 @@ object SqlNeutralServiceTemplateAttributes {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def jsonElementTypeNames(typeNames: Set[String]): Set[String] =
+      typeNames.flatMap { name =>
+        if (name.startsWith("List[") || name.startsWith("Map[")) {
+          name.split("[\\[\\], ]+").toSet
+        } else {
+          Set(name)
+        }
+      }
+
     def enrichFromContext(
         context: SqlCodegenServiceContext
     ): (SqlServiceMeta, Map[String, SqlOperationMeta]) = {

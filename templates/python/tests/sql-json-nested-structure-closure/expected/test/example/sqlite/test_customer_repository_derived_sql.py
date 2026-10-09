@@ -9,6 +9,7 @@ import aiosqlite
 import pytest
 import pytest_asyncio
 from generated.example.models.customer_repository_models import (
+    CollectionOnlyValue,
     ContactInfo,
     Customer,
     GeoCoordinates,
@@ -46,6 +47,29 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
                 coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
             ),
         ),
+        labels=["integration-labels"],
+        contacts=[
+            ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        ],
+        contact_map={
+            "integration-key": ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        },
+        alternate_labels=None,
+        collection_only=[CollectionOnlyValue(label="integration-label")],
     )
     entity_id = entity_id_result
     assert isinstance(entity_id, str)
@@ -60,6 +84,29 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
         city="integration-city",
         coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
     )
+    assert fetched.labels == ["integration-labels"]
+    assert fetched.contacts == [
+        ContactInfo(
+            email="integration-email",
+            address=PostalAddress(
+                street="integration-street",
+                city="integration-city",
+                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+            ),
+        )
+    ]
+    assert fetched.contact_map == {
+        "integration-key": ContactInfo(
+            email="integration-email",
+            address=PostalAddress(
+                street="integration-street",
+                city="integration-city",
+                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+            ),
+        )
+    }
+    assert fetched.alternate_labels is None
+    assert fetched.collection_only == [CollectionOnlyValue(label="integration-label")]
 
     updated = await customer_repository_service.update_customer(
         name="integration-updated-name",
@@ -71,6 +118,29 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
                 coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
             ),
         ),
+        labels=["integration-updated-labels"],
+        contacts=[
+            ContactInfo(
+                email="integration-updated-email",
+                address=PostalAddress(
+                    street="integration-updated-street",
+                    city="integration-updated-city",
+                    coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+                ),
+            )
+        ],
+        contact_map={
+            "integration-key": ContactInfo(
+                email="integration-updated-email",
+                address=PostalAddress(
+                    street="integration-updated-street",
+                    city="integration-updated-city",
+                    coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+                ),
+            )
+        },
+        alternate_labels=None,
+        collection_only=[CollectionOnlyValue(label="integration-updated-label")],
         id=entity_id,
     )
     assert updated is True
@@ -84,6 +154,29 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
         city="integration-updated-city",
         coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
     )
+    assert fetched_after_update.labels == ["integration-updated-labels"]
+    assert fetched_after_update.contacts == [
+        ContactInfo(
+            email="integration-updated-email",
+            address=PostalAddress(
+                street="integration-updated-street",
+                city="integration-updated-city",
+                coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+            ),
+        )
+    ]
+    assert fetched_after_update.contact_map == {
+        "integration-key": ContactInfo(
+            email="integration-updated-email",
+            address=PostalAddress(
+                street="integration-updated-street",
+                city="integration-updated-city",
+                coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+            ),
+        )
+    }
+    assert fetched_after_update.alternate_labels is None
+    assert fetched_after_update.collection_only == [CollectionOnlyValue(label="integration-updated-label")]
 
     deleted = await customer_repository_service.delete_customer(id=entity_id)
     assert deleted is True
@@ -111,6 +204,29 @@ async def test_derived_sql_methods_transaction_commit(
                     coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
                 ),
             ),
+            labels=["integration-labels"],
+            contacts=[
+                ContactInfo(
+                    email="integration-email",
+                    address=PostalAddress(
+                        street="integration-street",
+                        city="integration-city",
+                        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                    ),
+                )
+            ],
+            contact_map={
+                "integration-key": ContactInfo(
+                    email="integration-email",
+                    address=PostalAddress(
+                        street="integration-street",
+                        city="integration-city",
+                        coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                    ),
+                )
+            },
+            alternate_labels=None,
+            collection_only=[CollectionOnlyValue(label="integration-label")],
             transaction=connection,
         )
         entity_id = entity_id_result
@@ -126,6 +242,29 @@ async def test_derived_sql_methods_transaction_commit(
             city="integration-city",
             coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
         )
+        assert fetched.labels == ["integration-labels"]
+        assert fetched.contacts == [
+            ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        ]
+        assert fetched.contact_map == {
+            "integration-key": ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        }
+        assert fetched.alternate_labels is None
+        assert fetched.collection_only == [CollectionOnlyValue(label="integration-label")]
         await connection.commit()
     except BaseException:
         await connection.rollback()
@@ -140,6 +279,29 @@ async def test_derived_sql_methods_transaction_commit(
         city="integration-city",
         coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
     )
+    assert fetched_after_commit.labels == ["integration-labels"]
+    assert fetched_after_commit.contacts == [
+        ContactInfo(
+            email="integration-email",
+            address=PostalAddress(
+                street="integration-street",
+                city="integration-city",
+                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+            ),
+        )
+    ]
+    assert fetched_after_commit.contact_map == {
+        "integration-key": ContactInfo(
+            email="integration-email",
+            address=PostalAddress(
+                street="integration-street",
+                city="integration-city",
+                coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+            ),
+        )
+    }
+    assert fetched_after_commit.alternate_labels is None
+    assert fetched_after_commit.collection_only == [CollectionOnlyValue(label="integration-label")]
 
 
 @pytest.mark.integration
@@ -160,6 +322,29 @@ async def test_derived_sql_methods_transaction_rollback(
                 coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
             ),
         ),
+        labels=["integration-labels"],
+        contacts=[
+            ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        ],
+        contact_map={
+            "integration-key": ContactInfo(
+                email="integration-email",
+                address=PostalAddress(
+                    street="integration-street",
+                    city="integration-city",
+                    coords=GeoCoordinates(lat=3.5, lng=3.5, recorded_at=datetime(2024, 1, 1, tzinfo=timezone.utc)),
+                ),
+            )
+        },
+        alternate_labels=None,
+        collection_only=[CollectionOnlyValue(label="integration-label")],
         transaction=connection,
     )
     entity_id = entity_id_result

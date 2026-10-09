@@ -10,12 +10,22 @@ class Customer:
     id: str
     name: str
     contact: ContactInfo
+    labels: list[str]
+    contacts: list[ContactInfo]
+    contact_map: dict[str, ContactInfo]
+    alternate_labels: list[str] | None
+    collection_only: list[CollectionOnlyValue]
     created_at: datetime
 
 
 @dataclass
 class CustomerNotFound:
     message: str
+
+
+@dataclass
+class CollectionOnlyValue:
+    label: str
 
 
 @dataclass
