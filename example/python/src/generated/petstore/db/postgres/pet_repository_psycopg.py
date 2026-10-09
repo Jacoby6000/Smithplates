@@ -225,13 +225,13 @@ def _dump_PetHighlight(value: PetHighlight) -> dict[str, object]:
 
 def _map_to_PetTags(data: dict[str, object]) -> PetTags:
     return PetTags(
-        items=cast(list[str], data["items"]),
+        items=[cast(str, item) for item in cast(list[object], data["items"])],
     )
 
 
 def _dump_PetTags(value: PetTags) -> dict[str, object]:
     return {
-        "items": value.items,
+        "items": [item for item in value.items],
     }
 
 

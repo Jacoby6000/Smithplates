@@ -7,7 +7,6 @@ from pathlib import Path
 import psycopg
 import pytest
 import pytest_asyncio
-from testcontainers.postgres import PostgresContainer
 
 from generated.petstore.db.order_priority import OrderPriority
 from generated.petstore.db.order_repository_protocol import (
@@ -22,15 +21,9 @@ MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[4] / "db" / "migrations"
 
 @pytest_asyncio.fixture
 async def order_repository_service(
-    postgres_container: PostgresContainer,
+    postgres_dsn: str,
 ) -> AsyncIterator[OrderRepositoryPsycopgService]:
-    connection = await psycopg.AsyncConnection.connect(
-        host=postgres_container.get_container_host_ip(),
-        port=int(postgres_container.get_exposed_port(5432)),
-        user=postgres_container.username,
-        password=postgres_container.password,
-        dbname=postgres_container.dbname,
-    )
+    connection = await psycopg.AsyncConnection.connect(postgres_dsn)
     migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
     await connection.commit()

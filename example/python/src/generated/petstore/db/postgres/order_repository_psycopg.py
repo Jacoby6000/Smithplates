@@ -111,7 +111,7 @@ def _dump_json_timestamp(value: datetime) -> str:
 
 
 def _map_to_FulfillmentState(data: dict[str, object]) -> FulfillmentState:
-    present = [key for key in ("pending", "shipped", "delivered") if key in data]
+    present = [key for key in ["pending", "shipped", "delivered"] if key in data]
     if len(present) != 1:
         raise ValueError(f"unknown FulfillmentState discriminator: {sorted(data.keys())}")
     if "pending" in data:
