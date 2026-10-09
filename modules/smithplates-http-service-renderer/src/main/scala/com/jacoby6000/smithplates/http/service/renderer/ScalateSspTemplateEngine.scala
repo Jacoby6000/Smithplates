@@ -16,6 +16,17 @@ import java.nio.file.Paths
 import java.util.concurrent.ConcurrentHashMap
 
 object ScalateSspTemplateEngine {
+  def readClasspathResource(resourceClasspath: String): String = {
+    val path   = resourceClasspath.stripPrefix("classpath:").stripPrefix("/")
+    val stream = Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse(
+      throw new IllegalArgumentException(s"missing HTTP codegen resource: $path")
+    )
+    try
+      new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8)
+    finally
+      stream.close()
+  }
+
   def renderClasspathTemplateAttributes(
       templateClasspath: String,
       attributes: Map[String, Any],

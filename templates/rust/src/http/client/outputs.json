@@ -1,0 +1,12 @@
+{
+  "defaultVariant": "reqwest",
+  "shared": [
+    { "id": "rust.http.mod", "artifactKind": "src", "template": "mod.rs", "outputPath": "{{rootNamespaceDir}}/mod.rs", "binding": { "type": "once" } },
+    { "id": "rust.http.runtime", "artifactKind": "src", "template": "runtime.rs", "outputPath": "{{rootNamespaceDir}}/runtime.rs", "binding": { "type": "once" } }
+  ],
+  "variants": {
+    "reqwest": [
+      { "id": "rust.http.client", "artifactKind": "src", "template": "client.ssp", "outputPath": "{{rootNamespaceDir}}/client.rs", "binding": { "type": "service" } }
+    ]
+  }
+}

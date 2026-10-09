@@ -25,6 +25,8 @@ run_plugin_tests() {
   echo "==> Scala plugin tests (excluding template golden suite; Docker required for *RendererIt)"
   local -a modules=(
     smithplatesSqlIr
+    smithplatesHttpIr
+    smithplatesHttpServiceRenderer
     smithplatesSqlServiceIr
     smithplatesSqlDdlRendererPostgres
     smithplatesSqlDdlRendererSqlite

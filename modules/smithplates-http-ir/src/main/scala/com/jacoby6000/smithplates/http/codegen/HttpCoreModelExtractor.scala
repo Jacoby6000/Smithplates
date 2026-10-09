@@ -224,7 +224,16 @@ object HttpCoreModelExtractor extends SmithyModelExtractor[HttpMeta, HttpService
                   serviceErrorStructures,
                   operationErrorStructures) =>
               (
-                service,
+                service.copy(operations = service.operations.map { operation =>
+                  val headers = operation.input
+                    .flatMap(ref =>
+                      operationShapeMeta.requestMetaByShapeId.get(ShapeId.from(s"${ref.id.namespace}#${ref.id.name}")))
+                    .map(_.staticHeaders)
+                    .getOrElse(Map.empty)
+                  val feature = operation.meta.feature.copy(requestStaticHeaders = headers)
+                  val meta    = operation.meta.copy(feature = feature)
+                  operation.copy(meta = meta)
+                }),
                 aliases ++ structures ++ extraStructures ++ unions ++ stringEnums ++ intEnums ++ serviceErrorStructures ++
                   operationErrorStructures
               )

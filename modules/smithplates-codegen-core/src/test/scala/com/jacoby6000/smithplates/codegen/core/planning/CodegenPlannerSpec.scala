@@ -166,6 +166,28 @@ class CodegenPlannerSpec extends FunSuite {
     }
   }
 
+  test("views retain direct imports separately from the complete resolution model set") {
+    val extra      = Model.Alias(ModelId("example", "Reason"), meta(), StringT)
+    val resolution = ModelSet[Unit](models.all :+ extra)
+    val renderer   = TemplateRenderer.fromFunction { (_: String, view: TemplateView[Any, Unit]) =>
+      assertEquals(view.usedTypes.map(_.id).toSet, models.all.map(_.id).toSet)
+      assertEquals(view.resolutionModels.map(_.id).toSet, resolution.all.map(_.id).toSet)
+      "resolved"
+    }
+    CodegenPlanner
+      .plan(
+        List(templateOutput("resolution", SmithyBinding.Once, outputPath = "resolution.py")),
+        models,
+        List(service),
+        settings,
+        renderer,
+        resolutionModels = Some(resolution)
+      ) match {
+      case Validated.Valid(_)        => ()
+      case Validated.Invalid(errors) => fail(errors.toList.mkString("; "))
+    }
+  }
+
   test("plan override-by-id avoids path collision with replaced bundled output") {
     val outputs =
       List(

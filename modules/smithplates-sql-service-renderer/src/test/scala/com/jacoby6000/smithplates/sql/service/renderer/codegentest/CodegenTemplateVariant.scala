@@ -55,6 +55,7 @@ final case class CodegenTemplateVariant(
   def sourceFileExtension: String =
     languageId match {
       case "typescript" => ".ts"
+      case "rust"       => ".rs"
       case _            => ".py"
     }
 

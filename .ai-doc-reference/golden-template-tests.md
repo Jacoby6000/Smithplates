@@ -23,6 +23,9 @@ Languages today:
 * [`templates/typescript/tests/`](../templates/typescript/tests/) — HTTP client only
   (fetch/axios + WebSocket client). See
   [`templates/typescript/tests/README.md`](../templates/typescript/tests/README.md).
+* [`templates/rust/tests/`](../templates/rust/tests/) — bounded async reqwest HTTP clients;
+  locked loopback/compile harness under `language-test-harnesses/rust`.
+  `./validate --target rust` also compiles fresh generated output.
 
 ## Test suite
 

@@ -27,7 +27,7 @@ object HttpServiceCodegenRenderer {
   def render(
       model: Model,
       settings: HttpServiceCodegenSettings
-  ): HttpValidated[List[HttpCodegenArtifact]] =
+  ): HttpValidated[List[HttpCodegenArtifact]] = RustHttpCapabilities.prevalidate(model, settings).andThen { _ =>
     (
       internal.toHttpValidated(HttpCoreModelExtractor.extract(model)),
       internal.toHttpValidated(HttpCodegenLanguageConventions.codegenSettings(settings))
@@ -37,7 +37,16 @@ object HttpServiceCodegenRenderer {
         internal.emittableModelSet(modelSet, filteredServices)
       val templateRenderer =
         internal.HttpPlannerTemplateRenderer(settings)
-      internal.validateAuthCapabilities(filteredServices, settings).andThen { _ =>
+      (
+        internal.validateAuthCapabilities(filteredServices, settings),
+        RustHttpCapabilities.validate(
+          model,
+          emittableModels,
+          modelSet,
+          filteredServices,
+          settings,
+          codegenSettings.conventions)
+      ).mapN((_, _) => ()).andThen { _ =>
         internal
           .toHttpValidated(
             CodegenPlanner.plan(
@@ -52,6 +61,7 @@ object HttpServiceCodegenRenderer {
           .map(_.map(internal.httpArtifact))
       }
     }
+  }
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
@@ -63,6 +73,8 @@ object HttpServiceCodegenRenderer {
           case _: CodegenPlanner.internal.OperationGroupSubject[?, ?] =>
             renderNeutralTemplate(settings, templatePath, view)
           case _: CodegenModel[?]                                     =>
+            renderNeutralTemplate(settings, templatePath, view)
+          case _: CodegenPlanner.internal.ModelAllSubject[?]          =>
             renderNeutralTemplate(settings, templatePath, view)
           case ()                                                     =>
             renderNeutralTemplate(settings, templatePath, view)
@@ -139,6 +151,7 @@ object HttpServiceCodegenRenderer {
         case ("python/src/http/client", "httpx")     => true
         case ("python/src/http/client", "httpx2")    => true
         case ("typescript/src/http/client", "fetch") => true
+        case ("rust/src/http/client", "reqwest")     => true
         case _                                       => false
       }
       bundledTarget && !settings.artifacts.exists(_.overrides.nonEmpty)
@@ -166,7 +179,16 @@ object HttpServiceCodegenRenderer {
       try {
         val bundledTemplateRoot = settings.templateDirectory.stripPrefix("classpath:")
         val content             =
-          if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+          if (!templatePath.endsWith(".ssp")) {
+            if (CodegenTemplatePaths.isFileQualified(templatePath)) {
+              java.nio.file.Files.readString(java.nio.file.Paths.get(CodegenTemplatePaths.filePath(templatePath)))
+            } else {
+              val resourceSettings =
+                settings.copy(templateDirectory = resolvedTemplateDirectory(settings, templatePath))
+              ScalateSspTemplateEngine.readClasspathResource(
+                resolveTemplatePath(resourceSettings, stripTemplateDirectoryPrefix(templatePath)))
+            }
+          } else if (CodegenTemplatePaths.isFileQualified(templatePath)) {
             ScalateSspTemplateEngine.renderFilesystemTemplate(
               CodegenTemplatePaths.filePath(templatePath),
               bundledTemplateRoot,
