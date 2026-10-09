@@ -4,11 +4,14 @@ import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
 import com.jacoby6000.smithplates.testkit.SqlDdlSupport
 import com.jacoby6000.smithplates.testkit.SqlIntegrationSchemas
+import com.jacoby6000.smithplates.sql.model.SqlColumnType
+import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
 import munit.FunSuite
 import org.testcontainers.utility.DockerImageName
 
 import java.sql.Connection
 import java.sql.DriverManager
+import java.time.OffsetDateTime
 
 final class PostgresSqlSchemaIntegrationSpec extends FunSuite with TestContainerForEach {
   override val containerDef: PostgreSQLContainer.Def =
@@ -43,6 +46,27 @@ final class PostgresSqlSchemaIntegrationSpec extends FunSuite with TestContainer
     }
   }
 
+  test("date-time timestamps preserve their instant across session time zones") {
+    withContainers { postgres =>
+      PostgresSqlSchemaIntegrationSpec.internal.withConnection(postgres) { connection =>
+        val timestampType = PostgresRenderer.internal.sqlTypeFor(
+          SqlColumnType.Timestamp(SqlTimestampFormat.DateTime)
+        )
+        SqlDdlSupport.executeUpdate(connection, s"CREATE TABLE instant_probe (occurred_at $timestampType)")
+        SqlDdlSupport.executeUpdate(connection, "SET TIME ZONE 'America/Los_Angeles'")
+        SqlDdlSupport.executeUpdate(
+          connection,
+          "INSERT INTO instant_probe VALUES ('2026-01-02T12:30:00+05:00')"
+        )
+        val first         = PostgresSqlSchemaIntegrationSpec.internal.readInstant(connection)
+        SqlDdlSupport.executeUpdate(connection, "SET TIME ZONE 'UTC'")
+        val second        = PostgresSqlSchemaIntegrationSpec.internal.readInstant(connection)
+        assertEquals(first.toInstant, OffsetDateTime.parse("2026-01-02T07:30:00Z").toInstant)
+        assertEquals(second.toInstant, first.toInstant)
+      }
+    }
+  }
+
   test("complex schema creates all tables and foreign keys") {
     withContainers { postgres =>
       PostgresSqlSchemaIntegrationSpec.internal.withConnection(postgres) { connection =>
@@ -65,6 +89,19 @@ object PostgresSqlSchemaIntegrationSpec {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def readInstant(connection: Connection): OffsetDateTime = {
+      val statement = connection.createStatement()
+      try {
+        val rows = statement.executeQuery("SELECT occurred_at FROM instant_probe")
+        try {
+          if (!rows.next()) {
+            throw new IllegalStateException("timestamp probe returned no row")
+          }
+          rows.getObject(1, classOf[OffsetDateTime])
+        } finally rows.close()
+      } finally statement.close()
+    }
+
     def withConnection(postgres: PostgreSQLContainer)(body: Connection => Unit): Unit = {
       Class.forName(postgres.driverClassName)
       val connection = DriverManager.getConnection(postgres.jdbcUrl, postgres.username, postgres.password)

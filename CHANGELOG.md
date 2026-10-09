@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- PostgreSQL date-time timestamps use `TIMESTAMPTZ` to preserve Smithy instant
+  semantics across session time zones. Existing `TIMESTAMP` columns need an
+  explicit migration using the time zone in which their old values were stored.
+
 ## [0.8.1] - 2026-09-12
 
 ### Fixed

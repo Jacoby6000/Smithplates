@@ -1,5 +1,13 @@
 # SQL plugin
 
+PostgreSQL date-time Timestamp members are stored as `TIMESTAMPTZ`: Smithy
+timestamps represent instants, not local wall-clock times. PostgreSQL returns
+timezone-aware datetimes and changes only their displayed offset when a session
+time zone changes. Epoch-seconds storage remains numeric. When upgrading a
+legacy `TIMESTAMP` column, use an explicit conversion with the actual historical
+storage zone (for example `USING occurred_at AT TIME ZONE 'UTC'` only when old
+values were stored in UTC); do not rely on the migration session's default zone.
+
 Maven coordinate: `com.jacoby6000:smithplates-plugin:<version>` (from `sbtn print smithplatesPlugin/version` after `publishM2`, or a published release/snapshot coordinate)
 
 Smithy build plugin (`smithplates`) and trait namespace for relational schema and repository codegen from Smithy models.
