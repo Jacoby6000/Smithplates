@@ -255,13 +255,8 @@ def transactionRunModuleName(dialectKey: String): String =
     case other      => throw new IllegalArgumentException(s"unsupported dialect key: $other")
   }
 
-def referencedTypeNames(typeName: String): List[String] = {
-  val listPattern = """(?i)list\[(.+)]""".r
-  typeName match {
-    case listPattern(inner) => List(inner.trim)
-    case other              => List(other)
-  }
-}
+def referencedTypeNames(typeName: String): List[String] =
+  typeName.split("[\\[\\], |]+").toList.filter(_.nonEmpty)
 
 def enumImportBlock(ctx: sqlAttrs.ServiceView): String = {
   val enumNames = referencedEnumTypeNames(ctx).toList.sorted

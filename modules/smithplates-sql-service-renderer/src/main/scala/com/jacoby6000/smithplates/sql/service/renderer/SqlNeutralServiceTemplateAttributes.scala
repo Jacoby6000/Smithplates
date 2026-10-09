@@ -278,6 +278,8 @@ object SqlNeutralServiceTemplateAttributes {
     ImportRequirements(
       needsCastImport = rowReadersSet.nonEmpty || rowReadersColSet.nonEmpty || usesJson,
       needsJsonImport = usesJson && (dialect == "sqlite" ||
+        modelsUsedAsJson(ctx).nonEmpty || modelsUsedAsJsonCol(ctx).nonEmpty ||
+        unionsUsedAsJson(ctx).nonEmpty || unionsUsedAsJsonCol(ctx).nonEmpty ||
         (usedJsonTypeNames(ctx) ++ usedJsonTypeNamesCol(ctx)).exists(t =>
           !t.startsWith("List[") && !t.startsWith("Map["))),
       needsDecimalImport = internal.needsDecimalImport(dialect, rowReadersSet, timestampBindsSet) ||

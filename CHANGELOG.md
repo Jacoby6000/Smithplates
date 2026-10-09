@@ -26,6 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their transitive dump/map helpers.
 - Python SQL JSON helpers discover nested union/collection dependencies, preserve
   nullable nested members, and round-trip timestamp, decimal, and blob collections.
+- Python SQL collection-only structure/union helpers retain their required JSON
+  import, and protocol annotations import models reached only through maps or
+  nested collections without adding unused JSON imports to scalar-only services.
 - PostgreSQL date-time timestamps use `TIMESTAMPTZ` to preserve Smithy instant
   semantics across session time zones. Existing `TIMESTAMP` columns need an
   explicit migration using the time zone in which their old values were stored.
