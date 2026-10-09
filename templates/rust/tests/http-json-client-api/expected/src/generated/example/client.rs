@@ -154,6 +154,49 @@ impl Client {
         }
     }
 
+    pub async fn echo(
+        &self,
+        input: &super::models::Message,
+        timeout: Option<Duration>,
+    ) -> Result<super::models::Message, EchoError> {
+        let input = serde_json::to_value(input)
+            .map_err(|_| EchoError::Client(TransportError::InvalidJson))?;
+        let spec = runtime::RequestSpec {
+            method: "POST",
+            path: "/echo",
+            bindings: &[],
+            body: runtime::Body::Document,
+            static_headers: &[("X-Contract", "catalog")],
+            operation_id: "example#Echo",
+            requires_auth: false,
+            auth: &[],
+        };
+        let response = runtime::execute(
+            &self.runtime,
+            spec,
+            input,
+            timeout,
+            self.auth_provider.as_deref(),
+        )
+        .await
+        .map_err(EchoError::Client)?;
+        match response.status {
+            200 => runtime::decode(&response, &[], &[("X-Contract", "catalog")], false)
+                .map_err(EchoError::Client),
+            404 => Err(runtime::decode(
+                &response,
+                &[("reason", "X-Reason", "string")],
+                &[("Content-Type", "application/problem+json")],
+                false,
+            )
+            .map(EchoError::NotFound)
+            .unwrap_or_else(EchoError::Client)),
+            _ => Err(EchoError::Client(TransportError::UnexpectedStatus(
+                response.status,
+            ))),
+        }
+    }
+
     pub async fn get_item(
         &self,
         input: &super::models::GetItemInput,
@@ -647,6 +690,28 @@ impl std::fmt::Display for DeleteItemError {
 }
 
 impl std::error::Error for DeleteItemError {}
+
+pub enum EchoError {
+    Client(TransportError),
+    NotFound(super::models::NotFound),
+}
+
+impl std::fmt::Debug for EchoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Client(error) => std::fmt::Debug::fmt(error, f),
+            Self::NotFound(_) => f.write_str("NotFound"),
+        }
+    }
+}
+
+impl std::fmt::Display for EchoError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for EchoError {}
 
 pub enum GetItemError {
     Client(TransportError),

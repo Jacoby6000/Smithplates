@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rust clients preserve static request headers when input/output structures are
+  reused, and reject response payload wrappers even when response headers are present.
 - Rust clients resolve service-error and aliased response headers, allow omitted
   optional nested JSON payloads, disambiguate runtime/operation error names, and
   reject shared problem wire-field collisions introduced by `@jsonName`.

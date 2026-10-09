@@ -89,6 +89,30 @@ const ITEM: &[u8] =
     br#"{"id":"item-1","wireName":"name","state":"available","choice":{"wireText":"hello"}}"#;
 
 #[tokio::test]
+async fn reused_input_output_preserves_static_request_headers() {
+    let (url, request) = server_with_headers(
+        "200 OK",
+        br#"{"value":"echo"}"#,
+        Duration::ZERO,
+        "X-Contract: catalog\r\n",
+    )
+    .await;
+    let result = client::Client::new(&url)
+        .unwrap()
+        .echo(
+            &models::Message {
+                value: "echo".into(),
+            },
+            None,
+        )
+        .await
+        .unwrap();
+    assert_eq!(result.value, "echo");
+    let request = request.await.unwrap();
+    assert!(request.contains("x-contract: catalog\r\n"), "{request}");
+}
+
+#[tokio::test]
 async fn labels_queries_headers_and_base_path() {
     let (url, request) = server("200 OK", ITEM, Duration::ZERO).await;
     let client = client::Client::new(&url).unwrap();

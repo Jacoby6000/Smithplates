@@ -225,9 +225,16 @@ object RustHttpCapabilities {
               meta.responseVariants,
               service.meta.feature.serviceErrors)
             val ambiguous             = variants.groupBy(_.statusCode).exists { case (_, values) => values.size > 1 }
-            val outputPayload         = meta.responseVariants
-              .find(_.statusCode == meta.successStatus)
-              .exists(variant => variant.modelShapeId != operation.output.map(_.id))
+            val responseShapeIds      = operation.output.toList.map(_.id) ++ operation.errors.map(_.id) ++
+              service.meta.feature.serviceErrors.map(_.id)
+            val outputPayload         = responseShapeIds.exists { id =>
+              original
+                .expectShape(ShapeId.from(s"${id.namespace}#${id.name}"))
+                .getAllMembers
+                .values
+                .asScala
+                .exists(_.hasTrait("smithy.api#httpPayload"))
+            }
             val unsupported           = meta.websocket.isDefined || meta.uriPattern.contains("+}") || meta.uriPattern.contains(
               "?") || meta.uriPattern.contains("%") ||
               variants.exists(variant =>

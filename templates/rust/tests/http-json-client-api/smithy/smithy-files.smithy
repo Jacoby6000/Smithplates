@@ -13,7 +13,7 @@ use smithplates.codegen.http#httpStaticHeader
 @auth([httpBearerAuth, httpApiKeyAuth, httpCookieAuth])
 service Catalog {
     version: "2026-10-09"
-    operations: [GetItem, PutItem, DeleteItem, Secured, Optional, ApiKey, Cookie, PutNested, ReadHeaders, ReadHeaderOnly, PutOptionalNested, Transport]
+    operations: [GetItem, PutItem, DeleteItem, Secured, Optional, ApiKey, Cookie, PutNested, ReadHeaders, ReadHeaderOnly, PutOptionalNested, Transport, Echo]
     errors: [NotFound]
 }
 
@@ -139,3 +139,10 @@ structure OptionalNestedInput {
 @http(method: "GET", uri: "/transport", code: 200)
 @tags(["items"])
 operation Transport { output: Item }
+
+@auth([])
+@http(method: "POST", uri: "/echo", code: 200)
+@tags(["items"])
+operation Echo { input: Message, output: Message }
+@httpStaticHeader(name: "X-Contract", value: "catalog")
+structure Message { @required value: String }

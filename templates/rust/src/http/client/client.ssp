@@ -58,8 +58,7 @@ val errorName = operationErrorType(operation)
 val inputType = operation.input.map(modelName).getOrElse("serde_json::Value")
 val outputType = operation.output.map(modelName).getOrElse("()")
 val variants = H.clientResponseVariants(ctx, operation).filterNot(_.statusCode == meta.successStatus)
-val inputMeta = operation.input.flatMap(ref => ctx.usedTypes.find(_.id == ref.id)).map(_.meta.feature)
-val staticHeaders = inputMeta.collect { case com.jacoby6000.smithplates.http.codegen.HttpMeta.HttpRequestMeta(headers, _) => headers.toList.sortBy(_._1) }.getOrElse(Nil)
+val staticHeaders = meta.requestStaticHeaders.toList.sortBy(_._1)
 val staticHeaderLiteral = staticHeaders.map { case (name, value) => s"(${quote(name)}, ${quote(value)})" }.mkString(", ")
 // DESNOTE(jbarber, 2026-10-09): Legacy body metadata uses Members when route fields accompany
 // a nestedProperties payload. Effective field traits retain the unwrapped JSON payload contract.

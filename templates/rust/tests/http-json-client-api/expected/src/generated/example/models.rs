@@ -60,6 +60,12 @@ pub struct Item {
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct Message {
+    #[serde(rename = "value")]
+    pub value: String,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct NestedInput {
     #[serde(rename = "id")]
     pub id: String,

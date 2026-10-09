@@ -47,3 +47,9 @@ for the actual supported subset. Do not claim other targets' full parity.
 response models and recursive alias lookup; `usedTypes` remains the direct import
 set. The wire fixture covers service-error headers, named scalar response headers,
 optional nested bodies, and operation names that collide with runtime error names.
+
+Operation metadata retains `requestStaticHeaders` independently of a reused
+structure's request/response classification. The loopback fixture exercises the
+same structure as both input and output. Payload-wrapper rejection inspects
+effective response members, not variant IDs; validated plugin tests assert no
+artifact writes for success and error wrappers with headers.

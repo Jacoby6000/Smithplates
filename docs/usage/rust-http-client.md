@@ -145,7 +145,7 @@ blob/timestamp/big-number/float/int-enum/byte/short/set shapes, recursion, spars
 collections, defaults, length/range/pattern/unique constraints, raw/streaming
 payloads, greedy labels, query-map/prefix-header bindings, dynamic status codes,
 non-JSON media types, checksums, WebSockets, sync/both modes and ambiguous names
-or response statuses, percent-escaped literal URI paths, response payload wrappers,
+or response statuses, percent-escaped literal URI paths, response payload wrappers (including wrappers with headers),
 legacy `@enum` string traits, and problem structures redeclaring shared problem
 fields (including members renamed to shared wire names with `@jsonName`). Use
 another target or consumer templates for these needs.
