@@ -141,5 +141,6 @@ final case class HttpOperationMeta(
     bodyBinding: HttpOperationBodyBindingMeta = HttpOperationBodyBindingMeta.None,
     responseVariants: List[HttpResponseVariantMeta] = Nil,
     websocket: Option[HttpWebsocketMeta] = None,
-    authAlternatives: List[HttpAuthAlternativeMeta] = Nil
+    authAlternatives: List[HttpAuthAlternativeMeta] = Nil,
+    requestStaticHeaders: Map[String, String] = Map.empty
 )

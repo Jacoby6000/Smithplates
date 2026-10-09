@@ -4,6 +4,7 @@ Targets (--target / -Target):
   all                 full repo (default)
   plugin              Scala plugin modules only
   python              all Python service types (discovered)
+  rust                Rust HTTP client harness
   python/db           db service type only
   python/db/sqlite    db sqlite dialect + shared db files
   python/db/postgres  db postgres dialect + shared db files
@@ -20,6 +21,7 @@ function Normalize-SmithplatesValidateTarget {
     'all' { return 'all' }
     'plugin' { return 'plugin' }
     'python' { return 'python' }
+    'rust' { return 'rust' }
     'python/db' { return 'python/db' }
     'python/db/sqlite' { return 'python/db/sqlite' }
     'python/db/postgres' { return 'python/db/postgres' }

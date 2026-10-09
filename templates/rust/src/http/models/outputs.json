@@ -1,0 +1,6 @@
+{
+  "shared": [
+    { "id": "rust.http.models", "artifactKind": "src", "template": "models/models.ssp", "outputPath": "{{rootNamespaceDir}}/models.rs", "binding": { "type": "model", "groupBy": "all" } },
+    { "id": "rust.http.problem", "artifactKind": "src", "template": "models/http_problem.rs", "outputPath": "{{rootNamespaceDir}}/http_problem.rs", "binding": { "type": "once" } }
+  ]
+}

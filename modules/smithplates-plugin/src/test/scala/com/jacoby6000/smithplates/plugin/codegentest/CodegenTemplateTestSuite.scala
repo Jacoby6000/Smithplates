@@ -80,7 +80,8 @@ object CodegenTemplateTestSuite {
       CodegenTemplateVariant("python", "http", "client"),
       CodegenTemplateVariant("python", "db", "sqlite"),
       CodegenTemplateVariant("python", "db", "postgres"),
-      CodegenTemplateVariant("typescript", "http", "client")
+      CodegenTemplateVariant("typescript", "http", "client"),
+      CodegenTemplateVariant("rust", "http", "client")
     )
 
     val buildOutputs =

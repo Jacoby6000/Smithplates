@@ -57,6 +57,10 @@ Python-only formatting helpers (for example `pythonTupleOfPairs` in the HTTP SSP
 
 Extraction still uses feature-specific IR alongside core extractors (for example HTTP binding facts via `HttpCoreMetaBuilder`, SQL schema/query IR for DDL and rendered SQL). That is separate from the template `TemplateView` surface documented here.
 
+`TemplateView.resolutionModels` carries the complete planner resolution model set,
+separately from import-oriented `usedTypes`, for transitive aliases and response
+models not referenced directly by operations.
+
 ## Key packages
 
 | Package | Contents |

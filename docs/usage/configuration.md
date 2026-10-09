@@ -279,7 +279,7 @@ HTTP configuration lives beside SQL under the language entry and contains `serve
 | Field | Required | Meaning |
 |-------|----------|---------|
 | `webFramework` | No; default `fastapi` | Web framework for generated server artifacts. Python/FastAPI is the bundled server today. |
-| `httpLibrary` | No; default `httpx` for Python | HTTP client library. Bundled values: `httpx` or `httpx2` (Python), `fetch` or `axios` (TypeScript). |
+| `httpLibrary` | No; default from bundled deck | HTTP client library. Bundled values: `httpx` or `httpx2` (Python), `fetch` or `axios` (TypeScript), `reqwest` (Rust, async only). See [Rust's bounded subset](rust-http-client.md). |
 | `mode` | No; default `async` | REST client mode: `async`, `sync`, or `both`. Both bundled Python libraries support synchronous output; generated WebSocket clients remain asynchronous. |
 | `packageName` | No | Default derived import package for server or client output. Overridden per output tree by `outputs[].packageName`. When both are omitted, packages include the Smithy service namespace. |
 | `rootNamespace` | No; default `generated` for bundled Python | Prefix for HTTP model and service import packages. |
@@ -293,7 +293,7 @@ Consumers extend bundled SQL/HTTP codegen in two ways:
 
 ### `additionalTemplatesDirectory` (append to bundled outputs)
 
-For **existing bundled features** (Python SQL/HTTP, TypeScript HTTP client), point
+For **existing bundled features** (Python SQL/HTTP, TypeScript and Rust HTTP clients), point
 `additionalTemplatesDirectory` at a folder that ships an `outputs.json` deck
 beside its templates — the same layout as bundled language template roots under
 `templates/<language>/src/...`.

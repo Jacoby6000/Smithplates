@@ -66,6 +66,9 @@ Bundled languages (default `classpath:`):
   `client/`, `models/`).
 - **TypeScript** — [`templates/typescript/src/http/`](../templates/typescript/src/http/)
   (client + models only; `httpLibrary` `fetch` or `axios`).
+- **Rust** — [`templates/rust/src/http/`](../templates/rust/src/http/) (async reqwest
+  client + flat models only; exactly one selected service per output entry).
+  See [`docs/usage/rust-http-client.md`](../docs/usage/rust-http-client.md) for capability exclusions.
 
 Other languages require an explicit `templateDirectory` whose classpath
 contains every required template and an `outputs.json` deck.

@@ -161,7 +161,7 @@ object CodegenTemplateTestDiscovery {
         .sortBy(_.relativePath)
     }
 
-    val GoldenFileSuffixes: Set[String] = Set(".py", ".sql", ".pyi", ".ts", ".js", ".tsx", ".jsx")
+    val GoldenFileSuffixes: Set[String] = Set(".py", ".sql", ".pyi", ".ts", ".js", ".tsx", ".jsx", ".rs")
 
     def isGoldenExpectedFile(path: Path): Boolean = {
       val fileName = path.getFileName.toString
