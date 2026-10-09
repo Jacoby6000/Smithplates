@@ -290,11 +290,9 @@ pub fn decode<T: serde::de::DeserializeOwned>(
     allow_empty: bool,
 ) -> Result<T, TransportError> {
     for (name, expected) in static_headers {
-        if response
-            .headers
-            .get(*name)
-            .and_then(|value| value.to_str().ok())
-            != Some(*expected)
+        let mut values = response.headers.get_all(*name).iter();
+        if values.next().and_then(|value| value.to_str().ok()) != Some(*expected)
+            || values.next().is_some()
         {
             return Err(TransportError::InvalidBinding);
         }

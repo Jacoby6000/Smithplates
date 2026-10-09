@@ -53,3 +53,8 @@ structure's request/response classification. The loopback fixture exercises the
 same structure as both input and output. Payload-wrapper rejection inspects
 effective response members, not variant IDs; validated plugin tests assert no
 artifact writes for success and error wrappers with headers.
+
+The wire harness checks static response header cardinality for custom success
+headers and modeled problem content types: one matching value succeeds, while
+missing, mismatched, repeated (including identical), and comma-folded values
+fail with redacted `InvalidBinding` diagnostics.

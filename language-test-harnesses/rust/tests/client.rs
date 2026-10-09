@@ -28,6 +28,26 @@ async fn server_with_headers(
     delay: Duration,
     extra_headers: &str,
 ) -> (String, tokio::task::JoinHandle<String>) {
+    let content_type = if extra_headers.to_ascii_lowercase().contains("content-type:") {
+        ""
+    } else {
+        "Content-Type: application/json\r\n"
+    };
+    server_with_response_headers(
+        status,
+        body,
+        delay,
+        &format!("{content_type}{extra_headers}"),
+    )
+    .await
+}
+
+async fn server_with_response_headers(
+    status: &str,
+    body: &[u8],
+    delay: Duration,
+    extra_headers: &str,
+) -> (String, tokio::task::JoinHandle<String>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let address = listener.local_addr().unwrap();
     let body = body.to_vec();
@@ -60,13 +80,8 @@ async fn server_with_headers(
             assert_ne!(read, 0);
             request.extend_from_slice(&buffer[..read]);
         }
-        let content_type = if extra_headers.to_ascii_lowercase().contains("content-type:") {
-            ""
-        } else {
-            "Content-Type: application/json\r\n"
-        };
         let response = format!(
-            "HTTP/1.1 {status}\r\nContent-Length: {}\r\n{content_type}Location: http://127.0.0.1:{}/other\r\n{extra_headers}Connection: close\r\n\r\n",
+            "HTTP/1.1 {status}\r\nContent-Length: {}\r\nLocation: http://127.0.0.1:{}/other\r\n{extra_headers}Connection: close\r\n\r\n",
             body.len(),
             address.port()
         );
@@ -87,6 +102,119 @@ async fn server_with_headers(
 
 const ITEM: &[u8] =
     br#"{"id":"item-1","wireName":"name","state":"available","choice":{"wireText":"hello"}}"#;
+
+#[tokio::test]
+async fn static_success_header_requires_exactly_one_matching_value() {
+    for (headers, accepted) in [
+        ("X-Contract: catalog\r\n", true),
+        ("x-contract: catalog\r\n", true),
+        ("", false),
+        ("X-Contract: secret\r\n", false),
+        ("X-Contract: Catalog\r\n", false),
+        ("X-Contract: catalog\r\nX-Contract: secret\r\n", false),
+        ("X-Contract: secret\r\nX-Contract: catalog\r\n", false),
+        ("X-Contract: catalog\r\nx-contract: catalog\r\n", false),
+        ("X-Contract: catalog, secret\r\n", false),
+        ("X-Contract: catalog, catalog\r\n", false),
+    ] {
+        let (url, request) =
+            server_with_headers("200 OK", br#"{"value":"secret"}"#, Duration::ZERO, headers).await;
+        let result = client::Client::new(&url)
+            .unwrap()
+            .echo(
+                &models::Message {
+                    value: "echo".into(),
+                },
+                None,
+            )
+            .await;
+        if accepted {
+            assert_eq!(result.unwrap().value, "secret");
+        } else {
+            assert!(result.is_err(), "accepted static header: {headers:?}");
+            let error = result.err().unwrap();
+            assert!(
+                matches!(
+                    error,
+                    client::EchoError::Client(TransportError::InvalidBinding)
+                ),
+                "{headers:?}"
+            );
+            assert_eq!(format!("{error:?}"), "InvalidBinding");
+            assert!(!format!("{error}").contains("secret"));
+        }
+        request.await.unwrap();
+    }
+}
+
+#[tokio::test]
+async fn static_problem_header_requires_exactly_one_matching_value() {
+    for (headers, accepted) in [
+        ("Content-Type: application/problem+json\r\n", true),
+        ("content-type: application/problem+json\r\n", true),
+        ("", false),
+        ("Content-Type: text/plain\r\n", false),
+        ("Content-Type: Application/Problem+Json\r\n", false),
+        (
+            "Content-Type: application/problem+json; charset=utf-8\r\n",
+            false,
+        ),
+        (
+            "Content-Type: application/problem+json\r\nContent-Type: text/plain\r\n",
+            false,
+        ),
+        (
+            "Content-Type: text/plain\r\nContent-Type: application/problem+json\r\n",
+            false,
+        ),
+        (
+            "Content-Type: application/problem+json\r\ncontent-type: application/problem+json\r\n",
+            false,
+        ),
+        (
+            "Content-Type: application/problem+json, text/plain\r\n",
+            false,
+        ),
+        (
+            "Content-Type: application/problem+json, application/problem+json\r\n",
+            false,
+        ),
+    ] {
+        let (url, request) = server_with_response_headers(
+            "404 Not Found",
+            br#"{"message":"secret","detail":"secret"}"#,
+            Duration::ZERO,
+            &format!("X-Reason: unavailable\r\n{headers}"),
+        )
+        .await;
+        let error = client::Client::new(&url)
+            .unwrap()
+            .get_item(&get_input("id"), None)
+            .await
+            .err()
+            .unwrap();
+        if accepted {
+            assert_eq!(format!("{error:?}"), "NotFound");
+            match error {
+                client::GetItemError::NotFound(problem) => {
+                    assert_eq!(problem.message.as_deref(), Some("secret"));
+                }
+                _ => panic!("expected typed problem"),
+            }
+        } else {
+            assert!(
+                matches!(
+                    error,
+                    client::GetItemError::Client(TransportError::InvalidBinding)
+                ),
+                "{headers:?}"
+            );
+            assert_eq!(format!("{error:?}"), "InvalidBinding");
+            assert!(!format!("{error}").contains("secret"));
+        }
+        request.await.unwrap();
+    }
+}
 
 #[tokio::test]
 async fn reused_input_output_preserves_static_request_headers() {

@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Rust clients require exactly one matching value for static response headers,
+  rejecting duplicate headers even when the first value matches.
 - Rust clients preserve static request headers when input/output structures are
   reused, and reject response payload wrappers even when response headers are present.
 - Rust clients resolve service-error and aliased response headers, allow omitted

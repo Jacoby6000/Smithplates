@@ -111,7 +111,10 @@ Empty success is accepted for no-output, empty-structure and header-only output
 operations; ordinary JSON output requires valid JSON and required field types.
 Scalar dynamic response headers are authoritative over same-named JSON fields;
 missing required, malformed, or repeated scalar headers fail decoding. Modeled
-static response headers must match exactly.
+static response headers require exactly one value matching exactly; missing,
+repeated (even identical), or comma-folded conflicting values fail with
+`InvalidBinding`. Header names are case-insensitive; expected values retain their
+exact case and media-type semantics.
 Named scalar aliases also work in response headers, including service errors.
 Operation errors normally use `<Operation>Error`; `Transport` uses
 `TransportOperationError` to avoid the runtime error name. Colliding generated
