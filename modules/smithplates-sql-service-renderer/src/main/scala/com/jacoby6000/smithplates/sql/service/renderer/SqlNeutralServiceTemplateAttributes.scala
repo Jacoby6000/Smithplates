@@ -185,7 +185,7 @@ object SqlNeutralServiceTemplateAttributes {
           case SqlCodegenSqlBodyKind.InsertStructureIndex | SqlCodegenSqlBodyKind.SelectOneIndex |
               SqlCodegenSqlBodyKind.SelectOneClassRow | SqlCodegenSqlBodyKind.SelectOneJoinedFlat |
               SqlCodegenSqlBodyKind.SelectOneJoinedAggregate =>
-             (resultFields(op) ++ selectOneNestedBindings(op).flatMap(_.fields))
+            (resultFields(op) ++ selectOneNestedBindings(op).flatMap(_.fields))
               .filterNot(_.isJson)
               .flatMap(field => internal.rowReaderForType(field.readTypeName, field.timestampFormat))
           case _                                                                               =>
