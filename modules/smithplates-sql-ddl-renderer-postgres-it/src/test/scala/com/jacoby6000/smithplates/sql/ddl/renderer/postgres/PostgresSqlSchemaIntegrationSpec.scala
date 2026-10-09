@@ -2,10 +2,10 @@ package com.jacoby6000.smithplates.sql.ddl.renderer.postgres
 
 import com.dimafeng.testcontainers.PostgreSQLContainer
 import com.dimafeng.testcontainers.munit.TestContainerForEach
-import com.jacoby6000.smithplates.testkit.SqlDdlSupport
-import com.jacoby6000.smithplates.testkit.SqlIntegrationSchemas
 import com.jacoby6000.smithplates.sql.model.SqlColumnType
 import com.jacoby6000.smithplates.sql.model.SqlTimestampFormat
+import com.jacoby6000.smithplates.testkit.SqlDdlSupport
+import com.jacoby6000.smithplates.testkit.SqlIntegrationSchemas
 import munit.FunSuite
 import org.testcontainers.utility.DockerImageName
 
