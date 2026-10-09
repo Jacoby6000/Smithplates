@@ -63,6 +63,25 @@ map ContactMap {
 structure CollectionOnlyValue {
     @required
     label: String
+    contact: ContactInfo
+    @required
+    choice: NestedChoice
+    history: ChoiceHistory
+    annotations: ContactMap
+}
+
+union NestedChoice {
+    text: String
+    deeper: InnerChoice
+}
+
+union InnerChoice {
+    contacts: ContactMap
+    timestamp: Timestamp
+}
+
+list ChoiceHistory {
+    member: InnerChoice
 }
 
 list CollectionOnlyValues {

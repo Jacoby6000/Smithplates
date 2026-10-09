@@ -4,7 +4,7 @@ def jsonModels: List[com.jacoby6000.smithplates.codegen.core.Model.Structure[com
   sqlAttrs.jsonStructureClosure(ctx)
 
 def jsonUnions: List[com.jacoby6000.smithplates.codegen.core.Model.Union[com.jacoby6000.smithplates.sql.service.core.SqlMeta]] =
-  (unionsUsedAsJson(ctx) ++ unionsUsedAsJsonCol(ctx)).distinctBy(_.id.name).sortBy(_.id.name)
+  sqlAttrs.jsonUnionClosure(ctx)
 
 def memberValueExpr(memberName: String): String =
   "value." + memberName
@@ -26,14 +26,14 @@ def _dump_json_timestamp(value: datetime) -> str:
 def _map_to_${model.id.name}(data: dict[str, object]) -> ${model.id.name}:
     return ${model.id.name}(
 <% for (member <- model.fields) { %>
-        ${member.name}=${mapValueExpression(sqlAttrs.memberTypeName(ctx, member), jsonFieldAccess(member.name), ctx)},
+        ${member.name}=${mapValueExpression(sqlAttrs.renderType(ctx, member.tpe), jsonFieldAccess(member.name), ctx)},
 <% } %>    )
 
 
 def _dump_${model.id.name}(value: ${model.id.name}) -> dict[str, object]:
     return {
 <% for (member <- model.fields) { %>
-        "${member.name}": ${dumpValueExpression(sqlAttrs.memberTypeName(ctx, member), memberValueExpr(member.name), ctx)},
+        "${member.name}": ${dumpValueExpression(sqlAttrs.renderType(ctx, member.tpe), memberValueExpr(member.name), ctx)},
 <% } %>    }
 <% } %>
 <% for (union <- jsonUnions) { %>

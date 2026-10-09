@@ -6,6 +6,32 @@ from datetime import datetime
 
 
 @dataclass
+class InnerChoiceContacts:
+    contacts: dict[str, ContactInfo]
+
+
+@dataclass
+class InnerChoiceTimestamp:
+    timestamp: datetime
+
+
+InnerChoice = InnerChoiceContacts | InnerChoiceTimestamp
+
+
+@dataclass
+class NestedChoiceText:
+    text: str
+
+
+@dataclass
+class NestedChoiceDeeper:
+    deeper: InnerChoice
+
+
+NestedChoice = NestedChoiceText | NestedChoiceDeeper
+
+
+@dataclass
 class Customer:
     id: str
     name: str
@@ -26,6 +52,10 @@ class CustomerNotFound:
 @dataclass
 class CollectionOnlyValue:
     label: str
+    contact: ContactInfo | None
+    choice: NestedChoice
+    history: list[InnerChoice] | None
+    annotations: dict[str, ContactInfo] | None
 
 
 @dataclass

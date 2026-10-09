@@ -479,7 +479,11 @@ object SqlCodegenIntegrationTestBuilder {
         variant: SampleVariant,
         enumSamples: Map[String, String]
     ): String =
-      sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
+      if (member.optional && variant == SampleVariant.Initial) {
+        "None"
+      } else {
+        sampleLiteral(context, member.typeName, variant, member.name, enumSamples)
+      }
 
     def sampleLiteral(
         context: SqlCodegenServiceContext,
@@ -502,6 +506,8 @@ object SqlCodegenIntegrationTestBuilder {
         case "Float" | "Double"                              => if (variant == SampleVariant.Initial) "3.5" else "7.0"
         case "Boolean"                                       => "True"
         case "Blob"                                          => s"b\"integration-$suffix\""
+        case "BigDecimal"                                    =>
+          if (variant == SampleVariant.Initial) "Decimal(\"3.5\")" else "Decimal(\"7.0\")"
         case "Document"                                      => "{\"integration\": True}"
         case "Timestamp"                                     =>
           if (variant == SampleVariant.Initial) "datetime(2024, 1, 1, tzinfo=timezone.utc)"
@@ -638,11 +644,12 @@ object SqlCodegenIntegrationTestBuilder {
           selectOneOperation.updatedResultAssertions.mkString("\n")
         ).mkString("\n")
 
-      if (generatedText.contains("datetime")) {
+      val datetimeImports = if (generatedText.contains("datetime")) {
         List("from datetime import datetime, timezone")
       } else {
         Nil
       }
+      datetimeImports ++ (if (generatedText.contains("Decimal(")) List("from decimal import Decimal") else Nil)
     }
   }
 }

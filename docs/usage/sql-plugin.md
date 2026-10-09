@@ -205,3 +205,12 @@ Each `outputs` entry supports the same fields as HTTP: `sourceOutputDir` (requir
 `migrationLocation` stays per-dialect and is separate from codegen output directories — it controls where the runtime migration service writes versioned `.sql` files, not where generated code lands.
 
 See [Configuration](configuration.md) for the settings matrix and [Integration](integration.md) for a combined SQL + HTTP walkthrough. Trait and template details: [`modules/smithplates-plugin/README.md`](../../modules/smithplates-plugin/README.md).
+
+## Python JSON value mapping
+
+Python SQL `@sqlJson` lists and maps use native Psycopg JSONB values on PostgreSQL
+and JSON text on SQLite. Nested structures, unions, lists, and maps receive
+transitive dump/read helpers; nullable members and nullable columns retain `None`.
+Timestamps use ISO-8601 strings, decimals use exact decimal strings, and blobs use
+hexadecimal strings inside JSON, reconstructed as `datetime`, `Decimal`, and
+`bytes` on reads. Empty collections remain distinct from SQL NULL.

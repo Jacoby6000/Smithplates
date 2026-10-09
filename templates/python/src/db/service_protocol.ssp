@@ -1,6 +1,16 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
+<%
+val signatureTypes = sqlAttrs.operations(ctx).flatMap { operation =>
+  sqlAttrs.parameters(operation).map(parameter => pythonTypeName(parameter.typeName)) :+
+    pythonTypeName(sqlAttrs.outputTypeName(operation))
+} ++ sqlAttrs.operationResultModels(ctx).flatMap(_.fields.map(field => sqlAttrs.renderType(ctx, field.tpe)))
+def signatureUsesType(typeName: String): Boolean = signatureTypes.exists(_.split("[\\[\\], |]+").contains(typeName))
+%>
 from __future__ import annotations
 
+<% if (signatureUsesType("datetime")) { %>from datetime import datetime
+<% } %><% if (signatureUsesType("Decimal")) { %>from decimal import Decimal
+<% } %>
 <% if (sqlAttrs.operationResultModels(ctx).nonEmpty) { %>from dataclasses import dataclass
 <% } %>from typing import Protocol, TypeVar
 

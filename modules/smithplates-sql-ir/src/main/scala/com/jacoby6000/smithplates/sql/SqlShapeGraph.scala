@@ -57,26 +57,32 @@ object SqlShapeGraph {
   def referencedShapes(model: Model, rootShapeIds: Iterable[ShapeId]): (List[ShapeId], List[ShapeId]) = {
     val structures        = scala.collection.mutable.Set.empty[ShapeId]
     val unions            = scala.collection.mutable.Set.empty[ShapeId]
-    val pendingStructures = scala.collection.mutable.Queue.empty[ShapeId]
-
-    rootShapeIds.toList.filter(isUserDefinedStructure(model, _)).foreach(pendingStructures.enqueue)
+    val visited           = scala.collection.mutable.Set.empty[ShapeId]
+    val pendingStructures = scala.collection.mutable.Queue.from(rootShapeIds)
 
     while (pendingStructures.nonEmpty) {
       val shapeId = pendingStructures.dequeue()
-      if (!structures.contains(shapeId)) {
-        structures += shapeId
+      if (!visited.contains(shapeId)) {
+        visited += shapeId
         model.getShape(shapeId).toScala.foreach { shape =>
+          if (isUserDefinedStructure(model, shapeId)) {
+            structures += shapeId
+          } else if (shape.isUnionShape) {
+            unions += shapeId
+          }
           shape
             .members()
             .asScala
             .foreach { member =>
-              internal.enqueueMemberTargets(model, member, pendingStructures, structures, unions)
+              if (!visited.contains(member.getTarget)) {
+                pendingStructures.enqueue(member.getTarget)
+              }
             }
         }
       }
     }
 
-    (structures.toList, unions.toList)
+    (structures.toList.sortBy(_.toString), unions.toList.sortBy(_.toString))
   }
 
   def referencedUnionIds(model: Model, rootShapeIds: Iterable[ShapeId]): List[ShapeId] = {

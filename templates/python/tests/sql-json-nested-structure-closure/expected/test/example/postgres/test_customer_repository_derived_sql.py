@@ -13,6 +13,8 @@ from generated.example.models.customer_repository_models import (
     ContactInfo,
     Customer,
     GeoCoordinates,
+    InnerChoiceContacts,
+    NestedChoiceText,
     PostalAddress,
 )
 from generated.example.postgres.customer_repository_psycopg import CustomerRepositoryPsycopgService
@@ -78,7 +80,15 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
             )
         },
         alternate_labels=None,
-        collection_only=[CollectionOnlyValue(label="integration-label")],
+        collection_only=[
+            CollectionOnlyValue(
+                label="integration-label",
+                contact=None,
+                choice=NestedChoiceText(text="integration-text"),
+                history=None,
+                annotations=None,
+            )
+        ],
     )
     entity_id = entity_id_result
     assert isinstance(entity_id, str)
@@ -115,7 +125,15 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
         )
     }
     assert fetched.alternate_labels is None
-    assert fetched.collection_only == [CollectionOnlyValue(label="integration-label")]
+    assert fetched.collection_only == [
+        CollectionOnlyValue(
+            label="integration-label",
+            contact=None,
+            choice=NestedChoiceText(text="integration-text"),
+            history=None,
+            annotations=None,
+        )
+    ]
 
     updated = await customer_repository_service.update_customer(
         name="integration-updated-name",
@@ -149,7 +167,48 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
             )
         },
         alternate_labels=None,
-        collection_only=[CollectionOnlyValue(label="integration-updated-label")],
+        collection_only=[
+            CollectionOnlyValue(
+                label="integration-updated-label",
+                contact=ContactInfo(
+                    email="integration-updated-email",
+                    address=PostalAddress(
+                        street="integration-updated-street",
+                        city="integration-updated-city",
+                        coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+                    ),
+                ),
+                choice=NestedChoiceText(text="integration-updated-text"),
+                history=[
+                    InnerChoiceContacts(
+                        contacts={
+                            "integration-key": ContactInfo(
+                                email="integration-updated-email",
+                                address=PostalAddress(
+                                    street="integration-updated-street",
+                                    city="integration-updated-city",
+                                    coords=GeoCoordinates(
+                                        lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)
+                                    ),
+                                ),
+                            )
+                        }
+                    )
+                ],
+                annotations={
+                    "integration-key": ContactInfo(
+                        email="integration-updated-email",
+                        address=PostalAddress(
+                            street="integration-updated-street",
+                            city="integration-updated-city",
+                            coords=GeoCoordinates(
+                                lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)
+                            ),
+                        ),
+                    )
+                },
+            )
+        ],
         id=entity_id,
     )
     assert updated is True
@@ -185,7 +244,46 @@ async def test_derived_sql_methods_lifecycle(customer_repository_service: Custom
         )
     }
     assert fetched_after_update.alternate_labels is None
-    assert fetched_after_update.collection_only == [CollectionOnlyValue(label="integration-updated-label")]
+    assert fetched_after_update.collection_only == [
+        CollectionOnlyValue(
+            label="integration-updated-label",
+            contact=ContactInfo(
+                email="integration-updated-email",
+                address=PostalAddress(
+                    street="integration-updated-street",
+                    city="integration-updated-city",
+                    coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+                ),
+            ),
+            choice=NestedChoiceText(text="integration-updated-text"),
+            history=[
+                InnerChoiceContacts(
+                    contacts={
+                        "integration-key": ContactInfo(
+                            email="integration-updated-email",
+                            address=PostalAddress(
+                                street="integration-updated-street",
+                                city="integration-updated-city",
+                                coords=GeoCoordinates(
+                                    lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)
+                                ),
+                            ),
+                        )
+                    }
+                )
+            ],
+            annotations={
+                "integration-key": ContactInfo(
+                    email="integration-updated-email",
+                    address=PostalAddress(
+                        street="integration-updated-street",
+                        city="integration-updated-city",
+                        coords=GeoCoordinates(lat=7.0, lng=7.0, recorded_at=datetime(2024, 1, 2, tzinfo=timezone.utc)),
+                    ),
+                )
+            },
+        )
+    ]
 
     deleted = await customer_repository_service.delete_customer(id=entity_id)
     assert deleted is True
@@ -234,7 +332,15 @@ async def test_derived_sql_methods_transaction_commit(
                 )
             },
             alternate_labels=None,
-            collection_only=[CollectionOnlyValue(label="integration-label")],
+            collection_only=[
+                CollectionOnlyValue(
+                    label="integration-label",
+                    contact=None,
+                    choice=NestedChoiceText(text="integration-text"),
+                    history=None,
+                    annotations=None,
+                )
+            ],
             transaction=tx,
         )
         entity_id = entity_id_result
@@ -272,7 +378,15 @@ async def test_derived_sql_methods_transaction_commit(
             )
         }
         assert fetched.alternate_labels is None
-        assert fetched.collection_only == [CollectionOnlyValue(label="integration-label")]
+        assert fetched.collection_only == [
+            CollectionOnlyValue(
+                label="integration-label",
+                contact=None,
+                choice=NestedChoiceText(text="integration-text"),
+                history=None,
+                annotations=None,
+            )
+        ]
 
     fetched_after_commit = await customer_repository_service.get_customer(id=entity_id)
     assert isinstance(fetched_after_commit, Customer)
@@ -305,7 +419,15 @@ async def test_derived_sql_methods_transaction_commit(
         )
     }
     assert fetched_after_commit.alternate_labels is None
-    assert fetched_after_commit.collection_only == [CollectionOnlyValue(label="integration-label")]
+    assert fetched_after_commit.collection_only == [
+        CollectionOnlyValue(
+            label="integration-label",
+            contact=None,
+            choice=NestedChoiceText(text="integration-text"),
+            history=None,
+            annotations=None,
+        )
+    ]
 
 
 @pytest.mark.integration
@@ -354,7 +476,15 @@ async def test_derived_sql_methods_transaction_rollback(
                     )
                 },
                 alternate_labels=None,
-                collection_only=[CollectionOnlyValue(label="integration-label")],
+                collection_only=[
+                    CollectionOnlyValue(
+                        label="integration-label",
+                        contact=None,
+                        choice=NestedChoiceText(text="integration-text"),
+                        history=None,
+                        annotations=None,
+                    )
+                ],
                 transaction=tx,
             )
             entity_id = entity_id_result

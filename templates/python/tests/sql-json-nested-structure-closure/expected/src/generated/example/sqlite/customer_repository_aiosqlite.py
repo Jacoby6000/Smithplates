@@ -13,6 +13,12 @@ from generated.example.models.customer_repository_models import (
     ContactInfo,
     Customer,
     GeoCoordinates,
+    InnerChoice,
+    InnerChoiceContacts,
+    InnerChoiceTimestamp,
+    NestedChoice,
+    NestedChoiceDeeper,
+    NestedChoiceText,
     PostalAddress,
 )
 from generated.example.sqlite.sqlite_transaction_run import run
@@ -159,12 +165,37 @@ def _dump_json_timestamp(value: datetime) -> str:
 def _map_to_CollectionOnlyValue(data: dict[str, object]) -> CollectionOnlyValue:
     return CollectionOnlyValue(
         label=cast(str, data["label"]),
+        contact=(
+            _map_to_ContactInfo(cast(dict[str, object], data["contact"])) if data["contact"] is not None else None
+        ),
+        choice=_map_to_NestedChoice(cast(dict[str, object], data["choice"])),
+        history=(
+            [_map_to_InnerChoice(cast(dict[str, object], item)) for item in cast(list[object], data["history"])]
+            if data["history"] is not None
+            else None
+        ),
+        annotations=(
+            {
+                str(key): _map_to_ContactInfo(cast(dict[str, object], mapped_value))
+                for key, mapped_value in cast(dict[str, object], data["annotations"]).items()
+            }
+            if data["annotations"] is not None
+            else None
+        ),
     )
 
 
 def _dump_CollectionOnlyValue(value: CollectionOnlyValue) -> dict[str, object]:
     return {
         "label": value.label,
+        "contact": (_dump_ContactInfo(value.contact) if value.contact is not None else None),
+        "choice": _dump_NestedChoice(value.choice),
+        "history": ([_dump_InnerChoice(item) for item in value.history] if value.history is not None else None),
+        "annotations": (
+            {key: _dump_ContactInfo(mapped_value) for key, mapped_value in value.annotations.items()}
+            if value.annotations is not None
+            else None
+        ),
     }
 
 
@@ -212,6 +243,55 @@ def _dump_PostalAddress(value: PostalAddress) -> dict[str, object]:
         "city": value.city,
         "coords": _dump_GeoCoordinates(value.coords),
     }
+
+
+def _map_to_InnerChoice(data: dict[str, object]) -> InnerChoice:
+    present = [key for key in ("contacts", "timestamp") if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown InnerChoice discriminator: {sorted(data.keys())}")
+    if "contacts" in data:
+        return InnerChoiceContacts(
+            contacts={
+                str(key): _map_to_ContactInfo(cast(dict[str, object], mapped_value))
+                for key, mapped_value in cast(dict[str, object], data["contacts"]).items()
+            },
+        )
+    if "timestamp" in data:
+        return InnerChoiceTimestamp(
+            timestamp=_map_json_timestamp(data["timestamp"]),
+        )
+    raise ValueError(f"unknown InnerChoice discriminator: {sorted(data.keys())}")
+
+
+def _dump_InnerChoice(value: InnerChoice) -> dict[str, object]:
+    if isinstance(value, InnerChoiceContacts):
+        return {"contacts": {key: _dump_ContactInfo(mapped_value) for key, mapped_value in value.contacts.items()}}
+    if isinstance(value, InnerChoiceTimestamp):
+        return {"timestamp": _dump_json_timestamp(value.timestamp)}
+    raise TypeError(f"unsupported InnerChoice variant: {type(value)!r}")
+
+
+def _map_to_NestedChoice(data: dict[str, object]) -> NestedChoice:
+    present = [key for key in ("text", "deeper") if key in data]
+    if len(present) != 1:
+        raise ValueError(f"unknown NestedChoice discriminator: {sorted(data.keys())}")
+    if "text" in data:
+        return NestedChoiceText(
+            text=cast(str, data["text"]),
+        )
+    if "deeper" in data:
+        return NestedChoiceDeeper(
+            deeper=_map_to_InnerChoice(cast(dict[str, object], data["deeper"])),
+        )
+    raise ValueError(f"unknown NestedChoice discriminator: {sorted(data.keys())}")
+
+
+def _dump_NestedChoice(value: NestedChoice) -> dict[str, object]:
+    if isinstance(value, NestedChoiceText):
+        return {"text": value.text}
+    if isinstance(value, NestedChoiceDeeper):
+        return {"deeper": _dump_InnerChoice(value.deeper)}
+    raise TypeError(f"unsupported NestedChoice variant: {type(value)!r}")
 
 
 def _json_bind_collection_4c6973745b436f6c6c656374696f6e4f6e6c7956616c75655d(

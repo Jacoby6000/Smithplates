@@ -30,7 +30,9 @@ run_variant_tests() {
 
   configure_case_env "${db_root}" "${impl}" "${test_dir}"
   echo "==> pytest ${label}"
-  uv run pytest "${common_args[@]}" -m "integration and ${impl}" "${test_dir}"
+  local -a runtime_tests=()
+  mapfile -t runtime_tests < <(find "${test_dir}/../../../.." -maxdepth 1 -name 'test_*.py' -type f)
+  uv run pytest "${common_args[@]}" -m "integration and ${impl}" "${test_dir}" "${runtime_tests[@]}"
 }
 
 foreach_python_variant run_variant_tests

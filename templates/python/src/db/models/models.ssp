@@ -1,9 +1,18 @@
 <%@ val ctx: com.jacoby6000.smithplates.sql.service.renderer.SqlNeutralServiceTemplateAttributes.ServiceView %>
-<%@ val needsDatetimeImport: Boolean = sqlAttrs.models(ctx).exists(_.fields.exists(member => pythonTypeName(sqlAttrs.memberTypeName(ctx, member)) == "datetime")) || sqlAttrs.unions(ctx).exists(_.members.exists(member => pythonTypeName(sqlAttrs.renderType(ctx, member.tpe)) == "datetime")) %>
+<%
+def modelUsesType(typeName: String): Boolean = {
+  val fieldTypes = sqlAttrs.models(ctx).flatMap(_.fields.map(member => sqlAttrs.renderType(ctx, member.tpe))) ++
+    sqlAttrs.unions(ctx).flatMap(_.members.map(member => sqlAttrs.renderType(ctx, member.tpe)))
+  fieldTypes.exists(_.split("[\\[\\], |]+").contains(typeName))
+}
+val needsDatetimeImport = modelUsesType("datetime")
+val needsDecimalImport = modelUsesType("Decimal")
+%>
 from __future__ import annotations
 
 from dataclasses import dataclass
 <% if (needsDatetimeImport) { %>from datetime import datetime
+<% } %><% if (needsDecimalImport) { %>from decimal import Decimal
 <% } %><% if (enumImportBlock(ctx) != "") { %>${enumImportBlock(ctx)}<% } %><% if (customUuidTypeNames(ctx).nonEmpty) { %>
 <% for (uuidTypeName <- customUuidTypeNames(ctx).toList.sorted) { %>
 ${uuidTypeName} = str

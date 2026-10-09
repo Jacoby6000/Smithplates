@@ -111,20 +111,24 @@ def mapValueExpression(
     valueExpr: String,
     ctx: sqlAttrs.ServiceView
 ): String = {
-  if (typeName.startsWith("List[")) {
+  if (typeName.endsWith(" | None")) {
+    val inner = typeName.stripSuffix(" | None")
+    s"(${mapValueExpression(inner, valueExpr, ctx)} if $valueExpr is not None else None)"
+  } else if (typeName.startsWith("List[") || typeName.startsWith("list[")) {
     val inner = typeName.substring(5, typeName.length - 1)
     s"[${mapValueExpression(inner, "item", ctx)} for item in cast(list[object], $valueExpr)]"
-  } else if (typeName.startsWith("Map[String, ")) {
-    val inner = typeName.substring(12, typeName.length - 1)
+  } else if (typeName.startsWith("Map[String, ") || typeName.startsWith("dict[str, ")) {
+    val prefixLength = if (typeName.startsWith("Map[")) 12 else 10
+    val inner = typeName.substring(prefixLength, typeName.length - 1)
     s"{str(key): ${mapValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in cast(dict[str, object], $valueExpr).items()}"
   } else {
-    typeName match {
+    pythonTypeName(typeName) match {
       case "str"                             => s"cast(str, $valueExpr)"
       case "int"                             => s"cast(int, $valueExpr)"
       case "float"                           => s"cast(float, $valueExpr)"
       case "bool"                            => s"cast(bool, $valueExpr)"
       case "Decimal"                         => s"Decimal(str($valueExpr))"
-      case "bytes"                           => s"bytes(cast(bytes, $valueExpr))"
+      case "bytes"                           => s"bytes.fromhex(cast(str, $valueExpr))"
       case "datetime"                        => s"_map_json_timestamp($valueExpr)"
       case "object"                          => valueExpr
       case other if structureTypeNames(ctx).contains(other) =>
@@ -144,15 +148,21 @@ def dumpValueExpression(
     valueExpr: String,
     ctx: sqlAttrs.ServiceView
 ): String = {
-  if (typeName.startsWith("List[")) {
+  if (typeName.endsWith(" | None")) {
+    val inner = typeName.stripSuffix(" | None")
+    s"(${dumpValueExpression(inner, valueExpr, ctx)} if $valueExpr is not None else None)"
+  } else if (typeName.startsWith("List[") || typeName.startsWith("list[")) {
     val inner = typeName.substring(5, typeName.length - 1)
     s"[${dumpValueExpression(inner, "item", ctx)} for item in $valueExpr]"
-  } else if (typeName.startsWith("Map[String, ")) {
-    val inner = typeName.substring(12, typeName.length - 1)
+  } else if (typeName.startsWith("Map[String, ") || typeName.startsWith("dict[str, ")) {
+    val prefixLength = if (typeName.startsWith("Map[")) 12 else 10
+    val inner = typeName.substring(prefixLength, typeName.length - 1)
     s"{key: ${dumpValueExpression(inner, "mapped_value", ctx)} for key, mapped_value in $valueExpr.items()}"
   } else {
-    typeName match {
+    pythonTypeName(typeName) match {
       case "datetime"                        => s"_dump_json_timestamp($valueExpr)"
+      case "Decimal"                         => s"str($valueExpr)"
+      case "bytes"                           => s"$valueExpr.hex()"
       case "object"                          => valueExpr
       case other if structureTypeNames(ctx).contains(other) =>
         s"_dump_$other($valueExpr)"
@@ -357,6 +367,10 @@ def serviceReferencedNames(ctx: sqlAttrs.ServiceView): (List[String], List[Strin
   jsonClosureModels.foreach(model => referencedTable += model.id.name)
   jsonClosureModels.foreach { model =>
     model.fields.foreach(field => reference(sqlAttrs.memberTypeName(ctx, field)))
+  }
+  sqlAttrs.jsonUnionClosure(ctx).foreach { union =>
+    reference(union.id.name)
+    union.members.foreach(member => reference(sqlAttrs.renderType(ctx, member.tpe)))
   }
 
   (referencedTable.toList.sorted, referencedUnion.toList.sorted)
