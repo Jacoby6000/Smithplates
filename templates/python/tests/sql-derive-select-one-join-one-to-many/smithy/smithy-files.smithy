@@ -26,6 +26,7 @@ structure OrderLine {
     @sqlForeignKey(references: "example#Order")
     order_id: String
     sku: String
+    fulfilled: Boolean
 }
 
 @sqlDeriveInsert(targetTable: "example#Order")
