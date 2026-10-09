@@ -2,7 +2,7 @@
 
 Smithy codegen plugin for SQL schema/migration and HTTP service/client output.
 Bundled templates today: **Python** (SQL + FastAPI server + HTTPX/HTTPX2 client) and
-**TypeScript** (HTTP client via axios or fetch).
+**TypeScript** (HTTP client via axios or fetch), plus bounded **Rust** async reqwest JSON clients.
 
 ## Conventions
 
@@ -26,6 +26,8 @@ Keep Smithplates self-contained and domain-neutral. Do not reference downstream 
 * [`CHANGELOG.md`](CHANGELOG.md) — release history and migration notes (keep current with user-visible changes)
 
 ## Decisions log
+
+* **Rust HTTP clients:** bundled under `templates/rust`, async reqwest only, one selected service per output entry and flat grouped models (duplicate names rejected). Original reachable recursion is rejected before legacy extraction; `RustHttpCapabilities` gates unsupported shapes/traits before rendering. Syntax remains in SSP/verbatim resources. The consumer includes `mod.rs` in an existing crate; no Cargo scaffolding is generated. `./validate --target rust` compares shared goldens, executes a locked Rust 1.93 loopback harness, and compiles fresh output. See [`docs/usage/rust-http-client.md`](docs/usage/rust-http-client.md) and [`docs/contributing/rust-http-client.md`](docs/contributing/rust-http-client.md).
 
 * `SqlTableTree` skips self-referential `@sqlForeignKey` edges when computing DDL render order so a table can reference itself inline in `CREATE TABLE`
 * **Language-neutral codegen epic (`#34`, closed via `#35`–`#42`):** `smithplates-codegen-core` owns `NeutralType` / `Model` / `ModelSet` / `ServiceModel` / `OperationModel`, `TypeUsageAnalyzer`, declarative `NamingStrategy` → `Conventions`, `TypeRenderer`, and `CodegenPlanner` over `outputs.json` decks. Feature extractors (`HttpCoreModelExtractor`, `SqlCoreModelExtractor`) lower Smithy into parametric feature metadata; `SystemValidator` is the holistic post-extraction gate (model-set + service validators, duplicate ids, cyclic aliases, unresolved operation refs).
