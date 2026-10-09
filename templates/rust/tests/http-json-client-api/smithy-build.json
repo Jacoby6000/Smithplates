@@ -1,0 +1,15 @@
+{
+  "version": "1.0",
+  "sources": ["smithy"],
+  "plugins": {
+    "smithplates": {
+      "rust": {
+        "http": {
+          "rootNamespace": "example",
+          "client": { "httpLibrary": "reqwest" },
+          "outputs": [{ "sourceOutputDir": "src/generated", "testOutputDir": "test" }]
+        }
+      }
+    }
+  }
+}

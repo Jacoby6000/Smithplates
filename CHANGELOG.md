@@ -7,11 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Bundled Rust async reqwest JSON HTTP clients and serde models, with typed
+  status-directed errors, credential providers, bounded responses, per-call
+  timeouts, and a locked Rust compile/wire-test harness. This initial target is
+  deliberately bounded; unsupported Smithy features fail generation. See
+  [Rust usage and limitations](docs/usage/rust-http-client.md).
+
 ### Fixed
 
 - PostgreSQL date-time timestamps use `TIMESTAMPTZ` to preserve Smithy instant
   semantics across session time zones. Existing `TIMESTAMP` columns need an
   explicit migration using the time zone in which their old values were stored.
+- Rust clients preserve static request headers when input/output structures are
+  reused, and reject response payload wrappers even when response headers are present.
+- Rust clients resolve service-error and aliased response headers, allow omitted
+  optional nested JSON payloads, disambiguate runtime/operation error names, and
+  reject shared problem wire-field collisions introduced by `@jsonName`.
+- HTTP decks now copy non-SSP template resources verbatim, matching SQL decks.
+- Golden refresh no longer runs both the root delegate and its aggregated task
+  concurrently against the same fixture directory.
 
 ## [0.8.1] - 2026-09-12
 

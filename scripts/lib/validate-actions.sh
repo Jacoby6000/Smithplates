@@ -23,6 +23,7 @@ smithystache_validate_run_lint_for_target() {
       ./scripts/run-example-linters.sh all
       ;;
     plugin) ./scripts/run-linters.sh scala ;;
+    rust) ./language-test-harnesses/rust/run-linters.sh ;;
     python|python/db|python/db/sqlite|python/db/postgres) ./scripts/run-linters.sh templates ;;
     examples|examples/python)
       smithystache_validate_run_example_build "${target}"
@@ -47,6 +48,10 @@ smithystache_validate_run_test_for_target() {
       ./scripts/run-example-tests.sh all
       ;;
     plugin) ./scripts/run-tests.sh plugin ;;
+    rust)
+      ./scripts/run-template-golden-tests.sh || return $?
+      ./language-test-harnesses/rust/run-tests.sh || return $?
+      ;;
     python|python/db|python/db/sqlite|python/db/postgres) ./scripts/run-tests.sh templates ;;
     examples|examples/python)
       ./scripts/run-example-tests.sh "$(smithystache_validate_example_project "${target}")"

@@ -12,6 +12,33 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 class HttpCoreModelExtractorSpec extends FunSuite {
+  test("operation request headers survive response classification of reused structures") {
+    val model = HttpTestModelLoader.assemble(
+      "reuse.smithy" -> """$version: "2"
+        |namespace example
+        |use smithplates.codegen.http#httpService
+        |use smithplates.codegen.http#httpStaticHeader
+        |@httpService service Catalog { version: "1", operations: [Echo] }
+        |@tags(["items"]) @http(method: "POST", uri: "/echo", code: 200)
+        |operation Echo { input: Message, output: Message }
+        |@httpStaticHeader(name: "X-Contract", value: "catalog")
+        |structure Message { @required value: String }
+        |""".stripMargin
+    )
+    HttpCoreModelExtractor
+      .extractAndValidate(model)
+      .fold(
+        errors => fail(errors.toList.map(_.message).mkString("; ")),
+        { case (models, services) =>
+          assertEquals(services.head.operations.head.meta.feature.requestStaticHeaders, Map("X-Contract" -> "catalog"))
+          assert(
+            models.structures
+              .find(_.id.name == "Message")
+              .exists(_.meta.feature.isInstanceOf[HttpMeta.HttpResponseMeta]))
+        }
+      )
+  }
+
   test("core extraction exposes effective traits on services operations models and members") {
     val model  = HttpTestModelLoader.assemble(
       "traits.smithy" ->
