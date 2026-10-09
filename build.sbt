@@ -265,7 +265,8 @@ lazy val smithplatesCodegenCore = (project in file("modules/smithplates-codegen-
       "org.scalameta" %% "munit-scalacheck" % munitScalacheckVersion % Test
     ),
     pythonLanguageBaseConfigResource,
-    languageBaseConfigResource("typescript")
+    languageBaseConfigResource("typescript"),
+    languageBaseConfigResource("rust")
   )
 
 lazy val smithplatesSmithyNeutral = (project in file("modules/smithplates-smithy-neutral"))
@@ -436,9 +437,10 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
       "org.scalatra.scalate" % "scalate-core_3" % scalateVersion,
       "org.scalameta" %% "munit" % munitVersion % Test
     ),
-    languageNamespacedTemplateResources(Seq("python", "typescript"), "common", "http"),
+    languageNamespacedTemplateResources(Seq("python", "typescript", "rust"), "common", "http"),
     pythonLanguageBaseConfigResource,
     languageBaseConfigResource("typescript"),
+    languageBaseConfigResource("rust"),
     scalateTemplatePrecompileSettings(
       "com.jacoby6000.smithplates.http.service.renderer.HttpTemplatePrecompilerMain",
       Seq(
@@ -446,7 +448,9 @@ lazy val smithplatesHttpServiceRenderer = (project in file("modules/smithplates-
         "python/src/http/client",
         "python/src/http/models",
         "typescript/src/http/client",
-        "typescript/src/http/models"
+        "typescript/src/http/models",
+        "rust/src/http/client",
+        "rust/src/http/models"
       )
     ),
     Test / unmanagedResourceDirectories ++= Seq(
@@ -614,6 +618,7 @@ lazy val root = (project in file("."))
     name := "smithplates",
     Compile / sources := Nil,
     Compile / resources := Nil,
+    generateGoldenTemplatesFor / aggregate := false,
     generateGoldenTemplatesFor := (smithplatesPlugin / generateGoldenTemplatesFor).evaluated
   )
   .aggregate(

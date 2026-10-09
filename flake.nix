@@ -77,6 +77,7 @@
             git
             pre-commit
             python3
+            rustup
           ];
 
           env = {

@@ -1,5 +1,12 @@
 # Architecture
 
+The bounded [Rust async HTTP target](rust-http-client.md) uses the same neutral
+IR, JSON decks, configurable naming/types and precompiled SSP pipeline as the
+other languages. Its grouped flat model output is intentionally limited to
+one selected service per output entry. Original-shape and neutral capability
+validation live adjacent to the HTTP renderer; Rust wire syntax stays in
+templates and verbatim runtime resources.
+
 Smithplates is an SBT multi-module project (**Scala 3.3.6**, strict compiler options) that publishes Smithy build plugins to Maven.
 
 ## Codegen pipeline
