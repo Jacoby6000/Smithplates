@@ -112,6 +112,10 @@ operations; ordinary JSON output requires valid JSON and required field types.
 Scalar dynamic response headers are authoritative over same-named JSON fields;
 missing required, malformed, or repeated scalar headers fail decoding. Modeled
 static response headers must match exactly.
+Named scalar aliases also work in response headers, including service errors.
+Operation errors normally use `<Operation>Error`; `Transport` uses
+`TransportOperationError` to avoid the runtime error name. Colliding generated
+operation error names are rejected.
 
 Responses are buffered with a 1 MiB default limit; adjust
 `client.runtime.max_response_bytes` explicitly if needed. Generated error
@@ -128,6 +132,7 @@ string/boolean/integer/long/document values, optional members, lists and
 string-keyed maps; serde wire names and Rust keyword remapping; scalar labels,
 queries and request headers, repeated scalar queries, static headers, JSON
 document and `@nestedProperties` structure payloads, and no-body operations.
+An omitted optional nested payload sends no body or implicit JSON content type.
 Unknown JSON fields are ignored; unknown enum/union variants fail decoding.
 This is not a general Smithy constraint validator.
 
@@ -142,7 +147,8 @@ payloads, greedy labels, query-map/prefix-header bindings, dynamic status codes,
 non-JSON media types, checksums, WebSockets, sync/both modes and ambiguous names
 or response statuses, percent-escaped literal URI paths, response payload wrappers,
 legacy `@enum` string traits, and problem structures redeclaring shared problem
-fields. Use another target or consumer templates for these needs.
+fields (including members renamed to shared wire names with `@jsonName`). Use
+another target or consumer templates for these needs.
 
 See [the Rust fixture](../../templates/rust/tests/http-json-client-api/) and
 [contributor testing](../contributing/rust-http-client.md).

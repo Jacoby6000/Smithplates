@@ -13,7 +13,8 @@ final case class TemplateView[Subject, M](
     usedTypes: List[Model[M]],
     conventions: Conventions,
     typeRenderer: TypeRenderer = UnconfiguredTypeRenderer,
-    commentPrefix: String = "#"
+    commentPrefix: String = "#",
+    resolutionModels: List[Model[M]] = Nil
 )
 
 trait TemplateRenderer {

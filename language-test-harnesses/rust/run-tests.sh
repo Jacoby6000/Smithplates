@@ -9,7 +9,9 @@ if [[ ! -f "${fresh}" ]]; then
   echo "error: fresh generated Rust module missing; run ./validate --target rust" >&2
   exit 1
 fi
-mkdir -p "${CARGO_TARGET_DIR}/fresh/src"
+mkdir -p "${CARGO_TARGET_DIR}/fresh/src" "${CARGO_TARGET_DIR}/fresh/tests"
 cp Cargo.toml Cargo.lock rust-toolchain.toml "${CARGO_TARGET_DIR}/fresh/"
 printf '#[path = "%s"]\npub mod generated;\n' "${fresh}" > "${CARGO_TARGET_DIR}/fresh/src/lib.rs"
 cargo check --locked --manifest-path "${CARGO_TARGET_DIR}/fresh/Cargo.toml"
+cp tests/client.rs "${CARGO_TARGET_DIR}/fresh/tests/"
+cargo test --locked --manifest-path "${CARGO_TARGET_DIR}/fresh/Cargo.toml"

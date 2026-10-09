@@ -64,7 +64,7 @@ pub enum Binding {
 pub enum Body {
     None,
     Document,
-    Nested(&'static str),
+    Nested(&'static str, bool),
 }
 
 pub struct RequestSpec {
@@ -238,8 +238,12 @@ pub async fn execute(
         match spec.body {
             Body::None => {}
             Body::Document => request = request.json(&fields),
-            Body::Nested(key) => {
-                request = request.json(&fields.remove(key).ok_or(TransportError::InvalidJson)?);
+            Body::Nested(key, required) => {
+                match fields.remove(key).filter(|value| !value.is_null()) {
+                    Some(value) => request = request.json(&value),
+                    None if required => return Err(TransportError::InvalidJson),
+                    None => {}
+                }
             }
         }
         let mut response = request

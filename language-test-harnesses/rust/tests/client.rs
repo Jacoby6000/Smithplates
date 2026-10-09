@@ -129,7 +129,7 @@ async fn document_body_removes_transport_members_and_uses_wire_names() {
 
 #[tokio::test]
 async fn service_error_is_status_directed_and_diagnostics_are_redacted() {
-    let (url, request) = server_with_headers("404 Not Found", br#"{"type":"urn:problem:not-found","title":"Not found","detail":"secret","message":"credential"}"#, Duration::ZERO, "Content-Type: application/problem+json\r\n").await;
+    let (url, request) = server_with_headers("404 Not Found", br#"{"type":"urn:problem:not-found","title":"Not found","detail":"secret","message":"credential"}"#, Duration::ZERO, "Content-Type: application/problem+json\r\nX-Reason: unavailable\r\n").await;
     let error = client::Client::new(&url)
         .unwrap()
         .get_item(&get_input("id"), None)
@@ -508,6 +508,53 @@ async fn nested_json_payload_is_not_wrapped() {
         serde_json::from_str(request.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(body["id"], "item-1");
     assert!(body.get("body").is_none());
+}
+
+#[tokio::test]
+async fn optional_nested_payload_controls_body_and_content_type() {
+    for body in [None, Some(serde_json::from_slice(ITEM).unwrap())] {
+        let present = body.is_some();
+        let (url, request) = server("200 OK", ITEM, Duration::ZERO).await;
+        client::Client::new(&url)
+            .unwrap()
+            .put_optional_nested(&models::OptionalNestedInput { body }, None)
+            .await
+            .unwrap();
+        let request = request.await.unwrap();
+        let (headers, body) = request.split_once("\r\n\r\n").unwrap();
+        assert_eq!(headers.contains("content-type: application/json"), present);
+        if present {
+            let value: serde_json::Value = serde_json::from_str(body).unwrap();
+            assert_eq!(value["id"], "item-1");
+            assert!(value.get("payload").is_none());
+        } else {
+            assert!(body.is_empty());
+        }
+    }
+}
+
+#[tokio::test]
+async fn service_error_alias_header_and_transport_operation() {
+    let (url, request) = server_with_headers(
+        "404 Not Found",
+        br#"{"message":"missing"}"#,
+        Duration::ZERO,
+        "X-Reason: unavailable\r\nContent-Type: application/problem+json\r\n",
+    )
+    .await;
+    let error: client::TransportOperationError = client::Client::new(&url)
+        .unwrap()
+        .transport(None)
+        .await
+        .err()
+        .unwrap();
+    match error {
+        client::TransportOperationError::NotFound(problem) => {
+            assert_eq!(problem.reason, "unavailable");
+        }
+        _ => panic!("expected service error"),
+    }
+    request.await.unwrap();
 }
 
 #[tokio::test]

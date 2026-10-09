@@ -138,6 +138,24 @@ class RustHttpClientSpec extends FunSuite {
     assert(HttpServiceCodegenRenderer.render(model(source), settings).isInvalid)
   }
 
+  test("generated error names reject collisions after runtime-name disambiguation") {
+    val source   = base
+      .replace("operations: [Get]", "operations: [Transport, TransportOperation]")
+      .replace("operation Get", "operation Transport") +
+      "\n@tags([\"items\"]) @http(method: \"GET\", uri: \"/other\", code: 200) operation TransportOperation { output: Output }\n"
+    val rejected = HttpServiceCodegenRenderer.render(validatedModel(source), settings)
+    assert(rejected.swap.toOption.toList.flatMap(_.toList).exists(_.message.contains("duplicate operation error name")))
+  }
+
+  for (wireName <- List("type", "title", "status", "detail", "instance", "http_problem"))
+    test(s"problem fields reject effective wire name $wireName before artifacts") {
+      val source   = base.replace("operations: [Get]", "operations: [Get], errors: [Problem]") +
+        s"\n@error(\"client\") @httpError(400) @smithplates.codegen.http#httpProblem(type: \"urn:problem:test\", title: \"Test\", code: 400) structure Problem { @jsonName(\"$wireName\") message: String }\n"
+      val rejected = HttpServiceCodegenRenderer.render(validatedModel(source), settings)
+      assert(
+        rejected.swap.toOption.toList.flatMap(_.toList).exists(_.message.contains("conflicts with the shared problem")))
+    }
+
   test("query API key metadata is rendered for required authentication") {
     val source = base.replace(
       "@httpService service",
@@ -183,6 +201,9 @@ object RustHttpClientSpec {
         .addUnparsedModel("rust-test.smithy", source)
         .assemble()
         .unwrap()
+
+    def validatedModel(source: String): Model =
+      Model.assembler().discoverModels().addUnparsedModel("rust-test.smithy", source).assemble().unwrap()
 
     def settings: HttpServiceCodegenSettings = HttpServiceCodegenSettings(
       templateDirectory = "classpath:rust/src/http/client",

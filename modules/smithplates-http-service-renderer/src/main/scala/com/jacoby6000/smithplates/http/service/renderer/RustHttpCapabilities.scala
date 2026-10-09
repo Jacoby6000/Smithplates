@@ -59,6 +59,15 @@ object RustHttpCapabilities {
 
   /** Internal implementation surface — not part of the stable API; subject to change without notice. */
   object internal {
+    def operationErrorName(id: com.jacoby6000.smithplates.codegen.core.ModelId, conventions: Conventions): String = {
+      val name = conventions.className(id) + "Error"
+      if (Set("TransportError", "AuthProvider", "Client", "Duration").contains(name)) {
+        conventions.className(id) + "OperationError"
+      } else {
+        name
+      }
+    }
+
     def recursive(model: Model, id: ShapeId, ancestors: Set[ShapeId]): Boolean =
       ancestors.contains(id) || model
         .expectShape(id)
@@ -167,14 +176,23 @@ object RustHttpCapabilities {
           .toList
         val problemFields     = model.meta.feature match {
           case HttpMeta.HttpResponseMeta(_, _, _, Some(_)) =>
-            members
-              .filter { case (name, _) =>
+            model.asStructure.toList
+              .flatMap(_.fields)
+              .filter { field =>
+                val wireName = field.traits
+                  .find(_.id == com.jacoby6000.smithplates.codegen.core.ModelId("smithy.api", "jsonName"))
+                  .map(_.value)
+                  .collect { case com.jacoby6000.smithplates.codegen.core.SmithyNodeValue.StringValue(value) =>
+                    value
+                  }
+                  .getOrElse(field.name)
                 Set("type", "title", "status", "detail", "instance", "http_problem")
-                  .contains(name) || conventions.memberName(name) == "http_problem"
+                  .exists(name => name == wireName || name == field.name) || conventions.memberName(
+                  field.name) == "http_problem"
               }
-              .map { case (name, _) =>
+              .map { field =>
                 error(
-                  s"${model.id}: @httpProblem field '$name' conflicts with the shared problem model; use its generated http_problem field")
+                  s"${model.id}: @httpProblem field '${field.name}' conflicts with the shared problem model; use its generated http_problem field")
               }
           case _                                           => Nil
         }
@@ -183,14 +201,22 @@ object RustHttpCapabilities {
           .map(tpe => error(s"${model.id}: unsupported or recursive type $tpe"))
       }
       val operationErrors = services.flatMap { service =>
-        val methodNames      = service.operations.map(op => conventions.functionName(op.id.name))
-        val duplicateMethods = methodNames
+        val methodNames         = service.operations.map(op => conventions.functionName(op.id.name))
+        val errorNameCollisions = service.operations
+          .map(op => operationErrorName(op.id, conventions))
+          .groupBy(identity)
+          .collect {
+            case (name, duplicates) if duplicates.size > 1 =>
+              error(s"duplicate operation error name '$name'; rename the operations")
+          }
+          .toList
+        val duplicateMethods    = methodNames
           .groupBy(identity)
           .collect {
             case (name, duplicates) if duplicates.size > 1 => error(s"duplicate operation method '$name'")
           }
           .toList
-        duplicateMethods ++ methodNames
+        errorNameCollisions ++ duplicateMethods ++ methodNames
           .filter(Set("new", "execute").contains)
           .map(name => error(s"reserved operation name '$name'")) ++
           service.operations.flatMap { operation =>

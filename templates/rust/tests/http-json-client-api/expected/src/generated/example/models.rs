@@ -73,6 +73,14 @@ pub struct NotFound {
     pub http_problem: super::http_problem::HttpProblem,
     #[serde(rename = "message", default, skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    #[serde(rename = "reason")]
+    pub reason: String,
+}
+
+#[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+pub struct OptionalNestedInput {
+    #[serde(rename = "payload", default, skip_serializing_if = "Option::is_none")]
+    pub body: Option<Item>,
 }
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, PartialEq)]

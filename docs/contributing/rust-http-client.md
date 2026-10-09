@@ -20,7 +20,8 @@ Run the standard entry point:
 ```
 
 The Rust target runs the shared golden suite, then Cargo tests against committed
-goldens and `cargo check --locked` against the freshly generated module. Its
+goldens and `cargo check --locked` plus the same wire tests against the freshly
+generated module. Its
 lockfile pins the complete dependency graph, and `rust-toolchain.toml` pins Rust
 1.93 with rustfmt/clippy. The dev shell supplies rustup (which installs that
 toolchain on first use); no Nix lockfile-wide Rust package upgrade is required.
@@ -41,3 +42,8 @@ sbtn 'generateGoldenTemplatesFor rust http-json-client-api'
 Keep protocol additions fail-closed until both generator negative tests and
 executable wire tests cover them. See [usage/limitations](../usage/rust-http-client.md)
 for the actual supported subset. Do not claim other targets' full parity.
+
+`TemplateView.resolutionModels` provides the complete planner resolution set for
+response models and recursive alias lookup; `usedTypes` remains the direct import
+set. The wire fixture covers service-error headers, named scalar response headers,
+optional nested bodies, and operation names that collide with runtime error names.

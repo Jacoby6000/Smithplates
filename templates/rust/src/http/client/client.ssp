@@ -1,6 +1,9 @@
 <%@ val ctx: com.jacoby6000.smithplates.http.service.renderer.HttpNeutralServiceTemplateAttributes.ServiceView %>
 <%
 val H = com.jacoby6000.smithplates.http.service.renderer.HttpNeutralServiceTemplateAttributes
+val resolutionModels = com.jacoby6000.smithplates.codegen.core.ModelSet(ctx.resolutionModels)
+def operationErrorType(operation: com.jacoby6000.smithplates.codegen.core.OperationModel[com.jacoby6000.smithplates.http.codegen.HttpOperationMeta]): String =
+  com.jacoby6000.smithplates.http.service.renderer.RustHttpCapabilities.internal.operationErrorName(operation.id, ctx.conventions)
 def quote(value: String): String = "\"" + value.flatMap {
   case '"' => "\\\""
   case '\\' => "\\\\"
@@ -16,12 +19,12 @@ def wireName(operation: com.jacoby6000.smithplates.codegen.core.OperationModel[c
     case com.jacoby6000.smithplates.codegen.core.SmithyNodeValue.StringValue(value) => value
   }.getOrElse(name)
 def responseArgs(id: com.jacoby6000.smithplates.codegen.core.ModelId, variant: Option[com.jacoby6000.smithplates.http.codegen.HttpResponseVariantMeta], success: Boolean = false): String = {
-  val structure = ctx.usedTypes.find(_.id == id).flatMap(_.asStructure)
+  val structure = resolutionModels.resolve(id).flatMap(_.asStructure)
   val headers = variant.toList.flatMap(_.headerBindings)
   val bindings = headers.map { case (name, header) =>
     val field = structure.toList.flatMap(_.fields).find(_.name == name).getOrElse(throw new IllegalArgumentException(s"missing response field $name"))
     val key = field.traits.find(_.id.name == "jsonName").map(_.value).collect { case com.jacoby6000.smithplates.codegen.core.SmithyNodeValue.StringValue(value) => value }.getOrElse(name)
-    val kind = com.jacoby6000.smithplates.http.service.renderer.RustHttpCapabilities.internal.headerKind(field.tpe, com.jacoby6000.smithplates.codegen.core.ModelSet(ctx.usedTypes))
+    val kind = com.jacoby6000.smithplates.http.service.renderer.RustHttpCapabilities.internal.headerKind(field.tpe, resolutionModels)
     s"(${quote(key)}, ${quote(header)}, ${quote(kind)})"
   }.mkString(", ")
   val staticHeaders = variant.toList.flatMap(_.staticHeaders).map { case (name, value) => s"(${quote(name)}, ${quote(value)})" }.mkString(", ")
@@ -51,7 +54,7 @@ impl Client {
 <% for (operation <- H.restOperations(ctx)) { %>
 <%
 val meta = operation.meta.feature
-val errorName = ctx.conventions.className(operation.id) + "Error"
+val errorName = operationErrorType(operation)
 val inputType = operation.input.map(modelName).getOrElse("serde_json::Value")
 val outputType = operation.output.map(modelName).getOrElse("()")
 val variants = H.clientResponseVariants(ctx, operation).filterNot(_.statusCode == meta.successStatus)
@@ -62,9 +65,9 @@ val staticHeaderLiteral = staticHeaders.map { case (name, value) => s"(${quote(n
 // a nestedProperties payload. Effective field traits retain the unwrapped JSON payload contract.
 val nestedPayload = operation.input.flatMap(ref => ctx.usedTypes.find(_.id == ref.id)).flatMap(_.asStructure).toList.flatMap(_.fields)
   .find(field => field.traits.exists(_.id.name == "httpPayload") && field.traits.exists(_.id.name == "nestedProperties"))
-val bodyLiteral = nestedPayload.map(field => s"runtime::Body::Nested(${quote(wireName(operation, field.name))})").getOrElse(meta.bodyBinding match {
+val bodyLiteral = nestedPayload.map(field => s"runtime::Body::Nested(${quote(wireName(operation, field.name))}, ${!field.tpe.isInstanceOf[com.jacoby6000.smithplates.codegen.core.NeutralType.OptionalT]})").getOrElse(meta.bodyBinding match {
   case com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta.None => "runtime::Body::None"
-  case nested: com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta.NestedDocument => s"runtime::Body::Nested(${quote(wireName(operation, nested.payloadMemberName))})"
+  case nested: com.jacoby6000.smithplates.http.codegen.HttpOperationBodyBindingMeta.NestedDocument => s"runtime::Body::Nested(${quote(wireName(operation, nested.payloadMemberName))}, true)"
   case _ => "runtime::Body::Document"
 })
 %>
@@ -127,7 +130,7 @@ case com.jacoby6000.smithplates.http.codegen.HttpInputMemberBindingMeta.PathLabe
 }
 
 <% for (operation <- H.restOperations(ctx)) { %>
-<% val errorName = ctx.conventions.className(operation.id) + "Error" %>
+<% val errorName = operationErrorType(operation) %>
 pub enum ${errorName} {
     Client(TransportError),
 <% for (variant <- H.clientResponseVariants(ctx, operation).filterNot(_.statusCode == operation.meta.feature.successStatus); id <- variant.modelShapeId) { %>

@@ -13,7 +13,7 @@ use smithplates.codegen.http#httpStaticHeader
 @auth([httpBearerAuth, httpApiKeyAuth, httpCookieAuth])
 service Catalog {
     version: "2026-10-09"
-    operations: [GetItem, PutItem, DeleteItem, Secured, Optional, ApiKey, Cookie, PutNested, ReadHeaders, ReadHeaderOnly]
+    operations: [GetItem, PutItem, DeleteItem, Secured, Optional, ApiKey, Cookie, PutNested, ReadHeaders, ReadHeaderOnly, PutOptionalNested, Transport]
     errors: [NotFound]
 }
 
@@ -71,7 +71,11 @@ union Choice { @jsonName("wireText") text: String, number: Integer }
 @error("client")
 @httpError(404)
 @httpProblem(type: "urn:problem:not-found", title: "Not found", code: 404)
-structure NotFound { message: String }
+structure NotFound {
+    message: String
+    @required @httpHeader("X-Reason") reason: Reason
+}
+string Reason
 
 @error("client")
 @httpError(409)
@@ -111,7 +115,7 @@ structure NestedInput {
 operation ReadHeaders { output: HeaderOutput }
 @httpStaticHeader(name: "X-Contract", value: "catalog")
 structure HeaderOutput {
-    @required @httpHeader("X-Count") count: Integer
+    @required @httpHeader("X-Count") count: Count
     @httpHeader("X-Trace") trace: String
     @required value: String
 }
@@ -121,3 +125,17 @@ structure HeaderOutput {
 @tags(["items"])
 operation ReadHeaderOnly { output: HeaderOnlyOutput }
 structure HeaderOnlyOutput { @required @httpHeader("X-Count") count: Long }
+integer Count
+
+@auth([])
+@http(method: "PUT", uri: "/optional-nested", code: 200)
+@tags(["items"])
+operation PutOptionalNested { input: OptionalNestedInput, output: Item }
+structure OptionalNestedInput {
+    @jsonName("payload") @httpPayload @nestedProperties body: Item
+}
+
+@auth([])
+@http(method: "GET", uri: "/transport", code: 200)
+@tags(["items"])
+operation Transport { output: Item }

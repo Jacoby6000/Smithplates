@@ -54,7 +54,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(ApiKeyError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -99,7 +99,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(CookieError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -142,7 +142,7 @@ impl Client {
             204 => Err(DeleteItemError::Client(TransportError::InvalidJson)),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -188,7 +188,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(GetItemError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -247,7 +247,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(OptionalError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -292,7 +292,7 @@ impl Client {
                 .unwrap_or_else(PutItemError::Client)),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -315,7 +315,7 @@ impl Client {
             method: "PUT",
             path: "/nested/{id}",
             bindings: &[runtime::Binding::Label("id", "id")],
-            body: runtime::Body::Nested("body"),
+            body: runtime::Body::Nested("body", true),
             static_headers: &[],
             operation_id: "example#PutNested",
             requires_auth: false,
@@ -334,7 +334,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(PutNestedError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -343,6 +343,50 @@ impl Client {
             _ => Err(PutNestedError::Client(TransportError::UnexpectedStatus(
                 response.status,
             ))),
+        }
+    }
+
+    pub async fn put_optional_nested(
+        &self,
+        input: &super::models::OptionalNestedInput,
+        timeout: Option<Duration>,
+    ) -> Result<super::models::Item, PutOptionalNestedError> {
+        let input = serde_json::to_value(input)
+            .map_err(|_| PutOptionalNestedError::Client(TransportError::InvalidJson))?;
+        let spec = runtime::RequestSpec {
+            method: "PUT",
+            path: "/optional-nested",
+            bindings: &[],
+            body: runtime::Body::Nested("payload", false),
+            static_headers: &[],
+            operation_id: "example#PutOptionalNested",
+            requires_auth: false,
+            auth: &[],
+        };
+        let response = runtime::execute(
+            &self.runtime,
+            spec,
+            input,
+            timeout,
+            self.auth_provider.as_deref(),
+        )
+        .await
+        .map_err(PutOptionalNestedError::Client)?;
+        match response.status {
+            200 => {
+                runtime::decode(&response, &[], &[], false).map_err(PutOptionalNestedError::Client)
+            }
+            404 => Err(runtime::decode(
+                &response,
+                &[("reason", "X-Reason", "string")],
+                &[("Content-Type", "application/problem+json")],
+                false,
+            )
+            .map(PutOptionalNestedError::NotFound)
+            .unwrap_or_else(PutOptionalNestedError::Client)),
+            _ => Err(PutOptionalNestedError::Client(
+                TransportError::UnexpectedStatus(response.status),
+            )),
         }
     }
 
@@ -375,7 +419,7 @@ impl Client {
                 .map_err(ReadHeaderOnlyError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -424,7 +468,7 @@ impl Client {
             .map_err(ReadHeadersError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -483,7 +527,7 @@ impl Client {
             200 => runtime::decode(&response, &[], &[], false).map_err(SecuredError::Client),
             404 => Err(runtime::decode(
                 &response,
-                &[],
+                &[("reason", "X-Reason", "string")],
                 &[("Content-Type", "application/problem+json")],
                 false,
             )
@@ -492,6 +536,48 @@ impl Client {
             _ => Err(SecuredError::Client(TransportError::UnexpectedStatus(
                 response.status,
             ))),
+        }
+    }
+
+    pub async fn transport(
+        &self,
+        timeout: Option<Duration>,
+    ) -> Result<super::models::Item, TransportOperationError> {
+        let input = serde_json::json!({});
+        let spec = runtime::RequestSpec {
+            method: "GET",
+            path: "/transport",
+            bindings: &[],
+            body: runtime::Body::None,
+            static_headers: &[],
+            operation_id: "example#Transport",
+            requires_auth: false,
+            auth: &[],
+        };
+        let response = runtime::execute(
+            &self.runtime,
+            spec,
+            input,
+            timeout,
+            self.auth_provider.as_deref(),
+        )
+        .await
+        .map_err(TransportOperationError::Client)?;
+        match response.status {
+            200 => {
+                runtime::decode(&response, &[], &[], false).map_err(TransportOperationError::Client)
+            }
+            404 => Err(runtime::decode(
+                &response,
+                &[("reason", "X-Reason", "string")],
+                &[("Content-Type", "application/problem+json")],
+                false,
+            )
+            .map(TransportOperationError::NotFound)
+            .unwrap_or_else(TransportOperationError::Client)),
+            _ => Err(TransportOperationError::Client(
+                TransportError::UnexpectedStatus(response.status),
+            )),
         }
     }
 }
@@ -652,6 +738,28 @@ impl std::fmt::Display for PutNestedError {
 
 impl std::error::Error for PutNestedError {}
 
+pub enum PutOptionalNestedError {
+    Client(TransportError),
+    NotFound(super::models::NotFound),
+}
+
+impl std::fmt::Debug for PutOptionalNestedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Client(error) => std::fmt::Debug::fmt(error, f),
+            Self::NotFound(_) => f.write_str("NotFound"),
+        }
+    }
+}
+
+impl std::fmt::Display for PutOptionalNestedError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for PutOptionalNestedError {}
+
 pub enum ReadHeaderOnlyError {
     Client(TransportError),
     NotFound(super::models::NotFound),
@@ -717,3 +825,25 @@ impl std::fmt::Display for SecuredError {
 }
 
 impl std::error::Error for SecuredError {}
+
+pub enum TransportOperationError {
+    Client(TransportError),
+    NotFound(super::models::NotFound),
+}
+
+impl std::fmt::Debug for TransportOperationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Client(error) => std::fmt::Debug::fmt(error, f),
+            Self::NotFound(_) => f.write_str("NotFound"),
+        }
+    }
+}
+
+impl std::fmt::Display for TransportOperationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(self, f)
+    }
+}
+
+impl std::error::Error for TransportOperationError {}
