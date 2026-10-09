@@ -7,6 +7,18 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 class CodegenTemplateTestDiscoverySpec extends FunSuite {
+  test("discovers Rust grouped module goldens") {
+    val variant = CodegenTemplateVariant("rust", "http", "client")
+    val cases   =
+      CodegenTemplateTestDiscovery.discover(CodegenTemplateTestDiscoverySpec.internal.repoRoot, "rust", Set(variant))
+    assertEquals(cases.map(_.name), List("http-json-client-api"))
+    assertEquals(
+      cases.head.expectedOutputsByVariant.getOrElse(variant, Nil).map(_.relativePath).toSet,
+      Set("mod.rs", "models.rs", "client.rs", "runtime.rs", "http_problem.rs")
+        .map(name => s"src/generated/example/$name")
+    )
+  }
+
   test("discovers language template fixture cases") {
     val cases =
       CodegenTemplateTestDiscovery.discover(

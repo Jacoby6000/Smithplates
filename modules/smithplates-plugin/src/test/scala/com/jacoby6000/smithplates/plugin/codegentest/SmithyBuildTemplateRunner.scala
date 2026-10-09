@@ -69,6 +69,7 @@ object SmithyBuildTemplateRunner {
           label,
           startedAt
         )
+        RustCodegenRustfmtFormatter.format(outputDirectory, PythonCodegenRuffFormatter.inferRepoRoot(caseDirectory))
         logPhase("finished")
         Right(outputDirectory)
       }

@@ -57,6 +57,7 @@ The `smithplates` plugin (`com.jacoby6000:smithplates-plugin`) is a Smithy build
 | **SQL database service codegen** | Query models, repository interfaces, dialect-specific implementations, migration runners, and derived-query integration tests | Python |
 | **HTTP service codegen** | FastAPI route modules, service protocols, app wiring, WebSocket routes (`@websocket`), response helpers, and problem+json errors | Python |
 | **HTTP client codegen** | Route-group clients, registries, operation bindings, WebSocket clients | Python (httpx); TypeScript (axios or fetch) |
+| **Rust HTTP client codegen** | Async reqwest JSON client, serde models, typed errors | [Bounded Rust subset](docs/usage/rust-http-client.md), no WebSockets |
 
 **New consumer?** Start with [Getting started](docs/usage/getting-started.md).
 

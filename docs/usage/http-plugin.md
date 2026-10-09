@@ -1,5 +1,8 @@
 # HTTP plugin
 
+For bundled Rust async reqwest clients, see [Rust configuration, usage and
+limitations](rust-http-client.md). Rust has no bundled server or WebSocket target.
+
 Smithplates HTTP codegen turns Smithy `@httpService` models into:
 
 - **Python/FastAPI** server wiring (route groups, protocols, app factory, WebSockets);

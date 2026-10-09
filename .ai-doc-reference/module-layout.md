@@ -49,6 +49,12 @@ Full design: [`docs/contributing/architecture.md#template-precompilation`](../do
 
 ## Codegen templates
 
+The bounded Rust async reqwest client ships under `templates/rust/src/http/`.
+It uses the same HTTP renderer, neutral grouped-model subjects, JSON decks and
+precompiled SSP machinery. Its serde models are flat and each output entry must
+select one service. See `docs/contributing/rust-http-client.md` for its capability
+gate and locked execution harness.
+
 `@sqlService` Python DB codegen and `@httpService` codegen (Python FastAPI/httpx
 + TypeScript axios/fetch clients, including WebSockets) use Scalate SSP templates
 under [`templates/<language>/src/<feature>/`](../templates/) with an `outputs.json`

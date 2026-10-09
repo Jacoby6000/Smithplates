@@ -36,17 +36,27 @@ case "${target}" in
   python/api/fastapi)
     echo "==> Python template golden tests (api fastapi; full suite run)"
     ;;
-  all)
-    echo "==> Python template golden tests (all variants)"
+  all|rust)
+    echo "==> Shared template golden tests (all language variants)"
     ;;
   *)
     if smithystache_validate_target_is_python "${target}"; then
       echo "==> Python template golden tests"
     else
-      echo "error: template golden tests require a python validate target (got ${target})" >&2
+      echo "error: template golden tests require a python or rust validate target (got ${target})" >&2
       exit 2
     fi
     ;;
 esac
 
-sbtn "smithplatesPlugin/testOnly ${suite}"
+# Some experimental thin-client startup failures print a JVM exception but return
+# zero. Require the MUnit completion summary as well as a successful exit so a
+# failed connection cannot silently skip generation/comparison and run stale output.
+mkdir -p "${ROOT}/target"
+log="$(mktemp "${ROOT}/target/template-golden-tests.XXXXXX")"
+trap 'rm -f "${log}"' EXIT
+sbtn "smithplatesPlugin/testOnly ${suite}" 2>&1 | tee "${log}"
+if ! grep -Eq 'Passed: Total [1-9][0-9]*, Failed 0, Errors 0,' "${log}"; then
+  echo "error: template golden tests did not report successful completion" >&2
+  exit 1
+fi
