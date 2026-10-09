@@ -14,22 +14,15 @@ from generated.example.models.shipment_repository_models import (
 )
 from generated.example.postgres.psycopg_migrations import PsycopgMigrationService
 from generated.example.postgres.shipment_repository_psycopg import ShipmentRepositoryPsycopgService
-from testcontainers.postgres import PostgresContainer
 
 MIGRATIONS_DIRECTORY = Path(__file__).resolve().parents[3] / "db" / "migrations" / "postgres"
 
 
 @pytest_asyncio.fixture
 async def shipment_repository_service(
-    postgres_container: PostgresContainer,
+    postgres_dsn: str,
 ) -> AsyncIterator[ShipmentRepositoryPsycopgService]:
-    connection = await psycopg.AsyncConnection.connect(
-        host=postgres_container.get_container_host_ip(),
-        port=int(postgres_container.get_exposed_port(5432)),
-        user=postgres_container.username,
-        password=postgres_container.password,
-        dbname=postgres_container.dbname,
-    )
+    connection = await psycopg.AsyncConnection.connect(postgres_dsn)
     migration_service = PsycopgMigrationService(connection, migrations_directory=MIGRATIONS_DIRECTORY)
     await migration_service.migrate_all()
     await connection.commit()

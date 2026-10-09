@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Generated PostgreSQL integration tests accept `SMITHPLATES_TEST_POSTGRES_DSN`
+  for an existing test server, with a disposable database per module and a
+  Testcontainers fallback when omitted.
+
 ## [0.8.1] - 2026-09-12
 
 ### Fixed
