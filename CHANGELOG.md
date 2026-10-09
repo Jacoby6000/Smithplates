@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-09
+
 ### Added
 
 - Generated PostgreSQL integration tests accept `SMITHPLATES_TEST_POSTGRES_DSN`
@@ -308,7 +310,8 @@ WebSockets, and related generated-output fixes.
 Previous stable release before the language-neutral codegen epic.
 See git history `v0.2.5` for the full 0.2.x line.
 
-[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/Jacoby6000/Smithplates/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/Jacoby6000/Smithplates/compare/v0.7.1...v0.8.0
 [0.7.1]: https://github.com/Jacoby6000/Smithplates/compare/v0.7.0...v0.7.1
