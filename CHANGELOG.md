@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Python SQL joined reads emit scalar decoders needed by nested records, even
+  when no root field uses the same scalar type.
+
 ## [0.8.1] - 2026-09-12
 
 ### Fixed
