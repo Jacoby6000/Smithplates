@@ -40,8 +40,11 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
       |}
       |""".stripMargin
 
-  private def buildServiceView(dialectKey: String): SqlNeutralServiceTemplateAttributes.ServiceView = {
-    val model      = SqlTestModelBuilder.assemble(documentRecordSmithy)
+  def buildServiceView(
+      dialectKey: String,
+      smithy: String = documentRecordSmithy
+  ): SqlNeutralServiceTemplateAttributes.ServiceView = {
+    val model      = SqlTestModelBuilder.assemble(smithy)
     val extraction = SqlModelExtractor.extractOrThrow(model)
     val backend    =
       dialectKey match {
@@ -84,6 +87,27 @@ class SqlCodegenHelperAttributesSpec extends munit.FunSuite {
 
     assert(SqlNeutralServiceTemplateAttributes.documentUsedAsJson(view))
     assert(SqlNeutralServiceTemplateAttributes.documentUsedAsJsonCol(view))
+  }
+
+  test("collection-only JSON imports and scalar helpers are discovered before Python formatting") {
+    val smithy   = documentRecordSmithy
+      .replace(
+        "use smithplates.codegen.sql#sqlTable",
+        "use smithplates.codegen.sql#sqlTable\nuse smithplates.codegen.sql#sqlJson")
+      .replace("payload: Document", "@sqlJson\n    payload: Instants") + "\nlist Instants { member: Timestamp }\n"
+    val postgres = buildServiceView("postgres", smithy)
+    val sqlite   = buildServiceView("sqlite", smithy)
+    assert(!SqlNeutralServiceTemplateAttributes.importRequirements(postgres).needsJsonImport)
+    assert(SqlNeutralServiceTemplateAttributes.importRequirements(sqlite).needsJsonImport)
+    assert(SqlNeutralServiceTemplateAttributes.importRequirements(postgres).needsDatetimeImports)
+    assert(SqlNeutralServiceTemplateAttributes.jsonMappingUsesTimestamp(postgres))
+    val imports  = ScalateSspTemplateEngine.renderClasspathPartial(
+      SspFragmentsSpec.internal.templateRoot,
+      "fragments/helpers/imports_postgres",
+      Map("ctx" -> postgres)
+    )
+    assert(imports.contains("from psycopg.types.json import Jsonb"))
+    assert(!imports.contains("import json"))
   }
 
   test("documentUsedAsJson - false when no Document JSON columns are used") {

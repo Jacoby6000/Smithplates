@@ -5,7 +5,7 @@ import software.amazon.smithy.model.shapes.ShapeId
 
 class SqlShapeGraphSpec extends FunSuite {
   test("SqlShapeIrExtractor closes nested collections and transitively referenced unions") {
-    val model = SqlTestModelBuilder.assemble(
+    val model                = SqlTestModelBuilder.assemble(
       """
         |structure Root { @required values: OuterList }
         |list OuterList { member: ValueMap }
@@ -18,7 +18,7 @@ class SqlShapeGraphSpec extends FunSuite {
     val (structures, unions) = SqlShapeGraph.referencedShapes(model, List(ShapeId.from("example#Root")))
     assertEquals(structures.map(_.getName).toSet, Set("Root", "Leaf"))
     assertEquals(unions.map(_.getName).toSet, Set("OuterChoice", "InnerChoice"))
-    val extracted = SqlShapeIrExtractor.extract(model, List(ShapeId.from("example#Root"))).toOption.get
+    val extracted            = SqlShapeIrExtractor.extract(model, List(ShapeId.from("example#Root"))).toOption.get
     assertEquals(extracted.structures.map(_.name).toSet, Set("Root", "Leaf"))
     assertEquals(extracted.unions.map(_.name).toSet, Set("OuterChoice", "InnerChoice"))
   }
