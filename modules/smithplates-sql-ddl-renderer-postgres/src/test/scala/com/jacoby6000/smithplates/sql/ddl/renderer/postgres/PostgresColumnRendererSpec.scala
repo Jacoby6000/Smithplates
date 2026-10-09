@@ -113,8 +113,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
       columnType = SqlColumnType.Timestamp(SqlTimestampFormat.DateTime),
       nullable = false
     ),
-    "TIMESTAMP NOT NULL",
-    "TIMESTAMP"
+    "TIMESTAMPTZ NOT NULL",
+    "TIMESTAMPTZ"
   )
 
   PostgresColumnRendererSpec.internal.validateColumnRender(
@@ -138,8 +138,8 @@ final class PostgresColumnRendererSpec extends FunSuite {
       nullable = false,
       autoGeneration = Some(SqlCreatedTimestamp)
     ),
-    "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP",
-    "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    "TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP",
+    "TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP"
   )
 
   PostgresColumnRendererSpec.internal.validateColumnRender(

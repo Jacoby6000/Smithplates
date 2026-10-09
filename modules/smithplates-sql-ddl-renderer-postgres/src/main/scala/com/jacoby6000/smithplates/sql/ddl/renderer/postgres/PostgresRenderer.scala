@@ -82,7 +82,7 @@ object PostgresRenderer extends SqlSchemaDdlRenderer {
           case SqlColumnType.Uuid                 => "UUID"
           case SqlColumnType.Timestamp(format)    =>
             format match {
-              case SqlTimestampFormat.DateTime     => "TIMESTAMP"
+              case SqlTimestampFormat.DateTime     => "TIMESTAMPTZ"
               case SqlTimestampFormat.EpochSeconds => SqlShared.postgresEpochSecondsSqlType
             }
           case SqlColumnType.Boolean              => "BOOLEAN"
