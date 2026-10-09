@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their transitive dump/map helpers.
 - Python SQL JSON helpers discover nested union/collection dependencies, preserve
   nullable nested members, and round-trip timestamp, decimal, and blob collections.
+- Python SQL joined reads emit scalar decoders needed by nested records, even
+  when no root field uses the same scalar type.
 - Rust clients preserve static request headers when input/output structures are
   reused, and reject response payload wrappers even when response headers are present.
 - Rust clients resolve service-error and aliased response headers, allow omitted
