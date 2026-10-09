@@ -30,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Rust clients resolve service-error and aliased response headers, allow omitted
   optional nested JSON payloads, disambiguate runtime/operation error names, and
   reject shared problem wire-field collisions introduced by `@jsonName`.
+- Rust clients require exactly one matching value for static response headers,
+  rejecting duplicate headers even when the first value matches.
 - HTTP decks now copy non-SSP template resources verbatim, matching SQL decks.
 - Golden refresh no longer runs both the root delegate and its aggregated task
   concurrently against the same fixture directory.
