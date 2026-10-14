@@ -22,7 +22,7 @@ INPUTS = sorted(("flake.lock", "flake.nix", "build.sbt",
                  ".github/actions/setup-validate/action.yml",
                  "scripts/ci-nix-cache.py", "scripts/test-ci-nix-cache.py"))
 FILES = {"closure.nar.gz", "paths.txt", "manifest.json"}
-PATH = re.compile(r"/nix/store/[0-9abcdfghijklmnpqrsvwxyz]{32}-[A-Za-z0-9+._?=-]+\Z")
+PATH = re.compile(r"/nix/store/[0-9abcdfghijklmnpqrsvwxyz]{32}-[A-Za-z0-9+._?=-]{1,211}\Z")
 GIB = 1024 ** 3
 MAX_PATHS, MAX_NAR, MAX_PATH, MAX_ARCHIVE = 4096, 6 * GIB, GIB, 2 * GIB
 MAX_METADATA, TIMEOUT, RESERVE = 1024 ** 2, 600, 2 * GIB
@@ -230,8 +230,11 @@ def restore():
 def realize():
     base, _ = owned()
     # This is mandatory even on a miss, rejected cache, or unsuccessful probe.
+    # Linux CI: exec /proc/self/exe reuses the interpreter selected by Nix, even
+    # when the captured build environment overwrites SHELL with builder Bash.
+    # The trailing builtin keeps that interpreter alive while readlink runs.
     subprocess.run(["nix", "develop", "--no-write-lock-file", "--profile", str(base / "profile"),
-                    "--command", "bash", "-c", 'printf "%s\\n" "$SHELL" > "$1"',
+                    "--command", "/proc/self/exe", "-c", 'readlink "/proc/$$/exe" > "$1"; :',
                     "bash", str(base / "shell")], cwd=ROOT, check=True, timeout=1800)
     status("current shell realized; validation commands still run fresh")
 

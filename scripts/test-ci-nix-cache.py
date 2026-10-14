@@ -132,7 +132,8 @@ class CacheTests(unittest.TestCase):
     def test_path_traversal_duplicates_count_and_roots(self):
         self.fixture()
         for paths in ([self.paths[0], self.paths[0]], ["/etc/passwd"],
-                      [self.paths[0] + "/../../etc"], list(reversed(self.paths)), []):
+                      [self.paths[0] + "/../../etc"], [self.paths[0] + "x" * 212],
+                      list(reversed(self.paths)), []):
             (self.artifacts / "paths.txt").write_text("\n".join(paths) + "\n")
             self.reject()
         with patch.object(cache, "MAX_PATHS", 1):
@@ -278,6 +279,18 @@ class CacheTests(unittest.TestCase):
         mandatory = action.split("- name: Realize current Nix shell (mandatory)")[1].split("- name:")[0]
         self.assertNotIn("continue-on-error", mandatory)
         self.assertIn("if: inputs.backend == 'nix'", mandatory)
+
+    def test_selected_interpreter_not_overwritten_shell_variable(self):
+        # Actual Linux exec semantics, not a claim about Nix or daemon import.
+        destination = self.parent / "interpreter"
+        with patch.object(cache.subprocess, "run") as runner:
+            cache.realize()
+            command = runner.call_args.args[0]
+        selected_command = command[command.index("--command") + 1:]
+        selected_command[-1] = str(destination)
+        subprocess.run(["bash", "-c", 'exec "$@"', "bash", *selected_command],
+                       env=dict(os.environ, SHELL="/not/the/selected/interpreter"), check=True)
+        self.assertEqual(Path(destination.read_text().strip()).resolve(), Path("/bin/bash").resolve())
 
     def test_save_only_main_push_and_no_immutable_replacement(self):
         with patch.object(cache, "run", return_value=f"nix (Nix) {cache.VERSION}"):
