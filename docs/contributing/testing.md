@@ -15,6 +15,20 @@ Use `./validate` from the repository root:
 
 `./validate` uses Nix when available and falls back to Docker when needed.
 
+The Docker CI smoke job also runs `bash scripts/tests/docker-image-cache.sh`.
+This cheap regression suite exercises the production build/export/load helpers
+with fake Docker commands; it does not require a Docker daemon or Nix build.
+The versioned image cache stores a gzip archive and fixed data-only metadata
+binding its producer input hash, image ID, platform and archive checksum.
+The hash covers the Dockerfile, `.dockerignore`, copied dev-shell inputs
+(`flake.nix`, `flake.lock`, `build.sbt`), platform and cache helper scripts.
+Only verified metadata can restore the local producer marker. Legacy, missing,
+stale, malformed or corrupt caches rebuild; they never stamp current inputs onto
+an unverified image. An exact cache hit skips only the image build, not dev-shell
+parity/backend checks or the ordinary validation tests. Dependency/tooling cache
+restoration is not a cached validation verdict, and image reuse does not prove
+registry availability for integration-test images.
+
 ## Choosing what to run
 
 | Change type | Minimum focused checks | Broader checks before PR |

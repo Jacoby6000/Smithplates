@@ -36,10 +36,7 @@ runs:
       id: docker-image-cache
       with:
         path: /tmp/docker-image-cache
-        key: smithystache-docker-gz-${{ hashFiles('Dockerfile', '.dockerignore', 'flake.lock', 'flake.nix', 'build.sbt') }}
-        restore-keys: |
-          smithystache-docker-gz-
-          smithystache-docker-
+        key: smithystache-docker-v2-linux-amd64-${{ hashFiles('Dockerfile', '.dockerignore', 'flake.lock', 'flake.nix', 'build.sbt', 'scripts/lib/docker-image.sh', 'scripts/ci-docker-export-image.sh', 'scripts/ci-docker-load-image.sh') }}
 
     - name: Load Docker test image
       if: (inputs.backend == 'docker' || inputs.docker-image-cache == 'true') && steps.docker-image-cache.outputs.cache-hit == 'true'

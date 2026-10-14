@@ -8,6 +8,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+echo "==> Docker image cache protocol regressions (fake Docker)"
+bash ./scripts/tests/docker-image-cache.sh
+
 # shellcheck source=scripts/lib/docker-image.sh
 source "${ROOT}/scripts/lib/docker-image.sh"
 # shellcheck source=scripts/lib/validate-backend.sh
