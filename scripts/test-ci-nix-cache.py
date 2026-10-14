@@ -270,6 +270,16 @@ class CacheTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     cache.tooling()
 
+    def test_export_budgets_actions_temporary_tar_before_starting(self):
+        with patch.object(cache, "can_save", return_value=True), \
+                patch.object(cache, "tooling", return_value=(self.paths, self.paths, {})), \
+                patch.object(cache.subprocess, "Popen") as exporter, \
+                patch.object(cache.shutil, "disk_usage", return_value=type("Disk", (), {"free": 2 * cache.MAX_ARCHIVE + cache.RESERVE})()):
+            with self.assertRaisesRegex(ValueError, "Actions tar"):
+                cache.export()
+            exporter.assert_not_called()
+            self.assertEqual(list(self.artifacts.iterdir()), [])
+
     def test_fallback_mandatory_and_failure_not_swallowed(self):
         with patch.object(cache.subprocess, "run", side_effect=subprocess.CalledProcessError(1, "nix")) as runner:
             with self.assertRaises(subprocess.CalledProcessError):

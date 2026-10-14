@@ -263,7 +263,8 @@ def tooling():
     sizes = path_sizes(paths)
     sizes_valid(sizes, paths)
     status(f"tooling closure paths={len(paths)} nar_bytes={sum(sizes.values())} largest={max(sizes.values())} "
-           f"roots={','.join(roots)} self_source_excluded=true derivations_excluded=true")
+           f"roots={','.join(roots)} self_source_excluded=true derivations_excluded=true "
+           f"staging_free={shutil.disk_usage(base).free} store_free={shutil.disk_usage('/nix/store').free}")
     return roots, paths, sizes
 
 
@@ -276,7 +277,10 @@ def export():
         return
     # Do not overwrite any restored bytes, including invalid or prefix entries.
     require(not list(artifacts.iterdir()), "nonempty staging; export skipped")
-    require(shutil.disk_usage(artifacts).free >= MAX_ARCHIVE + RESERVE, "staging free-space budget")
+    # actions/cache creates another temporary tar of these files. Budget both
+    # copies plus reserve, including the two metadata files and tar overhead.
+    require(shutil.disk_usage(artifacts).free >= 2 * (MAX_ARCHIVE + 3 * MAX_METADATA) + RESERVE,
+            "staging free-space budget (archive + Actions tar + reserve)")
     run("nix-store", "--check-validity", *paths)
     temporary = artifacts / "closure.tmp"
     decoded = 0

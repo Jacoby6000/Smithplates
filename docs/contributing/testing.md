@@ -60,8 +60,10 @@ cleanup runs before the Docker job's existing export/GC lifecycle.
 
 Initial limits are 4,096 paths, 6 GiB summed NAR bytes, 1 GiB per path, 2 GiB
 compressed, 1 MiB metadata, ten minutes per transport operation, and 3 GiB importer
-address space. Streaming and free-space checks bound staging/store use. Limits
-are guardrails, not measurements; CI logs selected counts/sizes and free bytes.
+address space. Streaming and free-space checks reserve room for both the archive
+and Actions' temporary tar, plus 2 GiB spare
+(at least 6 GiB + 6 MiB free before export).
+These are guardrails, not measurements; CI logs selected counts/sizes and free bytes.
 Oversize export is an optimization failure, never permission to raise quotas or GC.
 
 `python3 scripts/test-ci-nix-cache.py` exercises the production helper with stubs;
