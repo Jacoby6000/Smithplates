@@ -29,6 +29,58 @@ parity/backend checks or the ordinary validation tests. Dependency/tooling cache
 restoration is not a cached validation verdict, and image reuse does not prove
 registry availability for integration-test images.
 
+### Nix tooling cache
+
+CI installs Nix 2.24.9 with the existing installer/daemon settings. It restores
+only three user-owned staging files (`closure.nar.gz`, `paths.txt`, `manifest.json`)
+using pinned `actions/cache/restore`, then registers paths with ordinary
+`nix-store --import`. Tar never restores `/nix`, its database, or profiles.
+
+**Trust:** the installer already makes the runner a trusted daemon client.
+Legacy Nix exports omit official signatures; normal import uses that existing
+authority. Archive hashes, NAR parsing, and path verification establish integrity,
+not producer authentication. Only main push jobs save this format. GitHub's cache
+ACLs restrict producers and allow PRs to read main caches; other trusted main
+workflows remain inside this trust boundary. No signing policy or daemon trust
+setting is changed. Never put credentials or private source in this public cache.
+
+The exact-only `smithplates-nix-nar-v1` key includes repository, OS/architecture,
+Nix version, and sorted named hashes of the lock, flake, `build.sbt`, setup action,
+transport helper, and its tests. There are no prefix/legacy fallbacks. An invalid
+immutable exact entry is not overwritten or deleted. Version mismatch, backend
+failure, corrupt/oversized data, partial imports, and failed readiness probes fall
+back to the mandatory current-flake realization. Already registered prefixes from
+a failed import are retained, not repaired or deleted.
+
+Only the realized dev-shell environment and its selected interactive Bash runtime
+closure are eligible. The helper rejects the repository's self store path,
+`*-source` paths and derivations. It does not export build targets, test results,
+profiles, configuration, secrets, or mutable dependency caches. Staging/profile
+cleanup runs before the Docker job's existing export/GC lifecycle.
+
+Initial limits are 4,096 paths, 6 GiB summed NAR bytes, 1 GiB per path, 2 GiB
+compressed, 1 MiB metadata, ten minutes per transport operation, and 3 GiB importer
+address space. Streaming and free-space checks reserve room for both the archive
+and Actions' temporary tar, plus 2 GiB spare
+(at least 6 GiB + 6 MiB free before export).
+These are guardrails, not measurements; CI logs selected counts/sizes and free bytes.
+Oversize export is an optimization failure, never permission to raise quotas or GC.
+
+`python3 scripts/test-ci-nix-cache.py` exercises the production helper with stubs;
+it proves neither daemon trust nor warm reuse. Setup separately builds a random
+tiny unsigned fixture, exports it, deletes **only that fixture**, imports it through
+the installed daemon without overrides, verifies it, and removes it. This tests
+new registration rather than import of an already-present path.
+
+`warm-store-ready` requires exact backend restoration, successful import and path
+verification, and a current-flake `nix develop --max-jobs 0 --option substitute
+false` probe. It does not promise network-free evaluation. Normal realization
+and every validation target still run; a dev shell is not a cached Nix check.
+The first approved main run must log its cold export and explicit backend saved
+key. A green save step alone is insufficient. A later natural eligible run must
+demonstrate exact restoration and no-build readiness before claiming cross-run
+warm reuse. PRs cannot populate this production cache.
+
 ## Choosing what to run
 
 | Change type | Minimum focused checks | Broader checks before PR |

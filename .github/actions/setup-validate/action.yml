@@ -19,16 +19,70 @@ runs:
   steps:
     - name: Install Nix
       if: inputs.backend == 'nix'
-      uses: cachix/install-nix-action@v30
+      uses: cachix/install-nix-action@08dcb3a5e62fa31e2da3d490afc4176ef55ecd72 # v30
       with:
+        install_url: https://releases.nixos.org/nix/nix-2.24.9/install
         extra_nix_config: |
           experimental-features = nix-command flakes
 
-    - name: Cache Nix store
+    - name: Test Nix cache mechanics (stub tests, not warm-store proof)
       if: inputs.backend == 'nix'
-      uses: nix-community/cache-nix-action@v6
+      shell: bash
+      run: python3 scripts/test-ci-nix-cache.py
+
+    - name: Prepare owned Nix cache staging
+      if: inputs.backend == 'nix'
+      id: nix-cache
+      shell: bash
+      run: python3 scripts/ci-nix-cache.py prepare
+
+    - name: Restore Nix tooling archive
+      if: inputs.backend == 'nix' && steps.nix-cache.outputs.enabled == 'true'
+      id: nix-restore
+      continue-on-error: true
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
-        primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+        path: ${{ steps.nix-cache.outputs.path }}
+        key: ${{ steps.nix-cache.outputs.key }}
+
+    - name: Verify and import exact tooling archive
+      if: inputs.backend == 'nix' && steps.nix-cache.outputs.enabled == 'true'
+      shell: bash
+      env:
+        CACHE_MATCHED_KEY: ${{ steps.nix-restore.outputs.cache-matched-key }}
+        CACHE_RESTORE_OUTCOME: ${{ steps.nix-restore.outcome }}
+      run: python3 scripts/ci-nix-cache.py restore
+
+    - name: Realize current Nix shell (mandatory)
+      if: inputs.backend == 'nix'
+      shell: bash
+      run: python3 scripts/ci-nix-cache.py realize
+
+    - name: Test existing daemon unsigned-import authority
+      if: inputs.backend == 'nix' && steps.nix-cache.outputs.enabled == 'true'
+      shell: bash
+      run: python3 scripts/ci-nix-cache.py smoke
+
+    - name: Inspect tooling closure; export only on main push
+      if: inputs.backend == 'nix' && steps.nix-cache.outputs.enabled == 'true'
+      id: nix-export
+      shell: bash
+      env:
+        CACHE_MATCHED_KEY: ${{ steps.nix-restore.outputs.cache-matched-key }}
+      run: python3 scripts/ci-nix-cache.py export
+
+    - name: Save Nix tooling archive (attempt, check backend log)
+      if: inputs.backend == 'nix' && github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.nix-export.outputs.ready == 'true'
+      continue-on-error: true
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ${{ steps.nix-cache.outputs.path }}
+        key: ${{ steps.nix-cache.outputs.key }}
+
+    - name: Remove owned Nix archive and profile before Docker export
+      if: always() && inputs.backend == 'nix' && steps.nix-cache.outcome == 'success'
+      shell: bash
+      run: python3 scripts/ci-nix-cache.py cleanup
 
     - name: Restore Docker test image cache
       if: inputs.backend == 'docker' || inputs.docker-image-cache == 'true'
